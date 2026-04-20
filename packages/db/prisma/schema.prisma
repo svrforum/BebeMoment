@@ -1,0 +1,310 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../node_modules/.prisma/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email           String?   @unique
+  emailVerified   Boolean   @default(false) @map("email_verified")
+  passwordHash    String?   @map("password_hash")
+  displayName     String    @map("display_name")
+  avatarPath      String?   @map("avatar_path")
+  locale          String    @default("ko")
+  timezone        String    @default("Asia/Seoul")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  memberships       Membership[]
+  sessions          Session[]
+  oidcIdentities    OidcIdentity[]
+  createdFamilies   Family[]         @relation("CreatedBy")
+  sentInvites       Invite[]         @relation("InvitedBy")
+  acceptedInvites   Invite[]         @relation("AcceptedBy")
+  uploadedAssets    Asset[]
+  taggedAssets      AssetBaby[]
+  updatedSettings   AppSetting[]     @relation("SettingUpdatedBy")
+  settingHistory    SettingHistory[]
+
+  @@map("users")
+}
+
+model Session {
+  id               String    @id
+  userId           String    @map("user_id") @db.Uuid
+  currentFamilyId  String?   @map("current_family_id") @db.Uuid
+  expiresAt        DateTime  @map("expires_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+
+  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family  Family? @relation(fields: [currentFamilyId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@map("sessions")
+}
+
+model OidcProvider {
+  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                    String
+  issuer                  String
+  clientId                String   @map("client_id")
+  clientSecretEnc         String   @map("client_secret_enc")
+  authorizationEndpoint   String?  @map("authorization_endpoint")
+  tokenEndpoint           String?  @map("token_endpoint")
+  userinfoEndpoint        String?  @map("userinfo_endpoint")
+  jwksUri                 String?  @map("jwks_uri")
+  scopes                  String[] @default(["openid", "email", "profile"])
+  enabled                 Boolean  @default(true)
+  lockedByEnv             Boolean  @default(false) @map("locked_by_env")
+  createdAt               DateTime @default(now()) @map("created_at")
+  updatedAt               DateTime @updatedAt @map("updated_at")
+
+  identities OidcIdentity[]
+
+  @@map("oidc_providers")
+}
+
+model OidcIdentity {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  providerId String   @map("provider_id") @db.Uuid
+  subject    String
+  email      String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  provider OidcProvider @relation(fields: [providerId], references: [id], onDelete: Cascade)
+
+  @@unique([providerId, subject])
+  @@map("oidc_identities")
+}
+
+model Family {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name            String
+  slug            String    @unique
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  createdBy   User          @relation("CreatedBy", fields: [createdByUserId], references: [id])
+  memberships Membership[]
+  invites     Invite[]
+  babies      Baby[]
+  assets      Asset[]
+  sessions    Session[]
+
+  @@map("families")
+}
+
+model Membership {
+  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId  String    @map("family_id") @db.Uuid
+  userId    String    @map("user_id") @db.Uuid
+  role      Role
+  joinedAt  DateTime  @default(now()) @map("joined_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
+
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([familyId, userId])
+  @@index([userId])
+  @@map("memberships")
+}
+
+enum Role {
+  owner
+  guardian
+  family
+  @@map("role")
+}
+
+model Invite {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId      String    @map("family_id") @db.Uuid
+  invitedById   String    @map("invited_by_id") @db.Uuid
+  email         String
+  role          InviteRole
+  token         String    @unique
+  expiresAt     DateTime  @map("expires_at")
+  acceptedAt    DateTime? @map("accepted_at")
+  acceptedById  String?   @map("accepted_by_id") @db.Uuid
+  revokedAt     DateTime? @map("revoked_at")
+  createdAt     DateTime  @default(now()) @map("created_at")
+
+  family     Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  invitedBy  User   @relation("InvitedBy", fields: [invitedById], references: [id])
+  acceptedBy User?  @relation("AcceptedBy", fields: [acceptedById], references: [id])
+
+  @@index([familyId])
+  @@map("invites")
+}
+
+enum InviteRole {
+  guardian
+  family
+  @@map("invite_role")
+}
+
+model Baby {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  name            String
+  birthDate       DateTime  @map("birth_date") @db.Date
+  birthTime       String?   @map("birth_time")
+  gender          Gender?
+  profileAssetId  String?   @map("profile_asset_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family        Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  profileAsset  Asset?      @relation("BabyProfile", fields: [profileAssetId], references: [id], onDelete: SetNull)
+  assetBabies   AssetBaby[]
+
+  @@index([familyId])
+  @@map("babies")
+}
+
+enum Gender {
+  male
+  female
+  other
+  unspecified
+  @@map("gender")
+}
+
+model Asset {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId                String    @map("family_id") @db.Uuid
+  uploadedByUserId        String    @map("uploaded_by_user_id") @db.Uuid
+
+  kind                    AssetKind
+  originalKey             String    @map("original_key")
+  originalFilename        String    @map("original_filename")
+  mimeType                String    @map("mime_type")
+  sizeBytes               BigInt    @map("size_bytes")
+  sha256                  String    @db.Char(64)
+  width                   Int?
+  height                  Int?
+  durationMs              Int?      @map("duration_ms")
+
+  takenAt                 DateTime  @map("taken_at")
+  takenAtSource           TakenAtSource @map("taken_at_source")
+  uploadedAt              DateTime  @default(now()) @map("uploaded_at")
+
+  gpsLat                  Float?    @map("gps_lat")
+  gpsLng                  Float?    @map("gps_lng")
+  cameraMake              String?   @map("camera_make")
+  cameraModel             String?   @map("camera_model")
+  exifRaw                 Json?     @map("exif_raw")
+
+  originalConvertedFrom   String?   @map("original_converted_from")
+
+  status                  AssetStatus @default(uploading)
+  processingError         String?     @map("processing_error")
+  derivatives             Json       @default("{}")
+
+  visibility              Visibility @default(family)
+
+  tags                    String[]   @default([])
+  caption                 String?
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  deletedAt               DateTime? @map("deleted_at")
+
+  family         Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  uploadedBy     User        @relation(fields: [uploadedByUserId], references: [id])
+  assetBabies    AssetBaby[]
+  babyProfiles   Baby[]      @relation("BabyProfile")
+
+  @@unique([familyId, sha256])
+  @@index([familyId, takenAt])
+  @@index([familyId, status])
+  @@map("assets")
+}
+
+enum AssetKind {
+  image
+  video
+  @@map("asset_kind")
+}
+
+enum AssetStatus {
+  uploading
+  processing
+  ready
+  failed
+  @@map("asset_status")
+}
+
+enum TakenAtSource {
+  exif
+  filename
+  filemtime
+  manual
+  uploaded
+  @@map("taken_at_source")
+}
+
+enum Visibility {
+  private
+  family
+  @@map("visibility")
+}
+
+model AssetBaby {
+  assetId           String          @map("asset_id") @db.Uuid
+  babyId            String          @map("baby_id") @db.Uuid
+  taggedByUserId    String          @map("tagged_by_user_id") @db.Uuid
+  taggedAt          DateTime        @default(now()) @map("tagged_at")
+  detectionSource   DetectionSource @default(manual) @map("detection_source")
+
+  asset    Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  baby     Baby  @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  taggedBy User  @relation(fields: [taggedByUserId], references: [id])
+
+  @@id([assetId, babyId])
+  @@map("asset_babies")
+}
+
+enum DetectionSource {
+  manual
+  ai
+  @@map("detection_source")
+}
+
+model AppSetting {
+  key         String   @id
+  value       Json
+  updatedById String?  @map("updated_by_id") @db.Uuid
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  updatedBy User? @relation("SettingUpdatedBy", fields: [updatedById], references: [id])
+
+  @@map("app_settings")
+}
+
+model SettingHistory {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key        String
+  oldValue   Json?    @map("old_value")
+  newValue   Json?    @map("new_value")
+  changedBy  String?  @map("changed_by") @db.Uuid
+  changedAt  DateTime @default(now()) @map("changed_at")
+
+  user User? @relation(fields: [changedBy], references: [id])
+
+  @@index([key])
+  @@map("setting_history")
+}
