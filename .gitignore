@@ -1,0 +1,37 @@
+# Dependencies
+node_modules/
+.pnpm-store/
+
+# Build
+.next/
+dist/
+out/
+build/
+
+# Env
+.env
+.env.local
+.env.*.local
+
+# Logs
+*.log
+logs/
+
+# Runtime data (docker volumes if dev setup)
+data/
+pg/
+redis/
+
+# Editor
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# Testing
+coverage/
+playwright-report/
+test-results/
+
+# Brainstorming workspace (from superpowers plugin)
+.superpowers/
