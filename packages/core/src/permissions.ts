@@ -17,7 +17,6 @@ export type Capability =
   | 'asset.delete.any'
   | 'asset.view.family'
   | 'asset.view.private'
-  | 'admin.settings'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
