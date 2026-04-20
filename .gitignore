@@ -21,6 +21,7 @@ logs/
 data/
 pg/
 redis/
+.dev/
 
 # Editor
 .vscode/
