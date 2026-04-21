@@ -1,5 +1,5 @@
-import type { OidcProvider, PrismaClient } from '@bebe/db'
 import { encryptSecret } from '@/lib/crypto'
+import type { OidcProvider, PrismaClient } from '@bebe/db'
 
 export type CreateProviderInput = {
   name: string
@@ -35,9 +35,13 @@ export async function getProvider(id: string, prisma: PrismaClient): Promise<Oid
   return prisma.oidcProvider.findUnique({ where: { id } })
 }
 
-export type UpdateProviderInput = Partial<Omit<CreateProviderInput, 'clientSecret'>> & {
-  enabled?: boolean
-  clientSecret?: string
+export type UpdateProviderInput = {
+  name?: string | undefined
+  issuer?: string | undefined
+  clientId?: string | undefined
+  scopes?: string[] | undefined
+  enabled?: boolean | undefined
+  clientSecret?: string | undefined
 }
 
 export async function updateProvider(
