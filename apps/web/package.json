@@ -16,6 +16,7 @@
     "@bebe/db": "workspace:*",
     "@bebe/storage": "workspace:*",
     "@lucia-auth/adapter-prisma": "^4.0.1",
+    "@radix-ui/react-slot": "^1.2.4",
     "@tailwindcss/postcss": "^4.2.3",
     "@tus/file-store": "^2.0.0",
     "@tus/server": "^2.3.0",
