@@ -230,6 +230,7 @@ model Asset {
   @@unique([familyId, sha256])
   @@index([familyId, takenAt])
   @@index([familyId, status])
+  @@index([familyId, status, takenAt, id], map: "assets_timeline_idx")
   @@map("assets")
 }
 
