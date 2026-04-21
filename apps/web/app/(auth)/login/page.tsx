@@ -1,4 +1,8 @@
 'use client'
+import { Button } from '@/components/ui/button'
+import { Card, CardBody } from '@/components/ui/card'
+import { Input, Label } from '@/components/ui/input'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -29,30 +33,46 @@ export default function LoginPage() {
   }
 
   return (
-    <main style={{ maxWidth: 380, margin: '64px auto', padding: 24 }}>
-      <h1 style={{ fontSize: 28, fontWeight: 700 }}>로그인</h1>
-      <form onSubmit={submit} className="card" style={{ marginTop: 24, display: 'grid', gap: 12 }}>
-        <label>
-          <div style={{ fontSize: 13, marginBottom: 6 }}>이메일</div>
-          <input type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-        </label>
-        <label>
-          <div style={{ fontSize: 13, marginBottom: 6 }}>비밀번호</div>
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-        </label>
-        {error && <p style={{ color: '#ef4444', fontSize: 13 }}>{error}</p>}
-        <button type="submit" disabled={submitting}>
-          {submitting ? '...' : '로그인'}
-        </button>
-        <p style={{ fontSize: 13, marginTop: 8 }}>
-          계정이 없으신가요? <a href="/signup">가입하기</a>
-        </p>
-      </form>
+    <main className="mx-auto max-w-sm px-5 py-16">
+      <h1 className="text-3xl font-bold tracking-tight mb-8">
+        bebe-<span className="text-point-500">moment</span>
+      </h1>
+      <Card>
+        <CardBody>
+          <form onSubmit={submit} className="space-y-3">
+            <div>
+              <Label htmlFor="email">이메일</Label>
+              <Input
+                id="email"
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                required
+              />
+            </div>
+            <div>
+              <Label htmlFor="password">비밀번호</Label>
+              <Input
+                id="password"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                required
+              />
+            </div>
+            {error && <p className="text-sm text-danger">{error}</p>}
+            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+              {submitting ? '…' : '로그인'}
+            </Button>
+            <p className="text-sm text-center pt-2 text-base-500">
+              계정이 없으신가요?{' '}
+              <Link href="/signup" className="text-point-500 font-medium">
+                가입하기
+              </Link>
+            </p>
+          </form>
+        </CardBody>
+      </Card>
     </main>
   )
 }
