@@ -1,5 +1,5 @@
+import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { startTestDb, type TestDb } from '@bebe/db/src/test-db'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createInvite } from './create'

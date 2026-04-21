@@ -1,5 +1,5 @@
-import type { PrismaClient } from '@bebe/db'
 import { can } from '@bebe/core'
+import type { PrismaClient } from '@bebe/db'
 
 export async function revokeInvite(
   args: { inviteId: string; familyId: string; byUserId: string },

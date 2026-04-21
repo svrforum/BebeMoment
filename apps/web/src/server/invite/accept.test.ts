@@ -1,9 +1,9 @@
+import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { startTestDb, type TestDb } from '@bebe/db/src/test-db'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
-import { createInvite } from './create'
 import { acceptInvite } from './accept'
+import { createInvite } from './create'
 
 let db: TestDb
 
@@ -56,9 +56,9 @@ describe('acceptInvite', () => {
       { email: 'new@new.com', password: 'password123', displayName: 'N' },
       db.prisma,
     )
-    await expect(
-      acceptInvite({ token: invite.token, userId: user.id }, db.prisma),
-    ).rejects.toThrow(/expired/i)
+    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prisma)).rejects.toThrow(
+      /expired/i,
+    )
   })
 
   it('rejects already accepted token', async () => {
@@ -68,9 +68,9 @@ describe('acceptInvite', () => {
       db.prisma,
     )
     await acceptInvite({ token: invite.token, userId: user.id }, db.prisma)
-    await expect(
-      acceptInvite({ token: invite.token, userId: user.id }, db.prisma),
-    ).rejects.toThrow(/already accepted/i)
+    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prisma)).rejects.toThrow(
+      /already accepted/i,
+    )
   })
 
   it('rejects revoked token', async () => {
@@ -83,9 +83,9 @@ describe('acceptInvite', () => {
       { email: 'new@new.com', password: 'password123', displayName: 'N' },
       db.prisma,
     )
-    await expect(
-      acceptInvite({ token: invite.token, userId: user.id }, db.prisma),
-    ).rejects.toThrow(/revoked/i)
+    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prisma)).rejects.toThrow(
+      /revoked/i,
+    )
   })
 
   it('rejects if user email does not match invite email', async () => {
@@ -94,8 +94,8 @@ describe('acceptInvite', () => {
       { email: 'other@other.com', password: 'password123', displayName: 'X' },
       db.prisma,
     )
-    await expect(
-      acceptInvite({ token: invite.token, userId: user.id }, db.prisma),
-    ).rejects.toThrow(/email/i)
+    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prisma)).rejects.toThrow(
+      /email/i,
+    )
   })
 })
