@@ -1,6 +1,6 @@
 'use client'
-import { forwardRef, type InputHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { type InputHTMLAttributes, forwardRef } from 'react'
 
 type ToggleProps = Omit<InputHTMLAttributes<HTMLInputElement>, 'type'>
 

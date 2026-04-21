@@ -1,5 +1,5 @@
-import { forwardRef, type HTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { type HTMLAttributes, forwardRef } from 'react'
 
 export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
@@ -23,8 +23,6 @@ export const CardHeader = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivEleme
 CardHeader.displayName = 'CardHeader'
 
 export const CardBody = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
-    <div ref={ref} className={cn('p-5', className)} {...props} />
-  ),
+  ({ className, ...props }, ref) => <div ref={ref} className={cn('p-5', className)} {...props} />,
 )
 CardBody.displayName = 'CardBody'

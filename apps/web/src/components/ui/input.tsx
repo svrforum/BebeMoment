@@ -1,5 +1,5 @@
-import { forwardRef, type InputHTMLAttributes, type LabelHTMLAttributes } from 'react'
 import { cn } from '@/lib/cn'
+import { type InputHTMLAttributes, type LabelHTMLAttributes, forwardRef } from 'react'
 
 export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputElement>>(
   ({ className, ...props }, ref) => (
@@ -20,6 +20,7 @@ Input.displayName = 'Input'
 
 export const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelElement>>(
   ({ className, ...props }, ref) => (
+    // biome-ignore lint/a11y/noLabelWithoutControl: htmlFor is supplied by consumers via props
     <label
       ref={ref}
       className={cn('block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5', className)}
