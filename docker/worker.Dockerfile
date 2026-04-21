@@ -29,11 +29,23 @@ RUN apk add --no-cache gosu tini ffmpeg curl && \
 ENV NODE_ENV=production
 ENV PRISMA_SKIP_MIGRATE=1
 
-COPY --from=builder /repo ./
+# Copy ONLY worker + shared packages + required node_modules
+COPY --from=builder /repo/apps/worker/ ./apps/worker/
+COPY --from=builder /repo/packages ./packages
+COPY --from=builder /repo/node_modules ./node_modules
+COPY --from=builder /repo/package.json ./
+COPY --from=builder /repo/pnpm-workspace.yaml ./
+COPY --from=builder /repo/tsconfig.base.json ./
+
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
+# Remove web app (not needed in worker runtime)
+RUN rm -rf apps/web
+
 VOLUME ["/data"]
+HEALTHCHECK --interval=60s --timeout=10s --retries=3 --start-period=30s \
+  CMD pgrep -f 'apps/worker' > /dev/null || exit 1
 
 ENTRYPOINT ["/sbin/tini", "--", "/usr/local/bin/entrypoint.sh"]
 CMD ["node", "--loader", "tsx/esm", "apps/worker/src/main.ts"]
