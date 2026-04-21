@@ -1,4 +1,4 @@
-import { channelForFamily, type AssetEvent } from '@bebe/core'
+import { type AssetEvent, channelForFamily } from '@bebe/core'
 import type IORedis from 'ioredis'
 
 export type { AssetEvent }

@@ -1,10 +1,10 @@
 import { parseEnv } from '@bebe/config'
 import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
-import { prisma } from '../prisma-init'
 import { type StorageAdapter, createAdapter } from '@bebe/storage'
 import type IORedis from 'ioredis'
 import pino from 'pino'
 import { z } from 'zod'
+import { prisma } from '../prisma-init'
 import { publishAssetEvent } from '../pubsub'
 import { convertImageIfNeeded } from './convert'
 import { processImage } from './image-pipeline'
@@ -64,7 +64,10 @@ export async function processAsset(job: ProcessAssetJob, publisher: IORedis): Pr
     throw new Error(`Asset ${job.assetId} not found in family ${job.familyId}`)
   }
   if (asset.status !== 'processing') {
-    logger.warn({ assetId: asset.id, status: asset.status }, 'skipping asset with non-processing status')
+    logger.warn(
+      { assetId: asset.id, status: asset.status },
+      'skipping asset with non-processing status',
+    )
     return
   }
 

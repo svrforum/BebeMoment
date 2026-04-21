@@ -8,7 +8,14 @@ const env = parseEnv(process.env as Record<string, string | undefined>)
 const logger = pino({
   level: env.LOG_LEVEL,
   redact: {
-    paths: ['password', 'client_secret', 'clientSecretEnc', 'authorization', '*.authorization', 'cookie'],
+    paths: [
+      'password',
+      'client_secret',
+      'clientSecretEnc',
+      'authorization',
+      '*.authorization',
+      'cookie',
+    ],
     censor: '[REDACTED]',
   },
 })
