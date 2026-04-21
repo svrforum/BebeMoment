@@ -1,10 +1,10 @@
 import crypto from 'node:crypto'
-import { parseEnv } from '@bebe/config'
-import { cookies } from 'next/headers'
-import { NextResponse } from 'next/server'
 import { decryptSecret } from '@/lib/crypto'
 import { prisma } from '@/lib/db-init'
 import { fetchDiscovery } from '@/server/oidc/discovery'
+import { parseEnv } from '@bebe/config'
+import { cookies } from 'next/headers'
+import { NextResponse } from 'next/server'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ providerId: string }> }) {
   const { providerId } = await params
