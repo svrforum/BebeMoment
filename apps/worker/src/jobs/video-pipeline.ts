@@ -1,10 +1,10 @@
-import ffmpeg from 'fluent-ffmpeg'
+import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import { createReadStream, createWriteStream } from 'node:fs'
 import { pipeline } from 'node:stream/promises'
 import type { StorageAdapter } from '@bebe/storage'
+import ffmpeg from 'fluent-ffmpeg'
 
 export type ProcessVideoInput = {
   originalKey: string
@@ -12,9 +12,9 @@ export type ProcessVideoInput = {
 }
 
 export type ProcessVideoResult = {
-  durationMs?: number
-  width?: number
-  height?: number
+  durationMs: number
+  width: number | undefined
+  height: number | undefined
   derivatives: { poster: string; preview_video: string }
 }
 

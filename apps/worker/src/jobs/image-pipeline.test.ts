@@ -1,9 +1,9 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
-import sharp from 'sharp'
 import { LocalAdapter } from '@bebe/storage'
+import sharp from 'sharp'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { processImage } from './image-pipeline'
 
 let tmp: string

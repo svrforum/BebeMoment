@@ -1,5 +1,5 @@
-import sharp from 'sharp'
 import type { StorageAdapter } from '@bebe/storage'
+import sharp from 'sharp'
 
 type SizeKey = 'thumb_sm' | 'thumb_md' | 'thumb_lg'
 
@@ -15,8 +15,8 @@ export type ProcessImageInput = {
 }
 
 export type ProcessImageResult = {
-  width?: number
-  height?: number
+  width: number | undefined
+  height: number | undefined
   derivatives: Record<SizeKey, string>
 }
 

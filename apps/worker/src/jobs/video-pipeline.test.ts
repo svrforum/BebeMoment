@@ -1,10 +1,10 @@
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
-import { mkdtemp, mkdir, rm } from 'node:fs/promises'
+import { mkdir, mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
+import { promisify } from 'node:util'
 import { LocalAdapter } from '@bebe/storage'
+import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { processVideo } from './video-pipeline'
 
 const runFfmpeg = promisify(execFile)
