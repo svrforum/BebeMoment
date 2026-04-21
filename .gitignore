@@ -37,3 +37,11 @@ test-results/
 
 # Brainstorming workspace (from superpowers plugin)
 .superpowers/
+
+# Serwist PWA service worker build output
+apps/web/public/sw.js
+apps/web/public/sw.js.map
+apps/web/public/workbox-*.js
+apps/web/public/workbox-*.js.map
+apps/web/public/swe-worker-*.js
+apps/web/public/swe-worker-*.js.map

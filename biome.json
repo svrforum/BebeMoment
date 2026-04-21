@@ -12,7 +12,13 @@
       "**/*.md",
       "**/data",
       "**/pg",
-      "**/redis"
+      "**/redis",
+      "apps/web/public/sw.js",
+      "apps/web/public/sw.js.map",
+      "apps/web/public/workbox-*.js",
+      "apps/web/public/workbox-*.js.map",
+      "apps/web/public/swe-worker-*.js",
+      "apps/web/public/swe-worker-*.js.map"
     ]
   },
   "organizeImports": { "enabled": true },
