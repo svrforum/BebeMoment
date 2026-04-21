@@ -1,4 +1,4 @@
-import { prisma } from '@bebe/db'
+import { prisma } from '@/lib/db-init'
 import { PrismaAdapter } from '@lucia-auth/adapter-prisma'
 import { Lucia, TimeSpan } from 'lucia'
 import { cookies } from 'next/headers'
