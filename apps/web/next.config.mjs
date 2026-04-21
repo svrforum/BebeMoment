@@ -10,6 +10,8 @@ const withSerwist = withSerwistInit({
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'standalone',
+  outputFileTracingRoot: '../..',
   transpilePackages: ['@bebe/config', '@bebe/core', '@bebe/db', '@bebe/storage'],
   experimental: { serverActions: { bodySizeLimit: '10mb' } },
   images: { unoptimized: true },
