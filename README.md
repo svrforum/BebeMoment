@@ -18,6 +18,21 @@ pnpm dev
 
 브라우저: http://localhost:3000 → 가입 → 온보딩 → 홈.
 
+### dev 전체 실행 (web + worker)
+
+터미널 1 (web + infra):
+```bash
+docker compose -f docker-compose.dev.yml up -d
+pnpm --filter @bebe/web dev
+```
+
+터미널 2 (worker):
+```bash
+pnpm --filter @bebe/worker dev
+```
+
+업로드 파이프라인을 검증하려면 두 터미널이 모두 실행 중이어야 합니다.
+
 ### `.env` (dev)
 ```
 DATABASE_URL=postgres://bebe:bebe@localhost:5432/bebe
@@ -52,6 +67,6 @@ docs/
 ## 페이즈
 
 - [x] Plan 1 — Foundation (인증·가족·초대)
-- [ ] Plan 2 — Upload Pipeline
+- [x] Plan 2 — Upload Pipeline (업로드·썸네일·EXIF·영상 프리뷰)
 - [ ] Plan 3 — UX & PWA
 - [ ] Plan 4 — Admin & Deploy
