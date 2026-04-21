@@ -1,0 +1,33 @@
+import Link from 'next/link'
+import { ChevronRight } from 'lucide-react'
+import { AppHeader } from '@/components/shell/app-header'
+import { Button } from '@/components/ui/button'
+
+const sections = [
+  { href: '/admin/general', label: '일반', description: '앱 이름, 기본 언어' },
+  { href: '/admin/auth', label: '인증', description: '가입 허용, OIDC 프로바이더' },
+  { href: '/admin/smtp', label: 'SMTP', description: '이메일 발송 설정 + 테스트' },
+  { href: '/admin/storage', label: '스토리지', description: '로컬/S3 모드 확인' },
+  { href: '/admin/retention', label: '리텐션', description: '휴지통 자동 삭제' },
+]
+
+export default function AdminPage() {
+  return (
+    <>
+      <AppHeader title="관리자" subtitle="인스턴스 설정" />
+      <div className="mx-auto max-w-3xl px-5 py-4 space-y-2">
+        {sections.map((s) => (
+          <Button key={s.href} asChild variant="ghost" className="w-full h-auto">
+            <Link href={s.href} className="flex items-center justify-between py-3 px-4">
+              <span className="flex-1 text-left">
+                <span className="block font-medium">{s.label}</span>
+                <span className="block text-xs text-base-500">{s.description}</span>
+              </span>
+              <ChevronRight className="h-4 w-4 text-base-400" />
+            </Link>
+          </Button>
+        ))}
+      </div>
+    </>
+  )
+}
