@@ -15,5 +15,8 @@ export default defineConfig({
     trace: 'retain-on-failure',
     screenshot: 'only-on-failure',
     video: 'retain-on-failure',
+    // Block PWA service worker to prevent request interception/caching
+    // during the smoke run (esp. tus POSTs to /api/upload).
+    serviceWorkers: 'block',
   },
 })

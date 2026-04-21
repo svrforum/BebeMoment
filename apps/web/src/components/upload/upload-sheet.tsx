@@ -25,28 +25,32 @@ export function UploadSheetProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [isOpen, setOpen] = useState(false)
 
-  const uppy = useMemo(
-    () =>
-      new Uppy({
-        restrictions: {
-          maxFileSize: 2 * 1024 * 1024 * 1024,
-          allowedFileTypes: ['image/*', 'video/*'],
-        },
-        autoProceed: true,
-      }).use(Tus, {
-        endpoint: '/api/upload',
-        chunkSize: 8 * 1024 * 1024,
-        retryDelays: [0, 1000, 3000, 5000],
-      }),
-    [],
+  // useState initializer keeps the Uppy instance stable across re-renders
+  // (including React StrictMode's dev double-invoke of effects).
+  const [uppy] = useState(() =>
+    new Uppy({
+      restrictions: {
+        maxFileSize: 2 * 1024 * 1024 * 1024,
+        allowedFileTypes: ['image/*', 'video/*'],
+      },
+      autoProceed: true,
+    }).use(Tus, {
+      endpoint: '/api/upload',
+      chunkSize: 8 * 1024 * 1024,
+      retryDelays: [0, 1000, 3000, 5000],
+    }),
   )
 
   useEffect(() => {
     const handler = () => router.refresh()
     uppy.on('complete', handler)
+    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
+      ;(window as unknown as { __uppy?: typeof uppy }).__uppy = uppy
+    }
     return () => {
       uppy.off('complete', handler)
-      uppy.destroy()
+      // Do NOT destroy uppy here — this provider sits at the app root and
+      // StrictMode's double-invoke would wipe the Tus plugin on remount.
     }
   }, [uppy, router])
 

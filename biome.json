@@ -18,7 +18,9 @@
       "apps/web/public/workbox-*.js",
       "apps/web/public/workbox-*.js.map",
       "apps/web/public/swe-worker-*.js",
-      "apps/web/public/swe-worker-*.js.map"
+      "apps/web/public/swe-worker-*.js.map",
+      "e2e/test-results",
+      "e2e/playwright-report"
     ]
   },
   "organizeImports": { "enabled": true },

@@ -68,5 +68,5 @@ docs/
 
 - [x] Plan 1 — Foundation (인증·가족·초대)
 - [x] Plan 2 — Upload Pipeline (업로드·썸네일·EXIF·영상 프리뷰)
-- [ ] Plan 3 — UX & PWA
+- [x] Plan 3 — UX & PWA (Tailwind + Toss/Apple 디자인 시스템·타임라인·캘린더·상세·업로드 시트·휴지통·PWA)
 - [ ] Plan 4 — Admin & Deploy

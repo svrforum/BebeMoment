@@ -4,7 +4,8 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "playwright test",
+    "test": "echo 'e2e smoke: run ./scripts/run-smoke.sh (requires web+worker+infra)'",
+    "test:run": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",
     "typecheck": "tsc --noEmit",
