@@ -21,6 +21,8 @@ RUN pnpm --filter @bebe/db exec prisma generate
 FROM node:20-alpine AS runner
 WORKDIR /app
 RUN apk add --no-cache gosu tini ffmpeg curl && \
+    (delgroup node 2>/dev/null || true) && \
+    (deluser node 2>/dev/null || true) && \
     addgroup -g 1000 -S bebe && \
     adduser -u 1000 -S bebe -G bebe
 

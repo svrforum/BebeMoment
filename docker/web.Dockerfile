@@ -28,6 +28,8 @@ FROM node:20-alpine AS runner
 WORKDIR /app
 
 RUN apk add --no-cache gosu tini curl && \
+    (delgroup node 2>/dev/null || true) && \
+    (deluser node 2>/dev/null || true) && \
     addgroup -g 1000 -S bebe && \
     adduser -u 1000 -S bebe -G bebe
 
@@ -40,8 +42,11 @@ COPY --from=builder /repo/apps/web/.next/standalone ./
 COPY --from=builder /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /repo/apps/web/public ./apps/web/public
 COPY --from=builder /repo/packages/db/prisma ./packages/db/prisma
-COPY --from=builder /repo/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /repo/node_modules/@prisma ./node_modules/@prisma
+# Prisma client (generated + runtime) — pnpm symlinks are followed by COPY
+COPY --from=builder /repo/packages/db/node_modules/.prisma ./node_modules/.prisma
+COPY --from=builder /repo/packages/db/node_modules/@prisma ./node_modules/@prisma
+# Prisma CLI for migrate deploy at runtime
+COPY --from=builder /repo/packages/db/node_modules/prisma ./node_modules/prisma
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
