@@ -14,10 +14,7 @@ export type CreateAssetInput = {
   takenAtSource: TakenAtSource
 }
 
-export async function createAsset(
-  input: CreateAssetInput,
-  prisma: PrismaClient,
-): Promise<Asset> {
+export async function createAsset(input: CreateAssetInput, prisma: PrismaClient): Promise<Asset> {
   const membership = await prisma.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.uploadedByUserId } },
   })
