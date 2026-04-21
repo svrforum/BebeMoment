@@ -1,8 +1,8 @@
 'use client'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useState } from 'react'
+import { Suspense, useState } from 'react'
 
-export default function SignupPage() {
+function SignupForm() {
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = params.get('invite')
@@ -43,7 +43,7 @@ export default function SignupPage() {
   }
 
   return (
-    <main style={{ maxWidth: 380, margin: '64px auto', padding: 24 }}>
+    <>
       <h1 style={{ fontSize: 28, fontWeight: 700 }}>가입하기</h1>
       {inviteToken && (
         <p style={{ color: 'var(--base-500)', marginTop: 8, fontSize: 14 }}>
@@ -77,6 +77,16 @@ export default function SignupPage() {
           계정이 있으신가요? <a href="/login">로그인</a>
         </p>
       </form>
+    </>
+  )
+}
+
+export default function SignupPage() {
+  return (
+    <main style={{ maxWidth: 380, margin: '64px auto', padding: 24 }}>
+      <Suspense fallback={null}>
+        <SignupForm />
+      </Suspense>
     </main>
   )
 }
