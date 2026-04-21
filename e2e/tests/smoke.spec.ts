@@ -122,9 +122,27 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
     await page.goto('/calendar')
     await expect(page.getByRole('heading', { name: /캘린더/ })).toBeVisible()
 
-    // Visit settings
+    // Visit settings — heading, email, AND displayName all render
     await page.goto('/settings')
     await expect(page.getByRole('heading', { name: /설정/ })).toBeVisible()
     await expect(page.getByText(email)).toBeVisible()
+    await expect(page.getByText(displayName, { exact: true })).toBeVisible()
+
+    // /trash renders (empty state)
+    await page.goto('/trash')
+    await expect(page.getByRole('heading', { name: /휴지통/ })).toBeVisible()
+    await expect(page.getByText(/휴지통이 비어/)).toBeVisible()
+
+    // Non-admin user hitting /admin → notFound() 404 page
+    const adminResponse = await page.goto('/admin')
+    expect(adminResponse?.status()).toBe(404)
+
+    // CSRF middleware: cross-origin POST → 403 (Origin cannot be set via
+    // browser fetch, so use the APIRequestContext which bypasses that rule).
+    const csrfRes = await page.request.post('/api/auth/login', {
+      headers: { 'Content-Type': 'application/json', Origin: 'http://evil.example.com' },
+      data: { email: 'x@x.test', password: 'x' },
+    })
+    expect(csrfRes.status()).toBe(403)
   })
 })
