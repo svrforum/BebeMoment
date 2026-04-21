@@ -1,0 +1,40 @@
+name: CI
+on:
+  pull_request:
+  push:
+    branches: [main]
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: bebe
+          POSTGRES_PASSWORD: bebe
+          POSTGRES_DB: bebe
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd="pg_isready -U bebe"
+          --health-interval=5s --health-timeout=5s --health-retries=10
+      redis:
+        image: redis:7-alpine
+        ports: ["6379:6379"]
+    env:
+      DATABASE_URL: postgres://bebe:bebe@localhost:5432/bebe
+      REDIS_URL: redis://localhost:6379
+      SECRET_KEY: ci-secret-key-32-bytes-minimum-ok-padding
+      PUBLIC_URL: http://localhost:3000
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 9.12.0 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bebe/db exec prisma migrate deploy
+      - run: pnpm lint
+      - run: pnpm typecheck
+      - run: pnpm -r --filter '!@bebe/e2e' test
