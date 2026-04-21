@@ -1,7 +1,7 @@
-import { notFound } from 'next/navigation'
-import { parseEnv } from '@bebe/config'
-import { getAuth } from '@/lib/auth'
 import { isInstanceAdmin } from '@/lib/admin'
+import { getAuth } from '@/lib/auth'
+import { parseEnv } from '@bebe/config'
+import { notFound } from 'next/navigation'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { user } = await getAuth()

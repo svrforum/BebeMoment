@@ -1,7 +1,7 @@
-import Link from 'next/link'
-import { ChevronRight } from 'lucide-react'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
+import { ChevronRight } from 'lucide-react'
+import Link from 'next/link'
 
 const sections = [
   { href: '/admin/general', label: '일반', description: '앱 이름, 기본 언어' },
