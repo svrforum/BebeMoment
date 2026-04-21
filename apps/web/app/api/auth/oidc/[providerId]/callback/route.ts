@@ -1,7 +1,12 @@
 import { lucia } from '@/lib/auth'
 import { decryptSecret } from '@/lib/crypto'
 import { prisma } from '@/lib/db-init'
-import { exchangeCodeForTokens, fetchUserInfo, linkOrCreateUser } from '@/server/oidc/callback'
+import {
+  exchangeCodeForTokens,
+  fetchUserInfo,
+  linkOrCreateUser,
+  verifyIdToken,
+} from '@/server/oidc/callback'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
@@ -19,6 +24,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const cookieStore = await cookies()
   const expectedState = cookieStore.get('oidc_state')?.value
+  const expectedNonce = cookieStore.get('oidc_nonce')?.value
   if (state !== expectedState) {
     return NextResponse.redirect(new URL('/login?error=state', req.url))
   }
@@ -40,12 +46,29 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       clientId: provider.clientId,
       clientSecret,
     })
+
+    // Verify id_token signature + claims + nonce before trusting anything.
+    const idTokenPayload = await verifyIdToken(tokens.id_token, {
+      jwksUri: disc.jwks_uri,
+      issuer: provider.issuer,
+      clientId: provider.clientId,
+      nonce: expectedNonce,
+    })
+
     const info = await fetchUserInfo(disc.userinfo_endpoint, tokens.access_token)
+
+    // id_token is authoritative for sub and email_verified; userinfo fills display name.
+    const subject = String(idTokenPayload.sub ?? info.sub)
+    const email = (idTokenPayload.email as string | undefined) ?? info.email
+    const emailVerified =
+      (idTokenPayload.email_verified as boolean | undefined) ?? info.email_verified ?? false
+
     const user = await linkOrCreateUser(
       {
         providerId,
-        subject: info.sub,
-        ...(info.email !== undefined ? { email: info.email } : {}),
+        subject,
+        ...(email !== undefined ? { email } : {}),
+        emailVerified,
         ...(info.name !== undefined ? { displayName: info.name } : {}),
       },
       prisma,

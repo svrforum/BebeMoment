@@ -23,31 +23,77 @@ beforeEach(async () => {
 })
 
 describe('linkOrCreateUser', () => {
-  it('creates new user when no match', async () => {
+  it('creates new user when no match (verified email)', async () => {
     const u = await linkOrCreateUser(
-      { providerId, subject: 'sub-1', email: 'a@b.com', displayName: 'Alice' },
+      {
+        providerId,
+        subject: 'sub-1',
+        email: 'a@b.com',
+        emailVerified: true,
+        displayName: 'Alice',
+      },
       db.prisma,
     )
     expect(u.email).toBe('a@b.com')
     expect(u.emailVerified).toBe(true)
   })
 
+  it('creates new user with emailVerified=false when IdP does not verify', async () => {
+    const u = await linkOrCreateUser(
+      {
+        providerId,
+        subject: 'sub-1',
+        email: 'a@b.com',
+        emailVerified: false,
+      },
+      db.prisma,
+    )
+    expect(u.email).toBe('a@b.com')
+    expect(u.emailVerified).toBe(false)
+  })
+
   it('reuses user on second callback (same subject)', async () => {
-    const u1 = await linkOrCreateUser({ providerId, subject: 'sub-1', email: 'a@b.com' }, db.prisma)
-    const u2 = await linkOrCreateUser({ providerId, subject: 'sub-1', email: 'a@b.com' }, db.prisma)
+    const u1 = await linkOrCreateUser(
+      { providerId, subject: 'sub-1', email: 'a@b.com', emailVerified: true },
+      db.prisma,
+    )
+    const u2 = await linkOrCreateUser(
+      { providerId, subject: 'sub-1', email: 'a@b.com', emailVerified: true },
+      db.prisma,
+    )
     expect(u1.id).toBe(u2.id)
   })
 
-  it('links to existing user by email', async () => {
+  it('links to existing user by email only when IdP asserts verified', async () => {
     const existing = await db.prisma.user.create({
       data: { email: 'x@x.com', displayName: 'X', passwordHash: 'bcrypt' },
     })
     const u = await linkOrCreateUser(
-      { providerId, subject: 'sub-new', email: 'x@x.com' },
+      { providerId, subject: 'sub-new', email: 'x@x.com', emailVerified: true },
       db.prisma,
     )
     expect(u.id).toBe(existing.id)
     const identity = await db.prisma.oidcIdentity.findFirst({ where: { userId: existing.id } })
     expect(identity?.subject).toBe('sub-new')
+  })
+
+  it('does not link to existing user by email when IdP does not verify', async () => {
+    const existing = await db.prisma.user.create({
+      data: { email: 'y@y.com', displayName: 'Y', passwordHash: 'bcrypt' },
+    })
+    // Takeover prevention: when the IdP does not assert email verified,
+    // we must not fall back to linking by email. The attempted user.create
+    // then collides with the existing unique email and the flow fails
+    // safely rather than silently hijacking the existing account.
+    await expect(
+      linkOrCreateUser(
+        { providerId, subject: 'sub-unverified', email: 'y@y.com', emailVerified: false },
+        db.prisma,
+      ),
+    ).rejects.toThrow()
+    const stillAloneIdentity = await db.prisma.oidcIdentity.findFirst({
+      where: { userId: existing.id },
+    })
+    expect(stillAloneIdentity).toBeNull()
   })
 })

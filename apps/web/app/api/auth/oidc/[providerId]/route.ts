@@ -1,5 +1,4 @@
 import crypto from 'node:crypto'
-import { decryptSecret } from '@/lib/crypto'
 import { prisma } from '@/lib/db-init'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { parseEnv } from '@bebe/config'
@@ -45,8 +44,6 @@ export async function GET(_req: Request, { params }: { params: Promise<{ provide
     path: '/',
     maxAge: 600,
   })
-
-  await decryptSecret(provider.clientSecretEnc, env.SECRET_KEY)
 
   return NextResponse.redirect(`${disc.authorization_endpoint}?${query.toString()}`)
 }

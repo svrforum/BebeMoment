@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import type { PrismaClient, User } from '@bebe/db'
+import { type JWTPayload, createRemoteJWKSet, jwtVerify } from 'jose'
 
 export type TokenExchangeResult = {
   id_token: string
@@ -9,6 +10,7 @@ export type TokenExchangeResult = {
 export type UserInfo = {
   sub: string
   email?: string
+  email_verified?: boolean
   name?: string
   picture?: string
 }
@@ -36,6 +38,21 @@ export async function exchangeCodeForTokens(args: {
   return (await res.json()) as TokenExchangeResult
 }
 
+export async function verifyIdToken(
+  idToken: string,
+  args: { jwksUri: string; issuer: string; clientId: string; nonce: string | undefined },
+): Promise<JWTPayload> {
+  const jwks = createRemoteJWKSet(new URL(args.jwksUri))
+  const { payload } = await jwtVerify(idToken, jwks, {
+    issuer: args.issuer,
+    audience: args.clientId,
+  })
+  if (args.nonce && payload.nonce !== args.nonce) {
+    throw new Error('id_token nonce mismatch')
+  }
+  return payload
+}
+
 export async function fetchUserInfo(endpoint: string, accessToken: string): Promise<UserInfo> {
   const res = await fetch(endpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
@@ -44,51 +61,57 @@ export async function fetchUserInfo(endpoint: string, accessToken: string): Prom
   return (await res.json()) as UserInfo
 }
 
+export type LinkOrCreateInput = {
+  providerId: string
+  subject: string
+  email?: string
+  emailVerified: boolean
+  displayName?: string
+}
+
 export async function linkOrCreateUser(
-  args: {
-    providerId: string
-    subject: string
-    email?: string
-    displayName?: string
-  },
+  args: LinkOrCreateInput,
   prisma: PrismaClient,
 ): Promise<User> {
-  const identity = await prisma.oidcIdentity.findUnique({
-    where: { providerId_subject: { providerId: args.providerId, subject: args.subject } },
-    include: { user: true },
-  })
-  if (identity) return identity.user
+  return prisma.$transaction(async (tx) => {
+    const identity = await tx.oidcIdentity.findUnique({
+      where: { providerId_subject: { providerId: args.providerId, subject: args.subject } },
+      include: { user: true },
+    })
+    if (identity) return identity.user
 
-  if (args.email) {
-    const existingUser = await prisma.user.findUnique({ where: { email: args.email } })
-    if (existingUser) {
-      await prisma.oidcIdentity.create({
-        data: {
-          userId: existingUser.id,
-          providerId: args.providerId,
-          subject: args.subject,
-          email: args.email,
-        },
-      })
-      return existingUser
+    // Only link by email if the IdP asserts the email is verified.
+    if (args.email && args.emailVerified) {
+      const existingUser = await tx.user.findUnique({ where: { email: args.email } })
+      if (existingUser) {
+        await tx.oidcIdentity.create({
+          data: {
+            userId: existingUser.id,
+            providerId: args.providerId,
+            subject: args.subject,
+            email: args.email,
+          },
+        })
+        return existingUser
+      }
     }
-  }
 
-  const user = await prisma.user.create({
-    data: {
-      email: args.email ?? null,
-      emailVerified: true,
-      displayName:
-        args.displayName ?? args.email ?? `user-${crypto.randomBytes(4).toString('hex')}`,
-    },
+    const user = await tx.user.create({
+      data: {
+        email: args.email ?? null,
+        emailVerified: args.emailVerified === true,
+        displayName:
+          args.displayName ?? args.email ?? `user-${crypto.randomBytes(4).toString('hex')}`,
+      },
+    })
+    await tx.oidcIdentity.create({
+      data: {
+        userId: user.id,
+        providerId: args.providerId,
+        subject: args.subject,
+        email: args.email ?? null,
+      },
+    })
+    return user
   })
-  await prisma.oidcIdentity.create({
-    data: {
-      userId: user.id,
-      providerId: args.providerId,
-      subject: args.subject,
-      email: args.email ?? null,
-    },
-  })
-  return user
 }
