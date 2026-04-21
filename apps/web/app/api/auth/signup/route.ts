@@ -1,6 +1,6 @@
 import { lucia } from '@/lib/auth'
+import { prisma } from '@/lib/db-init'
 import { signup } from '@/server/auth/signup'
-import { prisma } from '@bebe/db'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
