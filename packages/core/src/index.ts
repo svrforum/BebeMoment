@@ -1,2 +1,5 @@
 export * from './age'
 export * from './permissions'
+export * from './exif'
+export * from './taken-at'
+export * from './mime'
