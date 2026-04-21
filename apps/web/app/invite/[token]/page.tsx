@@ -1,5 +1,5 @@
-import { prisma } from '@/lib/db-init'
 import { getAuth } from '@/lib/auth'
+import { prisma } from '@/lib/db-init'
 import { redirect } from 'next/navigation'
 import { AcceptButton } from './accept-button'
 

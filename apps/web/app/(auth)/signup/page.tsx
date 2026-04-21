@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
+import { useState } from 'react'
 
 export default function SignupPage() {
   const router = useRouter()

@@ -1,6 +1,6 @@
 'use client'
-import { useState } from 'react'
 import { useRouter } from 'next/navigation'
+import { useState } from 'react'
 
 export function AcceptButton({ token }: { token: string }) {
   const router = useRouter()
@@ -27,7 +27,7 @@ export function AcceptButton({ token }: { token: string }) {
 
   return (
     <div style={{ marginTop: 16 }}>
-      <button onClick={accept} disabled={submitting}>
+      <button type="button" onClick={accept} disabled={submitting}>
         {submitting ? '...' : '수락하기'}
       </button>
       {error && <p style={{ color: '#ef4444', fontSize: 13, marginTop: 8 }}>{error}</p>}

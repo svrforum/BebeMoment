@@ -18,15 +18,23 @@
     --base-900: #fafafa;
   }
 }
-* { box-sizing: border-box; }
-html, body { margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+}
+html,
+body {
+  margin: 0;
+  padding: 0;
+}
 body {
   background: var(--base-50);
   color: var(--base-900);
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Pretendard", sans-serif;
   -webkit-font-smoothing: antialiased;
 }
-a { color: var(--point-500); }
+a {
+  color: var(--point-500);
+}
 button {
   font: inherit;
   cursor: pointer;
@@ -36,8 +44,12 @@ button {
   padding: 10px 16px;
   border-radius: 10px;
 }
-button[disabled] { opacity: 0.6; cursor: not-allowed; }
-input, select {
+button[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+input,
+select {
   font: inherit;
   padding: 10px 12px;
   border-radius: 10px;
