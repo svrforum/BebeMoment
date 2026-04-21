@@ -1,10 +1,54 @@
 :root {
+  --base-0: #ffffff;
+  --base-50: #fafafa;
+  --base-100: #f4f4f5;
+  --base-200: #e4e4e7;
+  --base-500: #71717a;
+  --base-900: #18181b;
+  --point-500: #3b82f6;
   color-scheme: light dark;
 }
-* {
-  box-sizing: border-box;
+@media (prefers-color-scheme: dark) {
+  :root {
+    --base-0: #09090b;
+    --base-50: #18181b;
+    --base-100: #27272a;
+    --base-200: #3f3f46;
+    --base-500: #a1a1aa;
+    --base-900: #fafafa;
+  }
 }
+* { box-sizing: border-box; }
+html, body { margin: 0; padding: 0; }
 body {
-  margin: 0;
-  font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  background: var(--base-50);
+  color: var(--base-900);
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Pretendard', sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+a { color: var(--point-500); }
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  background: var(--point-500);
+  color: white;
+  padding: 10px 16px;
+  border-radius: 10px;
+}
+button[disabled] { opacity: 0.6; cursor: not-allowed; }
+input, select {
+  font: inherit;
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--base-200);
+  background: var(--base-0);
+  color: var(--base-900);
+  width: 100%;
+}
+.card {
+  background: var(--base-0);
+  border: 1px solid var(--base-200);
+  border-radius: 16px;
+  padding: 20px;
 }
