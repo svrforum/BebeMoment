@@ -22,7 +22,7 @@ export const lucia = new Lucia(adapter, {
     locale: attrs.locale,
   }),
   getSessionAttributes: (attrs) => ({
-    currentFamilyId: attrs.current_family_id,
+    currentFamilyId: attrs.currentFamilyId,
   }),
 })
 
@@ -35,7 +35,7 @@ declare module 'lucia' {
       locale: string
     }
     DatabaseSessionAttributes: {
-      current_family_id: string | null
+      currentFamilyId: string | null
     }
   }
 }

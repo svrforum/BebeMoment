@@ -9,7 +9,7 @@ export async function POST(req: Request) {
     const body = await req.json()
     const { user } = await signup(body, prisma)
 
-    const session = await lucia.createSession(user.id, { current_family_id: null })
+    const session = await lucia.createSession(user.id, { currentFamilyId: null })
     const c = lucia.createSessionCookie(session.id)
     ;(await cookies()).set(c.name, c.value, c.attributes)
 

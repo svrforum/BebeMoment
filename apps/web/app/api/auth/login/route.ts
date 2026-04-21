@@ -15,7 +15,7 @@ export async function POST(req: Request) {
     })
 
     const session = await lucia.createSession(user.id, {
-      current_family_id: membership?.familyId ?? null,
+      currentFamilyId: membership?.familyId ?? null,
     })
     const c = lucia.createSessionCookie(session.id)
     ;(await cookies()).set(c.name, c.value, c.attributes)
