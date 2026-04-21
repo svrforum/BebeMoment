@@ -1,0 +1,21 @@
+# Synology DSM 변형 — 공유 폴더 기준 볼륨 경로 + PUID/PGID 기본값
+# 사용: docker-compose.yml 대신 단독 사용 or override 로 병합
+services:
+  web:
+    volumes:
+      - /volume1/docker/bebe-moment/data:/data
+    environment:
+      PUID: 1026
+      PGID: 100
+  worker:
+    volumes:
+      - /volume1/docker/bebe-moment/data:/data
+    environment:
+      PUID: 1026
+      PGID: 100
+  postgres:
+    volumes:
+      - /volume1/docker/bebe-moment/pg:/var/lib/postgresql/data
+  redis:
+    volumes:
+      - /volume1/docker/bebe-moment/redis:/data

@@ -1,0 +1,17 @@
+# Ignore build artifacts and dev files
+node_modules
+**/node_modules
+.next
+**/.next
+.git
+.github
+.dev
+.playwright-mcp
+.superpowers
+docs
+e2e
+test-results
+playwright-report
+*.log
+.env
+.env.local

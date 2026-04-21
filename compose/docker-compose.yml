@@ -1,0 +1,68 @@
+services:
+  web:
+    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/web:${TAG:-latest}
+    environment:
+      DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY}
+      PUBLIC_URL: ${PUBLIC_URL}
+      STORAGE_MODE: ${STORAGE_MODE:-local}
+      STORAGE_PATH: /data
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    ports:
+      - "${PORT:-3000}:3000"
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+
+  worker:
+    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/worker:${TAG:-latest}
+    environment:
+      DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
+      REDIS_URL: redis://redis:6379
+      SECRET_KEY: ${SECRET_KEY}
+      PUBLIC_URL: ${PUBLIC_URL}
+      STORAGE_MODE: ${STORAGE_MODE:-local}
+      STORAGE_PATH: /data
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
+    volumes:
+      - ${DATA_DIR:-./data}:/data
+    depends_on:
+      postgres: { condition: service_healthy }
+      redis: { condition: service_healthy }
+    restart: unless-stopped
+
+  postgres:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: bebe
+      POSTGRES_USER: bebe
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ${PG_DIR:-./pg}:/var/lib/postgresql/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U bebe"]
+      interval: 10s
+
+  redis:
+    image: redis:7-alpine
+    volumes:
+      - ${REDIS_DIR:-./redis}:/data
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
