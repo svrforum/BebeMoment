@@ -26,6 +26,8 @@ export default async function Home() {
         <nav style={{ display: 'flex', gap: 12, alignItems: 'center' }}>
           <a href="/family">가족</a>
           <a href="/babies">아기</a>
+          <a href="/assets">타임라인</a>
+          <a href="/upload">업로드</a>
           <form action="/api/auth/logout" method="post" style={{ display: 'inline' }}>
             <button
               type="submit"
@@ -59,9 +61,7 @@ export default async function Home() {
 
       <section className="card" style={{ marginTop: 16 }}>
         <h2 style={{ fontSize: 18 }}>타임라인</h2>
-        <p style={{ color: 'var(--base-500)' }}>
-          사진 업로드 기능은 다음 릴리스(Plan 2)에서 활성화돼요.
-        </p>
+        <a href="/assets">타임라인 보기 →</a>
       </section>
     </main>
   )
