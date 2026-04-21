@@ -26,22 +26,26 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       : `/media/${derivs.thumb_lg ?? asset.originalKey}`
   const posterUrl = derivs.poster ? `/media/${derivs.poster}` : undefined
 
-  const prevAsset = await prisma.asset.findFirst({
-    where: {
-      familyId: ctx.family.id,
-      deletedAt: null,
-      OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
-    },
-    orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
-  })
-  const nextAsset = await prisma.asset.findFirst({
-    where: {
-      familyId: ctx.family.id,
-      deletedAt: null,
-      OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
-    },
-    orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-  })
+  const [prevAsset, nextAsset] = await Promise.all([
+    prisma.asset.findFirst({
+      where: {
+        familyId: ctx.family.id,
+        deletedAt: null,
+        status: 'ready',
+        OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
+      },
+      orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
+    }),
+    prisma.asset.findFirst({
+      where: {
+        familyId: ctx.family.id,
+        deletedAt: null,
+        status: 'ready',
+        OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
+      },
+      orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
+    }),
+  ])
 
   return (
     <>
