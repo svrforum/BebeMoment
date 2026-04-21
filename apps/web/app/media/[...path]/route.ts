@@ -43,7 +43,16 @@ export async function GET(
     return new NextResponse('Not found', { status: 404 })
   }
 
-  const fullPath = path.join(env.STORAGE_PATH, ...segs)
+  for (const seg of segs) {
+    if (seg === '..' || seg.includes('/') || seg.includes('\\')) {
+      return new NextResponse('Not found', { status: 404 })
+    }
+  }
+  const base = path.resolve(env.STORAGE_PATH)
+  const fullPath = path.resolve(base, ...segs)
+  if (!fullPath.startsWith(base + path.sep) && fullPath !== base) {
+    return new NextResponse('Not found', { status: 404 })
+  }
   try {
     const stats = statSync(fullPath)
     const stream = createReadStream(fullPath)
