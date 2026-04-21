@@ -1,18 +1,8 @@
-import { isInstanceAdmin } from '@/lib/admin'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
+import { requireAdmin } from '@/lib/require-admin'
 import { createProvider, listProviders } from '@/server/oidc/providers'
-import { parseEnv } from '@bebe/config'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-
-async function checkAdmin() {
-  const { user } = await getAuth()
-  if (!user) return null
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  if (!isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)) return null
-  return { user, env }
-}
 
 const CreateSchema = z.object({
   name: z.string().min(1),
@@ -23,8 +13,8 @@ const CreateSchema = z.object({
 })
 
 export async function GET() {
-  const ctx = await checkAdmin()
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   const providers = await listProviders(prisma)
   return NextResponse.json({
     providers: providers.map((p) => ({
@@ -39,8 +29,8 @@ export async function GET() {
 }
 
 export async function POST(req: Request) {
-  const ctx = await checkAdmin()
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const body = CreateSchema.parse(await req.json())
     const p = await createProvider(body, ctx.env.SECRET_KEY, prisma)

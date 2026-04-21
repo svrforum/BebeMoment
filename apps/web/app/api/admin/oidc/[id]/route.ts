@@ -1,18 +1,8 @@
-import { isInstanceAdmin } from '@/lib/admin'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
+import { requireAdmin } from '@/lib/require-admin'
 import { deleteProvider, updateProvider } from '@/server/oidc/providers'
-import { parseEnv } from '@bebe/config'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-
-async function checkAdmin() {
-  const { user } = await getAuth()
-  if (!user) return null
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  if (!isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)) return null
-  return { user, env }
-}
 
 const UpdateSchema = z.object({
   name: z.string().min(1).optional(),
@@ -24,8 +14,8 @@ const UpdateSchema = z.object({
 })
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ctx = await checkAdmin()
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     const body = UpdateSchema.parse(await req.json())
@@ -37,8 +27,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const ctx = await checkAdmin()
-  if (!ctx) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     await deleteProvider(id, prisma)

@@ -1,25 +1,19 @@
-import { isInstanceAdmin } from '@/lib/admin'
-import { getAuth } from '@/lib/auth'
 import { encryptSecret } from '@/lib/crypto'
 import { prisma } from '@/lib/db-init'
+import { requireAdmin } from '@/lib/require-admin'
 import { setSetting } from '@/server/settings/set'
-import { parseEnv } from '@bebe/config'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const BodySchema = z.object({ password: z.string().min(1) })
 
 export async function POST(req: Request) {
-  const { user } = await getAuth()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  if (!isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { password } = BodySchema.parse(await req.json())
-    const enc = await encryptSecret(password, env.SECRET_KEY)
-    await setSetting('smtp.password_enc', enc, user.id, prisma)
+    const enc = await encryptSecret(password, ctx.env.SECRET_KEY)
+    await setSetting('smtp.password_enc', enc, ctx.user.id, prisma)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

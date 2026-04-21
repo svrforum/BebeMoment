@@ -1,19 +1,9 @@
-import { isInstanceAdmin } from '@/lib/admin'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
+import { requireAdmin } from '@/lib/require-admin'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
-import { parseEnv } from '@bebe/config'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
-
-async function checkAdmin() {
-  const { user } = await getAuth()
-  if (!user) return null
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  if (!isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)) return null
-  return user
-}
 
 const BodySchema = z.object({
   key: z.string().min(1),
@@ -21,11 +11,11 @@ const BodySchema = z.object({
 })
 
 export async function POST(req: Request) {
-  const user = await checkAdmin()
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const body = BodySchema.parse(await req.json())
-    await setSetting(body.key, body.value, user.id, prisma)
+    await setSetting(body.key, body.value, ctx.user.id, prisma)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
@@ -33,8 +23,8 @@ export async function POST(req: Request) {
 }
 
 export async function GET() {
-  const user = await checkAdmin()
-  if (!user) return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   const AnySchema = z.unknown()
   const [appName, signupEnabled, retentionDays, uploadConvert] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'bebe-moment', prisma),

@@ -1,20 +1,14 @@
-import { isInstanceAdmin } from '@/lib/admin'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
 import { sendMail } from '@/lib/mailer'
-import { parseEnv } from '@bebe/config'
+import { requireAdmin } from '@/lib/require-admin'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const BodySchema = z.object({ to: z.string().email() })
 
 export async function POST(req: Request) {
-  const { user } = await getAuth()
-  if (!user) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  if (!isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)) {
-    return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
-  }
+  const ctx = await requireAdmin()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { to } = BodySchema.parse(await req.json())
     await sendMail(
