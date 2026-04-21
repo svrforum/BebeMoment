@@ -12,7 +12,11 @@ export default async function OnboardingPage() {
       <p style={{ color: 'var(--base-500)', marginTop: 8, fontSize: 14 }}>
         첫 가족과 아기를 등록하면 타임라인이 시작돼요.
       </p>
-      <form action={completeOnboarding} className="card" style={{ marginTop: 24, display: 'grid', gap: 12 }}>
+      <form
+        action={completeOnboarding}
+        className="card"
+        style={{ marginTop: 24, display: 'grid', gap: 12 }}
+      >
         <label>
           <div style={{ fontSize: 13, marginBottom: 6 }}>가족 이름</div>
           <input name="familyName" required placeholder="예: 김씨네 가족" />

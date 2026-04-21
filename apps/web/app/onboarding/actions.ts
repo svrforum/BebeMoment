@@ -1,10 +1,10 @@
 'use server'
+import { getAuth } from '@/lib/auth'
+import { prisma } from '@/lib/db-init'
+import { createBaby } from '@/server/baby/create'
+import { createFamily } from '@/server/family/create'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-import { prisma } from '@/lib/db-init'
-import { getAuth } from '@/lib/auth'
-import { createFamily } from '@/server/family/create'
-import { createBaby } from '@/server/baby/create'
 
 const Input = z.object({
   familyName: z.string().min(1).max(80),
@@ -22,10 +22,7 @@ export async function completeOnboarding(formData: FormData) {
     birthDate: formData.get('birthDate'),
   })
 
-  const { family } = await createFamily(
-    { name: parsed.familyName, userId: user.id },
-    prisma,
-  )
+  const { family } = await createFamily({ name: parsed.familyName, userId: user.id }, prisma)
   await createBaby(
     {
       familyId: family.id,
