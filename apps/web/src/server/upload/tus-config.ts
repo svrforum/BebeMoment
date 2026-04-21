@@ -103,7 +103,7 @@ export function getTusServer(): Server {
           familyId: ctx.family.id,
           uploadedByUserId: ctx.user.id,
           kind,
-          originalKey: `pending/${upload.id}`,
+          originalKey: 'pending/placeholder',
           originalFilename: filename,
           mimeType,
           sizeBytes: BigInt(upload.size ?? 0),
@@ -116,27 +116,39 @@ export function getTusServer(): Server {
 
       const finalKey = `families/${ctx.family.id}/assets/${asset.id}/original`
 
-      if (env.STORAGE_MODE === 'local') {
-        const destPath = path.join(env.STORAGE_PATH, finalKey)
-        await mkdir(path.dirname(destPath), { recursive: true })
-        await rename(tusPath, destPath)
-      } else {
-        const stream = createReadStream(tusPath)
-        await storage.write(finalKey, stream)
-        await unlink(tusPath).catch(() => {})
+      try {
+        // 1. Move file to final location
+        if (env.STORAGE_MODE === 'local') {
+          const destPath = path.join(env.STORAGE_PATH, finalKey)
+          await mkdir(path.dirname(destPath), { recursive: true })
+          await rename(tusPath, destPath)
+        } else {
+          const stream = createReadStream(tusPath)
+          await storage.write(finalKey, stream)
+          await unlink(tusPath).catch(() => {})
+        }
+
+        // 2. Enqueue BEFORE updating status — if enqueue fails we clean up.
+        // The worker guards against status!='processing' and will no-op+retry
+        // if it races ahead of the status flip below.
+        const queue = getQueue(env.REDIS_URL)
+        await queue.add('process-asset', {
+          type: 'process-asset',
+          familyId: ctx.family.id,
+          assetId: asset.id,
+        })
+
+        // 3. Flip status
+        await prisma.asset.update({
+          where: { id: asset.id, familyId: ctx.family.id },
+          data: { originalKey: finalKey, status: 'processing' },
+        })
+      } catch (e) {
+        // Best-effort cleanup: delete asset row + uploaded file
+        await prisma.asset.delete({ where: { id: asset.id } }).catch(() => {})
+        await storage.delete(finalKey).catch(() => {})
+        throw e
       }
-
-      await prisma.asset.update({
-        where: { id: asset.id, familyId: ctx.family.id },
-        data: { originalKey: finalKey, status: 'processing' },
-      })
-
-      const queue = getQueue(env.REDIS_URL)
-      await queue.add('process-asset', {
-        type: 'process-asset',
-        familyId: ctx.family.id,
-        assetId: asset.id,
-      })
 
       return {
         status_code: 201,
