@@ -3,6 +3,7 @@ import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
+import { AppShellClient } from './shell-client'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { session } = await getAuth()
@@ -15,9 +16,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!ctx.family) redirect('/onboarding')
 
   return (
-    <>
+    <AppShellClient>
       <main className="pb-20">{children}</main>
       <BottomNav />
-    </>
+    </AppShellClient>
   )
 }
