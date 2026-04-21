@@ -1,12 +1,6 @@
 'use client'
+import type { AssetEvent } from '@bebe/core'
 import { useEffect } from 'react'
-
-type AssetEvent = {
-  type: 'asset.updated'
-  assetId: string
-  status: 'processing' | 'ready' | 'failed'
-  derivatives?: Record<string, string>
-}
 
 export function useFamilySSE(onEvent: (event: AssetEvent) => void): void {
   useEffect(() => {

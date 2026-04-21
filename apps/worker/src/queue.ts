@@ -1,7 +1,8 @@
+import { ASSET_QUEUE } from '@bebe/core'
 import { Queue, QueueEvents } from 'bullmq'
 import type IORedis from 'ioredis'
 
-export const ASSET_QUEUE = 'bebe-asset'
+export { ASSET_QUEUE }
 
 export function createAssetQueue(connection: IORedis): Queue {
   return new Queue(ASSET_QUEUE, { connection })
