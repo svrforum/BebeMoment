@@ -25,28 +25,18 @@ describe('isInstanceAdminUser', () => {
     expect(isInstanceAdminUser(null, ['a@b.com'])).toBe(false)
   })
   it('returns false when email unverified even if listed', () => {
-    expect(
-      isInstanceAdminUser({ email: 'a@b.com', emailVerified: false }, ['a@b.com']),
-    ).toBe(false)
+    expect(isInstanceAdminUser({ email: 'a@b.com', emailVerified: false }, ['a@b.com'])).toBe(false)
   })
   it('returns true when verified and listed', () => {
-    expect(
-      isInstanceAdminUser({ email: 'a@b.com', emailVerified: true }, ['a@b.com']),
-    ).toBe(true)
+    expect(isInstanceAdminUser({ email: 'a@b.com', emailVerified: true }, ['a@b.com'])).toBe(true)
   })
   it('returns false when verified but not listed', () => {
-    expect(
-      isInstanceAdminUser({ email: 'z@z.com', emailVerified: true }, ['a@b.com']),
-    ).toBe(false)
+    expect(isInstanceAdminUser({ email: 'z@z.com', emailVerified: true }, ['a@b.com'])).toBe(false)
   })
   it('returns false when email is null even if verified', () => {
-    expect(isInstanceAdminUser({ email: null, emailVerified: true }, ['a@b.com'])).toBe(
-      false,
-    )
+    expect(isInstanceAdminUser({ email: null, emailVerified: true }, ['a@b.com'])).toBe(false)
   })
   it('matches case-insensitively when verified', () => {
-    expect(
-      isInstanceAdminUser({ email: 'A@B.com', emailVerified: true }, ['a@b.com']),
-    ).toBe(true)
+    expect(isInstanceAdminUser({ email: 'A@B.com', emailVerified: true }, ['a@b.com'])).toBe(true)
   })
 })
