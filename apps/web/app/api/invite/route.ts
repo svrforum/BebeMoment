@@ -3,6 +3,12 @@ import { prisma } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createInvite } from '@/server/invite/create'
 import { NextResponse } from 'next/server'
+import { z } from 'zod'
+
+const BodySchema = z.object({
+  email: z.string().email(),
+  role: z.enum(['guardian', 'family']),
+})
 
 export async function POST(req: Request) {
   const { session } = await getAuth()
@@ -16,7 +22,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: 'No current family' }, { status: 400 })
 
   try {
-    const body = await req.json()
+    const body = BodySchema.parse(await req.json())
     const invite = await createInvite(
       {
         familyId: ctx.family.id,
