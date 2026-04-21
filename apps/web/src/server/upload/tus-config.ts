@@ -26,7 +26,7 @@ function getQueue(redisUrl: string): Queue {
     globalForTus.__bebe_queue_connection = new IORedis(redisUrl, {
       maxRetriesPerRequest: null,
     })
-    globalForTus.__bebe_queue = new Queue('bebe:asset', {
+    globalForTus.__bebe_queue = new Queue('bebe-asset', {
       connection: globalForTus.__bebe_queue_connection,
     })
   }
