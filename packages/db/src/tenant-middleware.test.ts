@@ -34,4 +34,68 @@ describe('tenant middleware', () => {
       }),
     ).resolves.toEqual([])
   })
+
+  it('throws on findFirst without familyId filter', async () => {
+    await expect(db.prisma.asset.findFirst({ where: { id: 'x' } })).rejects.toThrow(/familyId/)
+  })
+
+  it('throws on findUnique without familyId-compound where', async () => {
+    // findUnique on Asset by id alone is tenant-scoped and must include familyId
+    await expect(
+      db.prisma.asset.findUnique({
+        where: { id: '00000000-0000-0000-0000-000000000000' },
+      }),
+    ).rejects.toThrow(/familyId/)
+  })
+
+  it('allows findUnique when where uses familyId-compound unique', async () => {
+    await expect(
+      db.prisma.asset.findUnique({
+        where: {
+          familyId_sha256: {
+            familyId: '00000000-0000-0000-0000-000000000000',
+            sha256: 'x'.repeat(64),
+          },
+        },
+      }),
+    ).resolves.toBeNull()
+  })
+
+  it('throws on update without familyId filter', async () => {
+    await expect(
+      db.prisma.asset.update({
+        where: { id: '00000000-0000-0000-0000-000000000000' },
+        data: { status: 'ready' },
+      }),
+    ).rejects.toThrow(/familyId/)
+  })
+
+  it('throws on delete without familyId filter', async () => {
+    await expect(
+      db.prisma.asset.delete({
+        where: { id: '00000000-0000-0000-0000-000000000000' },
+      }),
+    ).rejects.toThrow(/familyId/)
+  })
+
+  it('allows OR-branch familyId filter', async () => {
+    await expect(
+      db.prisma.asset.findMany({
+        where: {
+          OR: [{ familyId: '00000000-0000-0000-0000-000000000000' }],
+        },
+      }),
+    ).resolves.toEqual([])
+  })
+
+  it('rejects deeply-nested familyId under arbitrary relation (top-level only)', async () => {
+    // familyId nested under a relation (uploadedBy.someField) is not a valid tenant filter.
+    await expect(
+      db.prisma.asset.findMany({
+        where: {
+          uploadedBy: { familyId: '00000000-0000-0000-0000-000000000000' } as never,
+        },
+      }),
+    ).rejects.toThrow(/familyId/)
+  })
 })
