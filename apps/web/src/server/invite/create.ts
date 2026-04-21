@@ -1,0 +1,49 @@
+import type { Invite, PrismaClient } from '@bebe/db'
+import { z } from 'zod'
+import { can } from '@bebe/core'
+import crypto from 'node:crypto'
+
+const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000
+
+const Input = z.object({
+  familyId: z.string().uuid(),
+  email: z.string().email(),
+  role: z.enum(['guardian', 'family']),
+  byUserId: z.string().uuid(),
+})
+
+export async function createInvite(raw: unknown, prisma: PrismaClient): Promise<Invite> {
+  const input = Input.parse(raw)
+
+  const membership = await prisma.membership.findUnique({
+    where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
+  })
+  if (!membership || membership.deletedAt || !can(membership.role, 'member.invite')) {
+    throw new Error('No permission to invite')
+  }
+
+  const existing = await prisma.invite.findFirst({
+    where: {
+      familyId: input.familyId,
+      email: input.email,
+      acceptedAt: null,
+      revokedAt: null,
+      expiresAt: { gt: new Date() },
+    },
+  })
+  if (existing) {
+    throw new Error('This email is already invited and the invite is still pending')
+  }
+
+  const token = crypto.randomBytes(32).toString('base64url')
+  return prisma.invite.create({
+    data: {
+      familyId: input.familyId,
+      invitedById: input.byUserId,
+      email: input.email,
+      role: input.role,
+      token,
+      expiresAt: new Date(Date.now() + INVITE_TTL_MS),
+    },
+  })
+}
