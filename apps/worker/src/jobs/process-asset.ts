@@ -1,14 +1,17 @@
 import { parseEnv } from '@bebe/config'
 import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
-import { prisma } from '@bebe/db'
+import { prisma } from '../prisma-init'
 import { type StorageAdapter, createAdapter } from '@bebe/storage'
 import type IORedis from 'ioredis'
+import pino from 'pino'
 import { z } from 'zod'
 import { publishAssetEvent } from '../pubsub'
 import { convertImageIfNeeded } from './convert'
 import { processImage } from './image-pipeline'
 import type { ProcessAssetJob } from './types'
 import { processVideo } from './video-pipeline'
+
+const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' })
 
 const BoolSchema = z.boolean()
 
@@ -54,12 +57,14 @@ async function getConvertSetting(): Promise<boolean> {
 export async function processAsset(job: ProcessAssetJob, publisher: IORedis): Promise<void> {
   const storage = buildStorage()
 
-  const asset = await prisma.asset.findUnique({ where: { id: job.assetId } })
-  if (!asset || asset.familyId !== job.familyId) {
+  const asset = await prisma.asset.findFirst({
+    where: { id: job.assetId, familyId: job.familyId },
+  })
+  if (!asset) {
     throw new Error(`Asset ${job.assetId} not found in family ${job.familyId}`)
   }
   if (asset.status !== 'processing') {
-    console.warn(`Asset ${asset.id} status=${asset.status}, skipping`)
+    logger.warn({ assetId: asset.id, status: asset.status }, 'skipping asset with non-processing status')
     return
   }
 

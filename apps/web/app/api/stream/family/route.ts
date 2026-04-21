@@ -32,7 +32,9 @@ export async function GET() {
     },
     cancel() {
       if (hb) clearInterval(hb)
-      sub?.quit().catch(() => {})
+      sub?.quit().catch((err) => {
+        console.error('redis sub quit failed:', err)
+      })
     },
   })
 
