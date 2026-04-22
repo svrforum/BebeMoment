@@ -1,0 +1,44 @@
+import { getAuth } from '@/lib/auth'
+import { prisma } from '@/lib/db-init'
+import { resolveContext } from '@/server/context'
+import { softDeleteMilestone } from '@/server/milestone/soft-delete'
+import { updateMilestone } from '@/server/milestone/update'
+import { NextResponse } from 'next/server'
+
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { session } = await getAuth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const ctx = await resolveContext(
+    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
+    prisma,
+  )
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  try {
+    const { id } = await params
+    const patch = await req.json()
+    const ms = await updateMilestone(
+      { id, familyId: ctx.family.id, byUserId: ctx.user.id, patch },
+      prisma,
+    )
+    return NextResponse.json({ id: ms.id })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
+}
+
+export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { session } = await getAuth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const ctx = await resolveContext(
+    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
+    prisma,
+  )
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  try {
+    const { id } = await params
+    await softDeleteMilestone({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prisma)
+    return NextResponse.json({ ok: true })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
+}
