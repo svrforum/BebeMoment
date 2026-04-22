@@ -1,9 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  MILESTONE_PRESETS,
-  isValidPresetKey,
-  getPreset,
-} from './milestone-presets'
+import { MILESTONE_PRESETS, getPreset, isValidPresetKey } from './milestone-presets'
 
 describe('milestone presets', () => {
   it('has 25 presets', () => {

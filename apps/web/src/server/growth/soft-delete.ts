@@ -8,10 +8,7 @@ const Input = z.object({
   byUserId: z.string().uuid(),
 })
 
-export async function softDeleteGrowthRecord(
-  raw: unknown,
-  prisma: PrismaClient,
-): Promise<void> {
+export async function softDeleteGrowthRecord(raw: unknown, prisma: PrismaClient): Promise<void> {
   const input = Input.parse(raw)
   const rec = await prisma.growthRecord.findUnique({ where: { id: input.id } })
   if (!rec || rec.familyId !== input.familyId || rec.deletedAt) {

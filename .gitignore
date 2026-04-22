@@ -34,6 +34,13 @@ redis/
 coverage/
 playwright-report/
 test-results/
+.playwright-mcp/
+
+# Dev screenshots (root-level only)
+/p4-*.png
+/p5-*.png
+/assets-page-state.png
+/detail-page.png
 
 # Brainstorming workspace (from superpowers plugin)
 .superpowers/
