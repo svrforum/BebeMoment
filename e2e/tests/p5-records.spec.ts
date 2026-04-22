@@ -1,9 +1,7 @@
 import { expect, test } from '@playwright/test'
 
 test.describe('P5 records smoke', () => {
-  test('growth record → milestone → journal → timeline integration', async ({
-    page,
-  }) => {
+  test('growth record → milestone → journal → timeline integration', async ({ page }) => {
     const uniq = Date.now()
     const email = `p5-${uniq}@test.local`
     const password = 'password123'
