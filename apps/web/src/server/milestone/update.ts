@@ -18,8 +18,10 @@ const Input = z.object({
 
 export async function updateMilestone(raw: unknown, prisma: PrismaClient): Promise<Milestone> {
   const input = Input.parse(raw)
-  const ms = await prisma.milestone.findUnique({ where: { id: input.id } })
-  if (!ms || ms.familyId !== input.familyId || ms.deletedAt) throw new Error('Milestone not found')
+  const ms = await prisma.milestone.findFirst({
+    where: { id: input.id, familyId: input.familyId, deletedAt: null },
+  })
+  if (!ms) throw new Error('Milestone not found')
   const membership = await prisma.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })

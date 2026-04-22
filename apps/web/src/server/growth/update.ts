@@ -26,8 +26,10 @@ export async function updateGrowthRecord(
 ): Promise<GrowthRecord> {
   const input = Input.parse(raw)
 
-  const rec = await prisma.growthRecord.findUnique({ where: { id: input.id } })
-  if (!rec || rec.familyId !== input.familyId || rec.deletedAt) {
+  const rec = await prisma.growthRecord.findFirst({
+    where: { id: input.id, familyId: input.familyId, deletedAt: null },
+  })
+  if (!rec) {
     throw new Error('Growth record not found')
   }
 

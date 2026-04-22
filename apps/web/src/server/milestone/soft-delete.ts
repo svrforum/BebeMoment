@@ -10,8 +10,10 @@ const Input = z.object({
 
 export async function softDeleteMilestone(raw: unknown, prisma: PrismaClient): Promise<void> {
   const input = Input.parse(raw)
-  const ms = await prisma.milestone.findUnique({ where: { id: input.id } })
-  if (!ms || ms.familyId !== input.familyId || ms.deletedAt) {
+  const ms = await prisma.milestone.findFirst({
+    where: { id: input.id, familyId: input.familyId, deletedAt: null },
+  })
+  if (!ms) {
     throw new Error('Milestone not found')
   }
   const membership = await prisma.membership.findUnique({

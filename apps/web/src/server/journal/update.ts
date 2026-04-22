@@ -26,8 +26,10 @@ export async function updateJournalEntry(
   prisma: PrismaClient,
 ): Promise<JournalEntry> {
   const input = Input.parse(raw)
-  const entry = await prisma.journalEntry.findUnique({ where: { id: input.id } })
-  if (!entry || entry.familyId !== input.familyId || entry.deletedAt) {
+  const entry = await prisma.journalEntry.findFirst({
+    where: { id: input.id, familyId: input.familyId, deletedAt: null },
+  })
+  if (!entry) {
     throw new Error('Entry not found')
   }
   const membership = await prisma.membership.findUnique({
@@ -39,8 +41,10 @@ export async function updateJournalEntry(
     throw new Error('No permission to edit this entry')
   }
   if (input.patch.babyId) {
-    const baby = await prisma.baby.findUnique({ where: { id: input.patch.babyId } })
-    if (!baby || baby.familyId !== input.familyId || baby.deletedAt) {
+    const baby = await prisma.baby.findFirst({
+      where: { id: input.patch.babyId, familyId: input.familyId, deletedAt: null },
+    })
+    if (!baby) {
       throw new Error('baby does not belong to this family')
     }
   }

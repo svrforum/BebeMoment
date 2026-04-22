@@ -10,8 +10,10 @@ const Input = z.object({
 
 export async function softDeleteJournalEntry(raw: unknown, prisma: PrismaClient): Promise<void> {
   const input = Input.parse(raw)
-  const entry = await prisma.journalEntry.findUnique({ where: { id: input.id } })
-  if (!entry || entry.familyId !== input.familyId || entry.deletedAt) {
+  const entry = await prisma.journalEntry.findFirst({
+    where: { id: input.id, familyId: input.familyId, deletedAt: null },
+  })
+  if (!entry) {
     throw new Error('Entry not found')
   }
   const membership = await prisma.membership.findUnique({

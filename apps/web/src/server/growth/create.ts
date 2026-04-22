@@ -30,8 +30,10 @@ export async function createGrowthRecord(
     throw new Error('No permission: user is not a member of this family')
   }
 
-  const baby = await prisma.baby.findUnique({ where: { id: input.babyId } })
-  if (!baby || baby.familyId !== input.familyId || baby.deletedAt) {
+  const baby = await prisma.baby.findFirst({
+    where: { id: input.babyId, familyId: input.familyId, deletedAt: null },
+  })
+  if (!baby) {
     throw new Error('baby does not belong to this family')
   }
 

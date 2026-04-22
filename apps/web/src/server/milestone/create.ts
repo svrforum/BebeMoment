@@ -31,8 +31,10 @@ export async function createMilestone(raw: unknown, prisma: PrismaClient): Promi
     throw new Error('No permission')
   }
 
-  const baby = await prisma.baby.findUnique({ where: { id: input.babyId } })
-  if (!baby || baby.familyId !== input.familyId || baby.deletedAt) {
+  const baby = await prisma.baby.findFirst({
+    where: { id: input.babyId, familyId: input.familyId, deletedAt: null },
+  })
+  if (!baby) {
     throw new Error('baby does not belong to this family')
   }
 
