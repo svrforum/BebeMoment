@@ -1,10 +1,12 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { JournalCard } from '@/components/timeline/journal-card'
+import { JournalFabLink } from '@/components/timeline/journal-fab-link'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
-import { listAssets } from '@/server/asset/list'
 import { resolveContext } from '@/server/context'
+import { listTimeline } from '@/server/timeline/merged-list'
 
 export default async function TimelinePage() {
   const { session } = await getAuth()
@@ -21,19 +23,27 @@ export default async function TimelinePage() {
   })
   const birthDate = baby?.birthDate ?? new Date()
 
-  const assets = await listAssets(
-    { familyId: ctx.family.id, limit: 200, includeProcessing: true },
-    prisma,
-  )
+  // P5 Task 17: merged timeline (assets + journal).
+  // TODO(P5+): interleave journal entries into age buckets by entryDate.
+  // For now: assets render in existing bucket grid; journal entries render
+  // as a separate descending feed above.
+  const { items } = await listTimeline(ctx.family.id, { limit: 100 }, prisma)
+
+  const assetItems = items.filter((it) => it.kind === 'asset')
+  const journalItems = items.filter((it) => it.kind === 'journal')
 
   const groups = groupAssetsByBucket(
-    assets.map((a) => ({
-      id: a.id,
-      takenAt: a.takenAt,
-      status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
-      kind: a.kind as 'image' | 'video',
-      derivatives: (a.derivatives as Record<string, string> | null) ?? null,
-    })),
+    assetItems.map((it) => {
+      const a = it.kind === 'asset' ? it.asset : null
+      if (!a) throw new Error('unreachable')
+      return {
+        id: a.id,
+        takenAt: a.takenAt,
+        status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
+        kind: a.kind as 'image' | 'video',
+        derivatives: (a.derivatives as Record<string, string> | null) ?? null,
+      }
+    }),
     birthDate,
   )
 
@@ -44,7 +54,16 @@ export default async function TimelinePage() {
       ) : (
         <AppHeader title={ctx.family.name} />
       )}
+      {journalItems.length > 0 && (
+        <div className="mx-auto max-w-3xl px-5 pt-4 space-y-3">
+          {journalItems.map((it) => {
+            if (it.kind !== 'journal') return null
+            return <JournalCard key={`j-${it.id}`} entry={it.entry} />
+          })}
+        </div>
+      )}
       <TimelineGrid initialGroups={groups} />
+      <JournalFabLink />
     </>
   )
 }
