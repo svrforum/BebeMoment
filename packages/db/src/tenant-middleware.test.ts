@@ -98,4 +98,21 @@ describe('tenant middleware', () => {
       }),
     ).rejects.toThrow(/familyId/)
   })
+
+  it('throws when GrowthRecord.findMany called without familyId', async () => {
+    await expect(db.prisma.growthRecord.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('throws when Milestone.findMany called without familyId', async () => {
+    await expect(db.prisma.milestone.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('throws when JournalEntry.findMany called without familyId', async () => {
+    await expect(db.prisma.journalEntry.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('allows GrowthRecord.findMany with familyId', async () => {
+    await expect(
+      db.prisma.growthRecord.findMany({
+        where: { familyId: '00000000-0000-0000-0000-000000000000' },
+      }),
+    ).resolves.toEqual([])
+  })
 })
