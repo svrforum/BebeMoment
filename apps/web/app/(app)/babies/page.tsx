@@ -40,14 +40,16 @@ export default async function BabiesPage() {
           </p>
         )}
         {babies.map((b) => (
-          <Card key={b.id}>
-            <CardBody>
-              <div className="font-semibold">{b.name}</div>
-              <div className="text-sm text-base-500 tabular-nums">
-                {b.birthDate.toISOString().slice(0, 10)}
-              </div>
-            </CardBody>
-          </Card>
+          <Link key={b.id} href={`/babies/${b.id}`} className="block">
+            <Card>
+              <CardBody>
+                <div className="font-semibold">{b.name}</div>
+                <div className="text-sm text-base-500 tabular-nums">
+                  {b.birthDate.toISOString().slice(0, 10)}
+                </div>
+              </CardBody>
+            </Card>
+          </Link>
         ))}
       </div>
     </>
