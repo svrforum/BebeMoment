@@ -76,7 +76,9 @@ export function MilestoneForm({
           triggerLabel={`사진 선택 (${assetIds.length})`}
         />
       </div>
-      <Button type="submit" className="w-full">{submitLabel}</Button>
+      <Button type="submit" className="w-full">
+        {submitLabel}
+      </Button>
     </form>
   )
 }

@@ -72,7 +72,9 @@ export function AssetPickerSheet({
           })}
         </div>
         <div className="sticky bottom-0 mt-4 border-t bg-base-0 pt-4">
-          <Button onClick={confirm} className="w-full">확인</Button>
+          <Button onClick={confirm} className="w-full">
+            확인
+          </Button>
         </div>
       </Sheet>
     </>
