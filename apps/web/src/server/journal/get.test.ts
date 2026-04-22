@@ -57,10 +57,7 @@ describe('getJournalEntry', () => {
       },
       db.prisma,
     )
-    await updateAssetStatus(
-      { assetId: asset.id, familyId: family.id, status: 'ready' },
-      db.prisma,
-    )
+    await updateAssetStatus({ assetId: asset.id, familyId: family.id, status: 'ready' }, db.prisma)
     const entry = await createJournalEntry(
       {
         familyId: family.id,

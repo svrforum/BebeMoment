@@ -32,10 +32,7 @@ export async function listJournalEntries(
       ...(params.babyId !== undefined ? { babyId: params.babyId } : {}),
       ...(cursorTs && cur
         ? {
-            OR: [
-              { entryDate: { lt: cursorTs } },
-              { entryDate: cursorTs, id: { lt: cur.id } },
-            ],
+            OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
           }
         : {}),
     },
