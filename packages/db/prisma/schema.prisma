@@ -29,6 +29,9 @@ model User {
   taggedAssets      AssetBaby[]
   updatedSettings   AppSetting[]     @relation("SettingUpdatedBy")
   settingHistory    SettingHistory[]
+  createdGrowthRecords   GrowthRecord[]
+  createdMilestones      Milestone[]
+  createdJournalEntries  JournalEntry[]
 
   @@map("users")
 }
@@ -98,6 +101,9 @@ model Family {
   babies      Baby[]
   assets      Asset[]
   sessions    Session[]
+  growthRecords  GrowthRecord[]
+  milestones     Milestone[]
+  journalEntries JournalEntry[]
 
   @@map("families")
 }
@@ -169,6 +175,9 @@ model Baby {
   family        Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
   profileAsset  Asset?      @relation("BabyProfile", fields: [profileAssetId], references: [id], onDelete: SetNull)
   assetBabies   AssetBaby[]
+  growthRecords  GrowthRecord[]
+  milestones     Milestone[]
+  journalEntries JournalEntry[]
 
   @@index([familyId])
   @@map("babies")
@@ -226,6 +235,8 @@ model Asset {
   uploadedBy     User        @relation(fields: [uploadedByUserId], references: [id])
   assetBabies    AssetBaby[]
   babyProfiles   Baby[]      @relation("BabyProfile")
+  milestoneAssets    MilestoneAsset[]
+  journalEntryAssets JournalEntryAsset[]
 
   @@unique([familyId, sha256])
   @@index([familyId, takenAt])
@@ -307,4 +318,95 @@ model SettingHistory {
 
   @@index([key])
   @@map("setting_history")
+}
+
+model GrowthRecord {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  babyId          String    @map("baby_id") @db.Uuid
+  measuredAt      DateTime  @map("measured_at") @db.Date
+  heightCm        Decimal?  @map("height_cm") @db.Decimal(5, 2)
+  weightKg        Decimal?  @map("weight_kg") @db.Decimal(5, 3)
+  headCm          Decimal?  @map("head_cm") @db.Decimal(5, 2)
+  note            String?
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  baby      Baby   @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  createdBy User   @relation(fields: [createdByUserId], references: [id])
+
+  @@index([familyId, babyId, measuredAt])
+  @@map("growth_records")
+}
+
+model Milestone {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  babyId          String    @map("baby_id") @db.Uuid
+  presetKey       String?   @map("preset_key")
+  customLabel     String?   @map("custom_label")
+  achievedAt      DateTime  @map("achieved_at") @db.Date
+  note            String?
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  baby      Baby             @relation(fields: [babyId], references: [id], onDelete: Cascade)
+  createdBy User             @relation(fields: [createdByUserId], references: [id])
+  assets    MilestoneAsset[]
+
+  @@unique([familyId, babyId, presetKey])
+  @@index([familyId, babyId, achievedAt])
+  @@map("milestones")
+}
+
+model MilestoneAsset {
+  milestoneId String @map("milestone_id") @db.Uuid
+  assetId     String @map("asset_id") @db.Uuid
+
+  milestone Milestone @relation(fields: [milestoneId], references: [id], onDelete: Cascade)
+  asset     Asset     @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([milestoneId, assetId])
+  @@map("milestone_assets")
+}
+
+model JournalEntry {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  babyId          String?   @map("baby_id") @db.Uuid
+  entryDate       DateTime  @map("entry_date") @db.Date
+  title           String?
+  body            String
+  mood            String?
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  baby      Baby?               @relation(fields: [babyId], references: [id], onDelete: SetNull)
+  createdBy User                @relation(fields: [createdByUserId], references: [id])
+  assets    JournalEntryAsset[]
+
+  @@index([familyId, entryDate])
+  @@index([familyId, babyId, entryDate])
+  @@map("journal_entries")
+}
+
+model JournalEntryAsset {
+  entryId String @map("entry_id") @db.Uuid
+  assetId String @map("asset_id") @db.Uuid
+  order   Int    @default(0)
+
+  entry JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  asset Asset        @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, assetId])
+  @@map("journal_entry_assets")
 }
