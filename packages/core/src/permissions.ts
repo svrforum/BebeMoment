@@ -17,6 +17,12 @@ export type Capability =
   | 'asset.delete.any'
   | 'asset.view.family'
   | 'asset.view.private'
+  | 'record.read'
+  | 'record.create'
+  | 'record.edit.own'
+  | 'record.edit.any'
+  | 'record.delete.own'
+  | 'record.delete.any'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
@@ -36,6 +42,12 @@ const MATRIX: Record<Role, Capability[]> = {
     'asset.delete.any',
     'asset.view.family',
     'asset.view.private',
+    'record.read',
+    'record.create',
+    'record.edit.own',
+    'record.edit.any',
+    'record.delete.own',
+    'record.delete.any',
   ],
   guardian: [
     'family.edit',
@@ -52,8 +64,23 @@ const MATRIX: Record<Role, Capability[]> = {
     'asset.delete.any',
     'asset.view.family',
     'asset.view.private',
+    'record.read',
+    'record.create',
+    'record.edit.own',
+    'record.edit.any',
+    'record.delete.own',
+    'record.delete.any',
   ],
-  family: ['asset.upload', 'asset.edit.own', 'asset.delete.own', 'asset.view.family'],
+  family: [
+    'asset.upload',
+    'asset.edit.own',
+    'asset.delete.own',
+    'asset.view.family',
+    'record.read',
+    'record.create',
+    'record.edit.own',
+    'record.delete.own',
+  ],
 }
 
 export function can(role: Role, capability: Capability): boolean {

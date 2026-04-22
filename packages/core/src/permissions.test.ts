@@ -43,3 +43,28 @@ describe('can', () => {
     expect(can(role, 'asset.view.family')).toBe(true)
   })
 })
+
+describe('record capabilities', () => {
+  it.each([
+    ['owner',    'record.read',        true],
+    ['owner',    'record.create',      true],
+    ['owner',    'record.edit.own',    true],
+    ['owner',    'record.edit.any',    true],
+    ['owner',    'record.delete.own',  true],
+    ['owner',    'record.delete.any',  true],
+    ['guardian', 'record.read',        true],
+    ['guardian', 'record.create',      true],
+    ['guardian', 'record.edit.own',    true],
+    ['guardian', 'record.edit.any',    true],
+    ['guardian', 'record.delete.own',  true],
+    ['guardian', 'record.delete.any',  true],
+    ['family',   'record.read',        true],
+    ['family',   'record.create',      true],
+    ['family',   'record.edit.own',    true],
+    ['family',   'record.edit.any',    false],
+    ['family',   'record.delete.own',  true],
+    ['family',   'record.delete.any',  false],
+  ] as const)('%s can %s → %s', (role, cap, expected) => {
+    expect(can(role, cap)).toBe(expected)
+  })
+})
