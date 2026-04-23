@@ -12,6 +12,9 @@ const TENANT_SCOPED_MODELS = new Set([
   'MilestoneAsset',
   'JournalEntry',
   'JournalEntryAsset',
+  'AssetLike',
+  'AssetBookmark',
+  'AssetComment',
 ])
 
 type Mode = 'throw' | 'warn'

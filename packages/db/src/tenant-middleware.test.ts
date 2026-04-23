@@ -115,4 +115,21 @@ describe('tenant middleware', () => {
       }),
     ).resolves.toEqual([])
   })
+
+  it('throws when AssetLike.findMany called without familyId', async () => {
+    await expect(db.prisma.assetLike.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('throws when AssetBookmark.findMany called without familyId', async () => {
+    await expect(db.prisma.assetBookmark.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('throws when AssetComment.findMany called without familyId', async () => {
+    await expect(db.prisma.assetComment.findMany({})).rejects.toThrow(/familyId/)
+  })
+  it('allows AssetComment.findMany with familyId', async () => {
+    await expect(
+      db.prisma.assetComment.findMany({
+        where: { familyId: '00000000-0000-0000-0000-000000000000' },
+      }),
+    ).resolves.toEqual([])
+  })
 })
