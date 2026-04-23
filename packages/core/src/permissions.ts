@@ -23,6 +23,11 @@ export type Capability =
   | 'record.edit.any'
   | 'record.delete.own'
   | 'record.delete.any'
+  | 'social.react'
+  | 'social.comment.create'
+  | 'social.comment.edit.own'
+  | 'social.comment.delete.own'
+  | 'social.comment.delete.any'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
@@ -48,6 +53,11 @@ const MATRIX: Record<Role, Capability[]> = {
     'record.edit.any',
     'record.delete.own',
     'record.delete.any',
+    'social.react',
+    'social.comment.create',
+    'social.comment.edit.own',
+    'social.comment.delete.own',
+    'social.comment.delete.any',
   ],
   guardian: [
     'family.edit',
@@ -70,6 +80,11 @@ const MATRIX: Record<Role, Capability[]> = {
     'record.edit.any',
     'record.delete.own',
     'record.delete.any',
+    'social.react',
+    'social.comment.create',
+    'social.comment.edit.own',
+    'social.comment.delete.own',
+    'social.comment.delete.any',
   ],
   family: [
     'asset.upload',
@@ -80,6 +95,10 @@ const MATRIX: Record<Role, Capability[]> = {
     'record.create',
     'record.edit.own',
     'record.delete.own',
+    'social.react',
+    'social.comment.create',
+    'social.comment.edit.own',
+    'social.comment.delete.own',
   ],
 }
 
