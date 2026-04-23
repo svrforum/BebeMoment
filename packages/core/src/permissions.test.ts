@@ -71,21 +71,21 @@ describe('record capabilities', () => {
 
 describe('social capabilities', () => {
   it.each([
-    ['owner',    'social.react',                true],
-    ['owner',    'social.comment.create',       true],
-    ['owner',    'social.comment.edit.own',     true],
-    ['owner',    'social.comment.delete.own',   true],
-    ['owner',    'social.comment.delete.any',   true],
-    ['guardian', 'social.react',                true],
-    ['guardian', 'social.comment.create',       true],
-    ['guardian', 'social.comment.edit.own',     true],
-    ['guardian', 'social.comment.delete.own',   true],
-    ['guardian', 'social.comment.delete.any',   true],
-    ['family',   'social.react',                true],
-    ['family',   'social.comment.create',       true],
-    ['family',   'social.comment.edit.own',     true],
-    ['family',   'social.comment.delete.own',   true],
-    ['family',   'social.comment.delete.any',   false],
+    ['owner', 'social.react', true],
+    ['owner', 'social.comment.create', true],
+    ['owner', 'social.comment.edit.own', true],
+    ['owner', 'social.comment.delete.own', true],
+    ['owner', 'social.comment.delete.any', true],
+    ['guardian', 'social.react', true],
+    ['guardian', 'social.comment.create', true],
+    ['guardian', 'social.comment.edit.own', true],
+    ['guardian', 'social.comment.delete.own', true],
+    ['guardian', 'social.comment.delete.any', true],
+    ['family', 'social.react', true],
+    ['family', 'social.comment.create', true],
+    ['family', 'social.comment.edit.own', true],
+    ['family', 'social.comment.delete.own', true],
+    ['family', 'social.comment.delete.any', false],
   ] as const)('%s can %s → %s', (role, cap, expected) => {
     expect(can(role, cap)).toBe(expected)
   })
