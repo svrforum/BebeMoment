@@ -1,0 +1,42 @@
+import { getAuth } from '@/lib/auth'
+import { prisma } from '@/lib/db-init'
+import { createComment } from '@/server/comment/create'
+import { listComments } from '@/server/comment/list'
+import { resolveContext } from '@/server/context'
+import { getPublisher } from '@/server/upload/pubsub'
+import { NextResponse } from 'next/server'
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { session } = await getAuth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const ctx = await resolveContext(
+    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
+    prisma,
+  )
+  if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  const { id } = await params
+  const items = await listComments(ctx.family.id, id, prisma)
+  return NextResponse.json({ items })
+}
+
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { session } = await getAuth()
+  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const ctx = await resolveContext(
+    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
+    prisma,
+  )
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  try {
+    const { id } = await params
+    const body = await req.json()
+    const c = await createComment(
+      { assetId: id, familyId: ctx.family.id, body: body.body, byUserId: ctx.user.id },
+      prisma,
+      getPublisher(),
+    )
+    return NextResponse.json({ id: c.id })
+  } catch (e) {
+    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+  }
+}
