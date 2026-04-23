@@ -72,18 +72,18 @@ describe('listComments', () => {
       { assetId: asset.id, familyId: family.id, body: 'second', byUserId: user.id },
       db.prisma,
     )
-    await softDeleteComment(
-      { id: c1.id, familyId: family.id, byUserId: user.id },
-      db.prisma,
-    )
+    await softDeleteComment({ id: c1.id, familyId: family.id, byUserId: user.id }, db.prisma)
 
     const items = await listComments(family.id, asset.id, db.prisma)
     expect(items).toHaveLength(2)
-    expect(items[0].id).toBe(c1.id)
-    expect(items[1].id).toBe(c2.id)
-    expect(items[0].deletedAt).toBeInstanceOf(Date)
-    expect(items[0].author).toBeDefined()
-    expect(items[0].author.displayName).toBe('Alice')
+    const first = items[0]
+    const second = items[1]
+    if (!first || !second) throw new Error('expected two items')
+    expect(first.id).toBe(c1.id)
+    expect(second.id).toBe(c2.id)
+    expect(first.deletedAt).toBeInstanceOf(Date)
+    expect(first.author).toBeDefined()
+    expect(first.author.displayName).toBe('Alice')
   })
 
   it('returns empty array when no comments', async () => {

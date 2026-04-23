@@ -109,10 +109,7 @@ describe('updateComment', () => {
       db.prisma,
     )
     await expect(
-      updateComment(
-        { id: c.id, familyId: family.id, body: 'nope', byUserId: u2.id },
-        db.prisma,
-      ),
+      updateComment({ id: c.id, familyId: family.id, body: 'nope', byUserId: u2.id }, db.prisma),
     ).rejects.toThrow(/본인|permission/)
   })
 
@@ -128,10 +125,7 @@ describe('updateComment', () => {
       data: { deletedAt: new Date() },
     })
     await expect(
-      updateComment(
-        { id: c.id, familyId: family.id, body: 'try', byUserId: user.id },
-        db.prisma,
-      ),
+      updateComment({ id: c.id, familyId: family.id, body: 'try', byUserId: user.id }, db.prisma),
     ).rejects.toThrow(/삭제/)
   })
 })
