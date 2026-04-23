@@ -32,6 +32,9 @@ export default async function SettingsPage() {
               <Link href="/family">가족 멤버</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/saved">저장함</Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/journal">일기</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
