@@ -1,4 +1,5 @@
 'use client'
+import type { AssetEvent } from '@bebe/core'
 import { useFamilySSE } from '@/lib/sse'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
@@ -21,8 +22,8 @@ export function TimelineGrid({ initialGroups }: Props) {
   const router = useRouter()
 
   const handleEvent = useCallback(
-    (event: { status: 'processing' | 'ready' | 'failed' }) => {
-      if (event.status === 'ready' || event.status === 'failed') {
+    (event: AssetEvent) => {
+      if (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed')) {
         router.refresh()
       }
     },
