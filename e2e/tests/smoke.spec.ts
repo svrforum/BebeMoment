@@ -111,11 +111,11 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
       detailLink.click(),
     ])
 
-    // Detail page shows filename
-    await expect(page.getByText(/smoke-/)).toBeVisible()
+    // Detail page renders side panel heading (P6 UI — filename removed)
+    await expect(page.getByRole('heading', { name: '세부정보' })).toBeVisible()
 
-    // Close (X button with aria-label "닫기") → back to /timeline
-    await page.getByLabel(/닫기/).click()
+    // Close (X link with aria-label "닫기") → back to /timeline
+    await page.getByRole('link', { name: '닫기' }).click()
     await expect(page).toHaveURL(/\/timeline$/)
 
     // Visit calendar

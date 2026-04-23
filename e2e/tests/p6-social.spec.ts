@@ -76,7 +76,11 @@ test.describe('P6 social smoke', () => {
 
     // Bookmark + /saved
     const bookmarkBtn = page.getByRole('button', { name: '저장함에 추가' }).first()
+    const bookmarkResp = page.waitForResponse(
+      (r) => r.url().includes('/bookmark') && r.request().method() === 'POST' && r.ok(),
+    )
     await bookmarkBtn.click()
+    await bookmarkResp
     await expect(page.getByRole('button', { name: '저장 취소' })).toBeVisible({ timeout: 3000 })
     await page.goto('/saved')
     await expect(page.locator('main a[href^="/detail/"]')).toHaveCount(1)
