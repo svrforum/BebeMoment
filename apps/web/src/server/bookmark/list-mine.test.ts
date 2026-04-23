@@ -62,15 +62,9 @@ describe('listMyBookmarks', () => {
     const { user, family } = await setup()
     const a1 = await makeReadyAsset(family.id, user.id, 'a1')
     const a2 = await makeReadyAsset(family.id, user.id, 'a2')
-    await toggleBookmark(
-      { assetId: a1.id, familyId: family.id, byUserId: user.id },
-      db.prisma,
-    )
+    await toggleBookmark({ assetId: a1.id, familyId: family.id, byUserId: user.id }, db.prisma)
     await new Promise((r) => setTimeout(r, 5))
-    await toggleBookmark(
-      { assetId: a2.id, familyId: family.id, byUserId: user.id },
-      db.prisma,
-    )
+    await toggleBookmark({ assetId: a2.id, familyId: family.id, byUserId: user.id }, db.prisma)
 
     const { user: u2 } = await signup(
       { email: 'u2@u2.com', password: 'password123', displayName: 'Bob' },
@@ -79,10 +73,7 @@ describe('listMyBookmarks', () => {
     await db.prisma.membership.create({
       data: { familyId: family.id, userId: u2.id, role: 'family' },
     })
-    await toggleBookmark(
-      { assetId: a1.id, familyId: family.id, byUserId: u2.id },
-      db.prisma,
-    )
+    await toggleBookmark({ assetId: a1.id, familyId: family.id, byUserId: u2.id }, db.prisma)
 
     const result = await listMyBookmarks(family.id, user.id, {}, db.prisma)
     expect(result.items.length).toBe(2)
@@ -94,10 +85,7 @@ describe('listMyBookmarks', () => {
     const { user, family } = await setup()
     for (let i = 0; i < 5; i++) {
       const a = await makeReadyAsset(family.id, user.id, `a${i}`)
-      await toggleBookmark(
-        { assetId: a.id, familyId: family.id, byUserId: user.id },
-        db.prisma,
-      )
+      await toggleBookmark({ assetId: a.id, familyId: family.id, byUserId: user.id }, db.prisma)
       await new Promise((r) => setTimeout(r, 2))
     }
     const p1 = await listMyBookmarks(family.id, user.id, { limit: 3 }, db.prisma)

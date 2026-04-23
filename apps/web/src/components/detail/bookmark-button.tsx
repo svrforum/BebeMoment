@@ -48,10 +48,7 @@ export function BookmarkButton({
     >
       <Bookmark
         size={iconSize}
-        className={cn(
-          'transition',
-          bookmarked ? 'fill-point-500 text-point-500' : 'text-base-500',
-        )}
+        className={cn('transition', bookmarked ? 'fill-point-500 text-point-500' : 'text-base-500')}
       />
     </button>
   )

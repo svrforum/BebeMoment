@@ -70,10 +70,7 @@ describe('toggleBookmark', () => {
   it('removes when present', async () => {
     const { user, family } = await setup()
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
-    await toggleBookmark(
-      { assetId: asset.id, familyId: family.id, byUserId: user.id },
-      db.prisma,
-    )
+    await toggleBookmark({ assetId: asset.id, familyId: family.id, byUserId: user.id }, db.prisma)
     const result = await toggleBookmark(
       { assetId: asset.id, familyId: family.id, byUserId: user.id },
       db.prisma,
@@ -90,10 +87,7 @@ describe('toggleBookmark', () => {
     const { family: f2 } = await createFamily({ name: 'F2', userId: u2.id }, db.prisma)
     const foreign = await makeReadyAsset(f2.id, u2.id, 'f1')
     await expect(
-      toggleBookmark(
-        { assetId: foreign.id, familyId: family.id, byUserId: user.id },
-        db.prisma,
-      ),
+      toggleBookmark({ assetId: foreign.id, familyId: family.id, byUserId: user.id }, db.prisma),
     ).rejects.toThrow(/not found|asset/i)
   })
 })
