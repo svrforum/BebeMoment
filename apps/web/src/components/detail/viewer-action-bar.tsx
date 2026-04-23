@@ -26,11 +26,7 @@ export function ViewerActionBar({
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <LikeButton
-        assetId={assetId}
-        initialLiked={likeState.liked}
-        initialCount={likeState.count}
-      />
+      <LikeButton assetId={assetId} initialLiked={likeState.liked} initialCount={likeState.count} />
       <button
         type="button"
         onClick={onCommentTap}
@@ -38,14 +34,9 @@ export function ViewerActionBar({
         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white"
       >
         <MessageCircle size={22} />
-        {commentCount > 0 && (
-          <span className="text-sm tabular-nums">{commentCount}</span>
-        )}
+        {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
       </button>
-      <BookmarkButton
-        assetId={assetId}
-        initialBookmarked={bookmarkState.bookmarked}
-      />
+      <BookmarkButton assetId={assetId} initialBookmarked={bookmarkState.bookmarked} />
     </div>
   )
 }

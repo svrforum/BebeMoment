@@ -80,11 +80,7 @@ export function ViewerInfoPanel({
         <MetadataSection {...meta} />
         <div className="space-y-2 border-t pt-4">
           <div className="flex items-center gap-2">
-            <LikeButton
-              assetId={assetId}
-              initialLiked={initialLiked}
-              initialCount={likers.count}
-            />
+            <LikeButton assetId={assetId} initialLiked={initialLiked} initialCount={likers.count} />
             <BookmarkButton assetId={assetId} initialBookmarked={initialBookmarked} />
           </div>
           <LikerAvatars users={likers.users} />
