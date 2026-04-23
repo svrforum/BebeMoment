@@ -25,7 +25,11 @@ beforeEach(async () => {
 
 async function setup() {
   const { user } = await signup(
-    { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'Alice' },
+    {
+      email: `t-${Date.now()}-${Math.random()}@b.com`,
+      password: 'password123',
+      displayName: 'Alice',
+    },
     db.prisma,
   )
   const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
@@ -85,10 +89,7 @@ describe('toggleLike', () => {
     const { family: f2 } = await createFamily({ name: 'F2', userId: u2.id }, db.prisma)
     const foreign = await makeReadyAsset(f2.id, u2.id, 'f1')
     await expect(
-      toggleLike(
-        { assetId: foreign.id, familyId: family.id, byUserId: user.id },
-        db.prisma,
-      ),
+      toggleLike({ assetId: foreign.id, familyId: family.id, byUserId: user.id }, db.prisma),
     ).rejects.toThrow(/not found|asset/i)
   })
 
@@ -100,10 +101,7 @@ describe('toggleLike', () => {
       db.prisma,
     )
     await expect(
-      toggleLike(
-        { assetId: asset.id, familyId: family.id, byUserId: outsider.id },
-        db.prisma,
-      ),
+      toggleLike({ assetId: asset.id, familyId: family.id, byUserId: outsider.id }, db.prisma),
     ).rejects.toThrow(/permission|member/i)
   })
 })

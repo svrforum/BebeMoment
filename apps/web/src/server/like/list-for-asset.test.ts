@@ -26,7 +26,11 @@ beforeEach(async () => {
 
 async function setup() {
   const { user } = await signup(
-    { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'Alice' },
+    {
+      email: `t-${Date.now()}-${Math.random()}@b.com`,
+      password: 'password123',
+      displayName: 'Alice',
+    },
     db.prisma,
   )
   const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
