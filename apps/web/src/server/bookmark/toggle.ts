@@ -26,13 +26,13 @@ export async function toggleBookmark(
     throw new Error('No permission: not a member of this family')
   }
 
-  const existing = await prisma.assetBookmark.findUnique({
-    where: { assetId_userId: { assetId: input.assetId, userId: input.byUserId } },
+  const existing = await prisma.assetBookmark.findFirst({
+    where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
   })
 
   if (existing) {
-    await prisma.assetBookmark.delete({
-      where: { assetId_userId: { assetId: input.assetId, userId: input.byUserId } },
+    await prisma.assetBookmark.deleteMany({
+      where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
     })
     return { bookmarked: false }
   }

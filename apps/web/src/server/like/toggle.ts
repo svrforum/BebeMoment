@@ -29,13 +29,13 @@ export async function toggleLike(
     throw new Error('No permission: not a member of this family')
   }
 
-  const existing = await prisma.assetLike.findUnique({
-    where: { assetId_userId: { assetId: input.assetId, userId: input.byUserId } },
+  const existing = await prisma.assetLike.findFirst({
+    where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
   })
 
   if (existing) {
-    await prisma.assetLike.delete({
-      where: { assetId_userId: { assetId: input.assetId, userId: input.byUserId } },
+    await prisma.assetLike.deleteMany({
+      where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
     })
   } else {
     await prisma.assetLike.create({

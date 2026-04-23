@@ -56,15 +56,15 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       }),
       likersForAsset(ctx.family.id, asset.id, prisma),
       listComments(ctx.family.id, asset.id, prisma),
-      prisma.assetLike.findUnique({
-        where: { assetId_userId: { assetId: asset.id, userId: ctx.user.id } },
+      prisma.assetLike.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
       }),
-      prisma.assetBookmark.findUnique({
-        where: { assetId_userId: { assetId: asset.id, userId: ctx.user.id } },
+      prisma.assetBookmark.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
       }),
-      prisma.assetBaby.findMany({
-        where: { assetId: asset.id },
-        include: { baby: { select: { id: true, name: true } } },
+      prisma.baby.findMany({
+        where: { familyId: ctx.family.id, assetBabies: { some: { assetId: asset.id } } },
+        select: { id: true, name: true },
       }),
       prisma.membership.findMany({
         where: { familyId: ctx.family.id, deletedAt: null },
@@ -73,7 +73,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
     ])
 
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
-  const babies = babyLinks.map((l) => ({ id: l.baby.id, name: l.baby.name }))
+  const babies = babyLinks.map((b) => ({ id: b.id, name: b.name }))
 
   const role = ctx.membership?.role ?? 'family'
   const canDeleteAny = can(role, 'social.comment.delete.any')
