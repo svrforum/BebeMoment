@@ -29,10 +29,9 @@ function runMigrations(pkg: string, databaseUrl: string): Promise<void> {
 }
 
 /**
- * Fresh Postgres 컨테이너를 띄우고 @bebe/db 의 마이그레이션 (M1 포함) 을 적용하여
- * public + media 스키마 모두 생성. 반환되는 prisma 는 db-media 의 isolated client.
- * Task 13 에서 packages/db 삭제 후에는 @bebe/db-public + @bebe/db-media 마이그레이션을
- * 순차 적용하도록 전환 예정.
+ * Fresh Postgres 컨테이너를 띄우고 @bebe/db-public → @bebe/db-media 순서로
+ * 마이그레이션을 적용하여 public + media 스키마 모두 생성. 반환되는 prisma 는
+ * db-media 의 isolated client (media 스키마만 노출).
  */
 export async function startTestDb(): Promise<TestDb> {
   const container: StartedPostgreSqlContainer = await new PostgreSqlContainer('postgres:16-alpine')
@@ -42,7 +41,8 @@ export async function startTestDb(): Promise<TestDb> {
     .start()
 
   const url = container.getConnectionUri()
-  await runMigrations('@bebe/db', url)
+  await runMigrations('@bebe/db-public', url)
+  await runMigrations('@bebe/db-media', url)
 
   const prisma = new PrismaClient({ datasources: { db: { url } } })
   return {
