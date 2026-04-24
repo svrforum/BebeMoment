@@ -26,7 +26,7 @@ export async function createBaby(raw: unknown, prisma: PrismaClient): Promise<Ba
 
   const birth = new Date(`${input.birthDate}T00:00:00Z`)
   if (birth.getTime() > Date.now()) {
-    throw new Error('Birth date cannot be in the future')
+    throw new Error('생년월일이 미래일 수 없어요')
   }
 
   return prisma.baby.create({

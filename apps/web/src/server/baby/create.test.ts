@@ -67,6 +67,6 @@ describe('createBaby', () => {
         { familyId: family.id, name: '아기', birthDate: future, byUserId: user.id },
         db.prisma,
       ),
-    ).rejects.toThrow(/future/i)
+    ).rejects.toThrow(/미래/)
   })
 })
