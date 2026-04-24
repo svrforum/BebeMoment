@@ -1,0 +1,115 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
+  output          = "./generated/client"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  schemas  = ["media"]
+}
+
+model Asset {
+  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId                String    @map("family_id") @db.Uuid
+  uploadedByUserId        String    @map("uploaded_by_user_id") @db.Uuid
+
+  kind                    AssetKind
+  originalKey             String    @map("original_key")
+  originalFilename        String    @map("original_filename")
+  mimeType                String    @map("mime_type")
+  sizeBytes               BigInt    @map("size_bytes")
+  sha256                  String    @db.Char(64)
+  width                   Int?
+  height                  Int?
+  durationMs              Int?      @map("duration_ms")
+
+  takenAt                 DateTime  @map("taken_at")
+  takenAtSource           TakenAtSource @map("taken_at_source")
+  uploadedAt              DateTime  @default(now()) @map("uploaded_at")
+
+  gpsLat                  Float?    @map("gps_lat")
+  gpsLng                  Float?    @map("gps_lng")
+  cameraMake              String?   @map("camera_make")
+  cameraModel             String?   @map("camera_model")
+  exifRaw                 Json?     @map("exif_raw")
+
+  originalConvertedFrom   String?   @map("original_converted_from")
+
+  status                  AssetStatus @default(uploading)
+  processingError         String?     @map("processing_error")
+  derivatives             Json       @default("{}")
+
+  visibility              Visibility @default(family)
+
+  tags                    String[]   @default([])
+  caption                 String?
+
+  createdAt               DateTime  @default(now()) @map("created_at")
+  updatedAt               DateTime  @updatedAt @map("updated_at")
+  deletedAt               DateTime? @map("deleted_at")
+
+  assetBabies    AssetBaby[]
+
+  @@unique([familyId, sha256])
+  @@index([familyId, takenAt])
+  @@index([familyId, status])
+  @@index([familyId, status, takenAt, id], map: "assets_timeline_idx")
+  @@map("assets")
+  @@schema("media")
+}
+
+enum AssetKind {
+  image
+  video
+  @@map("asset_kind")
+  @@schema("media")
+}
+
+enum AssetStatus {
+  uploading
+  processing
+  ready
+  failed
+  @@map("asset_status")
+  @@schema("media")
+}
+
+enum TakenAtSource {
+  exif
+  filename
+  filemtime
+  manual
+  uploaded
+  @@map("taken_at_source")
+  @@schema("media")
+}
+
+enum Visibility {
+  private
+  family
+  @@map("visibility")
+  @@schema("media")
+}
+
+model AssetBaby {
+  assetId           String          @map("asset_id") @db.Uuid
+  babyId            String          @map("baby_id") @db.Uuid
+  taggedByUserId    String          @map("tagged_by_user_id") @db.Uuid
+  taggedAt          DateTime        @default(now()) @map("tagged_at")
+  detectionSource   DetectionSource @default(manual) @map("detection_source")
+
+  asset Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, babyId])
+  @@map("asset_babies")
+  @@schema("media")
+}
+
+enum DetectionSource {
+  manual
+  ai
+  @@map("detection_source")
+  @@schema("media")
+}
