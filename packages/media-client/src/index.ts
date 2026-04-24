@@ -1,1 +1,9 @@
-export {} // placeholder; schemas/client/fake will be re-exported in Task 16+
+export * from './schemas'
+export {
+  HttpMediaClient,
+  MediaError,
+  type FetchLike,
+  type MediaClient,
+  type MediaClientConfig,
+} from './client'
+export { FakeMediaClient } from './fake'
