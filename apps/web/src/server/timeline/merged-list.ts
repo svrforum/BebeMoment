@@ -1,13 +1,17 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from '../asset/get'
 
 export type TimelineItem =
-  | { kind: 'asset'; ts: Date; id: string; asset: Asset }
+  | { kind: 'asset'; ts: Date; id: string; asset: AssetWithUrls }
   | {
       kind: 'journal'
       ts: Date
       id: string
-      entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] }
+      entry: JournalEntry & {
+        assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[]
+      }
     }
 
 type Cursor = { ts: string; id: string; kind: 'asset' | 'journal' }
@@ -35,6 +39,7 @@ export async function listTimeline(
   params: { limit?: number; cursor?: string },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  media: MediaClient,
 ): Promise<{ items: TimelineItem[]; nextCursor: string | null }> {
   const limit = params.limit ?? 50
   const cur = params.cursor ? decodeCursor(params.cursor) : null
@@ -79,13 +84,37 @@ export async function listTimeline(
     : []
   const entryAssetById = new Map(entryAssets.map((a) => [a.id, a]))
 
+  const allIds = Array.from(
+    new Set<string>([
+      ...assets.filter((a) => a.status === 'ready').map((a) => a.id),
+      ...entryAssets.filter((a) => a.status === 'ready').map((a) => a.id),
+    ]),
+  )
+  const urlsMap = allIds.length ? await media.getAssetUrlsBatch(familyId, allIds) : {}
+
+  const assetsWithUrls: AssetWithUrls[] = assets.map((a) => ({
+    ...a,
+    urls: urlsMap[a.id] ?? null,
+  }))
+
   const joinedEntries = entries.map((e) => ({
     ...e,
-    assets: e.assets.map((ea) => ({ ...ea, asset: entryAssetById.get(ea.assetId) ?? null })),
+    assets: e.assets.map((ea) => {
+      const base = entryAssetById.get(ea.assetId) ?? null
+      const withUrls: AssetWithUrls | null = base
+        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+        : null
+      return { ...ea, asset: withUrls }
+    }),
   }))
 
   const merged: TimelineItem[] = [
-    ...assets.map<TimelineItem>((a) => ({ kind: 'asset', ts: a.takenAt, id: a.id, asset: a })),
+    ...assetsWithUrls.map<TimelineItem>((a) => ({
+      kind: 'asset',
+      ts: a.takenAt,
+      id: a.id,
+      asset: a,
+    })),
     ...joinedEntries.map<TimelineItem>((e) => ({
       kind: 'journal',
       ts: e.entryDate,

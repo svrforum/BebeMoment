@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -61,7 +62,13 @@ describe('listMilestonesByBaby', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    const list = await listMilestonesByBaby(family.id, baby.id, db.prismaPublic, db.prismaMedia)
+    const list = await listMilestonesByBaby(
+      family.id,
+      baby.id,
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
     expect(list.map((m) => m.achievedAt.toISOString().slice(0, 10))).toEqual([
       '2026-04-01',
       '2026-02-01',

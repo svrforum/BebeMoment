@@ -1,4 +1,6 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from './get'
 
 export async function listAssets(
   args: {
@@ -8,8 +10,9 @@ export async function listAssets(
     includeProcessing?: boolean
   },
   prismaMedia: PrismaMedia,
-): Promise<Asset[]> {
-  return prismaMedia.asset.findMany({
+  media: MediaClient,
+): Promise<AssetWithUrls[]> {
+  const assets = await prismaMedia.asset.findMany({
     where: {
       familyId: args.familyId,
       deletedAt: null,
@@ -26,4 +29,8 @@ export async function listAssets(
     orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
     take: args.limit,
   })
+  if (assets.length === 0) return []
+  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(args.familyId, readyIds) : {}
+  return assets.map((a) => ({ ...a, urls: urlsMap[a.id] ?? null }))
 }

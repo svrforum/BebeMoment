@@ -138,10 +138,7 @@ describe('createMilestone', () => {
 
   it('rejects asset from another family', async () => {
     const { user, family, baby } = await setup()
-    const { family: family2 } = await createFamily(
-      { name: 'F2', userId: user.id },
-      db.prismaPublic,
-    )
+    const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)
     const foreign = await createAsset(
       {
         familyId: family2.id,

@@ -1,12 +1,15 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Milestone, MilestoneAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from '../asset/get'
 
 export async function listMilestonesByBaby(
   familyId: string,
   babyId: string,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
-): Promise<(Milestone & { assets: (MilestoneAsset & { asset: Asset | null })[] })[]> {
+  media: MediaClient,
+): Promise<(Milestone & { assets: (MilestoneAsset & { asset: AssetWithUrls | null })[] })[]> {
   const milestones = await prismaPublic.milestone.findMany({
     where: { familyId, babyId, deletedAt: null },
     include: { assets: true },
@@ -21,8 +24,17 @@ export async function listMilestonesByBaby(
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 
+  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
+
   return milestones.map((m) => ({
     ...m,
-    assets: m.assets.map((ma) => ({ ...ma, asset: byId.get(ma.assetId) ?? null })),
+    assets: m.assets.map((ma) => {
+      const base = byId.get(ma.assetId) ?? null
+      const withUrls: AssetWithUrls | null = base
+        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+        : null
+      return { ...ma, asset: withUrls }
+    }),
   }))
 }

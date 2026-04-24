@@ -1,14 +1,22 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { Baby, JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type {
+  Baby,
+  JournalEntry,
+  JournalEntryAsset,
+  PrismaClient as PrismaPublic,
+} from '@bebe/db-public'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from '../asset/get'
 
 export async function getJournalEntry(
   id: string,
   familyId: string,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  media: MediaClient,
 ): Promise<
   | (JournalEntry & {
-      assets: (JournalEntryAsset & { asset: Asset | null })[]
+      assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[]
       baby: Baby | null
     })
   | null
@@ -25,8 +33,17 @@ export async function getJournalEntry(
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 
+  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
+
   return {
     ...entry,
-    assets: entry.assets.map((ea) => ({ ...ea, asset: byId.get(ea.assetId) ?? null })),
+    assets: entry.assets.map((ea) => {
+      const base = byId.get(ea.assetId) ?? null
+      const withUrls: AssetWithUrls | null = base
+        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+        : null
+      return { ...ea, asset: withUrls }
+    }),
   }
 }

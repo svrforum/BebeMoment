@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getJournalEntry } from '@/server/journal/get'
 import { softDeleteJournalEntry } from '@/server/journal/soft-delete'
@@ -15,7 +16,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const { id } = await params
-  const entry = await getJournalEntry(id, ctx.family.id, prismaPublic, prismaMedia)
+  const entry = await getJournalEntry(
+    id,
+    ctx.family.id,
+    prismaPublic,
+    prismaMedia,
+    getMediaClient(),
+  )
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(entry)
 }

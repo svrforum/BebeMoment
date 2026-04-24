@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { createJournalEntry } from '@/server/journal/create'
 import { listJournalEntries } from '@/server/journal/list'
@@ -22,6 +23,7 @@ export async function GET(req: Request) {
     { ...(babyId ? { babyId } : {}), ...(cursor ? { cursor } : {}), limit },
     prismaPublic,
     prismaMedia,
+    getMediaClient(),
   )
   return NextResponse.json(page)
 }

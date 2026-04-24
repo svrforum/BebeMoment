@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
 import { redirect } from 'next/navigation'
@@ -15,6 +16,7 @@ export default async function SavedPage() {
     { limit: 60 },
     prismaPublic,
     prismaMedia,
+    getMediaClient(),
   )
 
   return (

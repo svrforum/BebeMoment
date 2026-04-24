@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
@@ -62,6 +63,7 @@ describe('listTimeline', () => {
       {},
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
     expect(items).toEqual([])
     expect(nextCursor).toBeNull()
@@ -81,6 +83,7 @@ describe('listTimeline', () => {
       { limit: 10 },
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
     const kinds = items.map((i) => i.kind)
     const dates = items.map((i) => i.ts.toISOString().slice(0, 10))
@@ -93,7 +96,8 @@ describe('listTimeline', () => {
     for (let i = 0; i < 5; i++) {
       await makeAsset(family.id, user.id, new Date(`2026-04-${10 + i}`), `a${i}`)
     }
-    const p1 = await listTimeline(family.id, { limit: 3 }, db.prismaPublic, db.prismaMedia)
+    const media = new FakeMediaClient()
+    const p1 = await listTimeline(family.id, { limit: 3 }, db.prismaPublic, db.prismaMedia, media)
     expect(p1.items.length).toBe(3)
     expect(p1.nextCursor).not.toBeNull()
     const p2 = await listTimeline(
@@ -101,6 +105,7 @@ describe('listTimeline', () => {
       { limit: 3, cursor: p1.nextCursor as string },
       db.prismaPublic,
       db.prismaMedia,
+      media,
     )
     expect(p2.items.length).toBe(2)
     expect(p2.nextCursor).toBeNull()

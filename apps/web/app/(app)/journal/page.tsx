@@ -2,6 +2,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
 import { listJournalEntries } from '@/server/journal/list'
 import Link from 'next/link'
@@ -16,6 +17,7 @@ export default async function JournalPage() {
     { limit: 50 },
     prismaPublic,
     prismaMedia,
+    getMediaClient(),
   )
 
   return (

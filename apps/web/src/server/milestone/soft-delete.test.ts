@@ -50,7 +50,10 @@ describe('softDeleteMilestone', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await softDeleteMilestone({ id: ms.id, familyId: family.id, byUserId: user.id }, db.prismaPublic)
+    await softDeleteMilestone(
+      { id: ms.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+    )
     const fresh = await db.prismaPublic.milestone.findUnique({ where: { id: ms.id } })
     expect(fresh?.deletedAt).not.toBeNull()
   })

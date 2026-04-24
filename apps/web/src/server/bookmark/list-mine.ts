@@ -1,5 +1,7 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { AssetBookmark, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from '../asset/get'
 
 type Cursor = { ts: string; assetId: string }
 
@@ -20,8 +22,9 @@ export async function listMyBookmarks(
   params: { cursor?: string; limit?: number },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  media: MediaClient,
 ): Promise<{
-  items: (AssetBookmark & { asset: Asset | null })[]
+  items: (AssetBookmark & { asset: AssetWithUrls | null })[]
   nextCursor: string | null
 }> {
   const limit = params.limit ?? 30
@@ -53,7 +56,17 @@ export async function listMyBookmarks(
     ? await prismaMedia.asset.findMany({ where: { id: { in: assetIds }, familyId } })
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
-  const joined = page.map((b) => ({ ...b, asset: byId.get(b.assetId) ?? null }))
+
+  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
+
+  const joined = page.map((b) => {
+    const base = byId.get(b.assetId) ?? null
+    const withUrls: AssetWithUrls | null = base
+      ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+      : null
+    return { ...b, asset: withUrls }
+  })
 
   const last = page[page.length - 1]
   const nextCursor =

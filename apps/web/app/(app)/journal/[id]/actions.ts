@@ -54,9 +54,6 @@ export async function deleteJournalAction(id: string) {
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
-  await softDeleteJournalEntry(
-    { id, familyId: ctx.family.id, byUserId: ctx.user.id },
-    prismaPublic,
-  )
+  await softDeleteJournalEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
   redirect('/journal')
 }

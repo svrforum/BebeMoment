@@ -1,6 +1,7 @@
 import { ViewerShell } from '@/components/detail/viewer-shell'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { getAssetForFamily } from '@/server/asset/get'
 import { listComments } from '@/server/comment/list'
 import { resolveContext } from '@/server/context'
@@ -18,7 +19,12 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   )
   if (!ctx.family || !ctx.user) return null
 
-  const asset = await getAssetForFamily({ assetId: id, familyId: ctx.family.id }, prismaMedia)
+  const media = getMediaClient()
+  const asset = await getAssetForFamily(
+    { assetId: id, familyId: ctx.family.id },
+    prismaMedia,
+    media,
+  )
   if (!asset) notFound()
 
   const derivs = (asset.derivatives as Record<string, string> | null) ?? {}

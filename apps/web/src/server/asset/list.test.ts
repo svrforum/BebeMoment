@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
@@ -89,7 +90,9 @@ describe('listAssets', () => {
       db.prismaMedia,
     )
 
-    const result = await listAssets({ familyId: family.id, limit: 10 }, db.prismaMedia)
+    const media = new FakeMediaClient()
+    const result = await listAssets({ familyId: family.id, limit: 10 }, db.prismaMedia, media)
     expect(result.map((a) => a.id)).toEqual([newer.id, older.id])
+    expect(result.every((a) => a.urls !== null)).toBe(true)
   })
 })

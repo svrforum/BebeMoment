@@ -1,5 +1,7 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from '../asset/get'
 
 type Cursor = { ts: string; id: string }
 
@@ -19,8 +21,9 @@ export async function listJournalEntries(
   params: { babyId?: string; cursor?: string; limit?: number },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  media: MediaClient,
 ): Promise<{
-  items: (JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] })[]
+  items: (JournalEntry & { assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[] })[]
   nextCursor: string | null
 }> {
   const limit = params.limit ?? 20
@@ -52,9 +55,18 @@ export async function listJournalEntries(
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 
+  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
+
   const joined = page.map((e) => ({
     ...e,
-    assets: e.assets.map((ea) => ({ ...ea, asset: byId.get(ea.assetId) ?? null })),
+    assets: e.assets.map((ea) => {
+      const base = byId.get(ea.assetId) ?? null
+      const withUrls: AssetWithUrls | null = base
+        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+        : null
+      return { ...ea, asset: withUrls }
+    }),
   }))
 
   const last = page[page.length - 1]

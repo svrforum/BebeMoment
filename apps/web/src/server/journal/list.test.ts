@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -78,6 +79,7 @@ describe('listJournalEntries', () => {
       {},
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
     expect(items.map((e) => e.body)).toEqual(['B', 'C', 'A'])
     expect(nextCursor).toBeNull()
@@ -116,6 +118,7 @@ describe('listJournalEntries', () => {
       { babyId: baby.id },
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
     expect(items).toHaveLength(1)
     expect(items[0]?.body).toBe('for-b1')
@@ -136,11 +139,13 @@ describe('listJournalEntries', () => {
         db.prismaMedia,
       )
     }
+    const media = new FakeMediaClient()
     const page1 = await listJournalEntries(
       family.id,
       { limit: 3 },
       db.prismaPublic,
       db.prismaMedia,
+      media,
     )
     expect(page1.items).toHaveLength(3)
     expect(page1.nextCursor).not.toBeNull()
@@ -149,6 +154,7 @@ describe('listJournalEntries', () => {
       { limit: 3, cursor: page1.nextCursor as string },
       db.prismaPublic,
       db.prismaMedia,
+      media,
     )
     expect(page2.items).toHaveLength(2)
     expect(page2.nextCursor).toBeNull()

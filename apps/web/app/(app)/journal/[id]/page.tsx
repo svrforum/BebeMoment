@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getJournalEntry } from '@/server/journal/get'
 import { notFound, redirect } from 'next/navigation'
@@ -26,7 +27,13 @@ export default async function JournalDetailPage({
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
-  const entry = await getJournalEntry(id, ctx.family.id, prismaPublic, prismaMedia)
+  const entry = await getJournalEntry(
+    id,
+    ctx.family.id,
+    prismaPublic,
+    prismaMedia,
+    getMediaClient(),
+  )
   if (!entry) notFound()
 
   if (sp.edit === '1') {

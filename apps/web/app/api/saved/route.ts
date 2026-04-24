@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { resolveContext } from '@/server/context'
 import { NextResponse } from 'next/server'
@@ -21,6 +22,7 @@ export async function GET(req: Request) {
     { ...(cursor ? { cursor } : {}), limit },
     prismaPublic,
     prismaMedia,
+    getMediaClient(),
   )
   return NextResponse.json(page)
 }

@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
@@ -88,7 +89,14 @@ describe('listMyBookmarks', () => {
       db.prismaMedia,
     )
 
-    const result = await listMyBookmarks(family.id, user.id, {}, db.prismaPublic, db.prismaMedia)
+    const result = await listMyBookmarks(
+      family.id,
+      user.id,
+      {},
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
     expect(result.items.length).toBe(2)
     expect(result.items[0]!.asset?.id).toBe(a2.id)
     expect(result.items[1]!.asset?.id).toBe(a1.id)
@@ -105,12 +113,14 @@ describe('listMyBookmarks', () => {
       )
       await new Promise((r) => setTimeout(r, 2))
     }
+    const media = new FakeMediaClient()
     const p1 = await listMyBookmarks(
       family.id,
       user.id,
       { limit: 3 },
       db.prismaPublic,
       db.prismaMedia,
+      media,
     )
     expect(p1.items.length).toBe(3)
     expect(p1.nextCursor).not.toBeNull()
@@ -120,6 +130,7 @@ describe('listMyBookmarks', () => {
       { limit: 3, cursor: p1.nextCursor! },
       db.prismaPublic,
       db.prismaMedia,
+      media,
     )
     expect(p2.items.length).toBe(2)
     expect(p2.nextCursor).toBeNull()

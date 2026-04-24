@@ -2,6 +2,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
 import { getContext } from '@/server/context'
 import { listTimeline } from '@/server/timeline/merged-list'
@@ -15,7 +16,7 @@ export default async function TimelinePage() {
       where: { familyId: ctx.family.id, deletedAt: null },
       orderBy: { birthDate: 'asc' },
     }),
-    listTimeline(ctx.family.id, { limit: 100 }, prismaPublic, prismaMedia),
+    listTimeline(ctx.family.id, { limit: 100 }, prismaPublic, prismaMedia, getMediaClient()),
   ])
   const birthDate = baby?.birthDate ?? new Date()
 

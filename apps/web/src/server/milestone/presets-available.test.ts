@@ -1,5 +1,5 @@
-import { MILESTONE_PRESETS } from '@bebe/core'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { MILESTONE_PRESETS } from '@bebe/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
