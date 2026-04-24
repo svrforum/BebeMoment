@@ -25,8 +25,10 @@ export async function createBaby(raw: unknown, prisma: PrismaClient): Promise<Ba
   }
 
   const birth = new Date(`${input.birthDate}T00:00:00Z`)
-  if (birth.getTime() > Date.now()) {
-    throw new Error('생년월일이 미래일 수 없어요')
+  // Allow future dates (due dates for unborn babies) up to ~1 year out.
+  const oneYearFromNow = Date.now() + 400 * 86400_000
+  if (birth.getTime() > oneYearFromNow) {
+    throw new Error('생년월일이 1년 이후일 수 없어요')
   }
 
   return prisma.baby.create({

@@ -37,14 +37,12 @@ function SignupWizard() {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
-  const inputRef = useRef<HTMLInputElement>(null)
   const confirmRef = useRef<HTMLInputElement>(null)
 
   const idx = STEPS.indexOf(step)
 
-  // biome-ignore lint/correctness/useExhaustiveDependencies: focus/reset on step change
+  // biome-ignore lint/correctness/useExhaustiveDependencies: reset error on step change
   useEffect(() => {
-    inputRef.current?.focus()
     setError(null)
   }, [step])
 
@@ -175,7 +173,8 @@ function SignupWizard() {
                 <h1 className="text-3xl font-bold tracking-tight">이메일을 알려주세요</h1>
                 <p className="mt-2 text-sm text-base-500">앞으로 로그인에 사용할 이메일이에요.</p>
                 <input
-                  ref={inputRef}
+                  // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
+                  autoFocus
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
@@ -196,7 +195,8 @@ function SignupWizard() {
                 </p>
                 <div className="relative mt-8">
                   <input
-                    ref={inputRef}
+                    // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
+                    autoFocus
                     type={showPw ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
@@ -249,7 +249,8 @@ function SignupWizard() {
                 <h1 className="text-3xl font-bold tracking-tight">어떻게 불러드릴까요?</h1>
                 <p className="mt-2 text-sm text-base-500">가족에게 보여질 이름이에요.</p>
                 <input
-                  ref={inputRef}
+                  // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
+                  autoFocus
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   onKeyDown={onKeyDown}

@@ -59,14 +59,24 @@ describe('createBaby', () => {
     ).rejects.toThrow(/permission|member/i)
   })
 
-  it('rejects future birth date', async () => {
+  it('allows near-future birth date (due date for unborn baby)', async () => {
     const { user, family } = await setup()
-    const future = new Date(Date.now() + 7 * 86400_000).toISOString().slice(0, 10)
+    const dueDate = new Date(Date.now() + 60 * 86400_000).toISOString().slice(0, 10)
+    const baby = await createBaby(
+      { familyId: family.id, name: '예준', birthDate: dueDate, byUserId: user.id },
+      db.prisma,
+    )
+    expect(baby.birthDate.toISOString().slice(0, 10)).toBe(dueDate)
+  })
+
+  it('rejects birth date beyond 1 year in the future', async () => {
+    const { user, family } = await setup()
+    const tooFar = new Date(Date.now() + 500 * 86400_000).toISOString().slice(0, 10)
     await expect(
       createBaby(
-        { familyId: family.id, name: '아기', birthDate: future, byUserId: user.id },
+        { familyId: family.id, name: '아기', birthDate: tooFar, byUserId: user.id },
         db.prisma,
       ),
-    ).rejects.toThrow(/미래/)
+    ).rejects.toThrow(/1년/)
   })
 })

@@ -31,8 +31,8 @@ export async function completeOnboarding(
   }
 
   const birth = new Date(`${parsed.data.birthDate}T00:00:00Z`)
-  if (birth.getTime() > Date.now()) {
-    return { error: '생년월일이 미래일 수 없어요' }
+  if (birth.getTime() > Date.now() + 400 * 86400_000) {
+    return { error: '생년월일이 1년 이후일 수 없어요' }
   }
 
   try {
