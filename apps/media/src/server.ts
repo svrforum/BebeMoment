@@ -4,6 +4,7 @@ import { registerErrorHandler } from './http/middleware/error-handler'
 import { requestIdPlugin } from './http/middleware/request-id'
 import { assetsInitRoute } from './http/routes/assets-init'
 import { assetsUrlsRoute } from './http/routes/assets-urls'
+import { assetsUrlsBatchRoute } from './http/routes/assets-urls-batch'
 import { healthRoute } from './http/routes/health'
 import { sseProgressRoute } from './http/routes/sse-progress'
 import { tusRoute } from './http/routes/tus'
@@ -22,6 +23,7 @@ export function buildApp(): FastifyInstance {
   app.register(healthRoute)
   app.register(assetsInitRoute)
   app.register(assetsUrlsRoute)
+  app.register(assetsUrlsBatchRoute)
   app.register(tusRoute)
   app.register(sseProgressRoute)
 
