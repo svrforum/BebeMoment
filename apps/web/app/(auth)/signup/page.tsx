@@ -1,113 +1,338 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { Card, CardBody } from '@/components/ui/card'
-import { Input, Label } from '@/components/ui/input'
+import { cn } from '@/lib/cn'
+import { AnimatePresence, motion } from 'framer-motion'
+import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Suspense, useState } from 'react'
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
-function SignupForm() {
+type Step = 'email' | 'password' | 'confirm' | 'name'
+
+const STEPS: Step[] = ['email', 'password', 'confirm', 'name']
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+
+function scorePassword(pw: string): 0 | 1 | 2 | 3 {
+  if (pw.length < 8) return 0
+  let score = 1
+  if (/[a-z]/.test(pw) && /[A-Z]/.test(pw)) score++
+  if (/\d/.test(pw) && /[^\w\s]/.test(pw)) score++
+  if (pw.length >= 12) score = Math.min(3, score + 1) as 0 | 1 | 2 | 3
+  return Math.min(3, score) as 0 | 1 | 2 | 3
+}
+
+function SignupWizard() {
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = params.get('invite')
   const prefilledEmail = params.get('email') ?? ''
 
+  const [step, setStep] = useState<Step>('email')
+  const [dir, setDir] = useState<1 | -1>(1)
   const [email, setEmail] = useState(prefilledEmail)
   const [password, setPassword] = useState('')
+  const [confirm, setConfirm] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const inputRef = useRef<HTMLInputElement>(null)
 
-  async function submit(e: React.FormEvent) {
-    e.preventDefault()
+  const idx = STEPS.indexOf(step)
+
+  // biome-ignore lint/correctness/useExhaustiveDependencies: focus/reset on step change
+  useEffect(() => {
+    inputRef.current?.focus()
     setError(null)
-    setSubmitting(true)
-    const res = await fetch('/api/auth/signup', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password, displayName }),
-    })
-    setSubmitting(false)
-    if (!res.ok) {
-      const data = await res.json().catch(() => ({}))
-      setError(data.error ?? '가입 실패')
+  }, [step])
+
+  const stepValid = (() => {
+    if (step === 'email') return EMAIL_RE.test(email.trim())
+    if (step === 'password') return password.length >= 8
+    if (step === 'confirm') return confirm.length > 0 && confirm === password
+    if (step === 'name') return displayName.trim().length > 0
+    return false
+  })()
+
+  const goBack = useCallback(() => {
+    if (idx === 0) {
+      router.push('/login')
       return
     }
-    if (inviteToken) {
-      await fetch('/api/invite/accept', {
+    setDir(-1)
+    const prev = STEPS[idx - 1]
+    if (prev) setStep(prev)
+  }, [idx, router])
+
+  const submitSignup = useCallback(async () => {
+    setSubmitting(true)
+    setError(null)
+    try {
+      const res = await fetch('/api/auth/signup', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: inviteToken }),
+        body: JSON.stringify({
+          email: email.trim(),
+          password,
+          displayName: displayName.trim(),
+        }),
       })
-      router.push('/')
-    } else {
-      router.push('/onboarding')
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { error?: string }
+        const message = data.error ?? '가입에 실패했어요'
+        setError(message)
+        setSubmitting(false)
+        if (message.includes('이메일')) {
+          setDir(-1)
+          setStep('email')
+        }
+        return
+      }
+      if (inviteToken) {
+        await fetch('/api/invite/accept', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: inviteToken }),
+        })
+        router.push('/')
+      } else {
+        router.push('/onboarding')
+      }
+      router.refresh()
+    } catch {
+      setError('네트워크 오류가 발생했어요')
+      setSubmitting(false)
     }
-    router.refresh()
+  }, [email, password, displayName, inviteToken, router])
+
+  const goNext = useCallback(() => {
+    if (!stepValid || submitting) return
+    if (step === 'name') {
+      submitSignup()
+      return
+    }
+    setDir(1)
+    const next = STEPS[idx + 1]
+    if (next) setStep(next)
+  }, [stepValid, submitting, step, idx, submitSignup])
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      goNext()
+    }
   }
 
+  const pwScore = scorePassword(password)
+
   return (
-    <Card>
-      <CardBody>
-        {inviteToken && (
-          <p className="text-sm text-base-500 mb-3">
-            초대 링크로 가입하시는군요. 가입이 끝나면 자동으로 가족에 합류돼요.
+    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6">
+      <div className="mb-10 flex items-center justify-between">
+        <button
+          type="button"
+          onClick={goBack}
+          aria-label="이전"
+          className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800"
+        >
+          <ArrowLeft size={20} />
+        </button>
+        <div className="flex items-center gap-1.5" aria-label={`${idx + 1} / ${STEPS.length}`}>
+          {STEPS.map((s, i) => (
+            <span
+              key={s}
+              className={cn(
+                'h-1.5 rounded-full transition-all',
+                i === idx
+                  ? 'w-6 bg-point-500'
+                  : i < idx
+                    ? 'w-1.5 bg-point-500/60'
+                    : 'w-1.5 bg-base-200 dark:bg-base-700',
+              )}
+            />
+          ))}
+        </div>
+        <div className="w-9" />
+      </div>
+
+      <div className="flex-1">
+        <AnimatePresence initial={false} mode="wait" custom={dir}>
+          <motion.div
+            key={step}
+            custom={dir}
+            initial={{ x: dir === 1 ? 48 : -48, opacity: 0 }}
+            animate={{ x: 0, opacity: 1 }}
+            exit={{ x: dir === 1 ? -48 : 48, opacity: 0 }}
+            transition={{ type: 'spring', stiffness: 420, damping: 34 }}
+          >
+            {step === 'email' && (
+              <>
+                {inviteToken && (
+                  <p className="mb-4 rounded-2xl bg-point-500/10 px-4 py-3 text-sm text-point-500">
+                    초대 링크로 가입하시는군요. 가입이 끝나면 가족에 합류돼요.
+                  </p>
+                )}
+                <h1 className="text-3xl font-bold tracking-tight">이메일을 알려주세요</h1>
+                <p className="mt-2 text-sm text-base-500">앞으로 로그인에 사용할 이메일이에요.</p>
+                <input
+                  ref={inputRef}
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder="name@example.com"
+                  inputMode="email"
+                  autoComplete="email"
+                  className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                />
+              </>
+            )}
+
+            {step === 'password' && (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight">비밀번호를 만들어주세요</h1>
+                <p className="mt-2 text-sm text-base-500">
+                  8자 이상, 다른 곳에서 쓰지 않은 값으로.
+                </p>
+                <div className="relative mt-8">
+                  <input
+                    ref={inputRef}
+                    type={showPw ? 'text' : 'password'}
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder="비밀번호"
+                    autoComplete="new-password"
+                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-10 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPw((s) => !s)}
+                    aria-label={showPw ? '비밀번호 가리기' : '비밀번호 보기'}
+                    className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-base-500 hover:text-base-900 dark:hover:text-base-100"
+                  >
+                    {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </button>
+                </div>
+                <PasswordStrengthBar score={pwScore} visible={password.length > 0} />
+              </>
+            )}
+
+            {step === 'confirm' && (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight">비밀번호를 다시 입력해주세요</h1>
+                <p className="mt-2 text-sm text-base-500">정확히 같은 값을 입력해주세요.</p>
+                <div className="relative mt-8">
+                  <input
+                    ref={inputRef}
+                    type={showPw ? 'text' : 'password'}
+                    value={confirm}
+                    onChange={(e) => setConfirm(e.target.value)}
+                    onKeyDown={onKeyDown}
+                    placeholder="비밀번호 확인"
+                    autoComplete="new-password"
+                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-10 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                  />
+                  {confirm.length > 0 && confirm === password && (
+                    <Check
+                      size={20}
+                      className="absolute right-0 top-1/2 -translate-y-1/2 text-point-500"
+                    />
+                  )}
+                </div>
+                {confirm.length > 0 && confirm !== password && (
+                  <p className="mt-3 text-sm text-danger">비밀번호가 일치하지 않아요</p>
+                )}
+              </>
+            )}
+
+            {step === 'name' && (
+              <>
+                <h1 className="text-3xl font-bold tracking-tight">어떻게 불러드릴까요?</h1>
+                <p className="mt-2 text-sm text-base-500">가족에게 보여질 이름이에요.</p>
+                <input
+                  ref={inputRef}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder="예: 김민준"
+                  autoComplete="name"
+                  maxLength={80}
+                  className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                />
+              </>
+            )}
+          </motion.div>
+        </AnimatePresence>
+
+        {error && (
+          <p className="mt-4 text-sm text-danger" role="alert">
+            {error}
           </p>
         )}
-        <form onSubmit={submit} className="space-y-3">
-          <div>
-            <Label htmlFor="displayName">이름</Label>
-            <Input
-              id="displayName"
-              value={displayName}
-              onChange={(e) => setDisplayName(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="email">이메일</Label>
-            <Input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              required
-            />
-          </div>
-          <div>
-            <Label htmlFor="password">비밀번호 (8자 이상)</Label>
-            <Input
-              id="password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              required
-              minLength={8}
-            />
-          </div>
-          {error && <p className="text-sm text-danger">{error}</p>}
-          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-            {submitting ? '…' : '가입하기'}
-          </Button>
-          <p className="text-sm text-center pt-2 text-base-500">
-            계정이 있으신가요?{' '}
-            <Link href="/login" className="text-point-500 font-medium">
+      </div>
+
+      <div className="pt-6">
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={!stepValid || submitting}
+          onClick={goNext}
+        >
+          {submitting ? '가입하는 중…' : step === 'name' ? '시작하기' : '다음'}
+        </Button>
+        {step === 'email' && (
+          <p className="pt-4 text-center text-sm text-base-500">
+            이미 계정이 있으신가요?{' '}
+            <Link href="/login" className="font-medium text-point-500">
               로그인
             </Link>
           </p>
-        </form>
-      </CardBody>
-    </Card>
+        )}
+      </div>
+    </main>
+  )
+}
+
+function PasswordStrengthBar({
+  score,
+  visible,
+}: {
+  score: 0 | 1 | 2 | 3
+  visible: boolean
+}) {
+  if (!visible) return <div className="mt-6 h-6" />
+  const label =
+    score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
+  return (
+    <div className="mt-6">
+      <div className="flex gap-1.5">
+        {[1, 2, 3].map((i) => (
+          <div
+            key={i}
+            className={cn(
+              'h-1.5 flex-1 rounded-full transition-colors',
+              i <= score
+                ? score === 1
+                  ? 'bg-danger/70'
+                  : score === 2
+                    ? 'bg-warning/70'
+                    : 'bg-point-500'
+                : 'bg-base-200 dark:bg-base-700',
+            )}
+          />
+        ))}
+      </div>
+      <p className="mt-2 text-xs text-base-500">{label}</p>
+    </div>
   )
 }
 
 export default function SignupPage() {
   return (
-    <main className="mx-auto max-w-sm px-5 py-16">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">가입하기</h1>
-      <Suspense fallback={null}>
-        <SignupForm />
-      </Suspense>
-    </main>
+    <Suspense fallback={null}>
+      <SignupWizard />
+    </Suspense>
   )
 }

@@ -29,7 +29,7 @@ describe('signup', () => {
     await signup({ email: 'a@b.com', password: 'strong-password-1', displayName: 'A' }, db.prisma)
     await expect(
       signup({ email: 'a@b.com', password: 'strong-password-2', displayName: 'B' }, db.prisma),
-    ).rejects.toThrow(/already/i)
+    ).rejects.toThrow(/이미 가입/)
   })
 
   it('rejects short password', async () => {
