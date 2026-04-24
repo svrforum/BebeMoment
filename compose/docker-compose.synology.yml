@@ -13,12 +13,6 @@ services:
     environment:
       PUID: 1026
       PGID: 100
-  worker:
-    volumes:
-      - /volume1/docker/bebe-moment/data:/data
-    environment:
-      PUID: 1026
-      PGID: 100
   postgres:
     volumes:
       - /volume1/docker/bebe-moment/pg:/var/lib/postgresql/data

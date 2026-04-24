@@ -17,7 +17,7 @@ if [ -d /data ]; then
   chown -R bebe:bebe /data 2>/dev/null || true
 fi
 
-# Run migrations (web container; worker sets PRISMA_SKIP_MIGRATE=1)
+# Run migrations (web container; media sets PRISMA_SKIP_MIGRATE=1)
 # Order matters: db-public first (public schema), db-media second (cross-schema FKs).
 if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
   if [ -f packages/db-public/prisma/schema.prisma ]; then

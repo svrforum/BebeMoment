@@ -38,14 +38,21 @@ services:
       redis: { condition: service_healthy }
     restart: unless-stopped
 
-  worker:
-    image: ghcr.io/svrforum/bebe-moment/worker:latest
+  media:
+    image: ghcr.io/svrforum/bebe-moment/media:latest
     environment:
       DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
+      DATABASE_URL_MEDIA: postgres://bebe_media:${BEBE_MEDIA_DB_PASSWORD}@postgres:5432/bebe
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
+      PUBLIC_URL: ${PUBLIC_URL}
       STORAGE_MODE: local
       STORAGE_PATH: /data
+      MEDIA_ROLE: both
+      MEDIA_PORT: "3001"
+      MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
+      MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
+      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL}
       PUID: "1026"
       PGID: "100"
     volumes:

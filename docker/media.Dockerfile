@@ -8,7 +8,6 @@ RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY tsconfig.base.json ./
 COPY apps/web/package.json apps/web/
-COPY apps/worker/package.json apps/worker/
 COPY apps/media/package.json apps/media/
 COPY packages/config/package.json packages/config/
 COPY packages/core/package.json packages/core/
@@ -45,8 +44,8 @@ COPY --from=builder /repo/tsconfig.base.json ./
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Remove web + worker (not needed in media runtime)
-RUN rm -rf apps/web apps/worker
+# Remove web (not needed in media runtime)
+RUN rm -rf apps/web
 
 VOLUME ["/data"]
 EXPOSE 3001

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Starts dev infra, web, worker, waits for health, runs Playwright smoke, tears down.
+# Starts dev infra, web, media, waits for health, runs Playwright smoke, tears down.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
@@ -26,7 +26,7 @@ fi
 cleanup() {
   echo "== cleanup =="
   [[ -n "${WEB_PID:-}" ]] && kill "$WEB_PID" 2>/dev/null || true
-  [[ -n "${WORKER_PID:-}" ]] && kill "$WORKER_PID" 2>/dev/null || true
+  [[ -n "${MEDIA_PID:-}" ]] && kill "$MEDIA_PID" 2>/dev/null || true
   # Kill any descendant next/tsx processes we might have left.
   pkill -P $$ 2>/dev/null || true
   wait 2>/dev/null || true
@@ -66,10 +66,10 @@ echo "== starting web on :$PORT =="
 ) > "$ROOT/.dev/web.log" 2>&1 &
 WEB_PID=$!
 
-# 5. Start worker
-echo "== starting worker =="
-pnpm --filter @bebe/worker dev > "$ROOT/.dev/worker.log" 2>&1 &
-WORKER_PID=$!
+# 5. Start media (tus + BullMQ worker + SSE)
+echo "== starting media =="
+pnpm --filter @bebe/media dev > "$ROOT/.dev/media.log" 2>&1 &
+MEDIA_PID=$!
 
 # 6. Wait for web health
 echo "== wait for web =="

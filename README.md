@@ -7,7 +7,7 @@
 - **일반 Linux Docker**: [docs/deployment-linux.md](./docs/deployment-linux.md)
 - **Synology DSM**: [docs/deployment-synology.md](./docs/deployment-synology.md)
 
-태그를 푸시하면 GitHub Actions 가 `ghcr.io/<org>/bebe-moment-{web,worker}:vX.Y.Z` 멀티 아키 이미지를 빌드·푸시합니다.
+태그를 푸시하면 GitHub Actions 가 `ghcr.io/<org>/bebe-moment-{web,media}:vX.Y.Z` 멀티 아키 이미지를 빌드·푸시합니다.
 
 ## 개발
 
@@ -25,7 +25,7 @@ pnpm dev
 
 브라우저: http://localhost:3000 → 가입 → 온보딩 → 홈.
 
-### dev 전체 실행 (web + worker)
+### dev 전체 실행 (web + media)
 
 터미널 1 (web + infra):
 ```bash
@@ -33,9 +33,9 @@ docker compose -f docker-compose.dev.yml up -d
 pnpm --filter @bebe/web dev
 ```
 
-터미널 2 (worker):
+터미널 2 (media — tus + BullMQ 워커 + SSE):
 ```bash
-pnpm --filter @bebe/worker dev
+pnpm --filter @bebe/media dev
 ```
 
 업로드 파이프라인을 검증하려면 두 터미널이 모두 실행 중이어야 합니다.
