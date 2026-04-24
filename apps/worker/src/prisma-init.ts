@@ -1,12 +1,12 @@
-import { installTenantMiddleware, prisma } from '@bebe/db'
+import { installTenantMiddleware, prisma } from '@bebe/db-media'
 
-type Globals = { __bebe_tenant_installed__?: boolean }
-const g = globalThis as Globals
-if (!g.__bebe_tenant_installed__) {
+const globalForInit = globalThis as unknown as { __bebeMediaMwInstalled?: boolean }
+
+if (!globalForInit.__bebeMediaMwInstalled) {
   installTenantMiddleware(prisma, {
-    mode: process.env.NODE_ENV === 'production' ? 'throw' : 'throw',
+    mode: process.env.NODE_ENV === 'production' ? 'warn' : 'throw',
   })
-  g.__bebe_tenant_installed__ = true
+  globalForInit.__bebeMediaMwInstalled = true
 }
 
 export { prisma }

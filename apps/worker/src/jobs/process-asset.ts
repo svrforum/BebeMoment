@@ -3,7 +3,6 @@ import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
 import { type StorageAdapter, createAdapter } from '@bebe/storage'
 import type IORedis from 'ioredis'
 import pino from 'pino'
-import { z } from 'zod'
 import { prisma } from '../prisma-init'
 import { publishAssetEvent } from '../pubsub'
 import { convertImageIfNeeded } from './convert'
@@ -12,8 +11,6 @@ import type { ProcessAssetJob } from './types'
 import { processVideo } from './video-pipeline'
 
 const logger = pino({ level: process.env.LOG_LEVEL ?? 'info' })
-
-const BoolSchema = z.boolean()
 
 async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = []
@@ -45,15 +42,6 @@ function buildStorage(): StorageAdapter {
   return createAdapter({ mode: 'local', path: env.STORAGE_PATH })
 }
 
-async function getConvertSetting(): Promise<boolean> {
-  const row = await prisma.appSetting.findUnique({
-    where: { key: 'upload.convert_to_compatible' },
-  })
-  if (!row) return false
-  const parsed = BoolSchema.safeParse(row.value)
-  return parsed.success ? parsed.data : false
-}
-
 export async function processAsset(job: ProcessAssetJob, publisher: IORedis): Promise<void> {
   const storage = buildStorage()
 
@@ -83,7 +71,7 @@ export async function processAsset(job: ProcessAssetJob, publisher: IORedis): Pr
       uploadedAt: asset.uploadedAt,
     })
 
-    const convertEnabled = await getConvertSetting()
+    const convertEnabled = job.convertToCompatible ?? false
     let originalKey = asset.originalKey
     let mimeType = asset.mimeType
     let sizeBytes = asset.sizeBytes

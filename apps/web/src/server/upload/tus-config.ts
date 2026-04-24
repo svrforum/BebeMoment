@@ -7,6 +7,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { createAsset } from '@/server/asset/create'
 import { findDuplicate } from '@/server/asset/dedupe'
 import { resolveContext } from '@/server/context'
+import { getSetting } from '@/server/settings/get'
 import { parseEnv } from '@bebe/config'
 import { kindOf } from '@bebe/core'
 import { createAdapter } from '@bebe/storage'
@@ -14,6 +15,7 @@ import { FileStore } from '@tus/file-store'
 import { Server } from '@tus/server'
 import { Queue } from 'bullmq'
 import IORedis from 'ioredis'
+import { z } from 'zod'
 
 const globalForTus = globalThis as unknown as {
   __bebe_tus_server?: Server
@@ -132,11 +134,18 @@ export function getTusServer(): Server {
         // 2. Enqueue BEFORE updating status — if enqueue fails we clean up.
         // The worker guards against status!='processing' and will no-op+retry
         // if it races ahead of the status flip below.
+        const convertToCompatible = await getSetting(
+          'upload.convert_to_compatible',
+          z.boolean(),
+          false,
+          prismaPublic,
+        )
         const queue = getQueue(env.REDIS_URL)
         await queue.add('process-asset', {
           type: 'process-asset',
           familyId: ctx.family.id,
           assetId: asset.id,
+          convertToCompatible,
         })
 
         // 3. Flip status

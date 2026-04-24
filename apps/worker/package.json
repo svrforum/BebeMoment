@@ -12,7 +12,7 @@
   "dependencies": {
     "@bebe/config": "workspace:*",
     "@bebe/core": "workspace:*",
-    "@bebe/db": "workspace:*",
+    "@bebe/db-media": "workspace:*",
     "@bebe/storage": "workspace:*",
     "bullmq": "^5.13.0",
     "fluent-ffmpeg": "^2.1.3",

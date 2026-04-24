@@ -180,9 +180,9 @@ importers:
       '@bebe/core':
         specifier: workspace:*
         version: link:../../packages/core
-      '@bebe/db':
+      '@bebe/db-media':
         specifier: workspace:*
-        version: link:../../packages/db
+        version: link:../../packages/db-media
       '@bebe/storage':
         specifier: workspace:*
         version: link:../../packages/storage
