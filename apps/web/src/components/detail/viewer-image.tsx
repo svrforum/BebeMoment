@@ -80,6 +80,10 @@ export function ViewerImage({
           <img
             src={current.mediaUrl}
             alt=""
+            loading="eager"
+            // @ts-expect-error — fetchpriority is a valid HTML attribute React accepts via lowercase DOM
+            fetchpriority="high"
+            decoding="async"
             className="max-h-screen max-w-full object-contain"
             style={{ touchAction: 'pinch-zoom' }}
           />

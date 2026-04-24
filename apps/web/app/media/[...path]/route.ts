@@ -56,13 +56,33 @@ export async function GET(
   try {
     const stats = statSync(fullPath)
     const stream = createReadStream(fullPath)
+    const ext = path.extname(fullPath).slice(1).toLowerCase()
+    const contentType = MIME[ext] ?? 'application/octet-stream'
     return new NextResponse(stream as unknown as ReadableStream, {
       headers: {
+        'Content-Type': contentType,
         'Content-Length': String(stats.size),
-        'Cache-Control': 'private, max-age=3600',
+        // Derivative/original files are content-addressed (by asset id) so
+        // they never change in place. Keep a long private cache to avoid
+        // the per-request auth+tenant DB lookups for thumbnails.
+        'Cache-Control': 'private, max-age=604800, immutable',
       },
     })
   } catch {
     return new NextResponse('Not found', { status: 404 })
   }
+}
+
+const MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  webp: 'image/webp',
+  avif: 'image/avif',
+  gif: 'image/gif',
+  heic: 'image/heic',
+  heif: 'image/heif',
+  mp4: 'video/mp4',
+  mov: 'video/quicktime',
+  webm: 'video/webm',
 }

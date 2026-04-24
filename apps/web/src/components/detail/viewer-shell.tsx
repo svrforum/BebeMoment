@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
 import type { MetadataSection } from './metadata-section'
 import { ViewerActionBar } from './viewer-action-bar'
@@ -41,24 +41,35 @@ export function ViewerShell({
   initialBookmarked: boolean
   initialComments: CommentWithAuthor[]
 }) {
-  const [isDesktop, setIsDesktop] = useState(false)
+  // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
 
-  useEffect(() => {
-    const mql = window.matchMedia('(min-width: 768px)')
-    setIsDesktop(mql.matches)
-    const listener = (e: MediaQueryListEvent) => setIsDesktop(e.matches)
-    mql.addEventListener('change', listener)
-    return () => mql.removeEventListener('change', listener)
-  }, [])
+  return (
+    <div className="relative min-h-screen bg-black md:flex">
+      {/* Image column: takes full width on mobile, flexes on desktop */}
+      <div className="relative flex-1 min-w-0">
+        <ViewerTopBar assetId={current.id} visible={chromeVisible} />
+        <ViewerImage
+          current={current}
+          siblings={siblings}
+          onToggleChrome={() => setChromeVisible((v) => !v)}
+        />
+      </div>
 
-  if (isDesktop) {
-    return (
-      <div className="relative min-h-screen bg-black">
-        <ViewerTopBar assetId={current.id} visible={true} />
-        <ViewerImage current={current} siblings={siblings} />
-        <ViewerInfoPanel
+      {/* Mobile-only action bar + bottom sheet */}
+      <div className="md:hidden">
+        <ViewerActionBar
+          assetId={current.id}
+          likeState={{ liked: initialLiked, count: likers.count }}
+          bookmarkState={{ bookmarked: initialBookmarked }}
+          commentCount={initialComments.filter((c) => !c.deletedAt).length}
+          visible={chromeVisible}
+          onCommentTap={() => setSheetOpen(true)}
+        />
+        <ViewerBottomSheet
+          open={sheetOpen}
+          onOpenChange={setSheetOpen}
           assetId={current.id}
           currentUserId={currentUserId}
           canDeleteAny={canDeleteAny}
@@ -70,38 +81,21 @@ export function ViewerShell({
           initialComments={initialComments}
         />
       </div>
-    )
-  }
 
-  return (
-    <div className="relative min-h-screen bg-black">
-      <ViewerTopBar assetId={current.id} visible={chromeVisible} />
-      <ViewerImage
-        current={current}
-        siblings={siblings}
-        onToggleChrome={() => setChromeVisible((v) => !v)}
-      />
-      <ViewerActionBar
-        assetId={current.id}
-        likeState={{ liked: initialLiked, count: likers.count }}
-        bookmarkState={{ bookmarked: initialBookmarked }}
-        commentCount={initialComments.filter((c) => !c.deletedAt).length}
-        visible={chromeVisible}
-        onCommentTap={() => setSheetOpen(true)}
-      />
-      <ViewerBottomSheet
-        open={sheetOpen}
-        onOpenChange={setSheetOpen}
-        assetId={current.id}
-        currentUserId={currentUserId}
-        canDeleteAny={canDeleteAny}
-        familyMembers={familyMembers}
-        meta={meta}
-        likers={likers}
-        initialLiked={initialLiked}
-        initialBookmarked={initialBookmarked}
-        initialComments={initialComments}
-      />
+      {/* Desktop-only info panel: always visible */}
+      <aside className="hidden w-[360px] shrink-0 overflow-y-auto border-l border-base-800 bg-base-950 md:block">
+        <ViewerInfoPanel
+          assetId={current.id}
+          currentUserId={currentUserId}
+          canDeleteAny={canDeleteAny}
+          familyMembers={familyMembers}
+          meta={meta}
+          likers={likers}
+          initialLiked={initialLiked}
+          initialBookmarked={initialBookmarked}
+          initialComments={initialComments}
+        />
+      </aside>
     </div>
   )
 }
