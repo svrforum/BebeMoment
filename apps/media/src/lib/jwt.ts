@@ -55,3 +55,47 @@ export async function verifyUploadToken(token: string): Promise<UploadTokenPaylo
   }
   return payload as unknown as UploadTokenPayload
 }
+
+// ─── File Serve Token ────────────────────────────────────────
+
+export type FileServeTokenPayload = {
+  iss: 'media'
+  aud: 'media'
+  familyId: string
+  assetId: string
+  key: string
+  scope: 'file-serve'
+  v: 1
+}
+
+const FILE_SERVE_TTL_SEC = 10 * 60
+
+export type SignFileServeArgs = Omit<FileServeTokenPayload, 'iss' | 'aud' | 'scope' | 'v'>
+
+export async function signFileServeToken(args: SignFileServeArgs): Promise<string> {
+  const payload: FileServeTokenPayload = {
+    iss: 'media',
+    aud: 'media',
+    scope: 'file-serve',
+    v: 1,
+    familyId: args.familyId,
+    assetId: args.assetId,
+    key: args.key,
+  }
+  return await new SignJWT(payload as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${FILE_SERVE_TTL_SEC}s`)
+    .sign(getSecret())
+}
+
+export async function verifyFileServeToken(token: string): Promise<FileServeTokenPayload> {
+  const { payload } = await jwtVerify(token, getSecret(), {
+    audience: 'media',
+    issuer: 'media',
+  })
+  if (payload.scope !== 'file-serve' || payload.v !== 1) {
+    throw new Error('invalid file-serve token shape')
+  }
+  return payload as unknown as FileServeTokenPayload
+}
