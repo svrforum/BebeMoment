@@ -5,6 +5,7 @@ import { requestIdPlugin } from './http/middleware/request-id'
 import { assetsInitRoute } from './http/routes/assets-init'
 import { assetsUrlsRoute } from './http/routes/assets-urls'
 import { assetsUrlsBatchRoute } from './http/routes/assets-urls-batch'
+import { filesRoute } from './http/routes/files'
 import { healthRoute } from './http/routes/health'
 import { sseProgressRoute } from './http/routes/sse-progress'
 import { tusRoute } from './http/routes/tus'
@@ -15,6 +16,7 @@ export function buildApp(): FastifyInstance {
     logger: logger as unknown as FastifyBaseLogger,
     bodyLimit: 256 * 1024 * 1024,
     disableRequestLogging: false,
+    maxParamLength: 2048,
   })
 
   app.register(cors, { origin: true, credentials: true })
@@ -24,6 +26,7 @@ export function buildApp(): FastifyInstance {
   app.register(assetsInitRoute)
   app.register(assetsUrlsRoute)
   app.register(assetsUrlsBatchRoute)
+  app.register(filesRoute)
   app.register(tusRoute)
   app.register(sseProgressRoute)
 
