@@ -32,22 +32,11 @@
 }
 
 :root {
-  color-scheme: light dark;
+  color-scheme: light;
 }
 
 .dark {
-  --color-base-0: #09090b;
-  --color-base-50: #18181b;
-  --color-base-100: #27272a;
-  --color-base-200: #3f3f46;
-  --color-base-300: #52525b;
-  --color-base-400: #71717a;
-  --color-base-500: #a1a1aa;
-  --color-base-600: #d4d4d8;
-  --color-base-700: #e4e4e7;
-  --color-base-800: #f4f4f5;
-  --color-base-900: #fafafa;
-  --color-base-950: #ffffff;
+  color-scheme: dark;
 }
 
 @layer base {
@@ -62,6 +51,9 @@
   body {
     @apply bg-base-50 text-base-900 font-sans antialiased;
     font-feature-settings: "ss01", "ss02";
+  }
+  .dark body {
+    @apply bg-base-950 text-base-50;
   }
   a {
     @apply text-point-500;
@@ -94,6 +86,9 @@
     backdrop-filter: saturate(1.4) blur(20px);
     -webkit-backdrop-filter: saturate(1.4) blur(20px);
   }
+  .dark .glass {
+    background-color: color-mix(in srgb, var(--color-base-900) 72%, transparent);
+  }
   /* Subtle elevated card */
   .card-elevated {
     background-color: var(--color-base-0);
@@ -101,5 +96,11 @@
       color-mix(in srgb, var(--color-base-900) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--color-base-900) 6%, transparent);
     border-radius: 1.25rem;
+  }
+  .dark .card-elevated {
+    background-color: var(--color-base-900);
+    border-color: color-mix(in srgb, var(--color-base-0) 6%, transparent);
+    box-shadow: 0 1px 0 color-mix(in srgb, #000 30%, transparent), 0 20px 40px -24px
+      color-mix(in srgb, #000 60%, transparent);
   }
 }

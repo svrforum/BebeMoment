@@ -34,7 +34,7 @@ export function SideNav({ familyName }: Props) {
         : '다크'
 
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200 bg-base-0/80 backdrop-blur-xl dark:border-base-800 dark:bg-base-50/80 md:flex">
+    <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200 bg-base-0/80 backdrop-blur-xl md:flex dark:border-base-800 dark:bg-base-900/80">
       <div className="flex items-center gap-2 px-5 pb-4 pt-6">
         <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-point-500 text-sm font-bold text-white">
           b
@@ -57,7 +57,7 @@ export function SideNav({ familyName }: Props) {
                 'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
                 active
                   ? 'bg-point-500/10 text-point-500'
-                  : 'text-base-600 hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-100 dark:hover:text-base-100',
+                  : 'text-base-600 hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100',
               )}
             >
               <Icon size={18} strokeWidth={active ? 2.4 : 2} />
@@ -71,7 +71,7 @@ export function SideNav({ familyName }: Props) {
           type="button"
           onClick={cycle}
           title={`테마: ${themeTitle} (클릭으로 전환)`}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-base-600 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-100 dark:hover:text-base-100"
+          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-base-600 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
         >
           <ThemeIcon size={18} />
           <span className="flex-1 text-left">테마</span>

@@ -82,7 +82,7 @@ export default function FamilyPage() {
                   id="role"
                   value={role}
                   onChange={(e) => setRole(e.target.value as 'guardian' | 'family')}
-                  className="h-11 w-full rounded-xl bg-base-0 border border-base-200 dark:border-base-800 px-4 text-base"
+                  className="h-11 w-full rounded-xl border border-base-200 bg-base-0 px-4 text-base dark:border-base-800 dark:bg-base-900"
                 >
                   <option value="family">가족 (조부모·친척)</option>
                   <option value="guardian">보호자 (부모급)</option>

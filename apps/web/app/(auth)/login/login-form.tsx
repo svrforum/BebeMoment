@@ -50,7 +50,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
               required
               autoComplete="email"
               placeholder="name@example.com"
-              className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-100 dark:focus-visible:bg-base-50"
+              className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-800 dark:focus-visible:bg-base-900"
             />
           </div>
           <div>
@@ -66,7 +66,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
                 required
                 autoComplete="current-password"
                 placeholder="••••••••"
-                className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 pr-11 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-100 dark:focus-visible:bg-base-50"
+                className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 pr-11 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-800 dark:focus-visible:bg-base-900"
               />
               <button
                 type="button"

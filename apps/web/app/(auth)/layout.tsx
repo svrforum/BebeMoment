@@ -34,7 +34,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
 
       {/* Form side — always visible */}
       <section className="relative flex min-h-[100dvh] items-stretch md:items-center md:justify-center">
-        <div className="w-full md:max-w-[440px] md:rounded-3xl md:bg-base-0 md:p-10 md:shadow-[0_30px_60px_-30px_oklch(0.2_0_0/0.15)] md:ring-1 md:ring-base-200/70 md:dark:ring-base-800">
+        <div className="w-full md:max-w-[440px] md:rounded-3xl md:border md:border-base-200 md:bg-base-0 md:p-10 md:shadow-[0_30px_60px_-30px_oklch(0.2_0_0/0.15)] dark:md:border-base-800 dark:md:bg-base-900">
           {children}
         </div>
       </section>
