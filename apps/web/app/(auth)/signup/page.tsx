@@ -7,9 +7,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
-type Step = 'email' | 'password' | 'confirm' | 'name'
+type Step = 'email' | 'password' | 'name'
 
-const STEPS: Step[] = ['email', 'password', 'confirm', 'name']
+const STEPS: Step[] = ['email', 'password', 'name']
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
@@ -38,6 +38,7 @@ function SignupWizard() {
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const inputRef = useRef<HTMLInputElement>(null)
+  const confirmRef = useRef<HTMLInputElement>(null)
 
   const idx = STEPS.indexOf(step)
 
@@ -49,8 +50,7 @@ function SignupWizard() {
 
   const stepValid = (() => {
     if (step === 'email') return EMAIL_RE.test(email.trim())
-    if (step === 'password') return password.length >= 8
-    if (step === 'confirm') return confirm.length > 0 && confirm === password
+    if (step === 'password') return password.length >= 8 && confirm === password
     if (step === 'name') return displayName.trim().length > 0
     return false
   })()
@@ -95,16 +95,16 @@ function SignupWizard() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: inviteToken }),
         })
-        router.push('/')
+        // Hard navigation so the new session cookie attaches to the next RSC request
+        window.location.replace('/')
       } else {
-        router.push('/onboarding')
+        window.location.replace('/onboarding')
       }
-      router.refresh()
     } catch {
       setError('네트워크 오류가 발생했어요')
       setSubmitting(false)
     }
-  }, [email, password, displayName, inviteToken, router])
+  }, [email, password, displayName, inviteToken])
 
   const goNext = useCallback(() => {
     if (!stepValid || submitting) return
@@ -200,7 +200,12 @@ function SignupWizard() {
                     type={showPw ? 'text' : 'password'}
                     value={password}
                     onChange={(e) => setPassword(e.target.value)}
-                    onKeyDown={onKeyDown}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        confirmRef.current?.focus()
+                      }
+                    }}
                     placeholder="비밀번호"
                     autoComplete="new-password"
                     className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-10 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
@@ -215,23 +220,16 @@ function SignupWizard() {
                   </button>
                 </div>
                 <PasswordStrengthBar score={pwScore} visible={password.length > 0} />
-              </>
-            )}
-
-            {step === 'confirm' && (
-              <>
-                <h1 className="text-3xl font-bold tracking-tight">비밀번호를 다시 입력해주세요</h1>
-                <p className="mt-2 text-sm text-base-500">정확히 같은 값을 입력해주세요.</p>
-                <div className="relative mt-8">
+                <div className="relative mt-6">
                   <input
-                    ref={inputRef}
+                    ref={confirmRef}
                     type={showPw ? 'text' : 'password'}
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     onKeyDown={onKeyDown}
                     placeholder="비밀번호 확인"
                     autoComplete="new-password"
-                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-10 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-6 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
                   />
                   {confirm.length > 0 && confirm === password && (
                     <Check
