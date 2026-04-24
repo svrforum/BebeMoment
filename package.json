@@ -15,8 +15,8 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
     "format": "biome format --write .",
-    "db:migrate": "pnpm --filter @bebe/db migrate:dev",
-    "db:studio": "pnpm --filter @bebe/db studio"
+    "db:migrate": "pnpm --filter @bebe/db-public migrate:dev && pnpm --filter @bebe/db-media migrate:dev",
+    "db:studio": "pnpm --filter @bebe/db-public studio"
   },
   "devDependencies": {
     "@biomejs/biome": "^1.9.0",

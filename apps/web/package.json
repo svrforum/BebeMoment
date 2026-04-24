@@ -13,7 +13,6 @@
   "dependencies": {
     "@bebe/config": "workspace:*",
     "@bebe/core": "workspace:*",
-    "@bebe/db": "workspace:*",
     "@bebe/db-media": "workspace:*",
     "@bebe/db-public": "workspace:*",
     "@bebe/storage": "workspace:*",
