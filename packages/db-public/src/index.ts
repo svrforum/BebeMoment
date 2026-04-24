@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from '../prisma/generated/client'
 
 const globalForPrisma = globalThis as unknown as { prismaPublic?: PrismaClient }
 
@@ -10,5 +10,5 @@ export const prisma =
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prismaPublic = prisma
 
-export * from '@prisma/client'
+export * from '../prisma/generated/client'
 export { installTenantMiddleware } from './tenant-middleware'

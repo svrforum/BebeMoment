@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@prisma/client'
+import type { PrismaClient } from '../prisma/generated/client'
 
 const TENANT_SCOPED_MODELS = new Set([
   'Family',
@@ -20,6 +20,8 @@ type Options = { mode?: Mode }
 
 function hasKeyTopLevel(where: Record<string, unknown>, key: string): boolean {
   if (key in where) return true
+  // Prisma compound-unique wrappers like `familyId_sha256` encode the tenant
+  // in the key name itself; accept them without descending into arbitrary values.
   for (const k of Object.keys(where)) {
     if (k.startsWith(`${key}_`) || k.endsWith(`_${key}`) || k.includes(`_${key}_`)) {
       return true

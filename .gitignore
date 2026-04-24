@@ -2,6 +2,9 @@
 node_modules/
 .pnpm-store/
 
+# Generated Prisma clients
+packages/*/prisma/generated/
+
 # Worktrees
 .worktrees/
 
