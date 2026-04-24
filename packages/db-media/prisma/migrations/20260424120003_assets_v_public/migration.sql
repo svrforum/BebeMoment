@@ -1,0 +1,17 @@
+-- Baseline: assets_v_public view exists from M1 migration.
+-- Fresh installations should run the CREATE VIEW statement; existing
+-- databases use `prisma migrate resolve --applied`.
+
+-- View definition (kept here for reference and future modifications):
+--
+-- CREATE OR REPLACE VIEW media.assets_v_public AS
+-- SELECT a.id, a.family_id, a.uploaded_by_user_id, a.kind, a.mime_type,
+--        a.width, a.height, a.duration_ms, a.taken_at, a.uploaded_at,
+--        a.status, a.visibility, a.tags, a.caption, a.created_at,
+--        a.updated_at, a.deleted_at,
+--        COALESCE(
+--          (SELECT array_agg(ab.baby_id ORDER BY ab.tagged_at)
+--             FROM media.asset_babies ab WHERE ab.asset_id = a.id),
+--          ARRAY[]::uuid[]
+--        ) AS baby_ids
+--   FROM media.assets a;

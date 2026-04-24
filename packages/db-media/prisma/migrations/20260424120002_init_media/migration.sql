@@ -1,0 +1,4 @@
+-- Baseline for @bebe/db-media package split. Tables media.assets and
+-- media.asset_babies are assumed to exist (moved by packages/db's
+-- 20260424120000_media_schema_init migration). Use `prisma migrate resolve
+-- --applied` on existing databases.
