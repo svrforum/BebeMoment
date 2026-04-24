@@ -1,4 +1,4 @@
-import { GrowthChart } from '@/components/growth/GrowthChart'
+import { GrowthChartLazy } from '@/components/growth/GrowthChartLazy'
 import { GrowthList } from '@/components/growth/GrowthList'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
@@ -28,7 +28,7 @@ export default async function GrowthListPage({ params }: { params: Promise<{ id:
     <>
       <AppHeader title="성장 기록" />
       <div className="mx-auto max-w-md space-y-4 px-5 py-4">
-        <GrowthChart records={records} />
+        <GrowthChartLazy records={records} />
         <GrowthList records={records} babyId={baby.id} />
         <Button asChild className="w-full">
           <Link href={`/babies/${baby.id}/growth/new`}>기록 추가</Link>

@@ -1,6 +1,5 @@
 import { ThemeProvider, themeInitScript } from '@/lib/theme'
 import type { Metadata, Viewport } from 'next'
-import Script from 'next/script'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -32,9 +31,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="ko" suppressHydrationWarning>
       <body>
-        <Script id="theme-init" strategy="beforeInteractive">
-          {themeInitScript}
-        </Script>
+        <script>{themeInitScript}</script>
         <ThemeProvider>{children}</ThemeProvider>
       </body>
     </html>

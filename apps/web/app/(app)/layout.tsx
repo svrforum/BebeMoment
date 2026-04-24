@@ -6,6 +6,8 @@ import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
 import { AppShellClient } from './shell-client'
 
+export const dynamic = 'force-dynamic'
+
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
