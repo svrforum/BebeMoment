@@ -13,6 +13,7 @@ COPY packages/config/package.json packages/config/
 COPY packages/core/package.json packages/core/
 COPY packages/db-public/package.json packages/db-public/
 COPY packages/db-media/package.json packages/db-media/
+COPY packages/media-client/package.json packages/media-client/
 COPY packages/storage/package.json packages/storage/
 
 RUN pnpm install --frozen-lockfile --ignore-scripts

@@ -33,4 +33,5 @@ export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
 
 export * from '../prisma/generated/client'
 export { installTenantMiddleware } from './tenant-middleware'
-export { startTestDb, type TestDb } from './test-db'
+// Test helpers live at './test-db'; deep-import to keep testcontainers out of
+// production webpack bundles.

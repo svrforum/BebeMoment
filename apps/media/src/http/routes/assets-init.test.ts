@@ -1,5 +1,5 @@
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
-import { type TestDb, startTestDb } from '@bebe/db-media'
+import { type TestDb, startTestDb } from '@bebe/db-media/src/test-db'
 import { buildApp } from '@/server'
 
 const SECRET = 'a'.repeat(40)
