@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import { listJournalEntries } from '@/server/journal/list'
 import Link from 'next/link'
@@ -11,7 +11,12 @@ export default async function JournalPage() {
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
 
-  const { items } = await listJournalEntries(ctx.family.id, { limit: 50 }, prisma)
+  const { items } = await listJournalEntries(
+    ctx.family.id,
+    { limit: 50 },
+    prismaPublic,
+    prismaMedia,
+  )
 
   return (
     <>

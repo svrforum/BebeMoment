@@ -1,26 +1,26 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createComment } from './create'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.assetComment.deleteMany()
-  await db.prisma.assetBookmark.deleteMany()
-  await db.prisma.assetLike.deleteMany()
-  await db.prisma.assetBaby.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.assetComment.deleteMany()
+  await db.prismaPublic.assetBookmark.deleteMany()
+  await db.prismaPublic.assetLike.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
@@ -30,9 +30,9 @@ async function setup() {
       password: 'password123',
       displayName: 'Alice',
     },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   return { user, family }
 }
 
@@ -50,9 +50,10 @@ async function makeReadyAsset(familyId: string, userId: string, sha: string) {
       takenAt: new Date(),
       takenAtSource: 'uploaded',
     },
-    db.prisma,
+    db.prismaPublic,
+    db.prismaMedia,
   )
-  await db.prisma.asset.update({ where: { id: a.id }, data: { status: 'ready' } })
+  await db.prismaMedia.asset.update({ where: { id: a.id }, data: { status: 'ready' } })
   return a
 }
 
@@ -62,7 +63,8 @@ describe('createComment', () => {
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
     const c = await createComment(
       { assetId: asset.id, familyId: family.id, body: 'hello world', byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(c.body).toBe('hello world')
     expect(c.mentionedUserIds).toEqual([])
@@ -73,15 +75,16 @@ describe('createComment', () => {
     const { user, family } = await setup()
     const { user: u2 } = await signup(
       { email: 'u2@u2.com', password: 'password123', displayName: 'Bob' },
-      db.prisma,
+      db.prismaPublic,
     )
-    await db.prisma.membership.create({
+    await db.prismaPublic.membership.create({
       data: { familyId: family.id, userId: u2.id, role: 'family' },
     })
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
     const c = await createComment(
       { assetId: asset.id, familyId: family.id, body: 'hey @Bob check this', byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(c.mentionedUserIds).toContain(u2.id)
   })
@@ -92,7 +95,8 @@ describe('createComment', () => {
     await expect(
       createComment(
         { assetId: asset.id, familyId: family.id, body: '', byUserId: user.id },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow()
   })
@@ -103,7 +107,8 @@ describe('createComment', () => {
     await expect(
       createComment(
         { assetId: asset.id, familyId: family.id, body: 'x'.repeat(2001), byUserId: user.id },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow()
   })
@@ -112,14 +117,15 @@ describe('createComment', () => {
     const { user, family } = await setup()
     const { user: u2 } = await signup(
       { email: 'u2@u2.com', password: 'password123', displayName: 'Bob' },
-      db.prisma,
+      db.prismaPublic,
     )
-    const { family: f2 } = await createFamily({ name: 'F2', userId: u2.id }, db.prisma)
+    const { family: f2 } = await createFamily({ name: 'F2', userId: u2.id }, db.prismaPublic)
     const foreign = await makeReadyAsset(f2.id, u2.id, 'f1')
     await expect(
       createComment(
         { assetId: foreign.id, familyId: family.id, body: 'hello', byUserId: user.id },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/not found|asset/i)
   })

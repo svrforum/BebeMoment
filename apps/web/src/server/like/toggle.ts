@@ -1,6 +1,7 @@
 import type { AssetEvent } from '@bebe/core'
 import { can, channelForFamily } from '@bebe/core'
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
 
@@ -12,38 +13,39 @@ const Input = z.object({
 
 export async function toggleLike(
   raw: unknown,
-  prisma: PrismaClient,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
   publisher?: IORedis,
 ): Promise<{ liked: boolean; count: number }> {
   const input = Input.parse(raw)
 
-  const asset = await prisma.asset.findFirst({
+  const asset = await prismaMedia.asset.findFirst({
     where: { id: input.assetId, familyId: input.familyId, deletedAt: null },
   })
   if (!asset) throw new Error('asset not found in this family')
 
-  const membership = await prisma.membership.findUnique({
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'social.react')) {
     throw new Error('No permission: not a member of this family')
   }
 
-  const existing = await prisma.assetLike.findFirst({
+  const existing = await prismaPublic.assetLike.findFirst({
     where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
   })
 
   if (existing) {
-    await prisma.assetLike.deleteMany({
+    await prismaPublic.assetLike.deleteMany({
       where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
     })
   } else {
-    await prisma.assetLike.create({
+    await prismaPublic.assetLike.create({
       data: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
     })
   }
 
-  const count = await prisma.assetLike.count({
+  const count = await prismaPublic.assetLike.count({
     where: { assetId: input.assetId, familyId: input.familyId },
   })
   const liked = !existing

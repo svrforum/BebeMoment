@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import { TrashList } from './trash-list'
 
@@ -7,7 +7,7 @@ export default async function TrashPage() {
   const ctx = await getContext()
   if (!ctx.family) return null
 
-  const deleted = await prisma.asset.findMany({
+  const deleted = await prismaMedia.asset.findMany({
     where: { familyId: ctx.family.id, deletedAt: { not: null } },
     orderBy: { deletedAt: 'desc' },
     take: 100,

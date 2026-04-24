@@ -1,5 +1,5 @@
 import { can } from '@bebe/core'
-import type { Baby, PrismaClient } from '@bebe/db'
+import type { Baby, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
 const Input = z.object({

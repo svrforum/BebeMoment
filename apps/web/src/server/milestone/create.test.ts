@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
@@ -7,32 +7,32 @@ import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
 import { createMilestone } from './create'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.milestoneAsset.deleteMany()
-  await db.prisma.milestone.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.milestoneAsset.deleteMany()
+  await db.prismaPublic.milestone.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'T' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   const baby = await createBaby(
     { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
-    db.prisma,
+    db.prismaPublic,
   )
   return { user, family, baby }
 }
@@ -48,7 +48,8 @@ describe('createMilestone', () => {
         achievedAt: '2026-03-01',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(ms.presetKey).toBe('first_smile')
     expect(ms.customLabel).toBeNull()
@@ -65,7 +66,8 @@ describe('createMilestone', () => {
         achievedAt: '2026-03-15',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(ms.presetKey).toBeNull()
     expect(ms.customLabel).toBe('첫 박수')
@@ -81,7 +83,8 @@ describe('createMilestone', () => {
         achievedAt: '2026-03-01',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await expect(
       createMilestone(
@@ -92,7 +95,8 @@ describe('createMilestone', () => {
           achievedAt: '2026-04-01',
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/이미 기록/)
   })
@@ -108,7 +112,8 @@ describe('createMilestone', () => {
           achievedAt: '2026-03-01',
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/unknown/i)
   })
@@ -125,14 +130,18 @@ describe('createMilestone', () => {
           achievedAt: '2026-03-01',
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/exactly one/i)
   })
 
   it('rejects asset from another family', async () => {
     const { user, family, baby } = await setup()
-    const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prisma)
+    const { family: family2 } = await createFamily(
+      { name: 'F2', userId: user.id },
+      db.prismaPublic,
+    )
     const foreign = await createAsset(
       {
         familyId: family2.id,
@@ -146,11 +155,12 @@ describe('createMilestone', () => {
         takenAt: new Date('2026-03-01'),
         takenAtSource: 'uploaded',
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await updateAssetStatus(
       { assetId: foreign.id, familyId: family2.id, status: 'ready' },
-      db.prisma,
+      db.prismaMedia,
     )
     await expect(
       createMilestone(
@@ -162,7 +172,8 @@ describe('createMilestone', () => {
           byUserId: user.id,
           assetIds: [foreign.id],
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/assets/i)
   })

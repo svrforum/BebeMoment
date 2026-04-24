@@ -4,7 +4,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { getJournalEntry } from '@/server/journal/get'
 import { notFound, redirect } from 'next/navigation'
@@ -21,22 +21,22 @@ export default async function JournalDetailPage({
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
-  const entry = await getJournalEntry(id, ctx.family.id, prisma)
+  const entry = await getJournalEntry(id, ctx.family.id, prismaPublic, prismaMedia)
   if (!entry) notFound()
 
   if (sp.edit === '1') {
     const [babies, assets] = await Promise.all([
-      prisma.baby.findMany({
+      prismaPublic.baby.findMany({
         where: { familyId: ctx.family.id, deletedAt: null },
         select: { id: true, name: true },
         orderBy: { birthDate: 'asc' },
       }),
-      prisma.asset.findMany({
+      prismaMedia.asset.findMany({
         where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
         orderBy: { takenAt: 'desc' },
         take: 200,

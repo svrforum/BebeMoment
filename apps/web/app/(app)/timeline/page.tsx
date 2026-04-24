@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
 import { getContext } from '@/server/context'
 import { listTimeline } from '@/server/timeline/merged-list'
@@ -11,11 +11,11 @@ export default async function TimelinePage() {
   if (!ctx.family) return null
 
   const [baby, { items }] = await Promise.all([
-    prisma.baby.findFirst({
+    prismaPublic.baby.findFirst({
       where: { familyId: ctx.family.id, deletedAt: null },
       orderBy: { birthDate: 'asc' },
     }),
-    listTimeline(ctx.family.id, { limit: 100 }, prisma),
+    listTimeline(ctx.family.id, { limit: 100 }, prismaPublic, prismaMedia),
   ])
   const birthDate = baby?.birthDate ?? new Date()
 

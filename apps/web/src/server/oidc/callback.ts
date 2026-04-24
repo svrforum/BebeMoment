@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import type { PrismaClient, User } from '@bebe/db'
+import type { PrismaClient, User } from '@bebe/db-public'
 import { type JWTPayload, createRemoteJWKSet, jwtVerify } from 'jose'
 
 export type TokenExchangeResult = {

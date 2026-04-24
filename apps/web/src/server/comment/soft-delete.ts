@@ -1,6 +1,6 @@
 import type { AssetEvent } from '@bebe/core'
 import { can, channelForFamily } from '@bebe/core'
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
 

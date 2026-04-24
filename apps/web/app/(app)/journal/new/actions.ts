@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createJournalEntry } from '@/server/journal/create'
 import { redirect } from 'next/navigation'
@@ -20,7 +20,7 @@ export async function createJournalAction(formData: FormData) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
 
@@ -37,7 +37,8 @@ export async function createJournalAction(formData: FormData) {
       assetIds: parseAssetIds(formData.get('assetIds')),
       byUserId: ctx.user.id,
     },
-    prisma,
+    prismaPublic,
+    prismaMedia,
   )
   redirect('/journal')
 }

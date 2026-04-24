@@ -1,5 +1,6 @@
 import { can } from '@bebe/core'
-import type { JournalEntry, PrismaClient } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { JournalEntry, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 
 const MOODS = ['happy', 'grateful', 'tired', 'sad', 'proud', 'calm'] as const
@@ -17,11 +18,12 @@ const Input = z.object({
 
 export async function createJournalEntry(
   raw: unknown,
-  prisma: PrismaClient,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
 ): Promise<JournalEntry> {
   const input = Input.parse(raw)
 
-  const membership = await prisma.membership.findUnique({
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'record.create')) {
@@ -29,7 +31,7 @@ export async function createJournalEntry(
   }
 
   if (input.babyId) {
-    const baby = await prisma.baby.findFirst({
+    const baby = await prismaPublic.baby.findFirst({
       where: { id: input.babyId, familyId: input.familyId, deletedAt: null },
     })
     if (!baby) {
@@ -43,7 +45,7 @@ export async function createJournalEntry(
   }
 
   if (input.assetIds && input.assetIds.length > 0) {
-    const count = await prisma.asset.count({
+    const count = await prismaMedia.asset.count({
       where: {
         id: { in: input.assetIds },
         familyId: input.familyId,
@@ -54,7 +56,7 @@ export async function createJournalEntry(
     if (count !== input.assetIds.length) throw new Error('one or more assets invalid')
   }
 
-  return prisma.journalEntry.create({
+  return prismaPublic.journalEntry.create({
     data: {
       familyId: input.familyId,
       babyId: input.babyId,

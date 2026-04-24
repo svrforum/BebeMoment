@@ -1,6 +1,6 @@
 import crypto from 'node:crypto'
 import { can } from '@bebe/core'
-import type { Invite, PrismaClient } from '@bebe/db'
+import type { Invite, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
 const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000

@@ -3,7 +3,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { getPreset } from '@bebe/core'
 import { notFound, redirect } from 'next/navigation'
@@ -16,17 +16,17 @@ export default async function EditMilestonePage({
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id, msId } = await params
-  const ms = await prisma.milestone.findFirst({
+  const ms = await prismaPublic.milestone.findFirst({
     where: { id: msId, familyId: ctx.family.id, babyId: id, deletedAt: null },
     include: { assets: true },
   })
   if (!ms) notFound()
   const preset = ms.presetKey ? getPreset(ms.presetKey) : undefined
-  const assets = await prisma.asset.findMany({
+  const assets = await prismaMedia.asset.findMany({
     where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
     orderBy: { takenAt: 'desc' },
     take: 200,

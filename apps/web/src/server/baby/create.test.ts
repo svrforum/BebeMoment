@@ -1,30 +1,30 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createBaby } from './create'
 
-let db: TestDb
+let db: FullTestDb
 
 beforeAll(async () => {
-  db = await startTestDb()
+  db = await startFullTestDb()
 })
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: 'a@b.com', password: 'password123', displayName: 'A' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   return { user, family }
 }
 
@@ -38,7 +38,7 @@ describe('createBaby', () => {
         birthDate: '2026-01-15',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
     )
     expect(baby.name).toBe('아기')
     expect(baby.familyId).toBe(family.id)
@@ -49,12 +49,12 @@ describe('createBaby', () => {
     const { family } = await setup()
     const { user: outsider } = await signup(
       { email: 'x@x.com', password: 'password123', displayName: 'X' },
-      db.prisma,
+      db.prismaPublic,
     )
     await expect(
       createBaby(
         { familyId: family.id, name: '아기', birthDate: '2026-01-15', byUserId: outsider.id },
-        db.prisma,
+        db.prismaPublic,
       ),
     ).rejects.toThrow(/permission|member/i)
   })
@@ -64,7 +64,7 @@ describe('createBaby', () => {
     const dueDate = new Date(Date.now() + 60 * 86400_000).toISOString().slice(0, 10)
     const baby = await createBaby(
       { familyId: family.id, name: '예준', birthDate: dueDate, byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
     )
     expect(baby.birthDate.toISOString().slice(0, 10)).toBe(dueDate)
   })
@@ -75,7 +75,7 @@ describe('createBaby', () => {
     await expect(
       createBaby(
         { familyId: family.id, name: '아기', birthDate: tooFar, byUserId: user.id },
-        db.prisma,
+        db.prismaPublic,
       ),
     ).rejects.toThrow(/1년/)
   })

@@ -1,4 +1,4 @@
-import type { AssetComment, PrismaClient } from '@bebe/db'
+import type { AssetComment, PrismaClient } from '@bebe/db-public'
 
 export async function listComments(
   familyId: string,

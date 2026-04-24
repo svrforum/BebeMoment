@@ -1,7 +1,7 @@
 import { isInstanceAdmin } from '@/lib/admin'
 import { getAuth } from '@/lib/auth'
 import { parseEnv } from '@bebe/config'
-import type { User } from '@bebe/db'
+import type { User } from '@bebe/db-public'
 import { NextResponse } from 'next/server'
 
 export type AdminContext = {

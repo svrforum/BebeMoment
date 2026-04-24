@@ -2,7 +2,7 @@ import { MilestoneForm } from '@/components/milestone/MilestoneForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { getPreset } from '@bebe/core'
 import { notFound, redirect } from 'next/navigation'
@@ -19,14 +19,14 @@ export default async function NewMilestonePage({
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
   const preset = sp.presetKey ? getPreset(sp.presetKey) : undefined
   if (sp.presetKey && !preset) notFound()
-  const assets = await prisma.asset.findMany({
+  const assets = await prismaMedia.asset.findMany({
     where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
     orderBy: { takenAt: 'desc' },
     take: 200,

@@ -1,5 +1,5 @@
 import { hashPassword, verifyPassword } from '@/lib/password'
-import type { PrismaClient, User } from '@bebe/db'
+import type { PrismaClient, User } from '@bebe/db-public'
 import { z } from 'zod'
 
 const LoginInput = z.object({

@@ -1,6 +1,6 @@
 import { MonthGrid } from '@/components/calendar/month-grid'
 import { AppHeader } from '@/components/shell/app-header'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia } from '@/lib/db-init'
 import { listAssets } from '@/server/asset/list'
 import { getContext } from '@/server/context'
 
@@ -8,7 +8,7 @@ export default async function CalendarPage() {
   const ctx = await getContext()
   if (!ctx.family) return null
 
-  const assets = await listAssets({ familyId: ctx.family.id, limit: 500 }, prisma)
+  const assets = await listAssets({ familyId: ctx.family.id, limit: 500 }, prismaMedia)
 
   const now = new Date()
 

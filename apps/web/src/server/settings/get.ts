@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient } from '@bebe/db-public'
 import type { ZodType } from 'zod'
 
 export async function getSetting<T>(

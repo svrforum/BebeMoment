@@ -1,4 +1,4 @@
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient } from '@bebe/db-public'
 
 export async function setSetting(
   key: string,

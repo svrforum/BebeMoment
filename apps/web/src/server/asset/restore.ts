@@ -1,17 +1,19 @@
 import { can } from '@bebe/core'
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 
 export async function restoreAsset(
   args: { assetId: string; familyId: string; byUserId: string },
-  prisma: PrismaClient,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
 ): Promise<void> {
-  const membership = await prisma.membership.findUnique({
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: args.familyId, userId: args.byUserId } },
   })
   if (!membership || !can(membership.role, 'asset.edit.any')) {
     throw new Error('No permission to restore')
   }
-  await prisma.asset.update({
+  await prismaMedia.asset.update({
     where: { id: args.assetId, familyId: args.familyId },
     data: { deletedAt: null },
   })

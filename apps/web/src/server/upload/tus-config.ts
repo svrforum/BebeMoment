@@ -3,7 +3,7 @@ import { createReadStream, mkdirSync } from 'node:fs'
 import { mkdir, rename, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { createAsset } from '@/server/asset/create'
 import { findDuplicate } from '@/server/asset/dedupe'
 import { resolveContext } from '@/server/context'
@@ -53,7 +53,7 @@ export function getTusServer(): Server {
       if (!session) throw { status_code: 401, body: 'Unauthorized' }
       const ctx = await resolveContext(
         { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-        prisma,
+        prismaPublic,
       )
       if (!ctx.family || !ctx.user) throw { status_code: 400, body: 'No current family' }
 
@@ -75,7 +75,7 @@ export function getTusServer(): Server {
       })
       const sha256 = hash.digest('hex')
 
-      const dup = await findDuplicate(ctx.family.id, sha256, prisma)
+      const dup = await findDuplicate(ctx.family.id, sha256, prismaMedia)
       if (dup) {
         await unlink(tusPath).catch(() => {})
         return {
@@ -111,7 +111,8 @@ export function getTusServer(): Server {
           takenAt: new Date(),
           takenAtSource: 'uploaded',
         },
-        prisma,
+        prismaPublic,
+        prismaMedia,
       )
 
       const finalKey = `families/${ctx.family.id}/assets/${asset.id}/original`
@@ -139,13 +140,13 @@ export function getTusServer(): Server {
         })
 
         // 3. Flip status
-        await prisma.asset.update({
+        await prismaMedia.asset.update({
           where: { id: asset.id, familyId: ctx.family.id },
           data: { originalKey: finalKey, status: 'processing' },
         })
       } catch (e) {
         // Best-effort cleanup: delete asset row + uploaded file
-        await prisma.asset.delete({ where: { id: asset.id } }).catch(() => {})
+        await prismaMedia.asset.delete({ where: { id: asset.id } }).catch(() => {})
         await storage.delete(finalKey).catch(() => {})
         throw e
       }

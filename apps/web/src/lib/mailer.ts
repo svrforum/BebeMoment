@@ -1,6 +1,6 @@
 import { decryptSecret } from '@/lib/crypto'
 import { getSetting } from '@/server/settings/get'
-import type { PrismaClient } from '@bebe/db'
+import type { PrismaClient } from '@bebe/db-public'
 import nodemailer, { type Transporter } from 'nodemailer'
 import { z } from 'zod'
 

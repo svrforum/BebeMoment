@@ -1,4 +1,4 @@
-import type { Family, Membership, PrismaClient } from '@bebe/db'
+import type { Family, Membership, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { toSlug } from './slug'
 

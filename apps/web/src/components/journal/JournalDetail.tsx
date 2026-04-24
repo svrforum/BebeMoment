@@ -1,11 +1,12 @@
-import type { Asset, JournalEntry, JournalEntryAsset } from '@bebe/db'
+import type { Asset } from '@bebe/db-media'
+import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import ReactMarkdown from 'react-markdown'
 import rehypeSanitize from 'rehype-sanitize'
 
 export function JournalDetail({
   entry,
 }: {
-  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset })[] }
+  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] }
 }) {
   return (
     <article className="space-y-4">
@@ -23,6 +24,7 @@ export function JournalDetail({
             .slice()
             .sort((a, b) => a.order - b.order)
             .map((link) => {
+              if (!link.asset) return null
               const d = (link.asset.derivatives ?? {}) as Record<string, string>
               const tk = d.thumb_sm ?? d.poster
               if (!tk) return null

@@ -1,4 +1,4 @@
-import type { Asset, PrismaClient } from '@bebe/db'
+import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
 
 export async function listAssets(
   args: {
@@ -7,9 +7,9 @@ export async function listAssets(
     cursor?: { takenAt: Date; id: string }
     includeProcessing?: boolean
   },
-  prisma: PrismaClient,
+  prismaMedia: PrismaMedia,
 ): Promise<Asset[]> {
-  return prisma.asset.findMany({
+  return prismaMedia.asset.findMany({
     where: {
       familyId: args.familyId,
       deletedAt: null,

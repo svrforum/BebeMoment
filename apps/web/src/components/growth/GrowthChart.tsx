@@ -1,5 +1,5 @@
 'use client'
-import type { GrowthRecord } from '@bebe/db'
+import type { GrowthRecord } from '@bebe/db-public'
 import {
   CartesianGrid,
   Legend,

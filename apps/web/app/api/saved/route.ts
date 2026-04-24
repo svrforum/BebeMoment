@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { resolveContext } from '@/server/context'
 import { NextResponse } from 'next/server'
@@ -9,7 +9,7 @@ export async function GET(req: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const url = new URL(req.url)
@@ -19,7 +19,8 @@ export async function GET(req: Request) {
     ctx.family.id,
     ctx.user.id,
     { ...(cursor ? { cursor } : {}), limit },
-    prisma,
+    prismaPublic,
+    prismaMedia,
   )
   return NextResponse.json(page)
 }

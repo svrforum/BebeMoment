@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createMilestone } from '@/server/milestone/create'
 import { redirect } from 'next/navigation'
@@ -20,7 +20,7 @@ export async function createMilestoneAction(babyId: string, formData: FormData) 
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const presetKey = String(formData.get('presetKey') ?? '').trim()
@@ -36,7 +36,8 @@ export async function createMilestoneAction(babyId: string, formData: FormData) 
       assetIds: parseAssetIds(formData.get('assetIds')),
       byUserId: ctx.user.id,
     },
-    prisma,
+    prismaPublic,
+    prismaMedia,
   )
   redirect(`/babies/${babyId}/milestones`)
 }

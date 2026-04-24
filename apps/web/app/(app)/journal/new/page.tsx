@@ -2,7 +2,7 @@ import { JournalForm } from '@/components/journal/JournalForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
 import { createJournalAction } from './actions'
@@ -12,17 +12,17 @@ export default async function NewJournalPage() {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
 
   const [babies, assets] = await Promise.all([
-    prisma.baby.findMany({
+    prismaPublic.baby.findMany({
       where: { familyId: ctx.family.id, deletedAt: null },
       select: { id: true, name: true },
       orderBy: { birthDate: 'asc' },
     }),
-    prisma.asset.findMany({
+    prismaMedia.asset.findMany({
       where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
       orderBy: { takenAt: 'desc' },
       take: 200,

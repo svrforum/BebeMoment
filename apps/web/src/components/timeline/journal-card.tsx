@@ -1,8 +1,9 @@
-import type { Asset, JournalEntry, JournalEntryAsset } from '@bebe/db'
+import type { Asset } from '@bebe/db-media'
+import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import Link from 'next/link'
 
 type Props = {
-  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset })[] }
+  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] }
 }
 
 export function JournalCard({ entry }: Props) {
@@ -16,6 +17,7 @@ export function JournalCard({ entry }: Props) {
         {thumbs.length > 0 && (
           <div className="mt-3 flex gap-1">
             {thumbs.map((t) => {
+              if (!t.asset) return null
               const d = (t.asset.derivatives ?? {}) as Record<string, string>
               const tk = d.thumb_sm ?? d.poster
               if (!tk) return null

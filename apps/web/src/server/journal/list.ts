@@ -1,4 +1,5 @@
-import type { Asset, JournalEntry, JournalEntryAsset, PrismaClient } from '@bebe/db'
+import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 
 type Cursor = { ts: string; id: string }
 
@@ -16,16 +17,17 @@ function decodeCursor(s: string): Cursor | null {
 export async function listJournalEntries(
   familyId: string,
   params: { babyId?: string; cursor?: string; limit?: number },
-  prisma: PrismaClient,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
 ): Promise<{
-  items: (JournalEntry & { assets: (JournalEntryAsset & { asset: Asset })[] })[]
+  items: (JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] })[]
   nextCursor: string | null
 }> {
   const limit = params.limit ?? 20
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
-  const items = await prisma.journalEntry.findMany({
+  const items = await prismaPublic.journalEntry.findMany({
     where: {
       familyId,
       deletedAt: null,
@@ -36,15 +38,27 @@ export async function listJournalEntries(
           }
         : {}),
     },
-    include: { assets: { include: { asset: true } } },
+    include: { assets: true },
     orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
     take: limit + 1,
   })
 
   const hasMore = items.length > limit
   const page = items.slice(0, limit)
+
+  const allAssetIds = Array.from(new Set(page.flatMap((e) => e.assets.map((ea) => ea.assetId))))
+  const assets = allAssetIds.length
+    ? await prismaMedia.asset.findMany({ where: { id: { in: allAssetIds }, familyId } })
+    : []
+  const byId = new Map(assets.map((a) => [a.id, a]))
+
+  const joined = page.map((e) => ({
+    ...e,
+    assets: e.assets.map((ea) => ({ ...ea, asset: byId.get(ea.assetId) ?? null })),
+  }))
+
   const last = page[page.length - 1]
   const nextCursor =
     hasMore && last ? encodeCursor({ ts: last.entryDate.toISOString(), id: last.id }) : null
-  return { items: page, nextCursor }
+  return { items: joined, nextCursor }
 }

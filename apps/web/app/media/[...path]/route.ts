@@ -1,7 +1,7 @@
 import { createReadStream, statSync } from 'node:fs'
 import path from 'node:path'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { parseEnv } from '@bebe/config'
 import { NextResponse } from 'next/server'
@@ -22,7 +22,7 @@ export async function GET(
   if (!session) return new NextResponse('Unauthorized', { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.membership) return new NextResponse('Forbidden', { status: 403 })
 
@@ -35,7 +35,7 @@ export async function GET(
   } else if (segs[0] === 'derivatives') {
     const assetId = segs[1]
     if (!assetId) return new NextResponse('Not found', { status: 404 })
-    const asset = await prisma.asset.findFirst({
+    const asset = await prismaMedia.asset.findFirst({
       where: { id: assetId, familyId: ctx.membership.familyId, deletedAt: null },
     })
     if (!asset) return new NextResponse('Forbidden', { status: 403 })

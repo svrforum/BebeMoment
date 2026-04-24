@@ -1,5 +1,7 @@
 import { can } from '@bebe/core'
-import type { Asset, AssetKind, PrismaClient, TakenAtSource } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { Asset, AssetKind, TakenAtSource } from '@bebe/db-media'
+import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 
 export type CreateAssetInput = {
   familyId: string
@@ -14,15 +16,19 @@ export type CreateAssetInput = {
   takenAtSource: TakenAtSource
 }
 
-export async function createAsset(input: CreateAssetInput, prisma: PrismaClient): Promise<Asset> {
-  const membership = await prisma.membership.findUnique({
+export async function createAsset(
+  input: CreateAssetInput,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
+): Promise<Asset> {
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.uploadedByUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'asset.upload')) {
     throw new Error('No permission to upload to this family')
   }
 
-  return prisma.asset.create({
+  return prismaMedia.asset.create({
     data: {
       familyId: input.familyId,
       uploadedByUserId: input.uploadedByUserId,

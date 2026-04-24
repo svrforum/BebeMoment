@@ -1,31 +1,31 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createAsset } from './create'
 import { softDeleteAsset } from './soft-delete'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.asset.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 describe('softDeleteAsset', () => {
   it('sets deletedAt on asset owned by uploader', async () => {
     const { user } = await signup(
       { email: 'a@b.com', password: 'password123', displayName: 'A' },
-      db.prisma,
+      db.prismaPublic,
     )
-    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
     const a = await createAsset(
       {
         familyId: family.id,
@@ -39,23 +39,28 @@ describe('softDeleteAsset', () => {
         takenAt: new Date(),
         takenAtSource: 'uploaded',
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
-    await softDeleteAsset({ assetId: a.id, familyId: family.id, byUserId: user.id }, db.prisma)
-    const updated = await db.prisma.asset.findUnique({ where: { id: a.id } })
+    await softDeleteAsset(
+      { assetId: a.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const updated = await db.prismaMedia.asset.findUnique({ where: { id: a.id } })
     expect(updated?.deletedAt).not.toBeNull()
   })
 
   it('rejects non-member user', async () => {
     const { user } = await signup(
       { email: 'a@b.com', password: 'password123', displayName: 'A' },
-      db.prisma,
+      db.prismaPublic,
     )
     const { user: outsider } = await signup(
       { email: 'x@x.com', password: 'password123', displayName: 'X' },
-      db.prisma,
+      db.prismaPublic,
     )
-    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
     const a = await createAsset(
       {
         familyId: family.id,
@@ -69,10 +74,15 @@ describe('softDeleteAsset', () => {
         takenAt: new Date(),
         takenAtSource: 'uploaded',
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await expect(
-      softDeleteAsset({ assetId: a.id, familyId: family.id, byUserId: outsider.id }, db.prisma),
+      softDeleteAsset(
+        { assetId: a.id, familyId: family.id, byUserId: outsider.id },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
     ).rejects.toThrow(/permission|member/i)
   })
 })

@@ -1,16 +1,16 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createProvider, deleteProvider, listProviders, updateProvider } from './providers'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
+  db = await startFullTestDb()
 })
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.oidcProvider.deleteMany()
+  await db.prismaPublic.oidcProvider.deleteMany()
 })
 
 const SECRET = 'x'.repeat(64)
@@ -26,7 +26,7 @@ describe('oidc providers', () => {
         scopes: ['openid', 'email', 'profile'],
       },
       SECRET,
-      db.prisma,
+      db.prismaPublic,
     )
     expect(p.id).toBeTruthy()
     expect(p.clientSecretEnc).not.toBe('topsecret')
@@ -37,9 +37,9 @@ describe('oidc providers', () => {
     await createProvider(
       { name: 'A', issuer: 'https://a', clientId: 'c', clientSecret: 's', scopes: [] },
       SECRET,
-      db.prisma,
+      db.prismaPublic,
     )
-    const list = await listProviders(db.prisma)
+    const list = await listProviders(db.prismaPublic)
     expect(list).toHaveLength(1)
   })
 
@@ -47,10 +47,10 @@ describe('oidc providers', () => {
     const p = await createProvider(
       { name: 'A', issuer: 'https://a', clientId: 'c', clientSecret: 's', scopes: [] },
       SECRET,
-      db.prisma,
+      db.prismaPublic,
     )
-    await updateProvider(p.id, { name: 'B' }, SECRET, db.prisma)
-    const list = await listProviders(db.prisma)
+    await updateProvider(p.id, { name: 'B' }, SECRET, db.prismaPublic)
+    const list = await listProviders(db.prismaPublic)
     expect(list[0]?.name).toBe('B')
   })
 
@@ -58,9 +58,9 @@ describe('oidc providers', () => {
     const p = await createProvider(
       { name: 'A', issuer: 'https://a', clientId: 'c', clientSecret: 's', scopes: [] },
       SECRET,
-      db.prisma,
+      db.prismaPublic,
     )
-    await deleteProvider(p.id, db.prisma)
-    expect(await listProviders(db.prisma)).toHaveLength(0)
+    await deleteProvider(p.id, db.prismaPublic)
+    expect(await listProviders(db.prismaPublic)).toHaveLength(0)
   })
 })

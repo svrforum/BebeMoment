@@ -1,5 +1,5 @@
 import { encryptSecret } from '@/lib/crypto'
-import type { OidcProvider, PrismaClient } from '@bebe/db'
+import type { OidcProvider, PrismaClient } from '@bebe/db-public'
 
 export type CreateProviderInput = {
   name: string

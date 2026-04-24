@@ -1,4 +1,4 @@
-import type { Membership, PrismaClient } from '@bebe/db'
+import type { Membership, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
 const Input = z.object({

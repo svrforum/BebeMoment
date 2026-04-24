@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -6,33 +6,33 @@ import { createFamily } from '../family/create'
 import { createJournalEntry } from './create'
 import { listJournalEntries } from './list'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.journalEntryAsset.deleteMany()
-  await db.prisma.journalEntry.deleteMany()
-  await db.prisma.assetBaby.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.journalEntryAsset.deleteMany()
+  await db.prismaPublic.journalEntry.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'T' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   const baby = await createBaby(
     { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
-    db.prisma,
+    db.prismaPublic,
   )
   return { user, family, baby }
 }
@@ -48,7 +48,8 @@ describe('listJournalEntries', () => {
         body: 'A',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await createJournalEntry(
       {
@@ -58,7 +59,8 @@ describe('listJournalEntries', () => {
         body: 'B',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await createJournalEntry(
       {
@@ -68,9 +70,15 @@ describe('listJournalEntries', () => {
         body: 'C',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
-    const { items, nextCursor } = await listJournalEntries(family.id, {}, db.prisma)
+    const { items, nextCursor } = await listJournalEntries(
+      family.id,
+      {},
+      db.prismaPublic,
+      db.prismaMedia,
+    )
     expect(items.map((e) => e.body)).toEqual(['B', 'C', 'A'])
     expect(nextCursor).toBeNull()
   })
@@ -79,7 +87,7 @@ describe('listJournalEntries', () => {
     const { user, family, baby } = await setup()
     const baby2 = await createBaby(
       { familyId: family.id, name: 'B2', birthDate: '2026-01-15', byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
     )
     await createJournalEntry(
       {
@@ -89,7 +97,8 @@ describe('listJournalEntries', () => {
         body: 'for-b1',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     await createJournalEntry(
       {
@@ -99,9 +108,15 @@ describe('listJournalEntries', () => {
         body: 'for-b2',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
-    const { items } = await listJournalEntries(family.id, { babyId: baby.id }, db.prisma)
+    const { items } = await listJournalEntries(
+      family.id,
+      { babyId: baby.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
     expect(items).toHaveLength(1)
     expect(items[0]?.body).toBe('for-b1')
   })
@@ -117,16 +132,23 @@ describe('listJournalEntries', () => {
           body: `E${i}`,
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       )
     }
-    const page1 = await listJournalEntries(family.id, { limit: 3 }, db.prisma)
+    const page1 = await listJournalEntries(
+      family.id,
+      { limit: 3 },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
     expect(page1.items).toHaveLength(3)
     expect(page1.nextCursor).not.toBeNull()
     const page2 = await listJournalEntries(
       family.id,
       { limit: 3, cursor: page1.nextCursor as string },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(page2.items).toHaveLength(2)
     expect(page2.nextCursor).toBeNull()

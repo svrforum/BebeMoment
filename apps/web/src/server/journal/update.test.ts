@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -6,33 +6,33 @@ import { createFamily } from '../family/create'
 import { createJournalEntry } from './create'
 import { updateJournalEntry } from './update'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.journalEntryAsset.deleteMany()
-  await db.prisma.journalEntry.deleteMany()
-  await db.prisma.assetBaby.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.journalEntryAsset.deleteMany()
+  await db.prismaPublic.journalEntry.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'T' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   const baby = await createBaby(
     { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
-    db.prisma,
+    db.prismaPublic,
   )
   return { user, family, baby }
 }
@@ -49,7 +49,8 @@ describe('updateJournalEntry', () => {
         body: '원본문',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     const updated = await updateJournalEntry(
       {
@@ -58,7 +59,8 @@ describe('updateJournalEntry', () => {
         byUserId: user.id,
         patch: { title: '새제목', body: '새본문' },
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(updated.title).toBe('새제목')
     expect(updated.body).toBe('새본문')
@@ -74,7 +76,8 @@ describe('updateJournalEntry', () => {
         body: '본문',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     const updated = await updateJournalEntry(
       {
@@ -83,7 +86,8 @@ describe('updateJournalEntry', () => {
         byUserId: user.id,
         patch: { babyId: null },
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(updated.babyId).toBeNull()
   })

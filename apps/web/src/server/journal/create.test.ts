@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
@@ -7,33 +7,33 @@ import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
 import { createJournalEntry } from './create'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.journalEntryAsset.deleteMany()
-  await db.prisma.journalEntry.deleteMany()
-  await db.prisma.assetBaby.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.journalEntryAsset.deleteMany()
+  await db.prismaPublic.journalEntry.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'T' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   const baby = await createBaby(
     { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
-    db.prisma,
+    db.prismaPublic,
   )
   return { user, family, baby }
 }
@@ -57,9 +57,10 @@ async function makeReadyAsset(
       takenAt: new Date('2026-03-01'),
       takenAtSource: 'uploaded',
     },
-    db.prisma,
+    db.prismaPublic,
+    db.prismaMedia,
   )
-  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prisma)
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
   return asset
 }
 
@@ -74,7 +75,8 @@ describe('createJournalEntry', () => {
         body: '오늘은 좋은 하루',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(entry.familyId).toBe(family.id)
     expect(entry.babyId).toBe(baby.id)
@@ -91,7 +93,8 @@ describe('createJournalEntry', () => {
         body: '가족 전체 메모',
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(entry.babyId).toBeNull()
     expect(entry.body).toBe('가족 전체 메모')
@@ -108,7 +111,8 @@ describe('createJournalEntry', () => {
           body: '',
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow()
   })
@@ -125,7 +129,8 @@ describe('createJournalEntry', () => {
           mood: 'ecstatic',
           byUserId: user.id,
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow()
   })
@@ -143,9 +148,10 @@ describe('createJournalEntry', () => {
         assetIds: [a2.id, a1.id],
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
-    const rows = await db.prisma.journalEntryAsset.findMany({
+    const rows = await db.prismaPublic.journalEntryAsset.findMany({
       where: { entryId: entry.id },
       orderBy: { order: 'asc' },
     })

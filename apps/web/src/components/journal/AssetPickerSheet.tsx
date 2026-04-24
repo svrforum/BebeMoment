@@ -1,7 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
-import type { Asset } from '@bebe/db'
+import type { Asset } from '@bebe/db-media'
 import { useState } from 'react'
 
 function thumbKeyOf(a: Asset): string | undefined {

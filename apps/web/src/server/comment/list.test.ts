@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
@@ -7,22 +7,22 @@ import { createComment } from './create'
 import { listComments } from './list'
 import { softDeleteComment } from './soft-delete'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.assetComment.deleteMany()
-  await db.prisma.assetBookmark.deleteMany()
-  await db.prisma.assetLike.deleteMany()
-  await db.prisma.assetBaby.deleteMany()
-  await db.prisma.asset.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.assetComment.deleteMany()
+  await db.prismaPublic.assetBookmark.deleteMany()
+  await db.prismaPublic.assetLike.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
@@ -32,9 +32,9 @@ async function setup() {
       password: 'password123',
       displayName: 'Alice',
     },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   return { user, family }
 }
 
@@ -52,9 +52,10 @@ async function makeReadyAsset(familyId: string, userId: string, sha: string) {
       takenAt: new Date(),
       takenAtSource: 'uploaded',
     },
-    db.prisma,
+    db.prismaPublic,
+    db.prismaMedia,
   )
-  await db.prisma.asset.update({ where: { id: a.id }, data: { status: 'ready' } })
+  await db.prismaMedia.asset.update({ where: { id: a.id }, data: { status: 'ready' } })
   return a
 }
 
@@ -64,17 +65,22 @@ describe('listComments', () => {
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
     const c1 = await createComment(
       { assetId: asset.id, familyId: family.id, body: 'first', byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     // Ensure distinct createdAt ordering
     await new Promise((r) => setTimeout(r, 5))
     const c2 = await createComment(
       { assetId: asset.id, familyId: family.id, body: 'second', byUserId: user.id },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
-    await softDeleteComment({ id: c1.id, familyId: family.id, byUserId: user.id }, db.prisma)
+    await softDeleteComment(
+      { id: c1.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+    )
 
-    const items = await listComments(family.id, asset.id, db.prisma)
+    const items = await listComments(family.id, asset.id, db.prismaPublic)
     expect(items).toHaveLength(2)
     const first = items[0]
     const second = items[1]
@@ -89,7 +95,7 @@ describe('listComments', () => {
   it('returns empty array when no comments', async () => {
     const { user, family } = await setup()
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
-    const items = await listComments(family.id, asset.id, db.prisma)
+    const items = await listComments(family.id, asset.id, db.prismaPublic)
     expect(items).toEqual([])
   })
 })

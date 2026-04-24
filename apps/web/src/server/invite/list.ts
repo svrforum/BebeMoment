@@ -1,4 +1,4 @@
-import type { Invite, PrismaClient } from '@bebe/db'
+import type { Invite, PrismaClient } from '@bebe/db-public'
 
 export async function listInvites(
   args: { familyId: string; includeExpiredAccepted?: boolean },

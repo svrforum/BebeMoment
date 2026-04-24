@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import type { MilestonePreset } from '@bebe/core'
-import type { Asset } from '@bebe/db'
+import type { Asset } from '@bebe/db-media'
 import { useState } from 'react'
 import { AssetPickerSheet } from '../journal/AssetPickerSheet'
 

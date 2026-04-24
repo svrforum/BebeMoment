@@ -1,7 +1,8 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
-import type { Asset, Baby } from '@bebe/db'
+import type { Asset } from '@bebe/db-media'
+import type { Baby } from '@bebe/db-public'
 import { useState } from 'react'
 import { AssetPickerSheet } from './AssetPickerSheet'
 

@@ -1,30 +1,30 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createAsset } from './create'
 
-let db: TestDb
+let db: FullTestDb
 
 beforeAll(async () => {
-  db = await startTestDb()
-})
+  db = await startFullTestDb()
+}, 120_000)
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.asset.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: 'a@b.com', password: 'password123', displayName: 'A' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   return { user, family }
 }
 
@@ -44,7 +44,8 @@ describe('createAsset', () => {
         takenAt: new Date('2026-01-01'),
         takenAtSource: 'manual',
       },
-      db.prisma,
+      db.prismaPublic,
+      db.prismaMedia,
     )
     expect(asset.status).toBe('uploading')
     expect(asset.familyId).toBe(family.id)
@@ -55,7 +56,7 @@ describe('createAsset', () => {
     const { family } = await setup()
     const { user: outsider } = await signup(
       { email: 'x@x.com', password: 'password123', displayName: 'X' },
-      db.prisma,
+      db.prismaPublic,
     )
     await expect(
       createAsset(
@@ -71,7 +72,8 @@ describe('createAsset', () => {
           takenAt: new Date(),
           takenAtSource: 'uploaded',
         },
-        db.prisma,
+        db.prismaPublic,
+        db.prismaMedia,
       ),
     ).rejects.toThrow(/permission|member/i)
   })

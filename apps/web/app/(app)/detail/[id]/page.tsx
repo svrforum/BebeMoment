@@ -1,6 +1,6 @@
 import { ViewerShell } from '@/components/detail/viewer-shell'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getAssetForFamily } from '@/server/asset/get'
 import { listComments } from '@/server/comment/list'
 import { resolveContext } from '@/server/context'
@@ -14,11 +14,11 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   if (!session) return null
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return null
 
-  const asset = await getAssetForFamily({ assetId: id, familyId: ctx.family.id }, prisma)
+  const asset = await getAssetForFamily({ assetId: id, familyId: ctx.family.id }, prismaMedia)
   if (!asset) notFound()
 
   const derivs = (asset.derivatives as Record<string, string> | null) ?? {}
@@ -28,9 +28,9 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       : `/media/${derivs.thumb_lg ?? asset.originalKey}`
   const posterUrl = derivs.poster ? `/media/${derivs.poster}` : undefined
 
-  const [prevAsset, nextAsset, likers, commentsRaw, myLike, myBookmark, babyLinks, members] =
+  const [prevAsset, nextAsset, likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members] =
     await Promise.all([
-      prisma.asset.findFirst({
+      prismaMedia.asset.findFirst({
         where: {
           familyId: ctx.family.id,
           deletedAt: null,
@@ -42,7 +42,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
         },
         orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
       }),
-      prisma.asset.findFirst({
+      prismaMedia.asset.findFirst({
         where: {
           familyId: ctx.family.id,
           deletedAt: null,
@@ -54,26 +54,34 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
         },
         orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       }),
-      likersForAsset(ctx.family.id, asset.id, prisma),
-      listComments(ctx.family.id, asset.id, prisma),
-      prisma.assetLike.findFirst({
+      likersForAsset(ctx.family.id, asset.id, prismaPublic),
+      listComments(ctx.family.id, asset.id, prismaPublic),
+      prismaPublic.assetLike.findFirst({
         where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
       }),
-      prisma.assetBookmark.findFirst({
+      prismaPublic.assetBookmark.findFirst({
         where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
       }),
-      prisma.baby.findMany({
-        where: { familyId: ctx.family.id, assetBabies: { some: { assetId: asset.id } } },
-        select: { id: true, name: true },
+      prismaMedia.assetBaby.findMany({
+        where: { assetId: asset.id },
+        select: { babyId: true },
       }),
-      prisma.membership.findMany({
+      prismaPublic.membership.findMany({
         where: { familyId: ctx.family.id, deletedAt: null },
         include: { user: { select: { id: true, displayName: true } } },
       }),
     ])
 
+  const babyIds = assetBabyLinks.map((link) => link.babyId)
+  const babyRows = babyIds.length
+    ? await prismaPublic.baby.findMany({
+        where: { id: { in: babyIds }, familyId: ctx.family.id },
+        select: { id: true, name: true },
+      })
+    : []
+
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
-  const babies = babyLinks.map((b) => ({ id: b.id, name: b.name }))
+  const babies = babyRows.map((b) => ({ id: b.id, name: b.name }))
 
   const role = ctx.membership?.role ?? 'family'
   const canDeleteAny = can(role, 'social.comment.delete.any')

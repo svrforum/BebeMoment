@@ -1,4 +1,5 @@
-import type { Asset, JournalEntry, JournalEntryAsset, PrismaClient } from '@bebe/db'
+import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 
 export type TimelineItem =
   | { kind: 'asset'; ts: Date; id: string; asset: Asset }
@@ -6,7 +7,7 @@ export type TimelineItem =
       kind: 'journal'
       ts: Date
       id: string
-      entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset })[] }
+      entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] }
     }
 
 type Cursor = { ts: string; id: string; kind: 'asset' | 'journal' }
@@ -32,14 +33,15 @@ function decodeCursor(s: string): Cursor | null {
 export async function listTimeline(
   familyId: string,
   params: { limit?: number; cursor?: string },
-  prisma: PrismaClient,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
 ): Promise<{ items: TimelineItem[]; nextCursor: string | null }> {
   const limit = params.limit ?? 50
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
   const [assets, entries] = await Promise.all([
-    prisma.asset.findMany({
+    prismaMedia.asset.findMany({
       where: {
         familyId,
         status: 'ready',
@@ -53,7 +55,7 @@ export async function listTimeline(
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
-    prisma.journalEntry.findMany({
+    prismaPublic.journalEntry.findMany({
       where: {
         familyId,
         deletedAt: null,
@@ -63,15 +65,33 @@ export async function listTimeline(
             }
           : {}),
       },
-      include: { assets: { include: { asset: true } } },
+      include: { assets: true },
       orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
   ])
 
+  const entryAssetIds = Array.from(
+    new Set(entries.flatMap((e) => e.assets.map((ea) => ea.assetId))),
+  )
+  const entryAssets = entryAssetIds.length
+    ? await prismaMedia.asset.findMany({ where: { id: { in: entryAssetIds }, familyId } })
+    : []
+  const entryAssetById = new Map(entryAssets.map((a) => [a.id, a]))
+
+  const joinedEntries = entries.map((e) => ({
+    ...e,
+    assets: e.assets.map((ea) => ({ ...ea, asset: entryAssetById.get(ea.assetId) ?? null })),
+  }))
+
   const merged: TimelineItem[] = [
     ...assets.map<TimelineItem>((a) => ({ kind: 'asset', ts: a.takenAt, id: a.id, asset: a })),
-    ...entries.map<TimelineItem>((e) => ({ kind: 'journal', ts: e.entryDate, id: e.id, entry: e })),
+    ...joinedEntries.map<TimelineItem>((e) => ({
+      kind: 'journal',
+      ts: e.entryDate,
+      id: e.id,
+      entry: e,
+    })),
   ].sort((a, b) => {
     const d = b.ts.getTime() - a.ts.getTime()
     return d !== 0 ? d : b.id.localeCompare(a.id)

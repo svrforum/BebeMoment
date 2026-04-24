@@ -1,5 +1,6 @@
 import { can } from '@bebe/core'
-import type { Milestone, PrismaClient } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { Milestone, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 
 const Input = z.object({
@@ -16,13 +17,17 @@ const Input = z.object({
   }),
 })
 
-export async function updateMilestone(raw: unknown, prisma: PrismaClient): Promise<Milestone> {
+export async function updateMilestone(
+  raw: unknown,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
+): Promise<Milestone> {
   const input = Input.parse(raw)
-  const ms = await prisma.milestone.findFirst({
+  const ms = await prismaPublic.milestone.findFirst({
     where: { id: input.id, familyId: input.familyId, deletedAt: null },
   })
   if (!ms) throw new Error('Milestone not found')
-  const membership = await prisma.membership.findUnique({
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt) throw new Error('No permission')
@@ -37,7 +42,7 @@ export async function updateMilestone(raw: unknown, prisma: PrismaClient): Promi
   }
 
   if (input.patch.assetIds && input.patch.assetIds.length > 0) {
-    const count = await prisma.asset.count({
+    const count = await prismaMedia.asset.count({
       where: {
         id: { in: input.patch.assetIds },
         familyId: input.familyId,
@@ -58,7 +63,7 @@ export async function updateMilestone(raw: unknown, prisma: PrismaClient): Promi
     }
   }
 
-  return prisma.milestone.update({
+  return prismaPublic.milestone.update({
     where: { id: input.id, familyId: input.familyId },
     data,
   })

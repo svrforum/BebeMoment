@@ -1,7 +1,7 @@
 import { MilestoneChecklist } from '@/components/milestone/MilestoneChecklist'
 import { AppHeader } from '@/components/shell/app-header'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { listMilestonesByBaby } from '@/server/milestone/list-by-baby'
 import { presetsAvailable } from '@/server/milestone/presets-available'
@@ -13,17 +13,17 @@ export default async function MilestonesPage({ params }: { params: Promise<{ id:
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
-  const baby = await prisma.baby.findFirst({
+  const baby = await prismaPublic.baby.findFirst({
     where: { id, familyId: ctx.family.id, deletedAt: null },
   })
   if (!baby) notFound()
 
-  const presets = await presetsAvailable(ctx.family.id, baby.id, prisma)
-  const milestones = await listMilestonesByBaby(ctx.family.id, baby.id, prisma)
+  const presets = await presetsAvailable(ctx.family.id, baby.id, prismaPublic)
+  const milestones = await listMilestonesByBaby(ctx.family.id, baby.id, prismaPublic, prismaMedia)
   const achieved = milestones.map((m) => ({
     id: m.id,
     labelKo: m.presetKey

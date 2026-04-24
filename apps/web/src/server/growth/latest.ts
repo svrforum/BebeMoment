@@ -1,4 +1,4 @@
-import type { GrowthRecord, PrismaClient } from '@bebe/db'
+import type { GrowthRecord, PrismaClient } from '@bebe/db-public'
 
 export async function latestGrowth(
   familyId: string,

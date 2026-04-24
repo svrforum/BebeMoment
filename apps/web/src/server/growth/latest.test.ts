@@ -1,4 +1,4 @@
-import { type TestDb, startTestDb } from '@bebe/db/src/test-db'
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -6,30 +6,30 @@ import { createFamily } from '../family/create'
 import { createGrowthRecord } from './create'
 import { latestGrowth } from './latest'
 
-let db: TestDb
+let db: FullTestDb
 beforeAll(async () => {
-  db = await startTestDb()
+  db = await startFullTestDb()
 })
 afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prisma.growthRecord.deleteMany()
-  await db.prisma.baby.deleteMany()
-  await db.prisma.membership.deleteMany()
-  await db.prisma.family.deleteMany()
-  await db.prisma.user.deleteMany()
+  await db.prismaPublic.growthRecord.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
+  await db.prismaPublic.membership.deleteMany()
+  await db.prismaPublic.family.deleteMany()
+  await db.prismaPublic.user.deleteMany()
 })
 
 async function setup() {
   const { user } = await signup(
     { email: `t-${Date.now()}-${Math.random()}@b.com`, password: 'password123', displayName: 'T' },
-    db.prisma,
+    db.prismaPublic,
   )
-  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prisma)
+  const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
   const baby = await createBaby(
     { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
-    db.prisma,
+    db.prismaPublic,
   )
   return { user, family, baby }
 }
@@ -45,7 +45,7 @@ describe('latestGrowth', () => {
         weightKg: 5,
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
     )
     await createGrowthRecord(
       {
@@ -55,14 +55,14 @@ describe('latestGrowth', () => {
         weightKg: 7,
         byUserId: user.id,
       },
-      db.prisma,
+      db.prismaPublic,
     )
-    const latest = await latestGrowth(family.id, baby.id, db.prisma)
+    const latest = await latestGrowth(family.id, baby.id, db.prismaPublic)
     expect(Number(latest?.weightKg)).toBe(7)
   })
 
   it('returns null for baby with no records', async () => {
     const { family, baby } = await setup()
-    expect(await latestGrowth(family.id, baby.id, db.prisma)).toBeNull()
+    expect(await latestGrowth(family.id, baby.id, db.prismaPublic)).toBeNull()
   })
 })

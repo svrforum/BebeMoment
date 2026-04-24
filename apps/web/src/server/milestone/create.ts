@@ -1,5 +1,6 @@
 import { can, isValidPresetKey } from '@bebe/core'
-import type { Milestone, PrismaClient } from '@bebe/db'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { Milestone, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 
 const Input = z
@@ -17,21 +18,25 @@ const Input = z
     message: 'exactly one of presetKey or customLabel is required',
   })
 
-export async function createMilestone(raw: unknown, prisma: PrismaClient): Promise<Milestone> {
+export async function createMilestone(
+  raw: unknown,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
+): Promise<Milestone> {
   const input = Input.parse(raw)
 
   if (input.presetKey && !isValidPresetKey(input.presetKey)) {
     throw new Error(`unknown preset key: ${input.presetKey}`)
   }
 
-  const membership = await prisma.membership.findUnique({
+  const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'record.create')) {
     throw new Error('No permission')
   }
 
-  const baby = await prisma.baby.findFirst({
+  const baby = await prismaPublic.baby.findFirst({
     where: { id: input.babyId, familyId: input.familyId, deletedAt: null },
   })
   if (!baby) {
@@ -42,7 +47,7 @@ export async function createMilestone(raw: unknown, prisma: PrismaClient): Promi
   if (achieved.getTime() > Date.now()) throw new Error('achieved_at cannot be in the future')
 
   if (input.assetIds && input.assetIds.length > 0) {
-    const count = await prisma.asset.count({
+    const count = await prismaMedia.asset.count({
       where: {
         id: { in: input.assetIds },
         familyId: input.familyId,
@@ -56,7 +61,7 @@ export async function createMilestone(raw: unknown, prisma: PrismaClient): Promi
   }
 
   try {
-    return await prisma.milestone.create({
+    return await prismaPublic.milestone.create({
       data: {
         familyId: input.familyId,
         babyId: input.babyId,

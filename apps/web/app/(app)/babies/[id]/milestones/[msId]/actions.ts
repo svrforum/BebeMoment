@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { softDeleteMilestone } from '@/server/milestone/soft-delete'
 import { updateMilestone } from '@/server/milestone/update'
@@ -21,7 +21,7 @@ export async function updateMilestoneAction(babyId: string, msId: string, formDa
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   await updateMilestone(
@@ -35,7 +35,8 @@ export async function updateMilestoneAction(babyId: string, msId: string, formDa
         assetIds: parseAssetIds(formData.get('assetIds')),
       },
     },
-    prisma,
+    prismaPublic,
+    prismaMedia,
   )
   redirect(`/babies/${babyId}/milestones`)
 }
@@ -45,9 +46,12 @@ export async function deleteMilestoneAction(babyId: string, msId: string) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
-  await softDeleteMilestone({ id: msId, familyId: ctx.family.id, byUserId: ctx.user.id }, prisma)
+  await softDeleteMilestone(
+    { id: msId, familyId: ctx.family.id, byUserId: ctx.user.id },
+    prismaPublic,
+  )
   redirect(`/babies/${babyId}/milestones`)
 }

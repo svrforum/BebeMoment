@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { softDeleteJournalEntry } from '@/server/journal/soft-delete'
 import { updateJournalEntry } from '@/server/journal/update'
@@ -21,7 +21,7 @@ export async function updateJournalAction(id: string, formData: FormData) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const babyId = String(formData.get('babyId') ?? '').trim()
@@ -40,7 +40,8 @@ export async function updateJournalAction(id: string, formData: FormData) {
         assetIds: parseAssetIds(formData.get('assetIds')),
       },
     },
-    prisma,
+    prismaPublic,
+    prismaMedia,
   )
   redirect(`/journal/${id}`)
 }
@@ -50,9 +51,12 @@ export async function deleteJournalAction(id: string) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
-  await softDeleteJournalEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prisma)
+  await softDeleteJournalEntry(
+    { id, familyId: ctx.family.id, byUserId: ctx.user.id },
+    prismaPublic,
+  )
   redirect('/journal')
 }

@@ -1,5 +1,5 @@
 import { can } from '@bebe/core'
-import type { GrowthRecord, PrismaClient } from '@bebe/db'
+import type { GrowthRecord, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
 const Patch = z.object({

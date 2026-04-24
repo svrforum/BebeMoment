@@ -1,4 +1,4 @@
-import type { Asset, AssetStatus, PrismaClient, TakenAtSource } from '@bebe/db'
+import type { Asset, AssetStatus, PrismaClient as PrismaMedia, TakenAtSource } from '@bebe/db-media'
 
 export type UpdateStatusInput = {
   assetId: string
@@ -24,10 +24,10 @@ export type UpdateStatusInput = {
 
 export async function updateAssetStatus(
   input: UpdateStatusInput,
-  prisma: PrismaClient,
+  prismaMedia: PrismaMedia,
 ): Promise<Asset> {
   const { assetId, familyId, derivatives, exifRaw, ...rest } = input
-  return prisma.asset.update({
+  return prismaMedia.asset.update({
     where: { id: assetId, familyId },
     data: {
       ...rest,

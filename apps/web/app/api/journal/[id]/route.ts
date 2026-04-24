@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { getJournalEntry } from '@/server/journal/get'
 import { softDeleteJournalEntry } from '@/server/journal/soft-delete'
@@ -11,11 +11,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const { id } = await params
-  const entry = await getJournalEntry(id, ctx.family.id, prisma)
+  const entry = await getJournalEntry(id, ctx.family.id, prismaPublic, prismaMedia)
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(entry)
 }
@@ -25,7 +25,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
@@ -33,7 +33,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const patch = await req.json()
     const entry = await updateJournalEntry(
       { id, familyId: ctx.family.id, byUserId: ctx.user.id, patch },
-      prisma,
+      prismaPublic,
+      prismaMedia,
     )
     return NextResponse.json({ id: entry.id })
   } catch (e) {
@@ -46,12 +47,15 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
-    await softDeleteJournalEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prisma)
+    await softDeleteJournalEntry(
+      { id, familyId: ctx.family.id, byUserId: ctx.user.id },
+      prismaPublic,
+    )
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
