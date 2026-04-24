@@ -47,9 +47,10 @@ for _ in {1..30}; do
   sleep 1
 done
 
-# 2. Ensure DB is migrated
+# 2. Ensure DB is migrated (public first, then media for cross-schema FKs)
 echo "== migrate =="
-pnpm --filter @bebe/db exec prisma migrate deploy >/dev/null
+pnpm --filter @bebe/db-public exec prisma migrate deploy >/dev/null
+pnpm --filter @bebe/db-media  exec prisma migrate deploy >/dev/null
 
 # 3. Clean all test data (full truncate to ensure deterministic state)
 "${DC[@]}" -f docker-compose.dev.yml exec -T postgres psql -U bebe -d bebe -c "

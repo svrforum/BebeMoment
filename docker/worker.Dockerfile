@@ -11,12 +11,13 @@ COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
 COPY packages/config/package.json packages/config/
 COPY packages/core/package.json packages/core/
-COPY packages/db/package.json packages/db/
+COPY packages/db-public/package.json packages/db-public/
+COPY packages/db-media/package.json packages/db-media/
 COPY packages/storage/package.json packages/storage/
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
 COPY . .
-RUN pnpm --filter @bebe/db exec prisma generate
+RUN pnpm --filter @bebe/db-media exec prisma generate
 
 FROM node:20-alpine AS runner
 WORKDIR /app

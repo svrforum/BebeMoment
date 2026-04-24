@@ -18,12 +18,22 @@ if [ -d /data ]; then
 fi
 
 # Run migrations (web container; worker sets PRISMA_SKIP_MIGRATE=1)
-if [ -z "$PRISMA_SKIP_MIGRATE" ] && [ -f packages/db/prisma/schema.prisma ]; then
-  echo "running prisma migrate deploy…"
-  gosu bebe npx prisma migrate deploy --schema=packages/db/prisma/schema.prisma || {
-    echo "migration failed"
-    exit 1
-  }
+# Order matters: db-public first (public schema), db-media second (cross-schema FKs).
+if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
+  if [ -f packages/db-public/prisma/schema.prisma ]; then
+    echo "running prisma migrate deploy (db-public)…"
+    gosu bebe npx prisma migrate deploy --schema=packages/db-public/prisma/schema.prisma || {
+      echo "db-public migration failed"
+      exit 1
+    }
+  fi
+  if [ -f packages/db-media/prisma/schema.prisma ]; then
+    echo "running prisma migrate deploy (db-media)…"
+    gosu bebe npx prisma migrate deploy --schema=packages/db-media/prisma/schema.prisma || {
+      echo "db-media migration failed"
+      exit 1
+    }
+  fi
 fi
 
 exec gosu bebe "$@"

@@ -12,14 +12,16 @@ COPY apps/web/package.json apps/web/
 COPY apps/worker/package.json apps/worker/
 COPY packages/config/package.json packages/config/
 COPY packages/core/package.json packages/core/
-COPY packages/db/package.json packages/db/
+COPY packages/db-public/package.json packages/db-public/
+COPY packages/db-media/package.json packages/db-media/
 COPY packages/storage/package.json packages/storage/
 
 RUN pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
 
-RUN pnpm --filter @bebe/db exec prisma generate
+RUN pnpm --filter @bebe/db-public exec prisma generate
+RUN pnpm --filter @bebe/db-media exec prisma generate
 ENV NEXT_TELEMETRY_DISABLED=1
 RUN pnpm --filter @bebe/web build
 
@@ -41,12 +43,15 @@ ENV HOSTNAME=0.0.0.0
 COPY --from=builder /repo/apps/web/.next/standalone ./
 COPY --from=builder /repo/apps/web/.next/static ./apps/web/.next/static
 COPY --from=builder /repo/apps/web/public ./apps/web/public
-COPY --from=builder /repo/packages/db/prisma ./packages/db/prisma
-# Prisma client (generated + runtime) — pnpm symlinks are followed by COPY
-COPY --from=builder /repo/packages/db/node_modules/.prisma ./node_modules/.prisma
-COPY --from=builder /repo/packages/db/node_modules/@prisma ./node_modules/@prisma
+# Prisma schemas + migrations + generated clients (packages import from ./generated/client)
+COPY --from=builder /repo/packages/db-public/prisma ./packages/db-public/prisma
+COPY --from=builder /repo/packages/db-media/prisma ./packages/db-media/prisma
+# @prisma/client runtime — pnpm symlinks are followed by COPY.
+# Custom `output` already bundles the query engine into generated/client/, so
+# no .prisma/ dir to copy. @prisma is still needed for runtime/library.js.
+COPY --from=builder /repo/packages/db-public/node_modules/@prisma ./node_modules/@prisma
 # Prisma CLI for migrate deploy at runtime
-COPY --from=builder /repo/packages/db/node_modules/prisma ./node_modules/prisma
+COPY --from=builder /repo/packages/db-public/node_modules/prisma ./node_modules/prisma
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
