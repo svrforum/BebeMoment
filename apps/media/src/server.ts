@@ -2,6 +2,7 @@ import cors from '@fastify/cors'
 import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify'
 import { registerErrorHandler } from './http/middleware/error-handler'
 import { requestIdPlugin } from './http/middleware/request-id'
+import { assetsInitRoute } from './http/routes/assets-init'
 import { healthRoute } from './http/routes/health'
 import { logger } from './lib/logger'
 
@@ -16,6 +17,7 @@ export function buildApp(): FastifyInstance {
   app.register(requestIdPlugin)
   registerErrorHandler(app)
   app.register(healthRoute)
+  app.register(assetsInitRoute)
 
   return app
 }

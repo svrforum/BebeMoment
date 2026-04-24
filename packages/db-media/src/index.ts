@@ -12,5 +12,4 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prismaMedia = prisma
 
 export * from '../prisma/generated/client'
 export { installTenantMiddleware } from './tenant-middleware'
-// Test helpers live at './test-db'; deep-import to keep testcontainers out of
-// production webpack bundles.
+export { startTestDb, type TestDb } from './test-db'

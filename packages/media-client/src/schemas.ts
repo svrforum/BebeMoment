@@ -14,8 +14,9 @@ export const initAssetRequest = z.object({
   clientAspectRatio: z.number().positive().optional(),
   clientWidth: z.number().int().positive().optional(),
   clientHeight: z.number().int().positive().optional(),
+  convertToCompatible: z.boolean().optional().default(false),
 })
-export type InitAssetRequest = z.infer<typeof initAssetRequest>
+export type InitAssetRequest = z.input<typeof initAssetRequest>
 
 export const initAssetResponse = z.object({
   v: z.literal(VERSION),

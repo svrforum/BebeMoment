@@ -28,6 +28,29 @@ describe('media-client schemas', () => {
     expect(parsed.sizeBytes).toBe(12345)
   })
 
+  test('initAssetRequest defaults convertToCompatible to false', () => {
+    const parsed = initAssetRequest.parse({
+      familyId: '11111111-1111-1111-1111-111111111111',
+      uploaderId: '22222222-2222-2222-2222-222222222222',
+      mime: 'image/jpeg',
+      sizeBytes: 1,
+      originalName: 'a.jpg',
+    })
+    expect(parsed.convertToCompatible).toBe(false)
+  })
+
+  test('initAssetRequest accepts convertToCompatible=true', () => {
+    const parsed = initAssetRequest.parse({
+      familyId: '11111111-1111-1111-1111-111111111111',
+      uploaderId: '22222222-2222-2222-2222-222222222222',
+      mime: 'image/heic',
+      sizeBytes: 1,
+      originalName: 'a.heic',
+      convertToCompatible: true,
+    })
+    expect(parsed.convertToCompatible).toBe(true)
+  })
+
   test('initAssetRequest rejects negative sizeBytes', () => {
     expect(() =>
       initAssetRequest.parse({
