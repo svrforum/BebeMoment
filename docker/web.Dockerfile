@@ -29,7 +29,7 @@ RUN pnpm --filter @bebe/web build
 FROM node:20-alpine AS runner
 WORKDIR /app
 
-RUN apk add --no-cache gosu tini curl && \
+RUN apk add --no-cache gosu tini curl postgresql-client && \
     (delgroup node 2>/dev/null || true) && \
     (deluser node 2>/dev/null || true) && \
     addgroup -g 1000 -S bebe && \

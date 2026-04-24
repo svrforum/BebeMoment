@@ -47,4 +47,48 @@ describe('parseEnv', () => {
       }),
     ).toThrow(/STORAGE_S3_/)
   })
+
+  it('accepts DATABASE_URL_WEB and DATABASE_URL_MEDIA', () => {
+    const env = parseEnv({
+      DATABASE_URL: 'postgres://bebe:bebe@localhost:5432/bebe',
+      DATABASE_URL_WEB: 'postgres://bebe_web:webpw@localhost:5432/bebe',
+      DATABASE_URL_MEDIA: 'postgres://bebe_media:mediapw@localhost:5432/bebe',
+      REDIS_URL: 'redis://localhost:6379',
+      SECRET_KEY: 'a'.repeat(64),
+      PUBLIC_URL: 'http://localhost:3000',
+    })
+    expect(env.DATABASE_URL_WEB).toBe('postgres://bebe_web:webpw@localhost:5432/bebe')
+    expect(env.DATABASE_URL_MEDIA).toBe('postgres://bebe_media:mediapw@localhost:5432/bebe')
+  })
+
+  it('rejects MEDIA_SERVICE_TOKEN that is too short', () => {
+    expect(() =>
+      parseEnv({
+        DATABASE_URL: 'postgres://localhost:5432/bebe',
+        REDIS_URL: 'redis://localhost:6379',
+        SECRET_KEY: 'a'.repeat(64),
+        PUBLIC_URL: 'http://localhost:3000',
+        MEDIA_SERVICE_TOKEN: 'too-short',
+      }),
+    ).toThrow(/MEDIA_SERVICE_TOKEN/)
+  })
+
+  it('accepts media service env when provided together', () => {
+    const env = parseEnv({
+      DATABASE_URL: 'postgres://localhost:5432/bebe',
+      REDIS_URL: 'redis://localhost:6379',
+      SECRET_KEY: 'a'.repeat(64),
+      PUBLIC_URL: 'http://localhost:3000',
+      MEDIA_INTERNAL_URL: 'http://media:3001',
+      MEDIA_PUBLIC_BASE_URL: 'https://bebe.example.com',
+      NEXT_PUBLIC_MEDIA_BASE_URL: 'https://bebe.example.com',
+      MEDIA_SERVICE_TOKEN: 's'.repeat(40),
+      MEDIA_JWT_SECRET: 'j'.repeat(40),
+      BEBE_WEB_DB_PASSWORD: 'webpassword',
+      BEBE_MEDIA_DB_PASSWORD: 'mediapassword',
+    })
+    expect(env.MEDIA_INTERNAL_URL).toBe('http://media:3001')
+    expect(env.MEDIA_SERVICE_TOKEN).toHaveLength(40)
+    expect(env.BEBE_WEB_DB_PASSWORD).toBe('webpassword')
+  })
 })

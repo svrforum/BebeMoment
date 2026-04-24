@@ -36,4 +36,20 @@ if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
   fi
 fi
 
+# Sync bebe_web / bebe_media role passwords from env (idempotent).
+# Requires psql + DATABASE_URL pointing to a superuser role.
+if [ -n "$BEBE_WEB_DB_PASSWORD" ] && [ -n "$BEBE_MEDIA_DB_PASSWORD" ] && [ -n "$DATABASE_URL" ]; then
+  if command -v psql >/dev/null 2>&1; then
+    echo "updating bebe_web / bebe_media role passwords from env…"
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+      -c "ALTER ROLE bebe_web PASSWORD '$BEBE_WEB_DB_PASSWORD'" >/dev/null \
+      || echo "warn: failed to set bebe_web password (role may not exist yet)"
+    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 \
+      -c "ALTER ROLE bebe_media PASSWORD '$BEBE_MEDIA_DB_PASSWORD'" >/dev/null \
+      || echo "warn: failed to set bebe_media password (role may not exist yet)"
+  else
+    echo "warn: psql not found; skipping role password sync. Install postgresql-client in image."
+  fi
+fi
+
 exec gosu bebe "$@"

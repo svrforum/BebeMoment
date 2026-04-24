@@ -3,9 +3,18 @@ import { z } from 'zod'
 const EnvSchema = z
   .object({
     DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
+    DATABASE_URL_WEB: z.string().url().or(z.string().startsWith('postgres')).optional(),
+    DATABASE_URL_MEDIA: z.string().url().or(z.string().startsWith('postgres')).optional(),
     REDIS_URL: z.string().startsWith('redis'),
     SECRET_KEY: z.string().min(32, 'SECRET_KEY must be at least 32 characters (recommend 64 hex)'),
     PUBLIC_URL: z.string().url(),
+    MEDIA_INTERNAL_URL: z.string().url().optional(),
+    MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
+    NEXT_PUBLIC_MEDIA_BASE_URL: z.string().url().optional(),
+    MEDIA_SERVICE_TOKEN: z.string().min(32).optional(),
+    MEDIA_JWT_SECRET: z.string().min(32).optional(),
+    BEBE_WEB_DB_PASSWORD: z.string().min(8).optional(),
+    BEBE_MEDIA_DB_PASSWORD: z.string().min(8).optional(),
     PORT: z.coerce.number().int().positive().default(3000),
     STORAGE_MODE: z.enum(['local', 's3']).default('local'),
     STORAGE_PATH: z.string().default('/data'),
