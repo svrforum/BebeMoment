@@ -4,6 +4,7 @@ import { registerErrorHandler } from './http/middleware/error-handler'
 import { requestIdPlugin } from './http/middleware/request-id'
 import { assetsInitRoute } from './http/routes/assets-init'
 import { healthRoute } from './http/routes/health'
+import { tusRoute } from './http/routes/tus'
 import { logger } from './lib/logger'
 
 export function buildApp(): FastifyInstance {
@@ -18,6 +19,7 @@ export function buildApp(): FastifyInstance {
   registerErrorHandler(app)
   app.register(healthRoute)
   app.register(assetsInitRoute)
+  app.register(tusRoute)
 
   return app
 }
