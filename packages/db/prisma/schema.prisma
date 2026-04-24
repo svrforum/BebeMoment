@@ -1,77 +1,82 @@
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
+  schemas  = ["public", "media"]
 }
 
 model User {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  email           String?   @unique
-  emailVerified   Boolean   @default(false) @map("email_verified")
-  passwordHash    String?   @map("password_hash")
-  displayName     String    @map("display_name")
-  avatarPath      String?   @map("avatar_path")
-  locale          String    @default("ko")
-  timezone        String    @default("Asia/Seoul")
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  email         String?  @unique
+  emailVerified Boolean  @default(false) @map("email_verified")
+  passwordHash  String?  @map("password_hash")
+  displayName   String   @map("display_name")
+  avatarPath    String?  @map("avatar_path")
+  locale        String   @default("ko")
+  timezone      String   @default("Asia/Seoul")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
 
-  memberships       Membership[]
-  sessions          Session[]
-  oidcIdentities    OidcIdentity[]
-  createdFamilies   Family[]         @relation("CreatedBy")
-  sentInvites       Invite[]         @relation("InvitedBy")
-  acceptedInvites   Invite[]         @relation("AcceptedBy")
-  uploadedAssets    Asset[]
-  taggedAssets      AssetBaby[]
-  updatedSettings   AppSetting[]     @relation("SettingUpdatedBy")
-  settingHistory    SettingHistory[]
-  createdGrowthRecords   GrowthRecord[]
-  createdMilestones      Milestone[]
-  createdJournalEntries  JournalEntry[]
-  likes             AssetLike[]
-  bookmarks         AssetBookmark[]
-  authoredComments  AssetComment[]
+  memberships           Membership[]
+  sessions              Session[]
+  oidcIdentities        OidcIdentity[]
+  createdFamilies       Family[]         @relation("CreatedBy")
+  sentInvites           Invite[]         @relation("InvitedBy")
+  acceptedInvites       Invite[]         @relation("AcceptedBy")
+  uploadedAssets        Asset[]
+  taggedAssets          AssetBaby[]
+  updatedSettings       AppSetting[]     @relation("SettingUpdatedBy")
+  settingHistory        SettingHistory[]
+  createdGrowthRecords  GrowthRecord[]
+  createdMilestones     Milestone[]
+  createdJournalEntries JournalEntry[]
+  likes                 AssetLike[]
+  bookmarks             AssetBookmark[]
+  authoredComments      AssetComment[]
 
   @@map("users")
+  @@schema("public")
 }
 
 model Session {
-  id               String    @id
-  userId           String    @map("user_id") @db.Uuid
-  currentFamilyId  String?   @map("current_family_id") @db.Uuid
-  expiresAt        DateTime  @map("expires_at")
-  createdAt        DateTime  @default(now()) @map("created_at")
+  id              String   @id
+  userId          String   @map("user_id") @db.Uuid
+  currentFamilyId String?  @map("current_family_id") @db.Uuid
+  expiresAt       DateTime @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
 
-  user    User    @relation(fields: [userId], references: [id], onDelete: Cascade)
-  family  Family? @relation(fields: [currentFamilyId], references: [id], onDelete: SetNull)
+  user   User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family? @relation(fields: [currentFamilyId], references: [id], onDelete: SetNull)
 
   @@index([userId])
   @@map("sessions")
+  @@schema("public")
 }
 
 model OidcProvider {
-  id                      String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  name                    String
-  issuer                  String
-  clientId                String   @map("client_id")
-  clientSecretEnc         String   @map("client_secret_enc")
-  authorizationEndpoint   String?  @map("authorization_endpoint")
-  tokenEndpoint           String?  @map("token_endpoint")
-  userinfoEndpoint        String?  @map("userinfo_endpoint")
-  jwksUri                 String?  @map("jwks_uri")
-  scopes                  String[] @default(["openid", "email", "profile"])
-  enabled                 Boolean  @default(true)
-  lockedByEnv             Boolean  @default(false) @map("locked_by_env")
-  createdAt               DateTime @default(now()) @map("created_at")
-  updatedAt               DateTime @updatedAt @map("updated_at")
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  name                  String
+  issuer                String
+  clientId              String   @map("client_id")
+  clientSecretEnc       String   @map("client_secret_enc")
+  authorizationEndpoint String?  @map("authorization_endpoint")
+  tokenEndpoint         String?  @map("token_endpoint")
+  userinfoEndpoint      String?  @map("userinfo_endpoint")
+  jwksUri               String?  @map("jwks_uri")
+  scopes                String[] @default(["openid", "email", "profile"])
+  enabled               Boolean  @default(true)
+  lockedByEnv           Boolean  @default(false) @map("locked_by_env")
+  createdAt             DateTime @default(now()) @map("created_at")
+  updatedAt             DateTime @updatedAt @map("updated_at")
 
   identities OidcIdentity[]
 
   @@map("oidc_providers")
+  @@schema("public")
 }
 
 model OidcIdentity {
@@ -87,6 +92,7 @@ model OidcIdentity {
 
   @@unique([providerId, subject])
   @@map("oidc_identities")
+  @@schema("public")
 }
 
 model Family {
@@ -98,12 +104,12 @@ model Family {
   updatedAt       DateTime  @updatedAt @map("updated_at")
   deletedAt       DateTime? @map("deleted_at")
 
-  createdBy   User          @relation("CreatedBy", fields: [createdByUserId], references: [id])
-  memberships Membership[]
-  invites     Invite[]
-  babies      Baby[]
-  assets      Asset[]
-  sessions    Session[]
+  createdBy      User            @relation("CreatedBy", fields: [createdByUserId], references: [id])
+  memberships    Membership[]
+  invites        Invite[]
+  babies         Baby[]
+  assets         Asset[]
+  sessions       Session[]
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
   journalEntries JournalEntry[]
@@ -112,6 +118,7 @@ model Family {
   assetComments  AssetComment[]
 
   @@map("families")
+  @@schema("public")
 }
 
 model Membership {
@@ -130,27 +137,30 @@ model Membership {
   @@unique([familyId, userId])
   @@index([userId])
   @@map("memberships")
+  @@schema("public")
 }
 
 enum Role {
   owner
   guardian
   family
+
   @@map("role")
+  @@schema("public")
 }
 
 model Invite {
-  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  familyId      String    @map("family_id") @db.Uuid
-  invitedById   String    @map("invited_by_id") @db.Uuid
-  email         String
-  role          InviteRole
-  token         String    @unique
-  expiresAt     DateTime  @map("expires_at")
-  acceptedAt    DateTime? @map("accepted_at")
-  acceptedById  String?   @map("accepted_by_id") @db.Uuid
-  revokedAt     DateTime? @map("revoked_at")
-  createdAt     DateTime  @default(now()) @map("created_at")
+  id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId     String     @map("family_id") @db.Uuid
+  invitedById  String     @map("invited_by_id") @db.Uuid
+  email        String
+  role         InviteRole
+  token        String     @unique
+  expiresAt    DateTime   @map("expires_at")
+  acceptedAt   DateTime?  @map("accepted_at")
+  acceptedById String?    @map("accepted_by_id") @db.Uuid
+  revokedAt    DateTime?  @map("revoked_at")
+  createdAt    DateTime   @default(now()) @map("created_at")
 
   family     Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   invitedBy  User   @relation("InvitedBy", fields: [invitedById], references: [id])
@@ -158,35 +168,39 @@ model Invite {
 
   @@index([familyId])
   @@map("invites")
+  @@schema("public")
 }
 
 enum InviteRole {
   guardian
   family
+
   @@map("invite_role")
+  @@schema("public")
 }
 
 model Baby {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  familyId        String    @map("family_id") @db.Uuid
-  name            String
-  birthDate       DateTime  @map("birth_date") @db.Date
-  birthTime       String?   @map("birth_time")
-  gender          Gender?
-  profileAssetId  String?   @map("profile_asset_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId       String    @map("family_id") @db.Uuid
+  name           String
+  birthDate      DateTime  @map("birth_date") @db.Date
+  birthTime      String?   @map("birth_time")
+  gender         Gender?
+  profileAssetId String?   @map("profile_asset_id") @db.Uuid
+  createdAt      DateTime  @default(now()) @map("created_at")
+  updatedAt      DateTime  @updatedAt @map("updated_at")
+  deletedAt      DateTime? @map("deleted_at")
 
-  family        Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  profileAsset  Asset?      @relation("BabyProfile", fields: [profileAssetId], references: [id], onDelete: SetNull)
-  assetBabies   AssetBaby[]
+  family         Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  profileAsset   Asset?         @relation("BabyProfile", fields: [profileAssetId], references: [id], onDelete: SetNull)
+  assetBabies    AssetBaby[]
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
   journalEntries JournalEntry[]
 
   @@index([familyId])
   @@map("babies")
+  @@schema("public")
 }
 
 enum Gender {
@@ -194,53 +208,55 @@ enum Gender {
   female
   other
   unspecified
+
   @@map("gender")
+  @@schema("public")
 }
 
 model Asset {
-  id                      String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  familyId                String    @map("family_id") @db.Uuid
-  uploadedByUserId        String    @map("uploaded_by_user_id") @db.Uuid
+  id               String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId         String @map("family_id") @db.Uuid
+  uploadedByUserId String @map("uploaded_by_user_id") @db.Uuid
 
-  kind                    AssetKind
-  originalKey             String    @map("original_key")
-  originalFilename        String    @map("original_filename")
-  mimeType                String    @map("mime_type")
-  sizeBytes               BigInt    @map("size_bytes")
-  sha256                  String    @db.Char(64)
-  width                   Int?
-  height                  Int?
-  durationMs              Int?      @map("duration_ms")
+  kind             AssetKind
+  originalKey      String    @map("original_key")
+  originalFilename String    @map("original_filename")
+  mimeType         String    @map("mime_type")
+  sizeBytes        BigInt    @map("size_bytes")
+  sha256           String    @db.Char(64)
+  width            Int?
+  height           Int?
+  durationMs       Int?      @map("duration_ms")
 
-  takenAt                 DateTime  @map("taken_at")
-  takenAtSource           TakenAtSource @map("taken_at_source")
-  uploadedAt              DateTime  @default(now()) @map("uploaded_at")
+  takenAt       DateTime      @map("taken_at")
+  takenAtSource TakenAtSource @map("taken_at_source")
+  uploadedAt    DateTime      @default(now()) @map("uploaded_at")
 
-  gpsLat                  Float?    @map("gps_lat")
-  gpsLng                  Float?    @map("gps_lng")
-  cameraMake              String?   @map("camera_make")
-  cameraModel             String?   @map("camera_model")
-  exifRaw                 Json?     @map("exif_raw")
+  gpsLat      Float?  @map("gps_lat")
+  gpsLng      Float?  @map("gps_lng")
+  cameraMake  String? @map("camera_make")
+  cameraModel String? @map("camera_model")
+  exifRaw     Json?   @map("exif_raw")
 
-  originalConvertedFrom   String?   @map("original_converted_from")
+  originalConvertedFrom String? @map("original_converted_from")
 
-  status                  AssetStatus @default(uploading)
-  processingError         String?     @map("processing_error")
-  derivatives             Json       @default("{}")
+  status          AssetStatus @default(uploading)
+  processingError String?     @map("processing_error")
+  derivatives     Json        @default("{}")
 
-  visibility              Visibility @default(family)
+  visibility Visibility @default(family)
 
-  tags                    String[]   @default([])
-  caption                 String?
+  tags    String[] @default([])
+  caption String?
 
-  createdAt               DateTime  @default(now()) @map("created_at")
-  updatedAt               DateTime  @updatedAt @map("updated_at")
-  deletedAt               DateTime? @map("deleted_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  updatedAt DateTime  @updatedAt @map("updated_at")
+  deletedAt DateTime? @map("deleted_at")
 
-  family         Family      @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  uploadedBy     User        @relation(fields: [uploadedByUserId], references: [id])
-  assetBabies    AssetBaby[]
-  babyProfiles   Baby[]      @relation("BabyProfile")
+  family             Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  uploadedBy         User                @relation(fields: [uploadedByUserId], references: [id])
+  assetBabies        AssetBaby[]
+  babyProfiles       Baby[]              @relation("BabyProfile")
   milestoneAssets    MilestoneAsset[]
   journalEntryAssets JournalEntryAsset[]
   likes              AssetLike[]
@@ -252,12 +268,15 @@ model Asset {
   @@index([familyId, status])
   @@index([familyId, status, takenAt, id], map: "assets_timeline_idx")
   @@map("assets")
+  @@schema("media")
 }
 
 enum AssetKind {
   image
   video
+
   @@map("asset_kind")
+  @@schema("media")
 }
 
 enum AssetStatus {
@@ -265,7 +284,9 @@ enum AssetStatus {
   processing
   ready
   failed
+
   @@map("asset_status")
+  @@schema("media")
 }
 
 enum TakenAtSource {
@@ -274,21 +295,25 @@ enum TakenAtSource {
   filemtime
   manual
   uploaded
+
   @@map("taken_at_source")
+  @@schema("media")
 }
 
 enum Visibility {
   private
   family
+
   @@map("visibility")
+  @@schema("media")
 }
 
 model AssetBaby {
-  assetId           String          @map("asset_id") @db.Uuid
-  babyId            String          @map("baby_id") @db.Uuid
-  taggedByUserId    String          @map("tagged_by_user_id") @db.Uuid
-  taggedAt          DateTime        @default(now()) @map("tagged_at")
-  detectionSource   DetectionSource @default(manual) @map("detection_source")
+  assetId         String          @map("asset_id") @db.Uuid
+  babyId          String          @map("baby_id") @db.Uuid
+  taggedByUserId  String          @map("tagged_by_user_id") @db.Uuid
+  taggedAt        DateTime        @default(now()) @map("tagged_at")
+  detectionSource DetectionSource @default(manual) @map("detection_source")
 
   asset    Asset @relation(fields: [assetId], references: [id], onDelete: Cascade)
   baby     Baby  @relation(fields: [babyId], references: [id], onDelete: Cascade)
@@ -296,12 +321,15 @@ model AssetBaby {
 
   @@id([assetId, babyId])
   @@map("asset_babies")
+  @@schema("media")
 }
 
 enum DetectionSource {
   manual
   ai
+
   @@map("detection_source")
+  @@schema("media")
 }
 
 model AppSetting {
@@ -313,20 +341,22 @@ model AppSetting {
   updatedBy User? @relation("SettingUpdatedBy", fields: [updatedById], references: [id])
 
   @@map("app_settings")
+  @@schema("public")
 }
 
 model SettingHistory {
-  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  key        String
-  oldValue   Json?    @map("old_value")
-  newValue   Json?    @map("new_value")
-  changedBy  String?  @map("changed_by") @db.Uuid
-  changedAt  DateTime @default(now()) @map("changed_at")
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  key       String
+  oldValue  Json?    @map("old_value")
+  newValue  Json?    @map("new_value")
+  changedBy String?  @map("changed_by") @db.Uuid
+  changedAt DateTime @default(now()) @map("changed_at")
 
   user User? @relation(fields: [changedBy], references: [id])
 
   @@index([key])
   @@map("setting_history")
+  @@schema("public")
 }
 
 model GrowthRecord {
@@ -349,6 +379,7 @@ model GrowthRecord {
 
   @@index([familyId, babyId, measuredAt])
   @@map("growth_records")
+  @@schema("public")
 }
 
 model Milestone {
@@ -372,6 +403,7 @@ model Milestone {
   @@unique([familyId, babyId, presetKey])
   @@index([familyId, babyId, achievedAt])
   @@map("milestones")
+  @@schema("public")
 }
 
 model MilestoneAsset {
@@ -383,6 +415,7 @@ model MilestoneAsset {
 
   @@id([milestoneId, assetId])
   @@map("milestone_assets")
+  @@schema("public")
 }
 
 model JournalEntry {
@@ -406,6 +439,7 @@ model JournalEntry {
   @@index([familyId, entryDate])
   @@index([familyId, babyId, entryDate])
   @@map("journal_entries")
+  @@schema("public")
 }
 
 model JournalEntryAsset {
@@ -418,6 +452,7 @@ model JournalEntryAsset {
 
   @@id([entryId, assetId])
   @@map("journal_entry_assets")
+  @@schema("public")
 }
 
 model AssetLike {
@@ -433,6 +468,7 @@ model AssetLike {
   @@id([assetId, userId])
   @@index([familyId, userId])
   @@map("asset_likes")
+  @@schema("public")
 }
 
 model AssetBookmark {
@@ -448,6 +484,7 @@ model AssetBookmark {
   @@id([assetId, userId])
   @@index([familyId, userId, createdAt])
   @@map("asset_bookmarks")
+  @@schema("public")
 }
 
 model AssetComment {
@@ -468,4 +505,5 @@ model AssetComment {
   @@index([familyId, assetId, createdAt])
   @@index([authorUserId])
   @@map("asset_comments")
+  @@schema("public")
 }
