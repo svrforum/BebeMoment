@@ -1,18 +1,12 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import { redirect } from 'next/navigation'
 
 export default async function SavedPage() {
-  const { session } = await getAuth()
-  if (!session) redirect('/login')
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
-  )
+  const ctx = await getContext()
   if (!ctx.family || !ctx.user) redirect('/onboarding')
 
   const { items } = await listMyBookmarks(ctx.family.id, ctx.user.id, { limit: 60 }, prisma)

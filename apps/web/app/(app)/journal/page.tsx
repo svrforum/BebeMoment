@@ -1,20 +1,14 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import { listJournalEntries } from '@/server/journal/list'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 export default async function JournalPage() {
-  const { session } = await getAuth()
-  if (!session) redirect('/login')
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
-  )
+  const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
 
   const { items } = await listJournalEntries(ctx.family.id, { limit: 50 }, prisma)

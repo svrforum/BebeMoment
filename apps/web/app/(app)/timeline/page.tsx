@@ -2,32 +2,23 @@ import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
 import { JournalFabLink } from '@/components/timeline/journal-fab-link'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import { listTimeline } from '@/server/timeline/merged-list'
 
 export default async function TimelinePage() {
-  const { session } = await getAuth()
-  if (!session) return null
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
-  )
+  const ctx = await getContext()
   if (!ctx.family) return null
 
-  const baby = await prisma.baby.findFirst({
-    where: { familyId: ctx.family.id, deletedAt: null },
-    orderBy: { birthDate: 'asc' },
-  })
+  const [baby, { items }] = await Promise.all([
+    prisma.baby.findFirst({
+      where: { familyId: ctx.family.id, deletedAt: null },
+      orderBy: { birthDate: 'asc' },
+    }),
+    listTimeline(ctx.family.id, { limit: 100 }, prisma),
+  ])
   const birthDate = baby?.birthDate ?? new Date()
-
-  // P5 Task 17: merged timeline (assets + journal).
-  // TODO(P5+): interleave journal entries into age buckets by entryDate.
-  // For now: assets render in existing bucket grid; journal entries render
-  // as a separate descending feed above.
-  const { items } = await listTimeline(ctx.family.id, { limit: 100 }, prisma)
 
   const assetItems = items.filter((it) => it.kind === 'asset')
   const journalItems = items.filter((it) => it.kind === 'journal')

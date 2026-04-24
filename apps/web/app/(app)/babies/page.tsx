@@ -1,18 +1,12 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import Link from 'next/link'
 
 export default async function BabiesPage() {
-  const { session } = await getAuth()
-  if (!session) return null
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
-  )
+  const ctx = await getContext()
   if (!ctx.family) return null
 
   const babies = await prisma.baby.findMany({

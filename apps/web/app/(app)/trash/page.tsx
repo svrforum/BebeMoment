@@ -1,16 +1,10 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { getAuth } from '@/lib/auth'
 import { prisma } from '@/lib/db-init'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import { TrashList } from './trash-list'
 
 export default async function TrashPage() {
-  const { session } = await getAuth()
-  if (!session) return null
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
-  )
+  const ctx = await getContext()
   if (!ctx.family) return null
 
   const deleted = await prisma.asset.findMany({
