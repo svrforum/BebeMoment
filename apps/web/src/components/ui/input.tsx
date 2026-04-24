@@ -6,10 +6,11 @@ export const Input = forwardRef<HTMLInputElement, InputHTMLAttributes<HTMLInputE
     <input
       ref={ref}
       className={cn(
-        'h-11 w-full rounded-xl border border-base-200 bg-base-0 px-4 text-base dark:border-base-800 dark:bg-base-900',
-        'text-base-900 placeholder:text-base-400 dark:text-base-100',
-        'focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-point-500/20',
-        'disabled:bg-base-100 disabled:opacity-50 dark:disabled:bg-base-800',
+        'h-12 w-full rounded-2xl border border-transparent bg-base-100 px-4 text-[15px] transition-all',
+        'text-base-900 placeholder:text-base-400 dark:bg-base-800 dark:text-base-100',
+        'hover:bg-base-200/60 dark:hover:bg-base-800/80',
+        'focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15',
+        'disabled:opacity-40',
         className,
       )}
       {...props}
@@ -23,7 +24,10 @@ export const Label = forwardRef<HTMLLabelElement, LabelHTMLAttributes<HTMLLabelE
     // biome-ignore lint/a11y/noLabelWithoutControl: htmlFor is supplied by consumers via props
     <label
       ref={ref}
-      className={cn('block text-sm font-medium text-base-700 dark:text-base-300 mb-1.5', className)}
+      className={cn(
+        'mb-2 block text-[13px] font-medium text-base-500 dark:text-base-400',
+        className,
+      )}
       {...props}
     />
   ),

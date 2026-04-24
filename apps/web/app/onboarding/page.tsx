@@ -142,8 +142,10 @@ export default function OnboardingPage() {
             >
               {step === 'family' && (
                 <>
-                  <h1 className="text-3xl font-bold tracking-tight">가족 이름을 지어주세요</h1>
-                  <p className="mt-2 text-sm text-base-500">
+                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                    가족 이름을 지어주세요
+                  </h1>
+                  <p className="mt-3 text-base text-base-500">
                     가족 구성원들이 함께 볼 공간의 이름이에요.
                   </p>
                   <input
@@ -154,15 +156,17 @@ export default function OnboardingPage() {
                     onKeyDown={onKeyDown}
                     placeholder="예: 김씨네 가족"
                     maxLength={80}
-                    className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                 </>
               )}
 
               {step === 'baby' && (
                 <>
-                  <h1 className="text-3xl font-bold tracking-tight">아기 이름을 알려주세요</h1>
-                  <p className="mt-2 text-sm text-base-500">
+                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                    아기 이름을 알려주세요
+                  </h1>
+                  <p className="mt-3 text-base text-base-500">
                     태명도 괜찮아요. 나중에 바꿀 수 있어요.
                   </p>
                   <input
@@ -173,26 +177,28 @@ export default function OnboardingPage() {
                     onKeyDown={onKeyDown}
                     placeholder="예: 예준, 콩콩이"
                     maxLength={40}
-                    className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                 </>
               )}
 
               {step === 'date' && (
                 <>
-                  <h1 className="text-3xl font-bold tracking-tight">생년월일을 알려주세요</h1>
-                  <p className="mt-2 text-sm text-base-500">
+                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                    생년월일을 알려주세요
+                  </h1>
+                  <p className="mt-3 text-base text-base-500">
                     아직 태어나지 않았다면 예정일을 선택해주세요.
                   </p>
                   <button
                     type="button"
                     onClick={openDatePicker}
-                    className="mt-8 flex w-full items-center justify-between border-0 border-b border-base-200 bg-transparent pb-2 text-left outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="mt-8 flex h-14 w-full items-center justify-between rounded-2xl border border-transparent bg-base-100 px-5 text-left transition-all hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:hover:bg-base-800/80"
                   >
                     <span
                       className={cn(
-                        'text-xl',
-                        birthDate ? 'text-base-900 dark:text-base-100' : 'text-base-400',
+                        'text-[17px]',
+                        birthDate ? 'text-base-900 dark:text-base-50' : 'text-base-400',
                       )}
                     >
                       {birthDate
@@ -204,7 +210,7 @@ export default function OnboardingPage() {
                           })
                         : '날짜 선택'}
                     </span>
-                    <Calendar size={20} className="text-base-500" />
+                    <Calendar size={18} className="text-base-500" />
                   </button>
                   <input
                     ref={dateInputRef}

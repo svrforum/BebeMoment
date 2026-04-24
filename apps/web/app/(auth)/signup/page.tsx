@@ -170,8 +170,10 @@ function SignupWizard() {
                     초대 링크로 가입하시는군요. 가입이 끝나면 가족에 합류돼요.
                   </p>
                 )}
-                <h1 className="text-3xl font-bold tracking-tight">이메일을 알려주세요</h1>
-                <p className="mt-2 text-sm text-base-500">앞으로 로그인에 사용할 이메일이에요.</p>
+                <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                  이메일을 알려주세요
+                </h1>
+                <p className="mt-3 text-base text-base-500">앞으로 로그인에 사용할 이메일이에요.</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
@@ -182,15 +184,17 @@ function SignupWizard() {
                   placeholder="name@example.com"
                   inputMode="email"
                   autoComplete="email"
-                  className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                  className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                 />
               </>
             )}
 
             {step === 'password' && (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">비밀번호를 만들어주세요</h1>
-                <p className="mt-2 text-sm text-base-500">
+                <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                  비밀번호를 만들어주세요
+                </h1>
+                <p className="mt-3 text-base text-base-500">
                   8자 이상, 다른 곳에서 쓰지 않은 값으로.
                 </p>
                 <div className="relative mt-8">
@@ -208,13 +212,13 @@ function SignupWizard() {
                     }}
                     placeholder="비밀번호"
                     autoComplete="new-password"
-                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-10 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((s) => !s)}
                     aria-label={showPw ? '비밀번호 가리기' : '비밀번호 보기'}
-                    className="absolute right-0 top-1/2 -translate-y-1/2 p-1 text-base-500 hover:text-base-900 dark:hover:text-base-100"
+                    className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-base-500 transition hover:bg-base-200/60 hover:text-base-900 dark:hover:bg-base-700 dark:hover:text-base-100"
                   >
                     {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
                   </button>
@@ -229,12 +233,12 @@ function SignupWizard() {
                     onKeyDown={onKeyDown}
                     placeholder="비밀번호 확인"
                     autoComplete="new-password"
-                    className="w-full border-0 border-b border-base-200 bg-transparent pb-2 pr-6 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                    className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                   {confirm.length > 0 && confirm === password && (
                     <Check
                       size={20}
-                      className="absolute right-0 top-1/2 -translate-y-1/2 text-point-500"
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-point-500"
                     />
                   )}
                 </div>
@@ -246,8 +250,10 @@ function SignupWizard() {
 
             {step === 'name' && (
               <>
-                <h1 className="text-3xl font-bold tracking-tight">어떻게 불러드릴까요?</h1>
-                <p className="mt-2 text-sm text-base-500">가족에게 보여질 이름이에요.</p>
+                <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                  어떻게 불러드릴까요?
+                </h1>
+                <p className="mt-3 text-base text-base-500">가족에게 보여질 이름이에요.</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
@@ -257,7 +263,7 @@ function SignupWizard() {
                   placeholder="예: 김민준"
                   autoComplete="name"
                   maxLength={80}
-                  className="mt-8 w-full border-0 border-b border-base-200 bg-transparent pb-2 text-xl outline-none transition focus:border-point-500 dark:border-base-800"
+                  className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                 />
               </>
             )}
