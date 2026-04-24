@@ -1,0 +1,41 @@
+import type { FastifyRequest } from 'fastify'
+import { type UploadTokenPayload, verifyUploadToken } from '@/lib/jwt'
+import { MediaHttpError } from './error-handler'
+
+export async function extractUploadToken(req: FastifyRequest): Promise<UploadTokenPayload> {
+  let token: string | undefined
+  const auth = req.headers.authorization
+  if (auth?.startsWith('Bearer ')) {
+    token = auth.slice(7)
+  }
+  if (!token) {
+    const query = req.query as { token?: string } | undefined
+    if (query && typeof query.token === 'string' && query.token.length > 0) {
+      token = query.token
+    }
+  }
+
+  if (!token) {
+    throw new MediaHttpError({
+      code: 'UPLOAD_TOKEN_INVALID',
+      status: 401,
+      message: '업로드 토큰이 필요해요',
+      retriable: false,
+    })
+  }
+
+  try {
+    return await verifyUploadToken(token)
+  } catch (e) {
+    const msg = (e as Error).message
+    const expired =
+      msg.includes('exp') || msg.includes('JWT expired') || msg.includes('expired')
+    throw new MediaHttpError({
+      code: expired ? 'UPLOAD_TOKEN_EXPIRED' : 'UPLOAD_TOKEN_INVALID',
+      status: 401,
+      message: expired ? '업로드 토큰이 만료됐어요' : '업로드 토큰이 유효하지 않아요',
+      retriable: expired,
+      details: { reason: msg },
+    })
+  }
+}
