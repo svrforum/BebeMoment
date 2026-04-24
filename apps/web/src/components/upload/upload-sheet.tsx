@@ -1,12 +1,20 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
-import Uppy from '@uppy/core'
-import '@uppy/core/css/style.css'
-import '@uppy/dashboard/css/style.css'
-import Dashboard from '@uppy/react/dashboard'
-import Tus from '@uppy/tus'
+import dynamic from 'next/dynamic'
 import { useRouter } from 'next/navigation'
-import { type ReactNode, createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { type ReactNode, createContext, useContext, useMemo, useState } from 'react'
+
+const LazyUploadDashboard = dynamic(
+  () => import('./upload-dashboard').then((m) => ({ default: m.UploadDashboard })),
+  {
+    ssr: false,
+    loading: () => (
+      <div className="flex h-[380px] items-center justify-center text-sm text-base-500">
+        업로더 준비 중…
+      </div>
+    ),
+  },
+)
 
 type UploadSheetContextType = {
   open: () => void
@@ -25,47 +33,13 @@ export function UploadSheetProvider({ children }: { children: ReactNode }) {
   const router = useRouter()
   const [isOpen, setOpen] = useState(false)
 
-  // useState initializer keeps the Uppy instance stable across re-renders
-  // (including React StrictMode's dev double-invoke of effects).
-  const [uppy] = useState(() =>
-    new Uppy({
-      restrictions: {
-        maxFileSize: 2 * 1024 * 1024 * 1024,
-        allowedFileTypes: ['image/*', 'video/*'],
-      },
-      autoProceed: true,
-    }).use(Tus, {
-      endpoint: '/api/upload',
-      chunkSize: 8 * 1024 * 1024,
-      retryDelays: [0, 1000, 3000, 5000],
-    }),
-  )
-
-  useEffect(() => {
-    const handler = () => router.refresh()
-    uppy.on('complete', handler)
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-      ;(window as unknown as { __uppy?: typeof uppy }).__uppy = uppy
-    }
-    return () => {
-      uppy.off('complete', handler)
-      // Do NOT destroy uppy here — this provider sits at the app root and
-      // StrictMode's double-invoke would wipe the Tus plugin on remount.
-    }
-  }, [uppy, router])
-
   const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
 
   return (
     <UploadSheetContext.Provider value={value}>
       {children}
       <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
-        <Dashboard
-          uppy={uppy}
-          proudlyDisplayPoweredByUppy={false}
-          height={380}
-          hideUploadButton={false}
-        />
+        {isOpen && <LazyUploadDashboard onComplete={() => router.refresh()} />}
       </Sheet>
     </UploadSheetContext.Provider>
   )

@@ -1,6 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
-import { JournalFabLink } from '@/components/timeline/journal-fab-link'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prisma } from '@/lib/db-init'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
@@ -54,7 +53,6 @@ export default async function TimelinePage() {
         </div>
       )}
       <TimelineGrid initialGroups={groups} />
-      <JournalFabLink />
     </>
   )
 }
