@@ -1,3 +1,4 @@
+import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
@@ -20,6 +21,12 @@ export default async function SettingsPage() {
             <h2 className="font-semibold mb-2">계정</h2>
             <p className="text-sm">{user.displayName}</p>
             <p className="text-sm text-base-500">{user.email}</p>
+          </CardBody>
+        </Card>
+        <Card>
+          <CardBody>
+            <h2 className="mb-3 font-semibold">테마</h2>
+            <ThemeToggle />
           </CardBody>
         </Card>
         <Card>

@@ -1,9 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
-import { Card, CardBody } from '@/components/ui/card'
-import { Input, Label } from '@/components/ui/input'
+import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
-import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 type Props = {
@@ -12,9 +10,9 @@ type Props = {
 }
 
 export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
-  const router = useRouter()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
 
@@ -27,72 +25,93 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password }),
     })
-    setSubmitting(false)
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
       setError(data.error ?? '로그인 실패')
+      setSubmitting(false)
       return
     }
-    router.push('/')
-    router.refresh()
+    window.location.replace('/')
   }
 
   return (
-    <Card>
-      <CardBody className="space-y-4">
-        {passwordEnabled && (
-          <form onSubmit={submit} className="space-y-3">
-            <div>
-              <Label htmlFor="email">이메일</Label>
-              <Input
-                id="email"
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-              />
-            </div>
-            <div>
-              <Label htmlFor="password">비밀번호</Label>
-              <Input
+    <div className="space-y-6">
+      {passwordEnabled && (
+        <form onSubmit={submit} className="space-y-4">
+          <div>
+            <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-base-500">
+              이메일
+            </label>
+            <input
+              id="email"
+              type="email"
+              value={email}
+              onChange={(e) => setEmail(e.target.value)}
+              required
+              autoComplete="email"
+              placeholder="name@example.com"
+              className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-100 dark:focus-visible:bg-base-50"
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-base-500">
+              비밀번호
+            </label>
+            <div className="relative">
+              <input
                 id="password"
-                type="password"
+                type={showPw ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
+                autoComplete="current-password"
+                placeholder="••••••••"
+                className="h-12 w-full rounded-xl border border-base-200 bg-base-50 px-4 pr-11 text-base transition placeholder:text-base-400 focus-visible:border-point-500 focus-visible:bg-base-0 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/10 dark:border-base-800 dark:bg-base-100 dark:focus-visible:bg-base-50"
               />
+              <button
+                type="button"
+                onClick={() => setShowPw((s) => !s)}
+                aria-label={showPw ? '비밀번호 가리기' : '비밀번호 보기'}
+                className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-500 hover:text-base-900 dark:hover:text-base-100"
+              >
+                {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
-            {error && <p className="text-sm text-danger">{error}</p>}
-            <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-              {submitting ? '…' : '로그인'}
-            </Button>
-          </form>
-        )}
-        {oidcProviders.length > 0 && (
-          <>
-            {passwordEnabled && (
-              <div className="relative flex items-center py-1">
-                <div className="flex-grow border-t border-base-200" />
-                <span className="mx-3 text-xs text-base-400">또는</span>
-                <div className="flex-grow border-t border-base-200" />
-              </div>
-            )}
-            <div className="space-y-2">
-              {oidcProviders.map((p) => (
-                <Button key={p.id} asChild variant="secondary" size="lg" className="w-full">
-                  <a href={`/api/auth/oidc/${p.id}`}>{p.name} 으로 로그인</a>
-                </Button>
-              ))}
+          </div>
+          {error && (
+            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+              {error}
+            </p>
+          )}
+          <Button type="submit" size="lg" className="w-full" disabled={submitting}>
+            {submitting ? '로그인하는 중…' : '로그인'}
+          </Button>
+        </form>
+      )}
+      {oidcProviders.length > 0 && (
+        <>
+          {passwordEnabled && (
+            <div className="relative flex items-center">
+              <div className="flex-grow border-t border-base-200 dark:border-base-800" />
+              <span className="mx-3 text-xs text-base-400">또는</span>
+              <div className="flex-grow border-t border-base-200 dark:border-base-800" />
             </div>
-          </>
-        )}
-        <p className="text-sm text-center pt-2 text-base-500">
-          계정이 없으신가요?{' '}
-          <Link href="/signup" className="text-point-500 font-medium">
-            가입하기
-          </Link>
-        </p>
-      </CardBody>
-    </Card>
+          )}
+          <div className="space-y-2">
+            {oidcProviders.map((p) => (
+              <Button key={p.id} asChild variant="secondary" size="lg" className="w-full">
+                <a href={`/api/auth/oidc/${p.id}`}>{p.name} 으로 로그인</a>
+              </Button>
+            ))}
+          </div>
+        </>
+      )}
+      <p className="text-center text-sm text-base-500">
+        계정이 없으신가요?{' '}
+        <Link href="/signup" className="font-semibold text-point-500">
+          가입하기
+        </Link>
+      </p>
+    </div>
   )
 }

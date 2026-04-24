@@ -91,7 +91,8 @@ export default function OnboardingPage() {
   const maxDate = daysFromNowISO(400)
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6">
+    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6 md:min-h-[100dvh] md:max-w-[480px] md:justify-center md:py-16">
+      <div className="absolute inset-0 -z-10 hidden bg-[radial-gradient(ellipse_at_top,oklch(0.72_0.18_245/.15),transparent_60%)] md:block" />
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"

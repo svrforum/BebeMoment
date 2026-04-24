@@ -14,11 +14,17 @@ export default async function LoginPage() {
   const passwordEnabled = await getSetting('auth.password_enabled', z.boolean(), true, prisma)
 
   return (
-    <main className="mx-auto max-w-sm px-5 py-16">
-      <h1 className="text-3xl font-bold tracking-tight mb-8">
-        bebe-<span className="text-point-500">moment</span>
-      </h1>
-      <LoginForm oidcProviders={providers} passwordEnabled={passwordEnabled} />
+    <main className="flex min-h-[100dvh] flex-col px-6 py-10 md:min-h-0 md:p-0">
+      <div className="flex-1">
+        <h1 className="text-3xl font-bold tracking-tight md:hidden">
+          bebe<span className="text-point-500">·</span>moment
+        </h1>
+        <h2 className="mt-6 text-2xl font-bold tracking-tight md:mt-0">다시 만나서 반가워요</h2>
+        <p className="mt-1.5 text-sm text-base-500">계정에 로그인해주세요.</p>
+        <div className="mt-8">
+          <LoginForm oidcProviders={providers} passwordEnabled={passwordEnabled} />
+        </div>
+      </div>
     </main>
   )
 }

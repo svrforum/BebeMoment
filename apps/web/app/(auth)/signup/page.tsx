@@ -125,7 +125,7 @@ function SignupWizard() {
   const pwScore = scorePassword(password)
 
   return (
-    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6">
+    <main className="flex min-h-[100dvh] flex-col px-6 pb-8 pt-6 md:min-h-0 md:p-0">
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"
