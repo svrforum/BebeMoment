@@ -1,13 +1,13 @@
 import { isInstanceAdminUser } from '@/lib/admin'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { parseEnv } from '@bebe/config'
 import { notFound } from 'next/navigation'
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const { session } = await getAuth()
   if (!session) notFound()
-  const user = await prisma.user.findUnique({ where: { id: session.userId } })
+  const user = await prismaPublic.user.findUnique({ where: { id: session.userId } })
   if (!user) notFound()
   const env = parseEnv(process.env as Record<string, string | undefined>)
   if (

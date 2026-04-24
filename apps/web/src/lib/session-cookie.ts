@@ -1,5 +1,5 @@
 import { lucia } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { cookies } from 'next/headers'
 
 /**
@@ -7,7 +7,7 @@ import { cookies } from 'next/headers'
  * and writes the session cookie. Use after signup, login, or OIDC callback.
  */
 export async function createSessionAndSetCookie(userId: string): Promise<void> {
-  const membership = await prisma.membership.findFirst({
+  const membership = await prismaPublic.membership.findFirst({
     where: { userId, deletedAt: null },
     orderBy: { joinedAt: 'asc' },
   })

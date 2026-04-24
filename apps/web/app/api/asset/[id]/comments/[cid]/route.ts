@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { softDeleteComment } from '@/server/comment/soft-delete'
 import { updateComment } from '@/server/comment/update'
 import { resolveContext } from '@/server/context'
@@ -14,7 +14,7 @@ export async function PATCH(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
@@ -22,7 +22,7 @@ export async function PATCH(
     const body = await req.json()
     const c = await updateComment(
       { id: cid, familyId: ctx.family.id, body: body.body, byUserId: ctx.user.id },
-      prisma,
+      prismaPublic,
       getPublisher(),
     )
     return NextResponse.json({ id: c.id })
@@ -39,14 +39,14 @@ export async function DELETE(
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { cid } = await params
     await softDeleteComment(
       { id: cid, familyId: ctx.family.id, byUserId: ctx.user.id },
-      prisma,
+      prismaPublic,
       getPublisher(),
     )
     return NextResponse.json({ ok: true })

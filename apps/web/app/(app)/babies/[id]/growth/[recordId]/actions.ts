@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { softDeleteGrowthRecord } from '@/server/growth/soft-delete'
 import { updateGrowthRecord } from '@/server/growth/update'
@@ -25,7 +25,7 @@ export async function updateGrowthAction(babyId: string, recordId: string, formD
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   await updateGrowthRecord(
@@ -41,7 +41,7 @@ export async function updateGrowthAction(babyId: string, recordId: string, formD
         note: parseOptionalString(formData.get('note')),
       },
     },
-    prisma,
+    prismaPublic,
   )
   redirect(`/babies/${babyId}/growth`)
 }
@@ -51,12 +51,12 @@ export async function deleteGrowthAction(babyId: string, recordId: string) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   await softDeleteGrowthRecord(
     { id: recordId, familyId: ctx.family.id, byUserId: ctx.user.id },
-    prisma,
+    prismaPublic,
   )
   redirect(`/babies/${babyId}/growth`)
 }

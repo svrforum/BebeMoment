@@ -3,7 +3,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { notFound, redirect } from 'next/navigation'
 import { deleteGrowthAction, updateGrowthAction } from './actions'
@@ -15,11 +15,11 @@ export default async function EditGrowthPage({
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id, recordId } = await params
-  const rec = await prisma.growthRecord.findFirst({
+  const rec = await prismaPublic.growthRecord.findFirst({
     where: { id: recordId, familyId: ctx.family.id, babyId: id, deletedAt: null },
   })
   if (!rec) notFound()

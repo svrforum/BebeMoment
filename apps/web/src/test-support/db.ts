@@ -1,5 +1,5 @@
 import { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import { startTestDb as startPublicDb } from '@bebe/db-public/src/test-db'
+import { startTestDb as startPublicDb } from '@bebe/db-public'
 
 export type FullTestDb = {
   url: string

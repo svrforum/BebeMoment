@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { acceptInvite } from '@/server/invite/accept'
 import { NextResponse } from 'next/server'
 
@@ -8,9 +8,9 @@ export async function POST(req: Request) {
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   try {
     const body = await req.json()
-    const result = await acceptInvite({ token: body.token, userId: session.userId }, prisma)
+    const result = await acceptInvite({ token: body.token, userId: session.userId }, prismaPublic)
 
-    await prisma.session.update({
+    await prismaPublic.session.update({
       where: { id: session.id },
       data: { currentFamilyId: result.familyId },
     })

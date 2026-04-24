@@ -12,3 +12,4 @@ if (process.env.NODE_ENV !== 'production') globalForPrisma.prismaMedia = prisma
 
 export * from '../prisma/generated/client'
 export { installTenantMiddleware } from './tenant-middleware'
+export { startTestDb, type TestDb } from './test-db'

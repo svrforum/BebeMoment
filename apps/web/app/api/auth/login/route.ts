@@ -1,5 +1,5 @@
 import { lucia } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { login } from '@/server/auth/login'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -7,9 +7,9 @@ import { NextResponse } from 'next/server'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { user } = await login(body, prisma)
+    const { user } = await login(body, prismaPublic)
 
-    const membership = await prisma.membership.findFirst({
+    const membership = await prismaPublic.membership.findFirst({
       where: { userId: user.id, deletedAt: null },
       orderBy: { joinedAt: 'asc' },
     })

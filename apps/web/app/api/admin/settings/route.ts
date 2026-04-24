@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
@@ -15,7 +15,7 @@ export async function POST(req: Request) {
   if (ctx instanceof NextResponse) return ctx
   try {
     const body = BodySchema.parse(await req.json())
-    await setSetting(body.key, body.value, ctx.user.id, prisma)
+    await setSetting(body.key, body.value, ctx.user.id, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
@@ -27,10 +27,10 @@ export async function GET() {
   if (ctx instanceof NextResponse) return ctx
   const AnySchema = z.unknown()
   const [appName, signupEnabled, retentionDays, uploadConvert] = await Promise.all([
-    getSetting('general.app_name', AnySchema, 'bebe-moment', prisma),
-    getSetting('auth.signup_enabled', AnySchema, false, prisma),
-    getSetting('retention.trash_days', AnySchema, 30, prisma),
-    getSetting('upload.convert_to_compatible', AnySchema, false, prisma),
+    getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
+    getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
+    getSetting('retention.trash_days', AnySchema, 30, prismaPublic),
+    getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),
   ])
   return NextResponse.json({
     general: { app_name: appName },

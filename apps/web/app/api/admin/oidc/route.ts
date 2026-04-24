@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { createProvider, listProviders } from '@/server/oidc/providers'
 import { NextResponse } from 'next/server'
@@ -15,7 +15,7 @@ const CreateSchema = z.object({
 export async function GET() {
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
-  const providers = await listProviders(prisma)
+  const providers = await listProviders(prismaPublic)
   return NextResponse.json({
     providers: providers.map((p) => ({
       id: p.id,
@@ -33,7 +33,7 @@ export async function POST(req: Request) {
   if (ctx instanceof NextResponse) return ctx
   try {
     const body = CreateSchema.parse(await req.json())
-    const p = await createProvider(body, ctx.env.SECRET_KEY, prisma)
+    const p = await createProvider(body, ctx.env.SECRET_KEY, prismaPublic)
     return NextResponse.json({ id: p.id })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

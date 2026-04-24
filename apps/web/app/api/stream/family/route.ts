@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { channelForFamily, createSubscriber } from '@/server/upload/pubsub'
 
@@ -10,7 +10,7 @@ export async function GET() {
   if (!session) return new Response('Unauthorized', { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) return new Response('No family', { status: 400 })
   const familyId = ctx.family.id

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { sendMail } from '@/lib/mailer'
 import { requireAdmin } from '@/lib/require-admin'
 import { NextResponse } from 'next/server'
@@ -18,7 +18,7 @@ export async function POST(req: Request) {
         html: '<p>SMTP 설정이 정상적으로 동작합니다.</p>',
         text: 'SMTP 설정이 정상적으로 동작합니다.',
       },
-      prisma,
+      prismaPublic,
     )
     return NextResponse.json({ ok: true })
   } catch (e) {

@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { deleteProvider, updateProvider } from '@/server/oidc/providers'
 import { NextResponse } from 'next/server'
@@ -19,7 +19,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params
     const body = UpdateSchema.parse(await req.json())
-    await updateProvider(id, body, ctx.env.SECRET_KEY, prisma)
+    await updateProvider(id, body, ctx.env.SECRET_KEY, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })
@@ -31,7 +31,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
-    await deleteProvider(id, prisma)
+    await deleteProvider(id, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

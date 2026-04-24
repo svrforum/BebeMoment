@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { createBaby } from '@/server/baby/create'
 import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
@@ -10,7 +10,7 @@ export async function createBabyAction(formData: FormData) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
 
@@ -21,7 +21,7 @@ export async function createBabyAction(formData: FormData) {
       birthDate: String(formData.get('birthDate') ?? ''),
       byUserId: ctx.user.id,
     },
-    prisma,
+    prismaPublic,
   )
   redirect('/babies')
 }

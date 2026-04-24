@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { createBaby } from '@/server/baby/create'
 import { createFamily } from '@/server/family/create'
 import { redirect } from 'next/navigation'
@@ -36,7 +36,7 @@ export async function completeOnboarding(
   }
 
   try {
-    const { family } = await createFamily({ name: parsed.data.familyName, userId: user.id }, prisma)
+    const { family } = await createFamily({ name: parsed.data.familyName, userId: user.id }, prismaPublic)
     await createBaby(
       {
         familyId: family.id,
@@ -44,10 +44,10 @@ export async function completeOnboarding(
         birthDate: parsed.data.birthDate,
         byUserId: user.id,
       },
-      prisma,
+      prismaPublic,
     )
 
-    await prisma.session.update({
+    await prismaPublic.session.update({
       where: { id: session.id },
       data: { currentFamilyId: family.id },
     })

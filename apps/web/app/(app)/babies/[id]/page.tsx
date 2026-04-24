@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -11,11 +11,11 @@ export default async function BabyDetailPage({ params }: { params: Promise<{ id:
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
-  const baby = await prisma.baby.findFirst({
+  const baby = await prismaPublic.baby.findFirst({
     where: { id, familyId: ctx.family.id, deletedAt: null },
   })
   if (!baby) notFound()

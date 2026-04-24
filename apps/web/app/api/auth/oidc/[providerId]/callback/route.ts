@@ -1,6 +1,6 @@
 import { lucia } from '@/lib/auth'
 import { decryptSecret } from '@/lib/crypto'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import {
   exchangeCodeForTokens,
   fetchUserInfo,
@@ -29,7 +29,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     return NextResponse.redirect(new URL('/login?error=state', req.url))
   }
 
-  const provider = await prisma.oidcProvider.findUnique({ where: { id: providerId } })
+  const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider || !provider.enabled) {
     return NextResponse.redirect(new URL('/login?error=provider', req.url))
   }
@@ -71,10 +71,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         emailVerified,
         ...(info.name !== undefined ? { displayName: info.name } : {}),
       },
-      prisma,
+      prismaPublic,
     )
 
-    const membership = await prisma.membership.findFirst({
+    const membership = await prismaPublic.membership.findFirst({
       where: { userId: user.id, deletedAt: null },
       orderBy: { joinedAt: 'asc' },
     })

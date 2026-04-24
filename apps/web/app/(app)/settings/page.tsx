@@ -3,13 +3,13 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import Link from 'next/link'
 
 export default async function SettingsPage() {
   const { session } = await getAuth()
   if (!session) return null
-  const user = await prisma.user.findUnique({ where: { id: session.userId } })
+  const user = await prismaPublic.user.findUnique({ where: { id: session.userId } })
   if (!user) return null
 
   return (

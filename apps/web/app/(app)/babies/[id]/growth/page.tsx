@@ -3,7 +3,7 @@ import { GrowthList } from '@/components/growth/GrowthList'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { listGrowthByBaby } from '@/server/growth/list-by-baby'
 import Link from 'next/link'
@@ -14,15 +14,15 @@ export default async function GrowthListPage({ params }: { params: Promise<{ id:
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
-  const baby = await prisma.baby.findFirst({
+  const baby = await prismaPublic.baby.findFirst({
     where: { id, familyId: ctx.family.id, deletedAt: null },
   })
   if (!baby) notFound()
-  const records = await listGrowthByBaby(ctx.family.id, baby.id, prisma)
+  const records = await listGrowthByBaby(ctx.family.id, baby.id, prismaPublic)
 
   return (
     <>

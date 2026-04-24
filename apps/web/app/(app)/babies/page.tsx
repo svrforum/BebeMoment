@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import Link from 'next/link'
 
@@ -9,7 +9,7 @@ export default async function BabiesPage() {
   const ctx = await getContext()
   if (!ctx.family) return null
 
-  const babies = await prisma.baby.findMany({
+  const babies = await prismaPublic.baby.findMany({
     where: { familyId: ctx.family.id, deletedAt: null },
     orderBy: { birthDate: 'asc' },
   })

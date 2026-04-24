@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/session-cookie'
 import { signup } from '@/server/auth/signup'
 import { NextResponse } from 'next/server'
@@ -7,7 +7,7 @@ import { ZodError } from 'zod'
 export async function POST(req: Request) {
   try {
     const body = await req.json()
-    const { user } = await signup(body, prisma)
+    const { user } = await signup(body, prismaPublic)
     await createSessionAndSetCookie(user.id)
     return NextResponse.json({ userId: user.id })
   } catch (e) {

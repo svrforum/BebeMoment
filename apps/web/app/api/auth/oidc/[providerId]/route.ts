@@ -1,5 +1,5 @@
 import crypto from 'node:crypto'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
@@ -9,7 +9,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ provide
   const { providerId } = await params
   const env = parseEnv(process.env as Record<string, string | undefined>)
 
-  const provider = await prisma.oidcProvider.findUnique({ where: { id: providerId } })
+  const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider || !provider.enabled) {
     return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
   }

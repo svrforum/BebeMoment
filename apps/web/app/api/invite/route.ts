@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createInvite } from '@/server/invite/create'
 import { NextResponse } from 'next/server'
@@ -16,7 +16,7 @@ export async function POST(req: Request) {
 
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user)
     return NextResponse.json({ error: 'No current family' }, { status: 400 })
@@ -30,7 +30,7 @@ export async function POST(req: Request) {
         role: body.role,
         byUserId: ctx.user.id,
       },
-      prisma,
+      prismaPublic,
     )
     return NextResponse.json({
       id: invite.id,

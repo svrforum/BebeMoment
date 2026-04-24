@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { prisma as defaultPrisma } from '@/lib/db-init'
+import { prismaPublic as defaultPrisma } from '@/lib/db-init'
 import type { Family, Membership, PrismaClient, User } from '@bebe/db-public'
 import { cache } from 'react'
 

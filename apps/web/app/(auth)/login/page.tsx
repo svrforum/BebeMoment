@@ -1,4 +1,4 @@
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { getSetting } from '@/server/settings/get'
 import { z } from 'zod'
 import { LoginForm } from './login-form'
@@ -6,12 +6,12 @@ import { LoginForm } from './login-form'
 export const dynamic = 'force-dynamic'
 
 export default async function LoginPage() {
-  const providers = await prisma.oidcProvider.findMany({
+  const providers = await prismaPublic.oidcProvider.findMany({
     where: { enabled: true },
     select: { id: true, name: true },
     orderBy: { createdAt: 'asc' },
   })
-  const passwordEnabled = await getSetting('auth.password_enabled', z.boolean(), true, prisma)
+  const passwordEnabled = await getSetting('auth.password_enabled', z.boolean(), true, prismaPublic)
 
   return (
     <main className="flex min-h-[100dvh] flex-col px-6 py-10 md:min-h-0 md:p-0">

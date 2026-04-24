@@ -1,6 +1,6 @@
 'use server'
 import { getAuth } from '@/lib/auth'
-import { prisma } from '@/lib/db-init'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createGrowthRecord } from '@/server/growth/create'
 import { redirect } from 'next/navigation'
@@ -24,7 +24,7 @@ export async function createGrowthAction(babyId: string, formData: FormData) {
   if (!session) redirect('/login')
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prisma,
+    prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
 
@@ -39,7 +39,7 @@ export async function createGrowthAction(babyId: string, formData: FormData) {
       note: parseOptionalString(formData.get('note')),
       byUserId: ctx.user.id,
     },
-    prisma,
+    prismaPublic,
   )
   redirect(`/babies/${babyId}/growth`)
 }
