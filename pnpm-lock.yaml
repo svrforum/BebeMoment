@@ -32,6 +32,12 @@ importers:
       '@bebe/db':
         specifier: workspace:*
         version: link:../../packages/db
+      '@bebe/db-media':
+        specifier: workspace:*
+        version: link:../../packages/db-media
+      '@bebe/db-public':
+        specifier: workspace:*
+        version: link:../../packages/db-public
       '@bebe/storage':
         specifier: workspace:*
         version: link:../../packages/storage
