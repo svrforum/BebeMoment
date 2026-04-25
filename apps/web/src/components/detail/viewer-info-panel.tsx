@@ -5,6 +5,7 @@ import type { CommentWithAuthor } from './comment-item'
 import { CommentList } from './comment-list'
 import { LikeButton } from './like-button'
 import { LikerAvatars } from './liker-avatars'
+import { MetadataEditor } from './metadata-editor'
 import { MetadataSection } from './metadata-section'
 
 type Member = { id: string; displayName: string }
@@ -27,6 +28,8 @@ export function ViewerInfoPanel({
   setBookmarked,
   initialComments,
   initialTags,
+  initialFilename,
+  initialCaption,
 }: {
   assetId: string
   currentUserId: string
@@ -42,6 +45,8 @@ export function ViewerInfoPanel({
   setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
   initialTags: AssetTag[]
+  initialFilename: string
+  initialCaption: string | null
 }) {
   const liveCommentCount = initialComments.filter((c) => !c.deletedAt).length
   return (
@@ -52,6 +57,13 @@ export function ViewerInfoPanel({
         </h2>
       </div>
       <div className="flex flex-col gap-5 px-5 py-5">
+        <MetadataEditor
+          assetId={assetId}
+          initialFilename={initialFilename}
+          initialCaption={initialCaption}
+          initialTakenAtISO={meta.takenAt.toISOString()}
+          initialTakenAtSource={meta.takenAtSource}
+        />
         <MetadataSection {...meta} />
         <TagEditor assetId={assetId} initial={initialTags} />
         <div className="flex flex-col gap-3">

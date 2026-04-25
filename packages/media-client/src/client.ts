@@ -5,12 +5,15 @@ import {
   type InitAssetResponse,
   type MediaErrorCode,
   type SetBabyTagsRequest,
+  type UpdateAssetMetadataRequest,
+  type UpdateAssetMetadataResponse,
   assetUrls as assetUrlsSchema,
   batchUrlsResponse,
   errorResponse,
   getAssetUrlsResponse,
   healthResponse,
   initAssetResponse,
+  updateAssetMetadataResponse,
 } from './schemas'
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
@@ -26,6 +29,10 @@ export interface MediaClient {
   getAssetUrls(assetId: string, familyId: string): Promise<AssetUrls>
   getAssetUrlsBatch(familyId: string, assetIds: string[]): Promise<Record<string, AssetUrls>>
   setBabyTags(assetId: string, input: SetBabyTagsRequest): Promise<void>
+  updateAssetMetadata(
+    assetId: string,
+    input: UpdateAssetMetadataRequest,
+  ): Promise<UpdateAssetMetadataResponse>
   deleteAsset(assetId: string, familyId: string): Promise<void>
   retryAsset(assetId: string, familyId: string): Promise<void>
   health(): Promise<HealthResponse>
@@ -112,6 +119,17 @@ export class HttpMediaClient implements MediaClient {
       `/media/v1/assets/${assetId}/babies`,
       { method: 'PATCH', body: JSON.stringify(input) },
       () => undefined,
+    )
+  }
+
+  async updateAssetMetadata(
+    assetId: string,
+    input: UpdateAssetMetadataRequest,
+  ): Promise<UpdateAssetMetadataResponse> {
+    return this.request(
+      `/media/v1/assets/${assetId}`,
+      { method: 'PATCH', body: JSON.stringify(input) },
+      (b) => updateAssetMetadataResponse.parse(b),
     )
   }
 

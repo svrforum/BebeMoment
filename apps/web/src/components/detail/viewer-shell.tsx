@@ -33,6 +33,8 @@ export function ViewerShell({
   initialBookmarked,
   initialComments,
   initialTags,
+  initialFilename,
+  initialCaption,
 }: {
   current: AssetSlim
   siblings: { prevId: string | undefined; nextId: string | undefined }
@@ -45,6 +47,8 @@ export function ViewerShell({
   initialBookmarked: boolean
   initialComments: CommentWithAuthor[]
   initialTags: AssetTag[]
+  initialFilename: string
+  initialCaption: string | null
 }) {
   // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
@@ -96,6 +100,8 @@ export function ViewerShell({
           setBookmarked={setBookmarked}
           initialComments={initialComments}
           initialTags={initialTags}
+          initialFilename={initialFilename}
+          initialCaption={initialCaption}
         />
       </div>
 
@@ -116,6 +122,8 @@ export function ViewerShell({
           setBookmarked={setBookmarked}
           initialComments={initialComments}
           initialTags={initialTags}
+          initialFilename={initialFilename}
+          initialCaption={initialCaption}
         />
       </aside>
     </div>

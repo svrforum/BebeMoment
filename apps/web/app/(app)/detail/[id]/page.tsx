@@ -133,6 +133,8 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       initialBookmarked={!!myBookmark}
       initialComments={initialComments}
       initialTags={initialTags}
+      initialFilename={asset.originalFilename}
+      initialCaption={asset.caption}
     />
   )
 }

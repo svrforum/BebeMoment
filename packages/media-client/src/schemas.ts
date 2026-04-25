@@ -75,6 +75,28 @@ export const setBabyTagsRequest = z.object({
 })
 export type SetBabyTagsRequest = z.infer<typeof setBabyTagsRequest>
 
+// ─── Metadata edit ───────────────────────────────────────────────
+// Editable fields on the asset detail page. Storage object is NOT
+// renamed when filename changes — it stays display-only.
+const FILENAME_RE = /^[^\x00-\x1f\/\\]+$/
+export const updateAssetMetadataRequest = z.object({
+  familyId: z.string().uuid(),
+  editedByUserId: z.string().uuid(),
+  filename: z.string().min(1).max(255).regex(FILENAME_RE).optional(),
+  caption: z.string().max(500).nullable().optional(),
+  takenAt: z.string().datetime().optional(),
+})
+export type UpdateAssetMetadataRequest = z.infer<typeof updateAssetMetadataRequest>
+
+export const updateAssetMetadataResponse = z.object({
+  v: z.literal(VERSION),
+  filename: z.string(),
+  caption: z.string().nullable(),
+  takenAt: z.string().datetime(),
+  takenAtSource: z.string(),
+})
+export type UpdateAssetMetadataResponse = z.infer<typeof updateAssetMetadataResponse>
+
 // ─── Errors ──────────────────────────────────────────────────────
 export const mediaErrorCodes = [
   'UNAUTHORIZED',

@@ -6,6 +6,7 @@ import type { CommentWithAuthor } from './comment-item'
 import { CommentList } from './comment-list'
 import { LikeButton } from './like-button'
 import { LikerAvatars } from './liker-avatars'
+import { MetadataEditor } from './metadata-editor'
 import { MetadataSection } from './metadata-section'
 
 type Member = { id: string; displayName: string }
@@ -30,6 +31,8 @@ export function ViewerBottomSheet({
   setBookmarked,
   initialComments,
   initialTags,
+  initialFilename,
+  initialCaption,
 }: {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -47,10 +50,19 @@ export function ViewerBottomSheet({
   setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
   initialTags: AssetTag[]
+  initialFilename: string
+  initialCaption: string | null
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="세부정보">
       <div className="space-y-6 pb-8">
+        <MetadataEditor
+          assetId={assetId}
+          initialFilename={initialFilename}
+          initialCaption={initialCaption}
+          initialTakenAtISO={meta.takenAt.toISOString()}
+          initialTakenAtSource={meta.takenAtSource}
+        />
         <MetadataSection {...meta} />
         <TagEditor assetId={assetId} initial={initialTags} />
         <div className="space-y-2 border-t pt-4">

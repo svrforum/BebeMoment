@@ -1,4 +1,4 @@
-import { Calendar, Camera, Image as ImgIcon, MapPin, User } from 'lucide-react'
+import { Camera, Image as ImgIcon, MapPin, User } from 'lucide-react'
 
 type Props = {
   takenAt: Date
@@ -73,9 +73,9 @@ export function MetadataSection(p: Props) {
   const dimensions = p.width && p.height ? `${p.width} × ${p.height}` : null
 
   // Determine which row is last to skip its bottom border.
+  // Date is now in MetadataEditor — this section is read-only EXIF / stats.
   const rows: Array<keyof typeof flags> = []
   const flags = {
-    date: true,
     camera: !!camera,
     image: true,
     gps: p.gpsLat != null && p.gpsLng != null,
@@ -85,15 +85,10 @@ export function MetadataSection(p: Props) {
     if (flags[k]) rows.push(k)
   }
   const lastKey = rows[rows.length - 1]
+  if (rows.length === 0) return null
 
   return (
     <div className="rounded-2xl bg-base-50/50 px-4 py-1 dark:bg-base-950/40">
-      <Row
-        icon={<Calendar size={15} strokeWidth={1.9} />}
-        primary={p.takenAt.toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })}
-        secondary={p.takenAtSource !== 'exif' ? `(${p.takenAtSource})` : undefined}
-        last={lastKey === 'date'}
-      />
       {camera && (
         <Row
           icon={<Camera size={15} strokeWidth={1.9} />}

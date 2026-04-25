@@ -3,6 +3,7 @@ import Fastify, { type FastifyBaseLogger, type FastifyInstance } from 'fastify'
 import { registerErrorHandler } from './http/middleware/error-handler'
 import { requestIdPlugin } from './http/middleware/request-id'
 import { assetsInitRoute } from './http/routes/assets-init'
+import { assetsUpdateRoute } from './http/routes/assets-update'
 import { assetsUrlsRoute } from './http/routes/assets-urls'
 import { assetsUrlsBatchRoute } from './http/routes/assets-urls-batch'
 import { filesRoute } from './http/routes/files'
@@ -24,6 +25,7 @@ export function buildApp(): FastifyInstance {
   registerErrorHandler(app)
   app.register(healthRoute)
   app.register(assetsInitRoute)
+  app.register(assetsUpdateRoute)
   app.register(assetsUrlsRoute)
   app.register(assetsUrlsBatchRoute)
   app.register(filesRoute)

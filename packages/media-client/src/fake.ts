@@ -105,6 +105,20 @@ export class FakeMediaClient implements MediaClient {
     this.calls.setBabyTags.push({ assetId, input })
   }
 
+  async updateAssetMetadata(
+    _assetId: string,
+    input: import('./schemas').UpdateAssetMetadataRequest,
+  ): Promise<import('./schemas').UpdateAssetMetadataResponse> {
+    this.maybeThrow()
+    return {
+      v: 1,
+      filename: input.filename ?? 'fake.jpg',
+      caption: input.caption ?? null,
+      takenAt: input.takenAt ?? new Date().toISOString(),
+      takenAtSource: input.takenAt ? 'manual' : 'uploaded',
+    }
+  }
+
   async deleteAsset(assetId: string, familyId: string): Promise<void> {
     this.maybeThrow()
     this.calls.deleteAsset.push({ assetId, familyId })
