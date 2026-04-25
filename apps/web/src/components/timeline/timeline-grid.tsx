@@ -2,6 +2,7 @@
 import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
+import { ImagePlus } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import { BucketSection } from './bucket-section'
@@ -37,12 +38,16 @@ export function TimelineGrid({ initialGroups }: Props) {
 
   if (initialGroups.length === 0) {
     return (
-      <div className="mx-auto max-w-3xl px-5 py-12 text-center">
-        <p className="text-base-500">
-          아직 올라온 사진이 없어요.
-          <br />
-          <span className="text-point-500">업로드 버튼을 눌러 시작하세요.</span>
-        </p>
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 py-16 text-center">
+        <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
+          <ImagePlus className="h-10 w-10 text-base-400" />
+        </div>
+        <div>
+          <p className="text-base font-semibold text-base-900 dark:text-base-50">
+            아직 올라온 사진이 없어요
+          </p>
+          <p className="mt-1 text-sm text-base-500">우측 하단 + 버튼을 눌러 첫 사진을 올려보세요</p>
+        </div>
       </div>
     )
   }
