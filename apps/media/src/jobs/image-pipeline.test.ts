@@ -1,52 +1,82 @@
-import { mkdtemp, rm } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import fs from 'node:fs'
 import path from 'node:path'
-import { LocalAdapter } from '@bebe/storage'
+import os from 'node:os'
 import sharp from 'sharp'
-import { afterAll, beforeAll, describe, expect, it } from 'vitest'
+import { createAdapter } from '@bebe/storage'
 import { processImage } from './image-pipeline'
 
-let tmp: string
-let storage: LocalAdapter
-
-async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
-  const chunks: Buffer[] = []
-  for await (const c of stream) chunks.push(c as Buffer)
-  return Buffer.concat(chunks)
-}
-
-beforeAll(async () => {
-  tmp = await mkdtemp(path.join(tmpdir(), 'bebe-img-'))
-  storage = new LocalAdapter({ mode: 'local', path: tmp })
-
-  const sample = await sharp({
-    create: { width: 2000, height: 1500, channels: 3, background: '#ff00ff' },
-  })
-    .jpeg()
-    .toBuffer()
-  await storage.writeBuffer('originals/sample.jpg', sample)
-})
-
-afterAll(async () => {
-  await rm(tmp, { recursive: true, force: true })
-})
-
 describe('processImage', () => {
-  it('generates 3 WebP thumbnails and records dimensions', async () => {
-    const result = await processImage(
-      { originalKey: 'originals/sample.jpg', assetId: 'asset-1' },
-      storage,
-    )
-    expect(result.derivatives.thumb_sm).toBeTruthy()
-    expect(result.derivatives.thumb_md).toBeTruthy()
-    expect(result.derivatives.thumb_lg).toBeTruthy()
-    expect(result.width).toBe(2000)
-    expect(result.height).toBe(1500)
-
-    const smRaw = await storage.read(result.derivatives.thumb_sm)
-    const smBuf = await collect(smRaw)
-    const smMeta = await sharp(smBuf).metadata()
-    expect(Math.max(smMeta.width ?? 0, smMeta.height ?? 0)).toBeLessThanOrEqual(320)
-    expect(smMeta.format).toBe('webp')
+  let dir: string
+  beforeEach(() => {
+    dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bebe-image-test-'))
   })
+  afterEach(() => {
+    fs.rmSync(dir, { recursive: true, force: true })
+  })
+
+  test('produces 9 variants (3 sizes × 3 formats) + blurhash + dominantColor + aspectRatio', async () => {
+    const buf = await sharp({
+      create: { width: 1600, height: 900, channels: 3, background: { r: 100, g: 50, b: 200 } },
+    })
+      .png()
+      .toBuffer()
+    const adapter = createAdapter({ mode: 'local', path: dir })
+    await adapter.writeBuffer('originals/test.png', buf, 'image/png')
+
+    const r = await processImage({ originalKey: 'originals/test.png', assetId: 'asset-1' }, adapter)
+
+    expect(r.derivatives.v).toBe(2)
+    expect(r.derivatives.thumb256.avif).toContain('asset-1')
+    expect(r.derivatives.thumb256.webp).toContain('asset-1')
+    expect(r.derivatives.thumb256.jpeg).toContain('asset-1')
+    expect(r.derivatives.thumb512.avif).toBeDefined()
+    expect(r.derivatives.display1080.jpeg).toBeDefined()
+
+    expect(r.blurhash).toBeTruthy()
+    expect(r.dominantColor).toMatch(/^#[0-9a-f]{6}$/)
+    expect(r.aspectRatio).toBeCloseTo(1600 / 900, 3)
+
+    const expected = [
+      'derivatives/asset-1/thumb256.avif',
+      'derivatives/asset-1/thumb256.webp',
+      'derivatives/asset-1/thumb256.jpeg',
+      'derivatives/asset-1/thumb512.avif',
+      'derivatives/asset-1/thumb512.webp',
+      'derivatives/asset-1/thumb512.jpeg',
+      'derivatives/asset-1/display1080.avif',
+      'derivatives/asset-1/display1080.webp',
+      'derivatives/asset-1/display1080.jpeg',
+    ]
+    for (const key of expected) {
+      expect(fs.existsSync(path.join(dir, key))).toBe(true)
+    }
+  }, 60_000)
+
+  test('skips AVIF when MEDIA_DERIVATIVES_INCLUDE_AVIF=false', async () => {
+    const orig = process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
+    process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = 'false'
+    try {
+      const buf = await sharp({
+        create: { width: 800, height: 600, channels: 3, background: { r: 50, g: 50, b: 50 } },
+      })
+        .png()
+        .toBuffer()
+      const adapter = createAdapter({ mode: 'local', path: dir })
+      await adapter.writeBuffer('originals/test.png', buf, 'image/png')
+
+      const r = await processImage(
+        { originalKey: 'originals/test.png', assetId: 'asset-2' },
+        adapter,
+      )
+
+      expect(fs.existsSync(path.join(dir, 'derivatives/asset-2/thumb256.webp'))).toBe(true)
+      expect(fs.existsSync(path.join(dir, 'derivatives/asset-2/thumb256.jpeg'))).toBe(true)
+      expect(fs.existsSync(path.join(dir, 'derivatives/asset-2/thumb256.avif'))).toBe(false)
+      expect(r.derivatives.thumb256.avif).toBe(r.derivatives.thumb256.webp)
+    } finally {
+      if (orig === undefined) delete process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
+      else process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = orig
+    }
+  }, 30_000)
 })
