@@ -1,4 +1,5 @@
 'use client'
+import { AlbumPicker } from '@/components/albums/album-picker'
 import { cn } from '@/lib/cn'
 import { MoreVertical, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -14,6 +15,7 @@ export function ViewerTopBar({
   onDelete?: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const [pickerOpen, setPickerOpen] = useState(false)
   const router = useRouter()
 
   function close() {
@@ -44,7 +46,17 @@ export function ViewerTopBar({
           <MoreVertical className="h-6 w-6" />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
+          <div className="absolute right-0 top-full mt-2 w-44 overflow-hidden rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
+            <button
+              type="button"
+              onClick={() => {
+                setMenuOpen(false)
+                setPickerOpen(true)
+              }}
+              className="block w-full px-4 py-2 text-left text-sm hover:bg-base-100 dark:hover:bg-base-800"
+            >
+              앨범에 추가
+            </button>
             <a
               href={`/api/asset/${assetId}/original`}
               download
@@ -68,6 +80,7 @@ export function ViewerTopBar({
           </div>
         )}
       </div>
+      <AlbumPicker open={pickerOpen} onOpenChange={setPickerOpen} assetId={assetId} />
     </div>
   )
 }

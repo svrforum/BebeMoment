@@ -1,13 +1,13 @@
 'use client'
 import { cn } from '@/lib/cn'
-import { Calendar, Clock4, Settings, Users } from 'lucide-react'
+import { Calendar, Clock4, FolderOpen, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const items = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
-  { href: '/family', label: '가족', icon: Users },
+  { href: '/albums', label: '앨범', icon: FolderOpen },
   { href: '/settings', label: '설정', icon: Settings },
 ] as const
 
