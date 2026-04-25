@@ -4,7 +4,7 @@ import { pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useState } from 'react'
 
 type AssetSlim = {
   id: string
@@ -97,7 +97,12 @@ export function ViewerImage({
             loading="eager"
             fetchPriority="high"
             className="max-h-screen max-w-full object-contain"
-            style={{ touchAction: 'pinch-zoom' }}
+            style={
+              {
+                touchAction: 'pinch-zoom',
+                viewTransitionName: `asset-${current.id}`,
+              } as CSSProperties
+            }
           />
         )}
       </motion.div>

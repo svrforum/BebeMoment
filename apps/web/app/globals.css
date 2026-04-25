@@ -107,3 +107,14 @@
       color-mix(in srgb, #000 60%, transparent);
   }
 }
+
+/* Phase C-2: View Transitions for asset → detail page */
+@view-transition {
+  navigation: auto;
+}
+
+::view-transition-old(asset-image),
+::view-transition-new(asset-image) {
+  animation-duration: 300ms;
+  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}

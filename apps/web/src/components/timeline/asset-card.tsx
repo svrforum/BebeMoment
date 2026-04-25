@@ -3,6 +3,7 @@ import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
 import Link from 'next/link'
+import type { CSSProperties } from 'react'
 
 type Props = {
   id: string
@@ -23,6 +24,7 @@ export function AssetCard({ id, urls, status, kind }: Props) {
         'relative block aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-900',
         'transition-transform ease-ios active:scale-[0.97]',
       )}
+      style={{ viewTransitionName: `asset-${id}` } as CSSProperties}
     >
       {hasImage ? (
         <PictureImage
