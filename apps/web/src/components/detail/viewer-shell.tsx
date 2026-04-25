@@ -96,7 +96,7 @@ export function ViewerShell({
       </div>
 
       {/* Desktop-only info panel: always visible */}
-      <aside className="hidden w-[360px] shrink-0 overflow-y-auto border-l border-base-800 bg-base-950 md:block">
+      <aside className="hidden w-[360px] shrink-0 overflow-y-auto border-l border-base-200 bg-base-0 md:block dark:border-base-800 dark:bg-base-900">
         <ViewerInfoPanel
           assetId={current.id}
           currentUserId={currentUserId}

@@ -43,9 +43,11 @@ function FileThumb({ file }: { file: FileRow }) {
 function FileRowItem({
   file,
   onRemove,
+  onAssetDone,
 }: {
   file: FileRow
   onRemove: (id: string) => void
+  onAssetDone: (assetId: string) => void
 }) {
   const uploadComplete = file.progress?.uploadComplete ?? false
   const percentage = Math.round(file.progress?.percentage ?? 0)
@@ -75,7 +77,11 @@ function FileRowItem({
         <div className="mt-1.5">
           {uploadComplete ? (
             assetId && uploadToken ? (
-              <UploadProgressBar assetId={assetId} uploadToken={uploadToken} />
+              <UploadProgressBar
+                assetId={assetId}
+                uploadToken={uploadToken}
+                onComplete={() => onAssetDone(assetId)}
+              />
             ) : (
               <div className="text-xs text-base-500">처리 대기 중…</div>
             )
@@ -101,8 +107,18 @@ function FileRowItem({
 export function UploadDashboard({ onComplete }: { onComplete: () => void }) {
   const toast = useToast()
   const [files, setFiles] = useState<FileRow[]>([])
+  const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  const markAssetDone = useCallback((assetId: string) => {
+    setDoneIds((prev) => {
+      if (prev.has(assetId)) return prev
+      const next = new Set(prev)
+      next.add(assetId)
+      return next
+    })
+  }, [])
 
   const [uppy] = useState<Uppy<UppyFileMeta, UppyBody>>(() => {
     const u = new Uppy<UppyFileMeta, UppyBody>({
@@ -176,19 +192,31 @@ export function UploadDashboard({ onComplete }: { onComplete: () => void }) {
         variant: 'danger',
       })
     }
-    const onComplete2 = () => onComplete()
     uppy.on('upload-error', onError)
     uppy.on('restriction-failed', onRestrictionFailed)
-    uppy.on('complete', onComplete2)
     if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
       ;(window as unknown as { __uppy?: typeof uppy }).__uppy = uppy
     }
     return () => {
       uppy.off('upload-error', onError)
       uppy.off('restriction-failed', onRestrictionFailed)
-      uppy.off('complete', onComplete2)
     }
-  }, [uppy, toast, onComplete])
+  }, [uppy, toast])
+
+  // Auto-close once every queued file has finished processing (status: ready/failed).
+  // Slight delay so the user sees "완료" land before the sheet dismisses.
+  useEffect(() => {
+    if (files.length === 0) return
+    const allHaveAsset = files.every((f) => f.meta?.assetId)
+    if (!allHaveAsset) return
+    const allDone = files.every((f) => {
+      const id = f.meta?.assetId
+      return id ? doneIds.has(id) : false
+    })
+    if (!allDone) return
+    const t = setTimeout(() => onComplete(), 700)
+    return () => clearTimeout(t)
+  }, [files, doneIds, onComplete])
 
   const addFiles = useCallback(
     (list: FileList | File[]) => {
@@ -276,7 +304,7 @@ export function UploadDashboard({ onComplete }: { onComplete: () => void }) {
       {hasFiles && (
         <ul className="max-h-[360px] divide-y divide-base-100 overflow-y-auto rounded-xl border border-base-200 px-1 dark:divide-base-800 dark:border-base-800">
           {files.map((f) => (
-            <FileRowItem key={f.id} file={f} onRemove={remove} />
+            <FileRowItem key={f.id} file={f} onRemove={remove} onAssetDone={markAssetDone} />
           ))}
         </ul>
       )}

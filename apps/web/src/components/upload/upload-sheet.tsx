@@ -39,7 +39,14 @@ export function UploadSheetProvider({ children }: { children: ReactNode }) {
     <UploadSheetContext.Provider value={value}>
       {children}
       <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
-        {isOpen && <LazyUploadDashboard onComplete={() => router.refresh()} />}
+        {isOpen && (
+          <LazyUploadDashboard
+            onComplete={() => {
+              router.refresh()
+              setOpen(false)
+            }}
+          />
+        )}
       </Sheet>
     </UploadSheetContext.Provider>
   )

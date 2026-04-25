@@ -42,20 +42,20 @@ export function ViewerInfoPanel({
 }) {
   return (
     <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-800 bg-base-950/95 px-4 py-3 backdrop-blur">
-        <h2 className="text-sm font-semibold text-base-100">세부정보</h2>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-200/70 bg-base-0/85 px-4 py-3 backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/85">
+        <h2 className="text-sm font-semibold text-base-900 dark:text-base-50">세부정보</h2>
       </div>
       <div className="space-y-6 p-4">
         <MetadataSection {...meta} />
-        <div className="space-y-2 border-t border-base-800 pt-4">
+        <div className="space-y-2 border-t border-base-200 pt-4 dark:border-base-800">
           <div className="flex items-center gap-2">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
             <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
           </div>
           <LikerAvatars users={likers.users} />
         </div>
-        <div className="border-t border-base-800 pt-4">
-          <h3 className="mb-2 text-sm font-semibold text-base-100">
+        <div className="border-t border-base-200 pt-4 dark:border-base-800">
+          <h3 className="mb-2 text-sm font-semibold text-base-900 dark:text-base-50">
             댓글 {initialComments.filter((c) => !c.deletedAt).length}
           </h3>
           <CommentList
