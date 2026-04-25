@@ -11,11 +11,12 @@ import { listTimeline } from '@/server/timeline/merged-list'
 export default async function TimelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string }>
+  searchParams: Promise<{ tag?: string | string[] }>
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
-  const { tag: tagSlug } = await searchParams
+  const { tag } = await searchParams
+  const tagSlugs = Array.isArray(tag) ? tag : tag ? [tag] : []
 
   const [baby, { items }] = await Promise.all([
     prismaPublic.baby.findFirst({
@@ -24,7 +25,7 @@ export default async function TimelinePage({
     }),
     listTimeline(
       ctx.family.id,
-      { limit: 100, ...(tagSlug ? { tagSlug } : {}) },
+      { limit: 100, ...(tagSlugs.length > 0 ? { tagSlugs } : {}) },
       prismaPublic,
       prismaMedia,
       getMediaClient(),
@@ -60,7 +61,7 @@ export default async function TimelinePage({
       <TagFilterStrip
         familyId={ctx.family.id}
         prismaPublic={prismaPublic}
-        {...(tagSlug ? { activeSlug: tagSlug } : {})}
+        activeSlugs={tagSlugs}
       />
       {journalItems.length > 0 && (
         <div className="mx-auto max-w-3xl px-5 pt-4 space-y-3">

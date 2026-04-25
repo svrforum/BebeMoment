@@ -42,6 +42,9 @@ export default async function SettingsPage() {
               <Link href="/saved">저장함</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">
+              <Link href="/settings/tags">태그 관리</Link>
+            </Button>
+            <Button asChild variant="ghost" className="w-full justify-start">
               <Link href="/journal">일기</Link>
             </Button>
             <Button asChild variant="ghost" className="w-full justify-start">

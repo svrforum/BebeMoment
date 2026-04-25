@@ -36,7 +36,14 @@ function decodeCursor(s: string): Cursor | null {
 
 export async function listTimeline(
   familyId: string,
-  params: { limit?: number; cursor?: string; tagSlug?: string },
+  params: {
+    limit?: number
+    cursor?: string
+    /** Single tag (back-compat) — equivalent to tagSlugs of length 1. */
+    tagSlug?: string
+    /** AND filter: assets matching ALL slugs. */
+    tagSlugs?: string[]
+  },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -45,23 +52,32 @@ export async function listTimeline(
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
-  // Tag filter: resolve slug → tag id, then fetch the asset_id set this tag
-  // is attached to. Empty result means a known-but-unused tag — return zero
-  // assets without a media query.
+  // Resolve the tag filter (single or multi) to an asset_id intersection.
+  // Empty resolved set means "matches nothing" — short-circuit.
+  const requestedSlugs = params.tagSlugs?.length
+    ? params.tagSlugs
+    : params.tagSlug
+      ? [params.tagSlug]
+      : []
   let tagAssetIds: string[] | null = null
-  if (params.tagSlug) {
-    const tag = await prismaPublic.tag.findFirst({
-      where: { familyId, slug: params.tagSlug, deletedAt: null },
-      select: { id: true },
+  if (requestedSlugs.length > 0) {
+    const tagRows = await prismaPublic.tag.findMany({
+      where: { familyId, slug: { in: requestedSlugs }, deletedAt: null },
+      select: { id: true, slug: true },
     })
-    if (!tag) {
+    if (tagRows.length !== requestedSlugs.length) {
+      // At least one slug is unknown / deleted — AND can't match.
       return { items: [], nextCursor: null }
     }
-    const links = await prismaPublic.assetTag.findMany({
-      where: { tagId: tag.id, familyId },
-      select: { assetId: true },
+    const tagIds = tagRows.map((t) => t.id)
+    // Find asset ids that have ALL the requested tags.
+    const grouped = await prismaPublic.assetTag.groupBy({
+      by: ['assetId'],
+      where: { familyId, tagId: { in: tagIds } },
+      _count: { tagId: true },
+      having: { tagId: { _count: { equals: tagIds.length } } },
     })
-    tagAssetIds = links.map((l) => l.assetId)
+    tagAssetIds = grouped.map((g) => g.assetId)
     if (tagAssetIds.length === 0) {
       return { items: [], nextCursor: null }
     }
@@ -86,7 +102,7 @@ export async function listTimeline(
     // When filtering by tag, hide journal entries — they're not tagged.
     tagAssetIds
       ? prismaPublic.journalEntry.findMany({
-          where: { id: '__never__' },
+          where: { familyId, id: '00000000-0000-0000-0000-000000000000' },
           include: { assets: true },
         })
       : prismaPublic.journalEntry.findMany({
