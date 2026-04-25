@@ -1,4 +1,7 @@
 'use client'
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import type { AssetUrls } from '@bebe/media-client'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -6,7 +9,8 @@ import { useCallback, useEffect, useState } from 'react'
 type AssetSlim = {
   id: string
   kind: 'image' | 'video'
-  mediaUrl: string | null
+  urls: AssetUrls | null
+  videoSrc: string | null
   posterUrl: string | undefined
 }
 
@@ -46,6 +50,11 @@ export function ViewerImage({
     return () => window.removeEventListener('keydown', onKey)
   }, [goPrev, goNext, router])
 
+  const trio = pickDisplayTrio(current.urls)
+  const fallbackUrl = pickDisplayUrl(current.urls)
+  const isVideo = current.kind === 'video'
+  const noMedia = isVideo ? current.videoSrc === null : trio === null && fallbackUrl === null
+
   return (
     <AnimatePresence initial={false} mode="wait">
       <motion.div
@@ -66,13 +75,13 @@ export function ViewerImage({
         onClick={onToggleChrome}
         className="flex min-h-screen items-center justify-center"
       >
-        {current.mediaUrl === null ? (
+        {noMedia ? (
           <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
             처리 중…
           </div>
-        ) : current.kind === 'video' ? (
+        ) : isVideo ? (
           <video
-            src={current.mediaUrl}
+            src={current.videoSrc ?? ''}
             poster={current.posterUrl}
             controls
             className="max-h-screen max-w-full"
@@ -80,14 +89,13 @@ export function ViewerImage({
             <track kind="captions" />
           </video>
         ) : (
-          // eslint-disable-next-line @next/next/no-img-element
-          <img
-            src={current.mediaUrl}
+          <PictureImage
+            trio={trio}
+            fallbackUrl={fallbackUrl}
             alt=""
+            dominantColor={current.urls?.dominantColor ?? null}
             loading="eager"
-            // @ts-expect-error — fetchpriority is a valid HTML attribute React accepts via lowercase DOM
-            fetchpriority="high"
-            decoding="async"
+            fetchPriority="high"
             className="max-h-screen max-w-full object-contain"
             style={{ touchAction: 'pinch-zoom' }}
           />

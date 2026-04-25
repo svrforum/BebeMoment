@@ -1,14 +1,21 @@
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
+import type { AssetUrls } from '@bebe/media-client'
 import Link from 'next/link'
 
 type Props = {
   id: string
-  thumbUrl?: string | null | undefined
+  urls: AssetUrls | null
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
 }
 
-export function AssetCard({ id, thumbUrl, status, kind }: Props) {
+export function AssetCard({ id, urls, status, kind }: Props) {
+  const trio = pickThumbTrio(urls)
+  const fallbackUrl = pickThumbUrl(urls)
+  const hasImage = trio !== null || fallbackUrl !== null
+
   return (
     <Link
       href={`/detail/${id}`}
@@ -17,10 +24,13 @@ export function AssetCard({ id, thumbUrl, status, kind }: Props) {
         'transition-transform ease-ios active:scale-[0.97]',
       )}
     >
-      {thumbUrl ? (
-        <img
-          src={thumbUrl}
+      {hasImage ? (
+        <PictureImage
+          trio={trio}
+          fallbackUrl={fallbackUrl}
           alt=""
+          aspectRatio={urls?.aspectRatio ?? null}
+          dominantColor={urls?.dominantColor ?? null}
           className="h-full w-full object-cover"
           loading="lazy"
         />

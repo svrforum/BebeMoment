@@ -1,6 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
-import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
@@ -34,7 +33,7 @@ export default async function SavedPage() {
                 <AssetCard
                   key={b.assetId}
                   id={b.assetId}
-                  thumbUrl={pickThumbUrl(b.asset.urls)}
+                  urls={b.asset.urls}
                   status={b.asset.status}
                   kind={b.asset.kind}
                 />

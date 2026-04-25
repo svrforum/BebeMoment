@@ -1,6 +1,7 @@
 'use client'
 import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
+import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
 import { useCallback } from 'react'
 import { BucketSection } from './bucket-section'
@@ -9,7 +10,7 @@ type AssetRow = {
   id: string
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
-  thumbUrl: string | null
+  urls: AssetUrls | null
 }
 
 type BucketGroup = { label: string; assets: AssetRow[] }

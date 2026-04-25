@@ -1,7 +1,6 @@
 import { JournalForm } from '@/components/journal/JournalForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
-import { pickThumbUrl } from '@/lib/asset-url'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -39,7 +38,7 @@ export default async function NewJournalPage() {
     : {}
   const pickerAssets = assets.map((a) => ({
     id: a.id,
-    thumbUrl: pickThumbUrl(urlsMap[a.id] ?? null),
+    urls: urlsMap[a.id] ?? null,
   }))
 
   return (

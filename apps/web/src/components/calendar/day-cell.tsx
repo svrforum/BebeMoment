@@ -1,7 +1,10 @@
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
+import type { AssetUrls } from '@bebe/media-client'
 import Link from 'next/link'
 
-type Asset = { id: string; thumbUrl: string | null }
+type Asset = { id: string; urls: AssetUrls | null }
 
 type Props = {
   date: Date
@@ -13,7 +16,10 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
   const hasAssets = assets.length > 0
   const dayNum = date.getDate()
   const dateParam = date.toISOString().slice(0, 10)
-  const firstThumb = assets[0]?.thumbUrl ?? null
+  const firstUrls = assets[0]?.urls ?? null
+  const trio = pickThumbTrio(firstUrls)
+  const fallbackUrl = pickThumbUrl(firstUrls)
+  const hasThumb = hasAssets && (trio !== null || fallbackUrl !== null)
 
   return (
     <Link
@@ -25,10 +31,12 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
         hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
       )}
     >
-      {hasAssets && firstThumb ? (
-        <img
-          src={firstThumb}
+      {hasThumb ? (
+        <PictureImage
+          trio={trio}
+          fallbackUrl={fallbackUrl}
           alt=""
+          dominantColor={firstUrls?.dominantColor ?? null}
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"
         />

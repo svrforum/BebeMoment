@@ -1,10 +1,11 @@
+import type { AssetUrls } from '@bebe/media-client'
 import { AssetCard } from './asset-card'
 
 type AssetRow = {
   id: string
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
-  thumbUrl: string | null
+  urls: AssetUrls | null
 }
 
 type Props = {
@@ -20,13 +21,7 @@ export function BucketSection({ label, assets }: Props) {
       </h2>
       <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
         {assets.map((a) => (
-          <AssetCard
-            key={a.id}
-            id={a.id}
-            thumbUrl={a.thumbUrl}
-            status={a.status}
-            kind={a.kind}
-          />
+          <AssetCard key={a.id} id={a.id} urls={a.urls} status={a.status} kind={a.kind} />
         ))}
       </div>
     </section>

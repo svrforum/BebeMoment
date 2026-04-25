@@ -1,5 +1,4 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
@@ -24,15 +23,12 @@ export default async function TrashPage() {
     <>
       <AppHeader title="휴지통" />
       <TrashList
-        assets={deleted.map((a) => {
-          const thumbUrl = pickThumbUrl(urlsMap[a.id] ?? null)
-          return {
-            id: a.id,
-            originalFilename: a.originalFilename,
-            thumbUrl,
-            deletedAtISO: a.deletedAt?.toISOString() ?? '',
-          }
-        })}
+        assets={deleted.map((a) => ({
+          id: a.id,
+          originalFilename: a.originalFilename,
+          urls: urlsMap[a.id] ?? null,
+          deletedAtISO: a.deletedAt?.toISOString() ?? '',
+        }))}
       />
     </>
   )

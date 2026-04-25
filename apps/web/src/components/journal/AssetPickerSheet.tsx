@@ -1,9 +1,12 @@
 'use client'
 import { Button } from '@/components/ui/button'
+import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
+import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import type { AssetUrls } from '@bebe/media-client'
 import { useState } from 'react'
 
-export type PickerAsset = { id: string; thumbUrl: string | null }
+export type PickerAsset = { id: string; urls: AssetUrls | null }
 
 export function AssetPickerSheet({
   available,
@@ -42,6 +45,9 @@ export function AssetPickerSheet({
         <div className="grid grid-cols-3 gap-1">
           {available.map((a) => {
             const isSel = selected.has(a.id)
+            const trio = pickThumbTrio(a.urls)
+            const fallbackUrl = pickThumbUrl(a.urls)
+            const hasImage = trio !== null || fallbackUrl !== null
             return (
               <button
                 type="button"
@@ -49,9 +55,15 @@ export function AssetPickerSheet({
                 onClick={() => toggle(a.id)}
                 className={`relative aspect-square overflow-hidden rounded-lg border ${isSel ? 'ring-2 ring-point-500' : ''}`}
               >
-                {a.thumbUrl ? (
-                  // eslint-disable-next-line @next/next/no-img-element
-                  <img src={a.thumbUrl} alt="" className="h-full w-full object-cover" />
+                {hasImage ? (
+                  <PictureImage
+                    trio={trio}
+                    fallbackUrl={fallbackUrl}
+                    alt=""
+                    dominantColor={a.urls?.dominantColor ?? null}
+                    className="h-full w-full object-cover"
+                    loading="lazy"
+                  />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
                     처리 중

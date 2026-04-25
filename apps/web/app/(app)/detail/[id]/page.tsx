@@ -28,7 +28,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   )
   if (!asset) notFound()
 
-  const mediaUrl = pickDisplayUrl(asset.urls)
+  const videoSrc = asset.kind === 'video' ? pickDisplayUrl(asset.urls) : null
   const posterUrl = pickVideoPosterUrl(asset.urls) ?? undefined
 
   const [prevAsset, nextAsset, likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members] =
@@ -98,7 +98,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <ViewerShell
-      current={{ id: asset.id, kind: asset.kind, mediaUrl, posterUrl }}
+      current={{ id: asset.id, kind: asset.kind, urls: asset.urls, videoSrc, posterUrl }}
       siblings={{ prevId: prevAsset?.id, nextId: nextAsset?.id }}
       currentUserId={ctx.user.id}
       canDeleteAny={canDeleteAny}

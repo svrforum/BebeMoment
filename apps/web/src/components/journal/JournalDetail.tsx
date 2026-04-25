@@ -1,4 +1,5 @@
-import { pickThumbUrl } from '@/lib/asset-url'
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import ReactMarkdown from 'react-markdown'
@@ -26,15 +27,18 @@ export function JournalDetail({
             .sort((a, b) => a.order - b.order)
             .map((link) => {
               if (!link.asset) return null
-              const url = pickThumbUrl(link.asset.urls)
-              if (!url) return null
+              const trio = pickThumbTrio(link.asset.urls)
+              const fallbackUrl = pickThumbUrl(link.asset.urls)
+              if (!trio && !fallbackUrl) return null
               return (
-                // eslint-disable-next-line @next/next/no-img-element
-                <img
+                <PictureImage
                   key={link.assetId}
-                  src={url}
+                  trio={trio}
+                  fallbackUrl={fallbackUrl}
                   alt=""
+                  dominantColor={link.asset.urls?.dominantColor ?? null}
                   className="aspect-square w-full rounded-lg object-cover"
+                  loading="lazy"
                 />
               )
             })}

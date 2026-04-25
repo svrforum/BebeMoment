@@ -1,4 +1,5 @@
 'use client'
+import type { AssetUrls } from '@bebe/media-client'
 import { useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
 import type { MetadataSection } from './metadata-section'
@@ -14,7 +15,8 @@ type MetaProps = React.ComponentProps<typeof MetadataSection>
 type AssetSlim = {
   id: string
   kind: 'image' | 'video'
-  mediaUrl: string | null
+  urls: AssetUrls | null
+  videoSrc: string | null
   posterUrl: string | undefined
 }
 

@@ -1,6 +1,5 @@
 import { MonthGrid } from '@/components/calendar/month-grid'
 import { AppHeader } from '@/components/shell/app-header'
-import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listAssets } from '@/server/asset/list'
@@ -27,7 +26,7 @@ export default async function CalendarPage() {
         assets={assets.map((a) => ({
           id: a.id,
           takenAtISO: a.takenAt.toISOString(),
-          thumbUrl: pickThumbUrl(a.urls),
+          urls: a.urls,
         }))}
       />
     </>
