@@ -9,6 +9,6 @@ export type ProgressEvent =
       assetId: string
       status: 'processing' | 'ready' | 'failed'
       familyId?: string
-      derivatives?: Record<string, string>
+      derivatives?: Record<string, unknown>
       reason?: string
     }

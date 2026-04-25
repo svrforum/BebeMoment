@@ -69,19 +69,25 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       }
     }
 
-    let derivatives: Record<string, string> = {}
+    let derivatives: Record<string, unknown> = {}
     let width: number | undefined
     let height: number | undefined
     let durationMs: number | undefined
+    let aspectRatio: number | null = null
+    let blurhash: string | null = null
+    let dominantColor: string | null = null
 
     if (asset.kind === 'image') {
       const r = await processImage({ originalKey, assetId: asset.id }, storage)
-      derivatives = r.derivatives
+      derivatives = r.derivatives as unknown as Record<string, unknown>
       width = r.width
       height = r.height
+      aspectRatio = r.aspectRatio
+      blurhash = r.blurhash
+      dominantColor = r.dominantColor
     } else if (asset.kind === 'video') {
       const r = await processVideo({ originalKey, assetId: asset.id }, storage)
-      derivatives = r.derivatives
+      derivatives = r.derivatives as unknown as Record<string, unknown>
       width = r.width
       height = r.height
       durationMs = r.durationMs
@@ -108,6 +114,9 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
         ...(width !== undefined ? { width } : {}),
         ...(height !== undefined ? { height } : {}),
         ...(durationMs !== undefined ? { durationMs } : {}),
+        aspectRatioCached: aspectRatio,
+        blurhash,
+        dominantColor,
         // biome-ignore lint/suspicious/noExplicitAny: Prisma Json
         derivatives: derivatives as any,
       },
