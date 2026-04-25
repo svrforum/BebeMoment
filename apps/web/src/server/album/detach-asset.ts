@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 
@@ -35,5 +36,6 @@ export async function detachAssetFromAlbum(
       familyId: input.familyId,
     },
   })
+  revalidateAlbumsTag(input.familyId)
   return { ok: true }
 }

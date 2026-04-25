@@ -9,6 +9,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { getAlbumWithBreadcrumbs } from '@/server/album/get'
 import { listAlbums } from '@/server/album/list'
 import { listAlbumAssets } from '@/server/album/list-assets'
+import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
 import { ImagePlus } from 'lucide-react'
 import { notFound } from 'next/navigation'
@@ -41,25 +42,17 @@ export default async function AlbumDetailPage({
   ])
   const assets = assetsResult.assets
 
-  // Child preview thumbs (same approach as the root page).
-  const childAttachments = children.length
-    ? await prismaPublic.albumAsset.findMany({
-        where: {
-          familyId: ctx.family.id,
-          albumId: { in: children.map((c) => c.id) },
-        },
-        orderBy: [{ albumId: 'asc' }, { addedAt: 'desc' }],
-      })
-    : []
-  const previewByAlbum = new Map<string, string[]>()
-  for (const link of childAttachments) {
-    const list = previewByAlbum.get(link.albumId) ?? []
-    if (list.length < PREVIEW_PER_CHILD) {
-      list.push(link.assetId)
-      previewByAlbum.set(link.albumId, list)
-    }
-  }
-  const previewIds = Array.from(new Set(childAttachments.map((a) => a.assetId)))
+  // Child album preview thumbs — up to N latest attachments per child album
+  // in one window-function query (cheap regardless of family size).
+  const previewByAlbum = await previewAttachmentsByAlbum(
+    {
+      familyId: ctx.family.id,
+      albumIds: children.map((c) => c.id),
+      perAlbum: PREVIEW_PER_CHILD,
+    },
+    prismaPublic,
+  )
+  const previewIds = Array.from(new Set(Array.from(previewByAlbum.values()).flat()))
   const readyChildAssets = previewIds.length
     ? await prismaMedia.asset.findMany({
         where: {

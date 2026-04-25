@@ -5,6 +5,7 @@ import { z } from 'zod'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath } from './path'
+import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   familyId: z.string().uuid(),
@@ -50,7 +51,7 @@ export async function createAlbum(
   // migration. Catch P2002 instead of pre-checking, so concurrent creates
   // resolve cleanly without a check-then-write race.
   try {
-    return await prismaPublic.album.create({
+    const created = await prismaPublic.album.create({
       data: {
         id: ownId,
         familyId: input.familyId,
@@ -62,6 +63,8 @@ export async function createAlbum(
         createdByUserId: input.byUserId,
       },
     })
+    revalidateAlbumsTag(input.familyId)
+    return created
   } catch (err) {
     if (isUniqueViolation(err)) {
       throw new ConflictError('같은 위치에 같은 이름의 앨범이 이미 있어요')

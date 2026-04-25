@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -50,7 +51,10 @@ export async function attachAssetsToAlbum(
     select: { id: true },
   })
   const validIds = validAssets.map((a) => a.id)
-  if (validIds.length === 0) return { added: 0, total: 0 }
+  if (validIds.length === 0) {
+    revalidateAlbumsTag(input.familyId)
+    return { added: 0, total: 0 }
+  }
 
   const result = await prismaPublic.albumAsset.createMany({
     data: validIds.map((assetId) => ({
@@ -65,5 +69,6 @@ export async function attachAssetsToAlbum(
   const total = await prismaPublic.albumAsset.count({
     where: { albumId: input.albumId, familyId: input.familyId },
   })
+  revalidateAlbumsTag(input.familyId)
   return { added: result.count, total }
 }

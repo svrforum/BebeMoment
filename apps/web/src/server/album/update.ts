@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -70,7 +71,7 @@ export async function updateAlbum(
   }
 
   try {
-    return await prismaPublic.album.update({
+    const updated = await prismaPublic.album.update({
       where: { id: album.id },
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
@@ -82,6 +83,8 @@ export async function updateAlbum(
           : {}),
       },
     })
+    revalidateAlbumsTag(input.familyId)
+    return updated
   } catch (err) {
     if (isUniqueViolation(err)) {
       throw new ConflictError('같은 위치에 같은 이름의 앨범이 이미 있어요')

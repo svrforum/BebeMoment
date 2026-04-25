@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateTagsTag } from '../cache-tags'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 
@@ -38,5 +39,6 @@ export async function detachTagFromAsset(
       familyId: input.familyId,
     },
   })
+  revalidateTagsTag(input.familyId)
   return { removed: result.count }
 }

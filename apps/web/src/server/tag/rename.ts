@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
+import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   tagId: z.string().uuid(),
@@ -38,10 +39,12 @@ export async function renameTag(
   if (!tag) throw new NotFoundError('태그를 찾을 수 없어요')
 
   try {
-    return await prismaPublic.tag.update({
+    const renamed = await prismaPublic.tag.update({
       where: { id: tag.id },
       data: { name: input.name.trim(), slug },
     })
+    revalidateTagsTag(input.familyId)
+    return renamed
   } catch (err) {
     if (isUniqueViolation(err)) {
       throw new ConflictError('같은 이름의 태그가 이미 있어요')

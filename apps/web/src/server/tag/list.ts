@@ -1,4 +1,5 @@
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { unstable_cache } from 'next/cache'
 
 export type TagWithCount = {
   id: string
@@ -11,9 +12,23 @@ export type TagWithCount = {
 
 /**
  * List active tags in a family with their attached-asset counts.
- * Single round-trip via `groupBy` joined back onto tags.
+ * Cached per family for 60s with tag `tags:${familyId}` so the tag-chip
+ * strip on /timeline doesn't reissue two queries on every page hit.
+ * Mutations (create / rename / delete tag, attach / detach) call
+ * `revalidateTag('tags:${familyId}')` to pop the cache.
  */
-export async function listTagsWithCounts(
+export function listTagsWithCounts(
+  familyId: string,
+  prismaPublic: PrismaPublic,
+): Promise<TagWithCount[]> {
+  return unstable_cache(
+    () => listTagsWithCountsRaw(familyId, prismaPublic),
+    ['tags', familyId],
+    { revalidate: 60, tags: [`tags:${familyId}`] },
+  )()
+}
+
+async function listTagsWithCountsRaw(
   familyId: string,
   prismaPublic: PrismaPublic,
 ): Promise<TagWithCount[]> {

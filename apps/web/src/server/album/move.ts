@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath, isDescendant, rewritePathPrefix } from './path'
+import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -42,7 +43,7 @@ export async function moveAlbum(
   if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
 
   try {
-    return await prismaPublic.$transaction(async (tx) => {
+    const moved = await prismaPublic.$transaction(async (tx) => {
       const album = await tx.album.findFirst({
         where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
       })
@@ -136,6 +137,8 @@ export async function moveAlbum(
       }
       return root
     })
+    revalidateAlbumsTag(input.familyId)
+    return moved
   } catch (err) {
     if (isUniqueViolation(err)) {
       throw new ConflictError('이동할 위치에 같은 이름의 앨범이 이미 있어요')

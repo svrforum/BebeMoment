@@ -4,11 +4,9 @@ import { AppHeader } from '@/components/shell/app-header'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listAlbums } from '@/server/album/list'
+import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
 import { FolderPlus } from 'lucide-react'
-
-// Cookie access via `getContext()` already opts this route into dynamic
-// rendering; the explicit `force-dynamic` was redundant.
 
 const PREVIEW_PER_ALBUM = 4
 
@@ -21,29 +19,21 @@ export default async function AlbumsRootPage() {
     prismaPublic,
   )
 
-  // For visual preview: pull up to 4 most recently attached photos per album
-  // in one round-trip, then sign their URLs in a single batch.
-  const attachments = albums.length
-    ? await prismaPublic.albumAsset.findMany({
-        where: {
-          familyId: ctx.family.id,
-          albumId: { in: albums.map((a) => a.id) },
-        },
-        orderBy: [{ albumId: 'asc' }, { addedAt: 'desc' }],
-      })
-    : []
+  // Up to N most-recent attachments per album in a single window-function
+  // query — replaces the "fetch all rows, slice in JS" pattern which
+  // scaled with total photos in albums.
+  const previewByAlbum = await previewAttachmentsByAlbum(
+    {
+      familyId: ctx.family.id,
+      albumIds: albums.map((a) => a.id),
+      perAlbum: PREVIEW_PER_ALBUM,
+    },
+    prismaPublic,
+  )
 
-  // Group up to PREVIEW_PER_ALBUM per album.
-  const previewByAlbum = new Map<string, string[]>()
-  for (const link of attachments) {
-    const list = previewByAlbum.get(link.albumId) ?? []
-    if (list.length < PREVIEW_PER_ALBUM) {
-      list.push(link.assetId)
-      previewByAlbum.set(link.albumId, list)
-    }
-  }
-
-  const allPreviewIds = Array.from(new Set(attachments.map((a) => a.assetId)))
+  const allPreviewIds = Array.from(
+    new Set(Array.from(previewByAlbum.values()).flat()),
+  )
   const readyAssets = allPreviewIds.length
     ? await prismaMedia.asset.findMany({
         where: {

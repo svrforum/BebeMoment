@@ -1,4 +1,5 @@
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { unstable_cache } from 'next/cache'
 
 export type AlbumTreeNode = {
   id: string
@@ -11,11 +12,24 @@ export type AlbumTreeNode = {
 }
 
 /**
- * Build the entire album tree for one family. The result is a forest of
- * root nodes; each node has its children inlined for one-pass sidebar
- * rendering. Single SELECT — we shape the tree in memory.
+ * Build the entire album tree for one family. Cached per family for 60s
+ * with tag `albums:${familyId}` — the album picker reads this on every
+ * detail-page open. Mutations (create / move / rename / delete album,
+ * asset attach / detach) call `revalidateTag('albums:${familyId}')` to
+ * pop the cache.
  */
-export async function listAlbumTree(
+export function listAlbumTree(
+  familyId: string,
+  prismaPublic: PrismaPublic,
+): Promise<AlbumTreeNode[]> {
+  return unstable_cache(
+    () => listAlbumTreeRaw(familyId, prismaPublic),
+    ['album-tree', familyId],
+    { revalidate: 60, tags: [`albums:${familyId}`] },
+  )()
+}
+
+async function listAlbumTreeRaw(
   familyId: string,
   prismaPublic: PrismaPublic,
 ): Promise<AlbumTreeNode[]> {

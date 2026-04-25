@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
@@ -80,5 +81,8 @@ export async function deleteAlbum(
     })
 
     return { removedAlbums: 1 + childCount, removedAttachments: attachmentCount }
+  }).then((r) => {
+    revalidateAlbumsTag(input.familyId)
+    return r
   })
 }

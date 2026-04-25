@@ -4,6 +4,7 @@ import { z } from 'zod'
 import { ForbiddenError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
+import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   familyId: z.string().uuid(),
@@ -40,13 +41,16 @@ export async function createOrGetTag(
   const existing = await prismaPublic.tag.findFirst({
     where: { familyId: input.familyId, slug, deletedAt: null },
   })
-  if (existing) return existing
+  if (existing) {
+    revalidateTagsTag(input.familyId)
+    return existing
+  }
 
   // Concurrent creators with the same slug both pass the existence check;
   // the partial unique index `tags_family_slug_unique` lets only one win.
   // The loser re-reads — autocomplete-then-create flow stays idempotent.
   try {
-    return await prismaPublic.tag.create({
+    const created = await prismaPublic.tag.create({
       data: {
         familyId: input.familyId,
         name: input.name.trim(),
@@ -55,12 +59,17 @@ export async function createOrGetTag(
         createdByUserId: input.byUserId,
       },
     })
+    revalidateTagsTag(input.familyId)
+    return created
   } catch (err) {
     if (isUniqueViolation(err)) {
       const winner = await prismaPublic.tag.findFirst({
         where: { familyId: input.familyId, slug, deletedAt: null },
       })
-      if (winner) return winner
+      if (winner) {
+        revalidateTagsTag(input.familyId)
+        return winner
+      }
     }
     throw err
   }

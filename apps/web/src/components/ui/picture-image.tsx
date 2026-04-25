@@ -22,7 +22,35 @@ export type PictureImageProps = {
 
 function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null | undefined }) {
   const ref = useRef<HTMLCanvasElement>(null)
+  const [shouldDecode, setShouldDecode] = useState(false)
+
+  // Defer the (CPU-heavy) blurhash decode until the canvas approaches the
+  // viewport — was running synchronously for every grid card on mount,
+  // which blocked the main thread on 100-photo timelines. dominant-color
+  // background fills in instantly via the wrapper's CSS background, so
+  // off-screen cards still look right.
   useEffect(() => {
+    if (!ref.current) return
+    const node = ref.current
+    if (typeof IntersectionObserver === 'undefined') {
+      setShouldDecode(true)
+      return
+    }
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry?.isIntersecting) {
+          setShouldDecode(true)
+          obs.disconnect()
+        }
+      },
+      { rootMargin: '300px' },
+    )
+    obs.observe(node)
+    return () => obs.disconnect()
+  }, [])
+
+  useEffect(() => {
+    if (!shouldDecode) return
     const c = ref.current
     if (!c) return
     try {
@@ -39,7 +67,8 @@ function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null 
     } catch {
       // ignore — invalid hash
     }
-  }, [hash, aspect])
+  }, [shouldDecode, hash, aspect])
+
   return (
     <canvas
       ref={ref}

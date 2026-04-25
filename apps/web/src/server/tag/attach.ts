@@ -1,4 +1,5 @@
 import { can } from '@bebe/core'
+import { revalidateTagsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -59,6 +60,7 @@ export async function attachTagsToAsset(
     const total = await prismaPublic.assetTag.count({
       where: { assetId: input.assetId, familyId: input.familyId },
     })
+    revalidateTagsTag(input.familyId)
     return { added: 0, total }
   }
 
@@ -75,5 +77,6 @@ export async function attachTagsToAsset(
   const total = await prismaPublic.assetTag.count({
     where: { assetId: input.assetId, familyId: input.familyId },
   })
+  revalidateTagsTag(input.familyId)
   return { added: result.count, total }
 }
