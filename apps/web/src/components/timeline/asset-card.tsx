@@ -1,5 +1,5 @@
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
 import Link from 'next/link'
@@ -12,9 +12,17 @@ type Props = {
   kind: 'image' | 'video'
 }
 
+const STATUS_KO: Record<Props['status'], string> = {
+  uploading: '올리는 중',
+  processing: '처리 중',
+  ready: '준비 중',
+  failed: '업로드 실패',
+}
+
 export function AssetCard({ id, urls, status, kind }: Props) {
   const trio = pickThumbTrio(urls)
   const fallbackUrl = pickThumbUrl(urls)
+  const blurhash = pickBlurhash(urls)
   const hasImage = trio !== null || fallbackUrl !== null
 
   return (
@@ -33,12 +41,13 @@ export function AssetCard({ id, urls, status, kind }: Props) {
           alt=""
           aspectRatio={urls?.aspectRatio ?? null}
           dominantColor={urls?.dominantColor ?? null}
-          className="h-full w-full object-cover"
+          blurhash={blurhash}
+          className="h-full w-full"
           loading="lazy"
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
-          {status === 'processing' ? '처리 중…' : status}
+          {STATUS_KO[status]}
         </div>
       )}
       {kind === 'video' && (

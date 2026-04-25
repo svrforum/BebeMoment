@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
-import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { useState } from 'react'
 
@@ -61,7 +61,8 @@ export function AssetPickerSheet({
                     fallbackUrl={fallbackUrl}
                     alt=""
                     dominantColor={a.urls?.dominantColor ?? null}
-                    className="h-full w-full object-cover"
+                    blurhash={pickBlurhash(a.urls)}
+                    className="h-full w-full"
                     loading="lazy"
                   />
                 ) : (

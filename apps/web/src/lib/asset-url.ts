@@ -32,3 +32,11 @@ export function pickDisplayTrio(urls: AssetUrls | null | undefined): DerivativeT
   if (!urls) return null
   return urls.display1080 ?? urls.thumb512 ?? null
 }
+
+/**
+ * blurhash 문자열. 미디어 서버가 모든 자산에 대해 인코딩해 보냄.
+ * 레거시 자산은 null 가능. <PictureImage> 의 placeholder 모자이크에 사용.
+ */
+export function pickBlurhash(urls: AssetUrls | null | undefined): string | null {
+  return urls?.blurhash ?? null
+}

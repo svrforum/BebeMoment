@@ -1,5 +1,5 @@
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import Link from 'next/link'
@@ -22,6 +22,7 @@ export function JournalCard({ entry }: Props) {
               if (!t.asset) return null
               const trio = pickThumbTrio(t.asset.urls)
               const fallbackUrl = pickThumbUrl(t.asset.urls)
+              const blurhash = pickBlurhash(t.asset.urls)
               if (!trio && !fallbackUrl) return null
               return (
                 <PictureImage
@@ -31,7 +32,8 @@ export function JournalCard({ entry }: Props) {
                   alt=""
                   aspectRatio={t.asset.urls?.aspectRatio ?? null}
                   dominantColor={t.asset.urls?.dominantColor ?? null}
-                  className="h-20 w-20 rounded-lg object-cover"
+                  blurhash={blurhash}
+                  className="h-20 w-20 rounded-lg"
                   loading="lazy"
                 />
               )

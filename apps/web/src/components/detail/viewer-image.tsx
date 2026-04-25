@@ -1,6 +1,6 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
@@ -52,6 +52,7 @@ export function ViewerImage({
 
   const trio = pickDisplayTrio(current.urls)
   const fallbackUrl = pickDisplayUrl(current.urls)
+  const blurhash = pickBlurhash(current.urls)
   const isVideo = current.kind === 'video'
   const noMedia = isVideo ? current.videoSrc === null : trio === null && fallbackUrl === null
 
@@ -94,9 +95,12 @@ export function ViewerImage({
             fallbackUrl={fallbackUrl}
             alt=""
             dominantColor={current.urls?.dominantColor ?? null}
+            blurhash={blurhash}
+            aspectRatio={current.urls?.aspectRatio ?? null}
             loading="eager"
             fetchPriority="high"
-            className="max-h-screen max-w-full object-contain"
+            objectFit="contain"
+            className="max-h-screen max-w-full"
             style={
               {
                 touchAction: 'pinch-zoom',

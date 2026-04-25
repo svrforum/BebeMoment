@@ -1,5 +1,5 @@
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
 import Link from 'next/link'
@@ -19,6 +19,7 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
   const firstUrls = assets[0]?.urls ?? null
   const trio = pickThumbTrio(firstUrls)
   const fallbackUrl = pickThumbUrl(firstUrls)
+  const blurhash = pickBlurhash(firstUrls)
   const hasThumb = hasAssets && (trio !== null || fallbackUrl !== null)
 
   return (
@@ -37,7 +38,8 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
           fallbackUrl={fallbackUrl}
           alt=""
           dominantColor={firstUrls?.dominantColor ?? null}
-          className="absolute inset-0 h-full w-full object-cover"
+          blurhash={blurhash}
+          className="absolute inset-0 h-full w-full"
           loading="lazy"
         />
       ) : (
