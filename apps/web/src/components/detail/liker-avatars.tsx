@@ -20,16 +20,7 @@ export function LikerAvatars({ users }: { users: User[] }) {
             title={u.displayName}
             className="flex h-7 w-7 items-center justify-center rounded-full border-2 border-base-0 bg-base-200 text-xs font-medium text-base-700 dark:border-base-900 dark:bg-base-800 dark:text-base-300"
           >
-            {u.avatarPath ? (
-              // eslint-disable-next-line @next/next/no-img-element
-              <img
-                src={`/media/${u.avatarPath}`}
-                alt=""
-                className="h-full w-full rounded-full object-cover"
-              />
-            ) : (
-              u.displayName.slice(0, 1)
-            )}
+            {u.displayName.slice(0, 1)}
           </div>
         ))}
         {rest > 0 && (

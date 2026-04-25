@@ -111,9 +111,6 @@ importers:
       '@bebe/media-client':
         specifier: workspace:*
         version: link:../../packages/media-client
-      '@bebe/storage':
-        specifier: workspace:*
-        version: link:../../packages/storage
       '@lucia-auth/adapter-prisma':
         specifier: ^4.0.1
         version: 4.0.1(@prisma/client@5.22.0(prisma@5.22.0))(lucia@3.2.2)
