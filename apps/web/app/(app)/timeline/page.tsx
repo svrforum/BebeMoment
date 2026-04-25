@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
+import { TimelineComposer } from '@/components/timeline/timeline-composer'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -18,6 +19,7 @@ export default async function TimelinePage({
   const { tag } = await searchParams
   const tagSlugs = Array.isArray(tag) ? tag : tag ? [tag] : []
 
+  const viewerRole = ctx.membership?.role ?? 'family'
   const [baby, { items }] = await Promise.all([
     prismaPublic.baby.findFirst({
       where: { familyId: ctx.family.id, deletedAt: null },
@@ -25,7 +27,11 @@ export default async function TimelinePage({
     }),
     listTimeline(
       ctx.family.id,
-      { limit: 100, ...(tagSlugs.length > 0 ? { tagSlugs } : {}) },
+      {
+        limit: 100,
+        viewerRole,
+        ...(tagSlugs.length > 0 ? { tagSlugs } : {}),
+      },
       prismaPublic,
       prismaMedia,
       getMediaClient(),
@@ -63,6 +69,16 @@ export default async function TimelinePage({
         prismaPublic={prismaPublic}
         activeSlugs={tagSlugs}
       />
+      {tagSlugs.length === 0 && (
+        <div className="mx-auto max-w-3xl px-5 pt-3">
+          <TimelineComposer
+            userDisplayName={ctx.user?.displayName ?? '나'}
+            userAvatarPath={ctx.user?.avatarPath ?? null}
+            babyId={baby?.id ?? null}
+            viewerRole={viewerRole}
+          />
+        </div>
+      )}
       {journalItems.length > 0 && (
         <div className="mx-auto max-w-3xl px-5 pt-4 space-y-3">
           {journalItems.map((it) => {

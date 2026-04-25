@@ -5,6 +5,8 @@ import { z } from 'zod'
 
 const MOODS = ['happy', 'grateful', 'tired', 'sad', 'proud', 'calm'] as const
 
+const VISIBILITIES = ['family', 'guardians'] as const
+
 const Input = z.object({
   familyId: z.string().uuid(),
   babyId: z.string().uuid().nullable(),
@@ -12,6 +14,7 @@ const Input = z.object({
   title: z.string().max(120).optional(),
   body: z.string().min(1).max(20000),
   mood: z.enum(MOODS).optional(),
+  visibility: z.enum(VISIBILITIES).optional(),
   assetIds: z.array(z.string().uuid()).max(10).optional(),
   byUserId: z.string().uuid(),
 })
@@ -45,11 +48,14 @@ export async function createJournalEntry(
   }
 
   if (input.assetIds && input.assetIds.length > 0) {
+    // Status check is intentionally relaxed: composer-style flows attach
+    // photos that may still be `uploading` / `processing` — that's fine,
+    // the entry references them by id and the timeline will pick up the
+    // final urls once status flips to `ready`.
     const count = await prismaMedia.asset.count({
       where: {
         id: { in: input.assetIds },
         familyId: input.familyId,
-        status: 'ready',
         deletedAt: null,
       },
     })
@@ -64,6 +70,7 @@ export async function createJournalEntry(
       ...(input.title !== undefined ? { title: input.title } : {}),
       body: input.body,
       ...(input.mood !== undefined ? { mood: input.mood } : {}),
+      ...(input.visibility !== undefined ? { visibility: input.visibility } : {}),
       createdByUserId: input.byUserId,
       ...(input.assetIds && input.assetIds.length > 0
         ? {

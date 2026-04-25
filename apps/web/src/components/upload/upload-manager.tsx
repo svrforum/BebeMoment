@@ -24,7 +24,10 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024
 export type UploadManager = {
   files: FileRow[]
   doneIds: Set<string>
-  addFiles: (list: FileList | File[]) => number
+  /** Returns the Uppy file IDs of newly added files so callers (e.g. the
+   *  timeline composer) can track this specific batch through the manager's
+   *  shared state. */
+  addFiles: (list: FileList | File[]) => string[]
   removeFile: (id: string) => void
   markAssetDone: (assetId: string) => void
   /** Files still uploading bytes (tus PATCH in flight). */
@@ -178,13 +181,13 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   }, [files, doneIds, uppy, router])
 
   const addFiles = useCallback(
-    (list: FileList | File[]): number => {
+    (list: FileList | File[]): string[] => {
       const arr = Array.from(list)
-      let added = 0
+      const ids: string[] = []
       for (const f of arr) {
         try {
-          uppy.addFile({ name: f.name, type: f.type, data: f })
-          added++
+          const id = uppy.addFile({ name: f.name, type: f.type, data: f })
+          if (typeof id === 'string') ids.push(id)
         } catch (e) {
           toast({
             title: `${f.name} 추가 실패`,
@@ -193,7 +196,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           })
         }
       }
-      return added
+      return ids
     },
     [uppy, toast],
   )

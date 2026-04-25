@@ -303,17 +303,18 @@ model MilestoneAsset {
 }
 
 model JournalEntry {
-  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  familyId        String    @map("family_id") @db.Uuid
-  babyId          String?   @map("baby_id") @db.Uuid
-  entryDate       DateTime  @map("entry_date") @db.Date
+  id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String             @map("family_id") @db.Uuid
+  babyId          String?            @map("baby_id") @db.Uuid
+  entryDate       DateTime           @map("entry_date") @db.Date
   title           String?
   body            String
   mood            String?
-  createdByUserId String    @map("created_by_user_id") @db.Uuid
-  createdAt       DateTime  @default(now()) @map("created_at")
-  updatedAt       DateTime  @updatedAt @map("updated_at")
-  deletedAt       DateTime? @map("deleted_at")
+  visibility      JournalVisibility  @default(family)
+  createdByUserId String             @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime           @default(now()) @map("created_at")
+  updatedAt       DateTime           @updatedAt @map("updated_at")
+  deletedAt       DateTime?          @map("deleted_at")
 
   family    Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
   baby      Baby?               @relation(fields: [babyId], references: [id], onDelete: SetNull)
@@ -322,7 +323,15 @@ model JournalEntry {
 
   @@index([familyId, entryDate])
   @@index([familyId, babyId, entryDate])
+  @@index([familyId, visibility, entryDate(sort: Desc)])
   @@map("journal_entries")
+  @@schema("public")
+}
+
+enum JournalVisibility {
+  family
+  guardians
+  @@map("journal_visibility")
   @@schema("public")
 }
 

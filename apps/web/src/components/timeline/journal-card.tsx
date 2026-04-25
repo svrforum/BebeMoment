@@ -2,6 +2,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
+import { ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 
 type Props = {
@@ -20,6 +21,12 @@ export function JournalCard({ entry }: Props) {
           <span>{entry.entryDate.toISOString().slice(0, 10)}</span>
           <span aria-hidden className="h-1 w-1 rounded-full bg-base-300 dark:bg-base-700" />
           <span>일기</span>
+          {entry.visibility === 'guardians' && (
+            <span className="inline-flex items-center gap-0.5 rounded-full bg-point-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-point-500">
+              <ShieldCheck size={10} strokeWidth={2.4} />
+              보호자만
+            </span>
+          )}
         </div>
         {entry.title && (
           <h3 className="mt-1.5 text-[17px] font-semibold tracking-tight text-base-900 dark:text-base-50">

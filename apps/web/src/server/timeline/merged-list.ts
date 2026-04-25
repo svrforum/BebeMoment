@@ -43,6 +43,10 @@ export async function listTimeline(
     tagSlug?: string
     /** AND filter: assets matching ALL slugs. */
     tagSlugs?: string[]
+    /** Viewer's role — drives journal-entry visibility filtering. Defaults
+     *  to 'family' which is the most restrictive (won't see guardians-only
+     *  entries). Pass 'owner' / 'guardian' to include them. */
+    viewerRole?: 'owner' | 'guardian' | 'family'
   },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
@@ -115,6 +119,11 @@ export async function listTimeline(
           where: {
             familyId,
             deletedAt: null,
+            // Family viewer sees only family-visible entries; owner /
+            // guardian see everything.
+            ...(params.viewerRole === 'family'
+              ? { visibility: 'family' }
+              : {}),
             ...(cursorTs && cur
               ? {
                   OR: [
