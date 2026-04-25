@@ -34,19 +34,19 @@ export function SideNav({ familyName }: Props) {
         : '다크'
 
   return (
-    <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200 bg-base-0/80 backdrop-blur-xl md:flex dark:border-base-800 dark:bg-base-900/80">
-      <div className="flex items-center gap-2 px-5 pb-4 pt-6">
-        <span className="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-point-500 text-sm font-bold text-white">
+    <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200/70 bg-base-0/70 backdrop-blur-xl md:flex dark:border-base-800/60 dark:bg-base-900/60">
+      <div className="flex items-center gap-2.5 px-5 pb-5 pt-7">
+        <span className="inline-flex h-8 w-8 items-center justify-center rounded-2xl bg-point-500 text-sm font-bold text-white shadow-sm">
           b
         </span>
         <div className="min-w-0">
-          <div className="truncate text-sm font-semibold">
+          <div className="truncate text-[13px] font-semibold tracking-tight">
             bebe<span className="text-point-500">·</span>moment
           </div>
-          <div className="truncate text-xs text-base-500">{familyName}</div>
+          <div className="truncate text-[11px] text-base-500">{familyName}</div>
         </div>
       </div>
-      <nav className="flex-1 space-y-0.5 px-3">
+      <nav className="flex-1 space-y-1 px-3">
         {items.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname.startsWith(`${href}/`)
           return (
@@ -54,28 +54,35 @@ export function SideNav({ familyName }: Props) {
               key={href}
               href={href}
               className={cn(
-                'flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium transition',
+                'group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-all ease-ios',
                 active
                   ? 'bg-point-500/10 text-point-500'
                   : 'text-base-600 hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100',
               )}
             >
-              <Icon size={18} strokeWidth={active ? 2.4 : 2} />
+              <span
+                aria-hidden
+                className={cn(
+                  'absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-point-500 transition-all ease-ios',
+                  active ? 'h-5 w-1 opacity-100' : 'h-0 w-0.5 opacity-0',
+                )}
+              />
+              <Icon size={18} strokeWidth={active ? 2.4 : 1.9} />
               {label}
             </Link>
           )
         })}
       </nav>
-      <div className="border-t border-base-200 p-3 dark:border-base-800">
+      <div className="px-3 pb-4">
         <button
           type="button"
           onClick={cycle}
           title={`테마: ${themeTitle} (클릭으로 전환)`}
-          className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-medium text-base-600 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium text-base-500 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
         >
-          <ThemeIcon size={18} />
+          <ThemeIcon size={16} strokeWidth={1.9} />
           <span className="flex-1 text-left">테마</span>
-          <span className="text-xs text-base-500">{themeTitle}</span>
+          <span className="text-[11px] text-base-400">{themeTitle}</span>
         </button>
       </div>
     </aside>

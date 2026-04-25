@@ -83,6 +83,41 @@
   .tabular-nums {
     font-variant-numeric: tabular-nums;
   }
+  /* Staggered enter for grid items — runs once on mount, no JS */
+  @keyframes asset-enter {
+    from {
+      opacity: 0;
+      transform: translateY(10px) scale(0.97);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  .asset-enter {
+    animation: asset-enter 380ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+  @keyframes section-enter {
+    from {
+      opacity: 0;
+      transform: translateY(8px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  .section-enter {
+    animation: section-enter 320ms cubic-bezier(0.4, 0, 0.2, 1) both;
+    animation-delay: var(--enter-delay, 0ms);
+  }
+  @media (prefers-reduced-motion: reduce) {
+    .asset-enter,
+    .section-enter {
+      animation: none;
+    }
+  }
   /* Glass surface for sheets / overlays */
   .glass {
     background-color: color-mix(in srgb, var(--color-base-0) 72%, transparent);

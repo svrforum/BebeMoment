@@ -54,8 +54,8 @@ export function TimelineGrid({ initialGroups }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-4">
-      {initialGroups.map((g) => (
-        <BucketSection key={g.label} label={g.label} assets={g.assets} />
+      {initialGroups.map((g, i) => (
+        <BucketSection key={g.label} label={g.label} assets={g.assets} index={i} />
       ))}
     </div>
   )

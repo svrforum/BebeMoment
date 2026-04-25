@@ -9,45 +9,75 @@ type Props = {
 }
 
 export function AppHeader({ title, subtitle, right }: Props) {
-  const [compact, setCompact] = useState(false)
+  const [progress, setProgress] = useState(0)
 
   useEffect(() => {
-    const onScroll = () => setCompact(window.scrollY > 60)
+    const onScroll = () => {
+      const p = Math.min(1, Math.max(0, window.scrollY / 80))
+      setProgress(p)
+    }
+    onScroll()
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
+  const compact = progress > 0.6
+  const titleScale = 1 - progress * 0.4
+  const titleY = -progress * 4
+
   return (
     <header
       className={cn(
-        'sticky top-0 z-30 bg-base-50/80 dark:bg-base-950/80 backdrop-blur-md',
-        'transition-all ease-ios duration-200',
-        compact ? 'border-b border-base-200 dark:border-base-800' : 'border-b border-transparent',
+        'sticky top-0 z-30 transition-[background-color,backdrop-filter] ease-ios duration-200',
+        compact
+          ? 'bg-base-50/80 backdrop-blur-xl dark:bg-base-950/70'
+          : 'bg-base-50/0 dark:bg-base-950/0',
       )}
+      style={{ WebkitBackdropFilter: compact ? 'blur(20px) saturate(180%)' : undefined }}
     >
       <div className="mx-auto max-w-3xl px-5">
+        <div className="flex h-12 items-center justify-between gap-3">
+          <div
+            className={cn(
+              'min-w-0 flex-1 transition-opacity ease-ios duration-200',
+              compact ? 'opacity-100' : 'opacity-0',
+            )}
+          >
+            <div className="truncate text-center text-base font-semibold text-base-900 dark:text-base-50">
+              {title}
+            </div>
+          </div>
+          {right && <div className="flex flex-shrink-0 items-center gap-2">{right}</div>}
+        </div>
         <div
           className={cn(
-            'flex items-center justify-between gap-3 transition-all ease-ios',
-            compact ? 'h-12' : 'h-20 items-end pb-2',
+            'overflow-hidden transition-[max-height,opacity] ease-ios duration-200',
+            compact ? 'max-h-0 opacity-0' : 'max-h-32 opacity-100',
           )}
         >
-          <div className={cn('flex-1 min-w-0', compact ? 'text-center' : '')}>
+          <div className="origin-left pb-4 pt-1">
             <h1
-              className={cn(
-                'font-bold tracking-tight text-base-900 dark:text-base-50 transition-all ease-ios truncate',
-                compact ? 'text-base' : 'text-2xl',
-              )}
+              className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50"
+              style={{
+                transform: `scale(${titleScale}) translateY(${titleY}px)`,
+                transformOrigin: 'left bottom',
+                transition: 'transform 120ms cubic-bezier(0.4, 0, 0.2, 1)',
+              }}
             >
               {title}
             </h1>
-            {subtitle && !compact && (
-              <p className="text-sm text-base-500 mt-0.5 truncate">{subtitle}</p>
+            {subtitle && (
+              <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>
             )}
           </div>
-          {right && <div className="flex items-center gap-2 flex-shrink-0">{right}</div>}
         </div>
       </div>
+      <div
+        className={cn(
+          'pointer-events-none h-px w-full bg-base-200 transition-opacity ease-ios duration-200 dark:bg-base-800',
+          compact ? 'opacity-100' : 'opacity-0',
+        )}
+      />
     </header>
   )
 }

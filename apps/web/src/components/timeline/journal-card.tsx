@@ -11,13 +11,24 @@ type Props = {
 export function JournalCard({ entry }: Props) {
   const thumbs = entry.assets.slice(0, 3)
   return (
-    <Link href={`/journal/${entry.id}`} className="block">
-      <article className="rounded-2xl border border-base-200 bg-base-0 p-4 shadow-sm dark:border-base-800 dark:bg-base-900">
-        <div className="text-xs text-base-500">{entry.entryDate.toISOString().slice(0, 10)}</div>
-        {entry.title && <h3 className="mt-1 font-medium">{entry.title}</h3>}
-        <p className="mt-1 line-clamp-2 text-sm text-base-500">{entry.body}</p>
+    <Link
+      href={`/journal/${entry.id}`}
+      className="block transition-transform ease-ios active:scale-[0.985]"
+    >
+      <article className="rounded-3xl border border-base-200/70 bg-base-0 p-5 shadow-card transition-shadow hover:shadow-elevated dark:border-base-800/70 dark:bg-base-900">
+        <div className="flex items-center gap-2 text-[12px] font-medium tabular-nums text-base-400">
+          <span>{entry.entryDate.toISOString().slice(0, 10)}</span>
+          <span aria-hidden className="h-1 w-1 rounded-full bg-base-300 dark:bg-base-700" />
+          <span>일기</span>
+        </div>
+        {entry.title && (
+          <h3 className="mt-1.5 text-[17px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+            {entry.title}
+          </h3>
+        )}
+        <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-base-500">{entry.body}</p>
         {thumbs.length > 0 && (
-          <div className="mt-3 flex gap-1">
+          <div className="mt-4 flex gap-1.5">
             {thumbs.map((t) => {
               if (!t.asset) return null
               const trio = pickThumbTrio(t.asset.urls)
@@ -33,13 +44,13 @@ export function JournalCard({ entry }: Props) {
                   aspectRatio={t.asset.urls?.aspectRatio ?? null}
                   dominantColor={t.asset.urls?.dominantColor ?? null}
                   blurhash={blurhash}
-                  className="h-20 w-20 rounded-lg"
+                  className="h-20 w-20 rounded-xl"
                   loading="lazy"
                 />
               )
             })}
             {entry.assets.length > 3 && (
-              <div className="flex h-20 w-20 items-center justify-center rounded-lg bg-base-100 text-xs text-base-500 dark:bg-base-800">
+              <div className="flex h-20 w-20 items-center justify-center rounded-xl bg-base-100 text-[12px] font-medium text-base-500 dark:bg-base-800">
                 +{entry.assets.length - 3}
               </div>
             )}
