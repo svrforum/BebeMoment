@@ -1,4 +1,5 @@
 'use client'
+import { AlbumPicker } from '@/components/albums/album-picker'
 import type { AssetTag } from '@/components/tags/tag-editor'
 import type { AssetUrls } from '@bebe/media-client'
 import { useState } from 'react'
@@ -53,6 +54,7 @@ export function ViewerShell({
   // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [albumPickerOpen, setAlbumPickerOpen] = useState(false)
   const [liked, setLiked] = useState(initialLiked)
   const [count, setCount] = useState(likers.count)
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
@@ -82,6 +84,7 @@ export function ViewerShell({
           commentCount={initialComments.filter((c) => !c.deletedAt).length}
           visible={chromeVisible}
           onCommentTap={() => setSheetOpen(true)}
+          onAlbumTap={() => setAlbumPickerOpen(true)}
         />
         <ViewerBottomSheet
           open={sheetOpen}
@@ -124,8 +127,15 @@ export function ViewerShell({
           initialTags={initialTags}
           initialFilename={initialFilename}
           initialCaption={initialCaption}
+          onAlbumTap={() => setAlbumPickerOpen(true)}
         />
       </aside>
+
+      <AlbumPicker
+        open={albumPickerOpen}
+        onOpenChange={setAlbumPickerOpen}
+        assetId={current.id}
+      />
     </div>
   )
 }

@@ -1,6 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
-import { MessageCircle } from 'lucide-react'
+import { FolderPlus, MessageCircle } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
 
@@ -15,6 +15,7 @@ export function ViewerActionBar({
   commentCount,
   visible,
   onCommentTap,
+  onAlbumTap,
 }: {
   assetId: string
   liked: boolean
@@ -26,6 +27,7 @@ export function ViewerActionBar({
   commentCount: number
   visible: boolean
   onCommentTap: () => void
+  onAlbumTap: () => void
 }) {
   return (
     <div
@@ -43,6 +45,14 @@ export function ViewerActionBar({
       >
         <MessageCircle size={22} />
         {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
+      </button>
+      <button
+        type="button"
+        onClick={onAlbumTap}
+        aria-label="앨범에 추가"
+        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+      >
+        <FolderPlus size={22} />
       </button>
       <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
     </div>
