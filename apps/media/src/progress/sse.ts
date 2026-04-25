@@ -1,22 +1,31 @@
-import type { FastifyReply } from 'fastify'
+import type { FastifyReply, FastifyRequest } from 'fastify'
 import IORedis from 'ioredis'
 import { progressChannel } from './channel'
 
 export async function streamProgress(args: {
+  request: FastifyRequest
   reply: FastifyReply
   assetId: string
   redisUrl: string
   heartbeatMs?: number
 }): Promise<void> {
-  const { reply, assetId, redisUrl } = args
+  const { request, reply, assetId, redisUrl } = args
   const heartbeatMs = args.heartbeatMs ?? 15_000
 
+  const origin = (request.headers.origin as string | undefined) ?? '*'
   reply.raw.writeHead(200, {
     'content-type': 'text/event-stream',
     'cache-control': 'no-cache, no-transform',
     'x-accel-buffering': 'no',
     connection: 'keep-alive',
+    'access-control-allow-origin': origin,
+    'access-control-allow-credentials': 'true',
+    vary: 'Origin',
   })
+  reply.raw.write(`: connected\n\n`)
+  if (typeof (reply.raw as { flushHeaders?: () => void }).flushHeaders === 'function') {
+    ;(reply.raw as { flushHeaders: () => void }).flushHeaders()
+  }
 
   const sub = new IORedis(redisUrl)
   const channel = progressChannel(assetId)

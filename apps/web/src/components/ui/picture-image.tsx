@@ -138,8 +138,7 @@ export function PictureImage({
           width={width}
           height={height}
           loading={loading}
-          // @ts-expect-error — React accepts lowercase fetchpriority for DOM
-          fetchpriority={fetchPriority}
+          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={onLoad}
           style={imgStyle}
@@ -160,8 +159,7 @@ export function PictureImage({
           width={width}
           height={height}
           loading={loading}
-          // @ts-expect-error — React accepts lowercase fetchpriority for DOM
-          fetchpriority={fetchPriority}
+          fetchPriority={fetchPriority}
           decoding="async"
           onLoad={onLoad}
           style={imgStyle}

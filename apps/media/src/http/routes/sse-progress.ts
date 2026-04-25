@@ -20,6 +20,7 @@ export const sseProgressRoute: FastifyPluginAsync = async (app) => {
       })
     }
     const env = parseEnv(process.env as Record<string, string | undefined>)
-    await streamProgress({ reply, assetId, redisUrl: env.REDIS_URL })
+    reply.hijack()
+    await streamProgress({ request: req, reply, assetId, redisUrl: env.REDIS_URL })
   })
 }
