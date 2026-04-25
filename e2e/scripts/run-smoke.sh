@@ -54,7 +54,7 @@ pnpm --filter @bebe/db-media  exec prisma migrate deploy >/dev/null
 
 # 3. Clean all test data (full truncate to ensure deterministic state)
 "${DC[@]}" -f docker-compose.dev.yml exec -T postgres psql -U bebe -d bebe -c "
-  TRUNCATE TABLE asset_babies, assets, invites, memberships, babies, families, sessions, oidc_identities, users, app_settings, setting_history RESTART IDENTITY CASCADE;
+  TRUNCATE TABLE media.asset_babies, media.assets, public.invites, public.memberships, public.babies, public.families, public.sessions, public.oidc_identities, public.users, public.app_settings, public.setting_history RESTART IDENTITY CASCADE;
 " >/dev/null
 
 # 4. Start web (custom port)

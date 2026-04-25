@@ -1,6 +1,8 @@
-import { randomUUID } from 'node:crypto'
+import { randomBytes, randomUUID } from 'node:crypto'
 import type { PrismaClient } from '@bebe/db-media'
+import { Upload } from '@tus/server'
 import { signUploadToken } from '@/lib/jwt'
+import { getTusStore } from '@/lib/tus-store'
 
 export type InitAssetInput = {
   familyId: string
@@ -43,7 +45,10 @@ export async function initAsset(
       originalFilename: input.originalName,
       mimeType: input.mime,
       sizeBytes: BigInt(input.sizeBytes),
-      sha256: ''.padEnd(64, '0'),
+      // Random placeholder hash to satisfy @@unique([familyId, sha256]).
+      // Replaced with the real SHA256 of the original bytes after tus finish
+      // (process-asset.ts hashes the buffer).
+      sha256: randomBytes(32).toString('hex'),
       takenAt: input.takenAt ? new Date(input.takenAt) : new Date(),
       takenAtSource: input.takenAt ? 'manual' : 'uploaded',
       status: 'uploading',
@@ -51,6 +56,19 @@ export async function initAsset(
       height: input.clientHeight ?? null,
     },
   })
+
+  // Pre-register the tus upload in the FileStore datastore so the browser's
+  // HEAD/PATCH requests against the deterministic /tus/<assetId> URL can find it.
+  // Without this, tus-js-client (with `uploadUrl` set) does HEAD first and gets
+  // 404 because the upload doesn't exist yet.
+  await getTusStore().create(
+    new Upload({
+      id: assetId,
+      size: input.sizeBytes,
+      offset: 0,
+      metadata: { filename: input.originalName, filetype: input.mime },
+    }),
+  )
 
   const uploadToken = await signUploadToken({
     sub: input.uploaderId,
