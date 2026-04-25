@@ -1,13 +1,9 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Sheet } from '@/components/ui/sheet'
-import type { Asset } from '@bebe/db-media'
 import { useState } from 'react'
 
-function thumbKeyOf(a: Asset): string | undefined {
-  const d = (a.derivatives ?? {}) as Record<string, string>
-  return d.thumb_sm ?? d.poster
-}
+export type PickerAsset = { id: string; thumbUrl: string | null }
 
 export function AssetPickerSheet({
   available,
@@ -16,7 +12,7 @@ export function AssetPickerSheet({
   triggerLabel,
   max = 10,
 }: {
-  available: Asset[]
+  available: PickerAsset[]
   initialSelected?: string[]
   onChange: (ids: string[]) => void
   triggerLabel: string
@@ -46,7 +42,6 @@ export function AssetPickerSheet({
         <div className="grid grid-cols-3 gap-1">
           {available.map((a) => {
             const isSel = selected.has(a.id)
-            const tk = thumbKeyOf(a)
             return (
               <button
                 type="button"
@@ -54,9 +49,9 @@ export function AssetPickerSheet({
                 onClick={() => toggle(a.id)}
                 className={`relative aspect-square overflow-hidden rounded-lg border ${isSel ? 'ring-2 ring-point-500' : ''}`}
               >
-                {tk ? (
+                {a.thumbUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={`/media/${tk}`} alt="" className="h-full w-full object-cover" />
+                  <img src={a.thumbUrl} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
                     처리 중

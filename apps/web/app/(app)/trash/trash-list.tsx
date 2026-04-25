@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation'
 type Asset = {
   id: string
   originalFilename: string
-  thumbKey?: string
+  thumbUrl: string | null
   deletedAtISO: string
 }
 
@@ -29,9 +29,9 @@ export function TrashList({ assets }: Props) {
       {assets.map((a) => (
         <Card key={a.id}>
           <CardBody className="flex items-center gap-3">
-            {a.thumbKey ? (
+            {a.thumbUrl ? (
               <img
-                src={`/media/${a.thumbKey}`}
+                src={a.thumbUrl}
                 alt=""
                 className="h-14 w-14 rounded-lg object-cover"
               />

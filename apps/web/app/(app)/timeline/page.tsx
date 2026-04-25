@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
@@ -32,7 +33,7 @@ export default async function TimelinePage() {
         takenAt: a.takenAt,
         status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
         kind: a.kind as 'image' | 'video',
-        derivatives: (a.derivatives as Record<string, string> | null) ?? null,
+        thumbUrl: pickThumbUrl(a.urls),
       }
     }),
     birthDate,

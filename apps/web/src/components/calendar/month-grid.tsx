@@ -4,7 +4,7 @@ import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { useState } from 'react'
 import { DayCell } from './day-cell'
 
-type Asset = { id: string; takenAtISO: string; thumbKey?: string | undefined }
+type Asset = { id: string; takenAtISO: string; thumbUrl: string | null }
 
 type Props = {
   initialYear: number
@@ -92,7 +92,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
               date={d}
               assets={dayAssets.map((a) => ({
                 id: a.id,
-                thumbKey: a.thumbKey,
+                thumbUrl: a.thumbUrl,
               }))}
               isCurrentMonth={d.getMonth() === month}
             />

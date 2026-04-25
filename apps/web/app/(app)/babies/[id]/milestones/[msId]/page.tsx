@@ -2,8 +2,10 @@ import { MilestoneForm } from '@/components/milestone/MilestoneForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getPreset } from '@bebe/core'
 import { notFound, redirect } from 'next/navigation'
@@ -31,6 +33,16 @@ export default async function EditMilestonePage({
     orderBy: { takenAt: 'desc' },
     take: 200,
   })
+  const urlsMap = assets.length
+    ? await getMediaClient().getAssetUrlsBatch(
+        ctx.family.id,
+        assets.map((a) => a.id),
+      )
+    : {}
+  const pickerAssets = assets.map((a) => ({
+    id: a.id,
+    thumbUrl: pickThumbUrl(urlsMap[a.id] ?? null),
+  }))
 
   return (
     <>
@@ -40,7 +52,7 @@ export default async function EditMilestonePage({
           <CardBody>
             <MilestoneForm
               action={updateMilestoneAction.bind(null, id, msId)}
-              availableAssets={assets}
+              availableAssets={pickerAssets}
               {...(preset ? { preset } : {})}
               submitLabel="수정"
               defaults={{

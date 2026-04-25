@@ -3,6 +3,7 @@ import { JournalForm } from '@/components/journal/JournalForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -49,6 +50,16 @@ export default async function JournalDetailPage({
         take: 200,
       }),
     ])
+    const urlsMap = assets.length
+      ? await getMediaClient().getAssetUrlsBatch(
+          ctx.family.id,
+          assets.map((a) => a.id),
+        )
+      : {}
+    const pickerAssets = assets.map((a) => ({
+      id: a.id,
+      thumbUrl: pickThumbUrl(urlsMap[a.id] ?? null),
+    }))
     return (
       <>
         <AppHeader title="일기 편집" />
@@ -58,7 +69,7 @@ export default async function JournalDetailPage({
               <JournalForm
                 action={updateJournalAction.bind(null, id)}
                 babies={babies}
-                availableAssets={assets}
+                availableAssets={pickerAssets}
                 submitLabel="수정"
                 defaults={{
                   babyId: entry.babyId,

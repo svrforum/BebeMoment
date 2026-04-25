@@ -1,10 +1,9 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
-import type { Asset } from '@bebe/db-media'
 import type { Baby } from '@bebe/db-public'
 import { useState } from 'react'
-import { AssetPickerSheet } from './AssetPickerSheet'
+import { AssetPickerSheet, type PickerAsset } from './AssetPickerSheet'
 
 const MOODS: { key: string; label: string }[] = [
   { key: '', label: '선택 안 함' },
@@ -25,7 +24,7 @@ export function JournalForm({
 }: {
   action: (fd: FormData) => void
   babies: Pick<Baby, 'id' | 'name'>[]
-  availableAssets: Asset[]
+  availableAssets: PickerAsset[]
   defaults?: {
     babyId?: string | null
     entryDate?: string

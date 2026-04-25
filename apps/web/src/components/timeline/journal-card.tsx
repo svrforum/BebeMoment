@@ -1,9 +1,10 @@
-import type { Asset } from '@bebe/db-media'
+import { pickThumbUrl } from '@/lib/asset-url'
+import type { AssetWithUrls } from '@/server/asset/get'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import Link from 'next/link'
 
 type Props = {
-  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: Asset | null })[] }
+  entry: JournalEntry & { assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[] }
 }
 
 export function JournalCard({ entry }: Props) {
@@ -18,14 +19,13 @@ export function JournalCard({ entry }: Props) {
           <div className="mt-3 flex gap-1">
             {thumbs.map((t) => {
               if (!t.asset) return null
-              const d = (t.asset.derivatives ?? {}) as Record<string, string>
-              const tk = d.thumb_sm ?? d.poster
-              if (!tk) return null
+              const url = pickThumbUrl(t.asset.urls)
+              if (!url) return null
               return (
                 // eslint-disable-next-line @next/next/no-img-element
                 <img
                   key={t.assetId}
-                  src={`/media/${tk}`}
+                  src={url}
                   alt=""
                   className="h-20 w-20 rounded-lg object-cover"
                 />

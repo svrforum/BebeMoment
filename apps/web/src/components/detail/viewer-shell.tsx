@@ -14,7 +14,7 @@ type MetaProps = React.ComponentProps<typeof MetadataSection>
 type AssetSlim = {
   id: string
   kind: 'image' | 'video'
-  mediaUrl: string
+  mediaUrl: string | null
   posterUrl: string | undefined
 }
 

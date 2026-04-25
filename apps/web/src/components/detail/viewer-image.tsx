@@ -6,7 +6,7 @@ import { useCallback, useEffect, useState } from 'react'
 type AssetSlim = {
   id: string
   kind: 'image' | 'video'
-  mediaUrl: string
+  mediaUrl: string | null
   posterUrl: string | undefined
 }
 
@@ -66,7 +66,11 @@ export function ViewerImage({
         onClick={onToggleChrome}
         className="flex min-h-screen items-center justify-center"
       >
-        {current.kind === 'video' ? (
+        {current.mediaUrl === null ? (
+          <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
+            처리 중…
+          </div>
+        ) : current.kind === 'video' ? (
           <video
             src={current.mediaUrl}
             poster={current.posterUrl}

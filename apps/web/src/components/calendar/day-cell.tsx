@@ -1,7 +1,7 @@
 import { cn } from '@/lib/cn'
 import Link from 'next/link'
 
-type Asset = { id: string; thumbKey?: string | undefined }
+type Asset = { id: string; thumbUrl: string | null }
 
 type Props = {
   date: Date
@@ -13,6 +13,7 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
   const hasAssets = assets.length > 0
   const dayNum = date.getDate()
   const dateParam = date.toISOString().slice(0, 10)
+  const firstThumb = assets[0]?.thumbUrl ?? null
 
   return (
     <Link
@@ -24,9 +25,9 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
         hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
       )}
     >
-      {hasAssets && assets[0]?.thumbKey ? (
+      {hasAssets && firstThumb ? (
         <img
-          src={`/media/${assets[0].thumbKey}`}
+          src={firstThumb}
           alt=""
           className="absolute inset-0 h-full w-full object-cover"
           loading="lazy"

@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
@@ -29,13 +30,11 @@ export default async function SavedPage() {
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
             {items.map((b) => {
               if (!b.asset) return null
-              const d = (b.asset.derivatives as Record<string, string> | null) ?? {}
-              const thumb = d.thumb_sm ?? d.poster
               return (
                 <AssetCard
                   key={b.assetId}
                   id={b.assetId}
-                  thumbKey={thumb}
+                  thumbUrl={pickThumbUrl(b.asset.urls)}
                   status={b.asset.status}
                   kind={b.asset.kind}
                 />

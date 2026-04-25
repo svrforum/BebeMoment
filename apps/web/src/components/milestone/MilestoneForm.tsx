@@ -2,9 +2,8 @@
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import type { MilestonePreset } from '@bebe/core'
-import type { Asset } from '@bebe/db-media'
 import { useState } from 'react'
-import { AssetPickerSheet } from '../journal/AssetPickerSheet'
+import { AssetPickerSheet, type PickerAsset } from '../journal/AssetPickerSheet'
 
 export function MilestoneForm({
   action,
@@ -14,7 +13,7 @@ export function MilestoneForm({
   submitLabel = '저장',
 }: {
   action: (fd: FormData) => void
-  availableAssets: Asset[]
+  availableAssets: PickerAsset[]
   defaults?: {
     achievedAt?: string
     note?: string | null

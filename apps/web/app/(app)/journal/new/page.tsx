@@ -1,8 +1,10 @@
 import { JournalForm } from '@/components/journal/JournalForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
 import { createJournalAction } from './actions'
@@ -29,13 +31,28 @@ export default async function NewJournalPage() {
     }),
   ])
 
+  const urlsMap = assets.length
+    ? await getMediaClient().getAssetUrlsBatch(
+        ctx.family.id,
+        assets.map((a) => a.id),
+      )
+    : {}
+  const pickerAssets = assets.map((a) => ({
+    id: a.id,
+    thumbUrl: pickThumbUrl(urlsMap[a.id] ?? null),
+  }))
+
   return (
     <>
       <AppHeader title="일기 쓰기" />
       <div className="mx-auto max-w-sm px-5 py-6">
         <Card>
           <CardBody>
-            <JournalForm action={createJournalAction} babies={babies} availableAssets={assets} />
+            <JournalForm
+              action={createJournalAction}
+              babies={babies}
+              availableAssets={pickerAssets}
+            />
           </CardBody>
         </Card>
       </div>

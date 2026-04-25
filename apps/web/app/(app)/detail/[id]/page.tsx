@@ -1,4 +1,5 @@
 import { ViewerShell } from '@/components/detail/viewer-shell'
+import { pickDisplayUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -27,12 +28,8 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   )
   if (!asset) notFound()
 
-  const derivs = (asset.derivatives as Record<string, string> | null) ?? {}
-  const mediaUrl =
-    asset.kind === 'video'
-      ? `/media/${derivs.preview_video ?? asset.originalKey}`
-      : `/media/${derivs.thumb_lg ?? asset.originalKey}`
-  const posterUrl = derivs.poster ? `/media/${derivs.poster}` : undefined
+  const mediaUrl = pickDisplayUrl(asset.urls)
+  const posterUrl = pickVideoPosterUrl(asset.urls) ?? undefined
 
   const [prevAsset, nextAsset, likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members] =
     await Promise.all([

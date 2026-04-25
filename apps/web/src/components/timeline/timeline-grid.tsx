@@ -9,7 +9,7 @@ type AssetRow = {
   id: string
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
-  derivatives?: Record<string, string> | null
+  thumbUrl: string | null
 }
 
 type BucketGroup = { label: string; assets: AssetRow[] }

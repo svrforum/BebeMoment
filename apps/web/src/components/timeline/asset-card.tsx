@@ -3,12 +3,12 @@ import Link from 'next/link'
 
 type Props = {
   id: string
-  thumbKey?: string | undefined
+  thumbUrl?: string | null | undefined
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
 }
 
-export function AssetCard({ id, thumbKey, status, kind }: Props) {
+export function AssetCard({ id, thumbUrl, status, kind }: Props) {
   return (
     <Link
       href={`/detail/${id}`}
@@ -17,9 +17,9 @@ export function AssetCard({ id, thumbKey, status, kind }: Props) {
         'transition-transform ease-ios active:scale-[0.97]',
       )}
     >
-      {thumbKey ? (
+      {thumbUrl ? (
         <img
-          src={`/media/${thumbKey}`}
+          src={thumbUrl}
           alt=""
           className="h-full w-full object-cover"
           loading="lazy"
