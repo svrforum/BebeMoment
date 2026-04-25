@@ -32,7 +32,7 @@ export default async function AlbumDetailPage({
   )
   if (!album) notFound()
 
-  const [children, assets] = await Promise.all([
+  const [children, assetsResult] = await Promise.all([
     listAlbums({ familyId: ctx.family.id, parentId: album.id }, prismaPublic),
     listAlbumAssets(
       { albumId: album.id, familyId: ctx.family.id },
@@ -41,6 +41,7 @@ export default async function AlbumDetailPage({
       getMediaClient(),
     ),
   ])
+  const assets = assetsResult.assets
 
   // Child preview thumbs (same approach as the root page).
   const childAttachments = children.length
@@ -144,17 +145,24 @@ export default async function AlbumDetailPage({
               </p>
             </div>
           ) : (
-            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">
-              {assets.map((a) => (
-                <AssetCard
-                  key={a.id}
-                  id={a.id}
-                  urls={a.urls}
-                  status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
-                  kind={a.kind as 'image' | 'video'}
-                />
-              ))}
-            </div>
+            <>
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">
+                {assets.map((a) => (
+                  <AssetCard
+                    key={a.id}
+                    id={a.id}
+                    urls={a.urls}
+                    status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
+                    kind={a.kind as 'image' | 'video'}
+                  />
+                ))}
+              </div>
+              {assetsResult.truncated && (
+                <p className="mt-3 px-1 text-[12px] text-base-500">
+                  먼저 {assets.length}장 표시 중 · 전체 {assetsResult.total}장
+                </p>
+              )}
+            </>
           )}
         </section>
       </div>

@@ -1,10 +1,11 @@
 import { getAuth } from '@/lib/auth'
-import { prismaPublic } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { deleteAlbum } from '@/server/album/delete'
 import { getAlbumWithBreadcrumbs } from '@/server/album/get'
 import { moveAlbum } from '@/server/album/move'
 import { updateAlbum } from '@/server/album/update'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 
 async function getCtx() {
@@ -33,7 +34,7 @@ export async function GET(
     if (!album) return NextResponse.json({ error: 'not found' }, { status: 404 })
     return NextResponse.json({ album })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -80,6 +81,7 @@ export async function PATCH(
             ...(body.coverAssetId !== undefined ? { coverAssetId: body.coverAssetId } : {}),
           },
           prismaPublic,
+          prismaMedia,
         )
         return NextResponse.json({ album: updated })
       }
@@ -96,10 +98,11 @@ export async function PATCH(
         ...(body.coverAssetId !== undefined ? { coverAssetId: body.coverAssetId } : {}),
       },
       prismaPublic,
+      prismaMedia,
     )
     return NextResponse.json({ album })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -124,8 +127,6 @@ export async function DELETE(
     )
     return NextResponse.json(result)
   } catch (e) {
-    const msg = (e as Error).message
-    const status = msg.includes('cascade') ? 409 : 400
-    return NextResponse.json({ error: msg }, { status })
+    const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status })
   }
 }

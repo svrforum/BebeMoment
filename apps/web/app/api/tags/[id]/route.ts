@@ -1,6 +1,7 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { deleteTag } from '@/server/tag/delete'
 import { renameTag } from '@/server/tag/rename'
 import { NextResponse } from 'next/server'
@@ -29,7 +30,7 @@ export async function PATCH(
     )
     return NextResponse.json({ tag })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -53,6 +54,6 @@ export async function DELETE(
     )
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

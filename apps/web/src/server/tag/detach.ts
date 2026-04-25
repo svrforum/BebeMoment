@@ -12,7 +12,7 @@ const Input = z.object({
 export async function detachTagFromAsset(
   raw: unknown,
   prismaPublic: PrismaPublic,
-): Promise<{ ok: boolean }> {
+): Promise<{ removed: number }> {
   const input = Input.parse(raw)
 
   const membership = await prismaPublic.membership.findUnique({
@@ -28,12 +28,15 @@ export async function detachTagFromAsset(
     throw new Error('No permission')
   }
 
-  await prismaPublic.assetTag.deleteMany({
+  // Returning the actual deleted count (instead of always {ok: true}) lets
+  // the API distinguish "removed" from "wasn't there" — useful for the
+  // optimistic UI rollback path.
+  const result = await prismaPublic.assetTag.deleteMany({
     where: {
       assetId: input.assetId,
       tagId: input.tagId,
       familyId: input.familyId,
     },
   })
-  return { ok: true }
+  return { removed: result.count }
 }

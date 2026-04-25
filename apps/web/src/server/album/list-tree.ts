@@ -36,14 +36,19 @@ export async function listAlbumTree(
     nodeById.set(a.id, { ...a, children: [], childCount: 0 })
   }
 
+  // Children whose parent is soft-deleted would otherwise float up to the
+  // root forest. Drop them — the family rule is "see live albums only".
   const roots: AlbumTreeNode[] = []
   for (const node of nodeById.values()) {
-    if (node.parentId && nodeById.has(node.parentId)) {
-      const parent = nodeById.get(node.parentId)
-      if (parent) {
-        parent.children.push(node)
-        parent.childCount++
+    if (node.parentId) {
+      if (nodeById.has(node.parentId)) {
+        const parent = nodeById.get(node.parentId)
+        if (parent) {
+          parent.children.push(node)
+          parent.childCount++
+        }
       }
+      // Else: orphaned (parent deleted) — skip. retention will hard-delete.
     } else {
       roots.push(node)
     }

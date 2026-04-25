@@ -1,6 +1,7 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { createOrGetTag } from '@/server/tag/create'
 import { listTagsWithCounts } from '@/server/tag/list'
 import { NextResponse } from 'next/server'
@@ -18,7 +19,7 @@ export async function GET() {
     const tags = await listTagsWithCounts(ctx.family.id, prismaPublic)
     return NextResponse.json({ tags })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -39,6 +40,6 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ tag })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

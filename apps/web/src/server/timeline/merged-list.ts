@@ -70,12 +70,18 @@ export async function listTimeline(
       return { items: [], nextCursor: null }
     }
     const tagIds = tagRows.map((t) => t.id)
-    // Find asset ids that have ALL the requested tags.
+    // Find asset ids that have ALL the requested tags. Cap the result so a
+    // tag with 100k+ photos doesn't blow Postgres's bind-parameter ceiling
+    // when we hand the ids over to media. The cap is intentionally larger
+    // than `limit + 1` so cursor pagination still works against the cap.
+    const TAG_INTERSECT_CAP = 10_000
     const grouped = await prismaPublic.assetTag.groupBy({
       by: ['assetId'],
       where: { familyId, tagId: { in: tagIds } },
       _count: { tagId: true },
       having: { tagId: { _count: { equals: tagIds.length } } },
+      orderBy: { assetId: 'asc' },
+      take: TAG_INTERSECT_CAP,
     })
     tagAssetIds = grouped.map((g) => g.assetId)
     if (tagAssetIds.length === 0) {

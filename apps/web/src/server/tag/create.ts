@@ -1,6 +1,8 @@
 import { can } from '@bebe/core'
 import type { PrismaClient as PrismaPublic, Tag } from '@bebe/db-public'
 import { z } from 'zod'
+import { ForbiddenError } from '../error'
+import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
 
 const Input = z.object({
@@ -32,7 +34,7 @@ export async function createOrGetTag(
     },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'tag.create')) {
-    throw new Error('No permission: cannot create tags')
+    throw new ForbiddenError('태그를 만들 권한이 없어요')
   }
 
   const existing = await prismaPublic.tag.findFirst({
@@ -40,13 +42,26 @@ export async function createOrGetTag(
   })
   if (existing) return existing
 
-  return prismaPublic.tag.create({
-    data: {
-      familyId: input.familyId,
-      name: input.name.trim(),
-      slug,
-      ...(input.color ? { color: input.color } : {}),
-      createdByUserId: input.byUserId,
-    },
-  })
+  // Concurrent creators with the same slug both pass the existence check;
+  // the partial unique index `tags_family_slug_unique` lets only one win.
+  // The loser re-reads — autocomplete-then-create flow stays idempotent.
+  try {
+    return await prismaPublic.tag.create({
+      data: {
+        familyId: input.familyId,
+        name: input.name.trim(),
+        slug,
+        ...(input.color ? { color: input.color } : {}),
+        createdByUserId: input.byUserId,
+      },
+    })
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      const winner = await prismaPublic.tag.findFirst({
+        where: { familyId: input.familyId, slug, deletedAt: null },
+      })
+      if (winner) return winner
+    }
+    throw err
+  }
 }

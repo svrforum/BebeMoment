@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { detachAssetFromAlbum } from '@/server/album/detach-asset'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 
 export async function DELETE(
@@ -29,6 +30,6 @@ export async function DELETE(
     )
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

@@ -1,6 +1,9 @@
 import { can } from '@bebe/core'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { ConflictError, ForbiddenError, NotFoundError } from '../error'
+import { isUniqueViolation } from '../prisma-errors'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -19,48 +22,70 @@ const Input = z.object({
 export async function updateAlbum(
   raw: unknown,
   prismaPublic: PrismaPublic,
+  prismaMedia?: PrismaMedia,
 ): Promise<Album> {
   const input = Input.parse(raw)
 
   const album = await prismaPublic.album.findFirst({
     where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
   })
-  if (!album) throw new Error('album not found')
+  if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
 
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
-  if (!membership || membership.deletedAt) throw new Error('No permission')
+  if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
   const isOwnAlbum = album.createdByUserId === input.byUserId
   const allowed =
     (isOwnAlbum && can(membership.role, 'album.update.own')) ||
     can(membership.role, 'album.update.any')
-  if (!allowed) throw new Error('No permission to edit this album')
+  if (!allowed) throw new ForbiddenError('이 앨범을 편집할 권한이 없어요')
 
-  // If renaming, check sibling-name uniqueness.
-  if (input.name && input.name !== album.name) {
-    const conflict = await prismaPublic.album.findFirst({
+  // Cover asset must (a) exist in the same family, (b) be ready, (c) be
+  // attached to *this* album. Otherwise a malicious or buggy client could
+  // set cover_asset_id to any uuid — including across families.
+  if (input.coverAssetId !== undefined && input.coverAssetId !== null) {
+    const attached = await prismaPublic.albumAsset.findFirst({
       where: {
+        albumId: album.id,
+        assetId: input.coverAssetId,
         familyId: input.familyId,
-        parentId: album.parentId,
-        name: input.name,
-        deletedAt: null,
-        id: { not: album.id },
       },
     })
-    if (conflict) throw new Error('같은 위치에 같은 이름의 앨범이 이미 있어요')
+    if (!attached) {
+      throw new ConflictError('이 앨범에 속한 사진만 커버로 설정할 수 있어요')
+    }
+    if (prismaMedia) {
+      const asset = await prismaMedia.asset.findFirst({
+        where: {
+          id: input.coverAssetId,
+          familyId: input.familyId,
+          status: 'ready',
+          deletedAt: null,
+        },
+        select: { id: true },
+      })
+      if (!asset) throw new NotFoundError('커버로 쓸 사진이 없어요')
+    }
   }
 
-  return prismaPublic.album.update({
-    where: { id: album.id },
-    data: {
-      ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-      ...(input.description !== undefined
-        ? { description: input.description }
-        : {}),
-      ...(input.coverAssetId !== undefined
-        ? { coverAssetId: input.coverAssetId }
-        : {}),
-    },
-  })
+  try {
+    return await prismaPublic.album.update({
+      where: { id: album.id },
+      data: {
+        ...(input.name !== undefined ? { name: input.name.trim() } : {}),
+        ...(input.description !== undefined
+          ? { description: input.description }
+          : {}),
+        ...(input.coverAssetId !== undefined
+          ? { coverAssetId: input.coverAssetId }
+          : {}),
+      },
+    })
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new ConflictError('같은 위치에 같은 이름의 앨범이 이미 있어요')
+    }
+    throw err
+  }
 }

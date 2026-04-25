@@ -3,6 +3,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { createAlbum } from '@/server/album/create'
 import { listAlbums } from '@/server/album/list'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -23,7 +24,7 @@ export async function GET(req: Request) {
     )
     return NextResponse.json({ albums })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -44,6 +45,6 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ album })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

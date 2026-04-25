@@ -1,6 +1,7 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { attachTagsToAsset } from '@/server/tag/attach'
 import { createOrGetTag } from '@/server/tag/create'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
@@ -23,7 +24,7 @@ export async function GET(
     const tags = await listTagsForAsset({ assetId: id, familyId: ctx.family.id }, prismaPublic)
     return NextResponse.json({ tags })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }
 
@@ -71,6 +72,6 @@ export async function POST(
     const tags = await listTagsForAsset({ assetId: id, familyId: ctx.family.id }, prismaPublic)
     return NextResponse.json({ ...result, tags })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

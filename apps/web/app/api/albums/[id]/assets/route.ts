@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { attachAssetsToAlbum } from '@/server/album/attach-assets'
 import { resolveContext } from '@/server/context'
+import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 
 export async function POST(
@@ -31,6 +32,6 @@ export async function POST(
     )
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
   }
 }

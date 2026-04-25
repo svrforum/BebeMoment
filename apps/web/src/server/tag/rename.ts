@@ -1,6 +1,8 @@
 import { can } from '@bebe/core'
 import type { PrismaClient as PrismaPublic, Tag } from '@bebe/db-public'
 import { z } from 'zod'
+import { ConflictError, ForbiddenError, NotFoundError } from '../error'
+import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
 
 const Input = z.object({
@@ -27,28 +29,23 @@ export async function renameTag(
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'tag.rename')) {
-    throw new Error('No permission to rename tags')
+    throw new ForbiddenError('태그를 변경할 권한이 없어요')
   }
 
   const tag = await prismaPublic.tag.findFirst({
     where: { id: input.tagId, familyId: input.familyId, deletedAt: null },
   })
-  if (!tag) throw new Error('tag not found')
+  if (!tag) throw new NotFoundError('태그를 찾을 수 없어요')
 
-  if (slug !== tag.slug) {
-    const conflict = await prismaPublic.tag.findFirst({
-      where: {
-        familyId: input.familyId,
-        slug,
-        deletedAt: null,
-        id: { not: tag.id },
-      },
+  try {
+    return await prismaPublic.tag.update({
+      where: { id: tag.id },
+      data: { name: input.name.trim(), slug },
     })
-    if (conflict) throw new Error('같은 이름의 태그가 이미 있어요')
+  } catch (err) {
+    if (isUniqueViolation(err)) {
+      throw new ConflictError('같은 이름의 태그가 이미 있어요')
+    }
+    throw err
   }
-
-  return prismaPublic.tag.update({
-    where: { id: tag.id },
-    data: { name: input.name.trim(), slug },
-  })
 }
