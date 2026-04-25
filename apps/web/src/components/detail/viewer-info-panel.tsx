@@ -1,4 +1,5 @@
 'use client'
+import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { BookmarkButton } from './bookmark-button'
 import type { CommentWithAuthor } from './comment-item'
 import { CommentList } from './comment-list'
@@ -25,6 +26,7 @@ export function ViewerInfoPanel({
   bookmarked,
   setBookmarked,
   initialComments,
+  initialTags,
 }: {
   assetId: string
   currentUserId: string
@@ -39,6 +41,7 @@ export function ViewerInfoPanel({
   bookmarked: boolean
   setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
+  initialTags: AssetTag[]
 }) {
   const liveCommentCount = initialComments.filter((c) => !c.deletedAt).length
   return (
@@ -50,6 +53,7 @@ export function ViewerInfoPanel({
       </div>
       <div className="flex flex-col gap-5 px-5 py-5">
         <MetadataSection {...meta} />
+        <TagEditor assetId={assetId} initial={initialTags} />
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />

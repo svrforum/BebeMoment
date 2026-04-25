@@ -7,6 +7,7 @@ import { getAssetForFamily } from '@/server/asset/get'
 import { listComments } from '@/server/comment/list'
 import { resolveContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
+import { listTagsForAsset } from '@/server/tag/list-for-asset'
 import { can } from '@bebe/core'
 import { notFound } from 'next/navigation'
 
@@ -31,8 +32,17 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   const videoSrc = asset.kind === 'video' ? pickDisplayUrl(asset.urls) : null
   const posterUrl = pickVideoPosterUrl(asset.urls) ?? undefined
 
-  const [prevAsset, nextAsset, likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members] =
-    await Promise.all([
+  const [
+    prevAsset,
+    nextAsset,
+    likers,
+    commentsRaw,
+    myLike,
+    myBookmark,
+    assetBabyLinks,
+    members,
+    initialTags,
+  ] = await Promise.all([
       prismaMedia.asset.findFirst({
         where: {
           familyId: ctx.family.id,
@@ -73,6 +83,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
         where: { familyId: ctx.family.id, deletedAt: null },
         include: { user: { select: { id: true, displayName: true } } },
       }),
+      listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
     ])
 
   const babyIds = assetBabyLinks.map((link) => link.babyId)
@@ -121,6 +132,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       initialLiked={!!myLike}
       initialBookmarked={!!myBookmark}
       initialComments={initialComments}
+      initialTags={initialTags}
     />
   )
 }

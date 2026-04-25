@@ -1,4 +1,5 @@
 'use client'
+import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { Sheet } from '@/components/ui/sheet'
 import { BookmarkButton } from './bookmark-button'
 import type { CommentWithAuthor } from './comment-item'
@@ -28,6 +29,7 @@ export function ViewerBottomSheet({
   bookmarked,
   setBookmarked,
   initialComments,
+  initialTags,
 }: {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -44,11 +46,13 @@ export function ViewerBottomSheet({
   bookmarked: boolean
   setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
+  initialTags: AssetTag[]
 }) {
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title="세부정보">
       <div className="space-y-6 pb-8">
         <MetadataSection {...meta} />
+        <TagEditor assetId={assetId} initial={initialTags} />
         <div className="space-y-2 border-t pt-4">
           <div className="flex items-center gap-2">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />

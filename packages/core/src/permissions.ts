@@ -28,6 +28,18 @@ export type Capability =
   | 'social.comment.edit.own'
   | 'social.comment.delete.own'
   | 'social.comment.delete.any'
+  | 'tag.create'
+  | 'tag.rename'
+  | 'tag.delete'
+  | 'asset.tag.attach'
+  | 'asset.tag.detach'
+  | 'album.create'
+  | 'album.update.own'
+  | 'album.update.any'
+  | 'album.delete.own'
+  | 'album.delete.any'
+  | 'album.asset.attach'
+  | 'album.asset.detach'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
@@ -58,6 +70,18 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.edit.own',
     'social.comment.delete.own',
     'social.comment.delete.any',
+    'tag.create',
+    'tag.rename',
+    'tag.delete',
+    'asset.tag.attach',
+    'asset.tag.detach',
+    'album.create',
+    'album.update.own',
+    'album.update.any',
+    'album.delete.own',
+    'album.delete.any',
+    'album.asset.attach',
+    'album.asset.detach',
   ],
   guardian: [
     'family.edit',
@@ -85,6 +109,18 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.edit.own',
     'social.comment.delete.own',
     'social.comment.delete.any',
+    'tag.create',
+    'tag.rename',
+    'tag.delete',
+    'asset.tag.attach',
+    'asset.tag.detach',
+    'album.create',
+    'album.update.own',
+    'album.update.any',
+    'album.delete.own',
+    'album.delete.any',
+    'album.asset.attach',
+    'album.asset.detach',
   ],
   family: [
     'asset.upload',
@@ -99,6 +135,14 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.create',
     'social.comment.edit.own',
     'social.comment.delete.own',
+    'tag.create',
+    'asset.tag.attach',
+    'asset.tag.detach',
+    'album.create',
+    'album.update.own',
+    'album.delete.own',
+    'album.asset.attach',
+    'album.asset.detach',
   ],
 }
 

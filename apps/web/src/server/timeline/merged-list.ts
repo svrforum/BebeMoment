@@ -36,7 +36,7 @@ function decodeCursor(s: string): Cursor | null {
 
 export async function listTimeline(
   familyId: string,
-  params: { limit?: number; cursor?: string },
+  params: { limit?: number; cursor?: string; tagSlug?: string },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -45,12 +45,35 @@ export async function listTimeline(
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
+  // Tag filter: resolve slug → tag id, then fetch the asset_id set this tag
+  // is attached to. Empty result means a known-but-unused tag — return zero
+  // assets without a media query.
+  let tagAssetIds: string[] | null = null
+  if (params.tagSlug) {
+    const tag = await prismaPublic.tag.findFirst({
+      where: { familyId, slug: params.tagSlug, deletedAt: null },
+      select: { id: true },
+    })
+    if (!tag) {
+      return { items: [], nextCursor: null }
+    }
+    const links = await prismaPublic.assetTag.findMany({
+      where: { tagId: tag.id, familyId },
+      select: { assetId: true },
+    })
+    tagAssetIds = links.map((l) => l.assetId)
+    if (tagAssetIds.length === 0) {
+      return { items: [], nextCursor: null }
+    }
+  }
+
   const [assets, entries] = await Promise.all([
     prismaMedia.asset.findMany({
       where: {
         familyId,
         status: 'ready',
         deletedAt: null,
+        ...(tagAssetIds ? { id: { in: tagAssetIds } } : {}),
         ...(cursorTs && cur
           ? {
               OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }],
@@ -60,20 +83,29 @@ export async function listTimeline(
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
-    prismaPublic.journalEntry.findMany({
-      where: {
-        familyId,
-        deletedAt: null,
-        ...(cursorTs && cur
-          ? {
-              OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
-            }
-          : {}),
-      },
-      include: { assets: true },
-      orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    }),
+    // When filtering by tag, hide journal entries — they're not tagged.
+    tagAssetIds
+      ? prismaPublic.journalEntry.findMany({
+          where: { id: '__never__' },
+          include: { assets: true },
+        })
+      : prismaPublic.journalEntry.findMany({
+          where: {
+            familyId,
+            deletedAt: null,
+            ...(cursorTs && cur
+              ? {
+                  OR: [
+                    { entryDate: { lt: cursorTs } },
+                    { entryDate: cursorTs, id: { lt: cur.id } },
+                  ],
+                }
+              : {}),
+          },
+          include: { assets: true },
+          orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
+          take: limit + 1,
+        }),
   ])
 
   const entryAssetIds = Array.from(

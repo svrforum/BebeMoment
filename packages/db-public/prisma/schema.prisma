@@ -36,6 +36,10 @@ model User {
   likes                 AssetLike[]
   bookmarks             AssetBookmark[]
   authoredComments      AssetComment[]
+  createdTags           Tag[]            @relation("TagCreatedBy")
+  attachedTags          AssetTag[]       @relation("AssetTagAddedBy")
+  createdAlbums         Album[]          @relation("AlbumCreatedBy")
+  attachedAlbumAssets   AlbumAsset[]     @relation("AlbumAssetAddedBy")
 
   @@map("users")
   @@schema("public")
@@ -114,6 +118,10 @@ model Family {
   assetLikes     AssetLike[]
   assetBookmarks AssetBookmark[]
   assetComments  AssetComment[]
+  tags           Tag[]
+  assetTags      AssetTag[]
+  albums         Album[]
+  albumAssets    AlbumAsset[]
 
   @@map("families")
   @@schema("public")
@@ -377,5 +385,95 @@ model AssetComment {
   @@index([familyId, assetId, createdAt])
   @@index([authorUserId])
   @@map("asset_comments")
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Phase D — Tags + Albums.
+// Same pattern as AssetLike/AssetBookmark/AssetComment: lives in public,
+// references media.assets only by uuid (no enforced FK).
+
+model Tag {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  name            String
+  slug            String
+  color           String?
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family     @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  createdBy User       @relation("TagCreatedBy", fields: [createdByUserId], references: [id])
+  assetTags AssetTag[]
+
+  @@index([familyId, deletedAt])
+  @@map("tags")
+  @@schema("public")
+}
+
+model AssetTag {
+  assetId        String   @map("asset_id") @db.Uuid
+  tagId          String   @map("tag_id") @db.Uuid
+  familyId       String   @map("family_id") @db.Uuid
+  addedByUserId  String   @map("added_by_user_id") @db.Uuid
+  addedAt        DateTime @default(now()) @map("added_at")
+
+  family  Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  tag     Tag    @relation(fields: [tagId], references: [id], onDelete: Cascade)
+  addedBy User   @relation("AssetTagAddedBy", fields: [addedByUserId], references: [id])
+
+  @@id([assetId, tagId])
+  @@index([tagId])
+  @@index([familyId, assetId])
+  @@map("asset_tags")
+  @@schema("public")
+}
+
+model Album {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  parentId        String?   @map("parent_id") @db.Uuid
+  name            String
+  description     String?
+  coverAssetId    String?   @map("cover_asset_id") @db.Uuid
+  sortIndex       Int       @default(0) @map("sort_index")
+  /// Materialized path: slash-separated album uuids ending with this id.
+  /// Maintained in app inside the same transaction as parent_id changes.
+  path            String
+  depth           Int       @default(0)
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  parent    Album?       @relation("AlbumTree", fields: [parentId], references: [id], onDelete: Cascade)
+  children  Album[]      @relation("AlbumTree")
+  createdBy User         @relation("AlbumCreatedBy", fields: [createdByUserId], references: [id])
+  assets    AlbumAsset[]
+
+  @@index([familyId, parentId, deletedAt])
+  @@map("albums")
+  @@schema("public")
+}
+
+model AlbumAsset {
+  albumId       String   @map("album_id") @db.Uuid
+  assetId       String   @map("asset_id") @db.Uuid
+  familyId      String   @map("family_id") @db.Uuid
+  addedByUserId String   @map("added_by_user_id") @db.Uuid
+  addedAt       DateTime @default(now()) @map("added_at")
+  sortIndex     Int      @default(0) @map("sort_index")
+
+  family  Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  album   Album  @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  addedBy User   @relation("AlbumAssetAddedBy", fields: [addedByUserId], references: [id])
+
+  @@id([albumId, assetId])
+  @@index([assetId])
+  @@index([familyId, albumId, sortIndex])
+  @@map("album_assets")
   @@schema("public")
 }

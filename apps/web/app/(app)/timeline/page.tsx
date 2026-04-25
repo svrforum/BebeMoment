@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { JournalCard } from '@/components/timeline/journal-card'
+import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -7,16 +8,27 @@ import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
 import { getContext } from '@/server/context'
 import { listTimeline } from '@/server/timeline/merged-list'
 
-export default async function TimelinePage() {
+export default async function TimelinePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ tag?: string }>
+}) {
   const ctx = await getContext()
   if (!ctx.family) return null
+  const { tag: tagSlug } = await searchParams
 
   const [baby, { items }] = await Promise.all([
     prismaPublic.baby.findFirst({
       where: { familyId: ctx.family.id, deletedAt: null },
       orderBy: { birthDate: 'asc' },
     }),
-    listTimeline(ctx.family.id, { limit: 100 }, prismaPublic, prismaMedia, getMediaClient()),
+    listTimeline(
+      ctx.family.id,
+      { limit: 100, ...(tagSlug ? { tagSlug } : {}) },
+      prismaPublic,
+      prismaMedia,
+      getMediaClient(),
+    ),
   ])
   const birthDate = baby?.birthDate ?? new Date()
 
@@ -45,6 +57,11 @@ export default async function TimelinePage() {
       ) : (
         <AppHeader title={ctx.family.name} />
       )}
+      <TagFilterStrip
+        familyId={ctx.family.id}
+        prismaPublic={prismaPublic}
+        {...(tagSlug ? { activeSlug: tagSlug } : {})}
+      />
       {journalItems.length > 0 && (
         <div className="mx-auto max-w-3xl px-5 pt-4 space-y-3">
           {journalItems.map((it) => {

@@ -1,4 +1,5 @@
 'use client'
+import type { AssetTag } from '@/components/tags/tag-editor'
 import type { AssetUrls } from '@bebe/media-client'
 import { useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
@@ -31,6 +32,7 @@ export function ViewerShell({
   initialLiked,
   initialBookmarked,
   initialComments,
+  initialTags,
 }: {
   current: AssetSlim
   siblings: { prevId: string | undefined; nextId: string | undefined }
@@ -42,6 +44,7 @@ export function ViewerShell({
   initialLiked: boolean
   initialBookmarked: boolean
   initialComments: CommentWithAuthor[]
+  initialTags: AssetTag[]
 }) {
   // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
@@ -92,6 +95,7 @@ export function ViewerShell({
           bookmarked={bookmarked}
           setBookmarked={setBookmarked}
           initialComments={initialComments}
+          initialTags={initialTags}
         />
       </div>
 
@@ -111,6 +115,7 @@ export function ViewerShell({
           bookmarked={bookmarked}
           setBookmarked={setBookmarked}
           initialComments={initialComments}
+          initialTags={initialTags}
         />
       </aside>
     </div>
