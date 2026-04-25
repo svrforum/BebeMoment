@@ -40,23 +40,26 @@ export function ViewerInfoPanel({
   setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
 }) {
+  const liveCommentCount = initialComments.filter((c) => !c.deletedAt).length
   return (
     <div className="flex h-full flex-col">
-      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-200/70 bg-base-0/85 px-4 py-3 backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/85">
-        <h2 className="text-sm font-semibold text-base-900 dark:text-base-50">세부정보</h2>
+      <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-200/70 bg-base-0/85 px-5 py-3.5 backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/85">
+        <h2 className="text-[15px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+          세부정보
+        </h2>
       </div>
-      <div className="space-y-6 p-4">
+      <div className="flex flex-col gap-5 px-5 py-5">
         <MetadataSection {...meta} />
-        <div className="space-y-2 border-t border-base-200 pt-4 dark:border-base-800">
-          <div className="flex items-center gap-2">
+        <div className="flex flex-col gap-3">
+          <div className="flex items-center gap-1">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
             <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
           </div>
           <LikerAvatars users={likers.users} />
         </div>
-        <div className="border-t border-base-200 pt-4 dark:border-base-800">
-          <h3 className="mb-2 text-sm font-semibold text-base-900 dark:text-base-50">
-            댓글 {initialComments.filter((c) => !c.deletedAt).length}
+        <div className="flex flex-col gap-2">
+          <h3 className="text-[13px] font-semibold tracking-tight text-base-500">
+            댓글 <span className="tabular-nums text-base-700 dark:text-base-300">{liveCommentCount}</span>
           </h3>
           <CommentList
             assetId={assetId}

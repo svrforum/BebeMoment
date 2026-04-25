@@ -38,53 +38,98 @@ function formatExposure(raw: Record<string, unknown> | null): string | null {
   return parts.length > 0 ? parts.join(' ') : null
 }
 
+type RowProps = {
+  icon: React.ReactNode
+  primary: React.ReactNode
+  secondary?: React.ReactNode
+  last?: boolean
+}
+
+function Row({ icon, primary, secondary, last }: RowProps) {
+  return (
+    <div
+      className={`flex items-start gap-3 py-2.5 ${
+        last ? '' : 'border-b border-base-100 dark:border-base-800/60'
+      }`}
+    >
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-base-400">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[14px] text-base-900 dark:text-base-100">{primary}</div>
+        {secondary && (
+          <div className="mt-0.5 text-[12px] text-base-500">{secondary}</div>
+        )}
+      </div>
+    </div>
+  )
+}
+
 export function MetadataSection(p: Props) {
   const mime = p.mimeType.split('/').pop()?.toUpperCase() ?? p.mimeType
   const camera =
     p.cameraMake || p.cameraModel ? `${p.cameraMake ?? ''} ${p.cameraModel ?? ''}`.trim() : null
   const exposure = formatExposure(p.exifRaw)
+  const dimensions = p.width && p.height ? `${p.width} × ${p.height}` : null
+
+  // Determine which row is last to skip its bottom border.
+  const rows: Array<keyof typeof flags> = []
+  const flags = {
+    date: true,
+    camera: !!camera,
+    image: true,
+    gps: p.gpsLat != null && p.gpsLng != null,
+    babies: p.babies.length > 0,
+  }
+  for (const k of Object.keys(flags) as Array<keyof typeof flags>) {
+    if (flags[k]) rows.push(k)
+  }
+  const lastKey = rows[rows.length - 1]
 
   return (
-    <dl className="space-y-2 text-sm">
-      <div className="flex items-start gap-2">
-        <Calendar size={16} className="mt-0.5 text-base-500" />
-        <div>
-          <div>{p.takenAt.toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })}</div>
-          {p.takenAtSource !== 'exif' && (
-            <div className="text-xs text-base-500">({p.takenAtSource})</div>
-          )}
-        </div>
-      </div>
+    <div className="rounded-2xl bg-base-50/50 px-4 py-1 dark:bg-base-950/40">
+      <Row
+        icon={<Calendar size={15} strokeWidth={1.9} />}
+        primary={p.takenAt.toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })}
+        secondary={p.takenAtSource !== 'exif' ? `(${p.takenAtSource})` : undefined}
+        last={lastKey === 'date'}
+      />
       {camera && (
-        <div className="flex items-start gap-2">
-          <Camera size={16} className="mt-0.5 text-base-500" />
-          <div>
-            <div>{camera}</div>
-            {exposure && <div className="text-xs text-base-500">{exposure}</div>}
-          </div>
-        </div>
+        <Row
+          icon={<Camera size={15} strokeWidth={1.9} />}
+          primary={camera}
+          secondary={exposure ?? undefined}
+          last={lastKey === 'camera'}
+        />
       )}
-      <div className="flex items-center gap-2">
-        <ImgIcon size={16} className="text-base-500" />
-        <span>
-          {p.width && p.height ? `${p.width} × ${p.height} · ` : ''}
-          {formatSize(p.sizeBytes)} {mime}
-        </span>
-      </div>
-      {p.gpsLat != null && p.gpsLng != null && (
-        <div className="flex items-center gap-2">
-          <MapPin size={16} className="text-base-500" />
+      <Row
+        icon={<ImgIcon size={15} strokeWidth={1.9} />}
+        primary={
           <span className="tabular-nums">
-            {p.gpsLat.toFixed(4)}, {p.gpsLng.toFixed(4)}
+            {dimensions ? `${dimensions} · ` : ''}
+            {formatSize(p.sizeBytes)} {mime}
           </span>
-        </div>
+        }
+        last={lastKey === 'image'}
+      />
+      {p.gpsLat != null && p.gpsLng != null && (
+        <Row
+          icon={<MapPin size={15} strokeWidth={1.9} />}
+          primary={
+            <span className="tabular-nums">
+              {p.gpsLat.toFixed(4)}, {p.gpsLng.toFixed(4)}
+            </span>
+          }
+          last={lastKey === 'gps'}
+        />
       )}
       {p.babies.length > 0 && (
-        <div className="flex items-start gap-2">
-          <User size={16} className="mt-0.5 text-base-500" />
-          <div>{p.babies.map((b) => b.name).join(', ')}</div>
-        </div>
+        <Row
+          icon={<User size={15} strokeWidth={1.9} />}
+          primary={p.babies.map((b) => b.name).join(', ')}
+          last={lastKey === 'babies'}
+        />
       )}
-    </dl>
+    </div>
   )
 }

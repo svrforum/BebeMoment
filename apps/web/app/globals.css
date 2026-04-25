@@ -32,6 +32,16 @@
   --color-danger: #ef4444;
   --color-success: #10b981;
   --color-warning: #f59e0b;
+
+  /* Surface tiers — page < surface-1 < surface-2 to give cards/sheets
+     a subtle elevation rhythm without leaning on shadows alone. */
+  --color-surface-1: #ffffff;
+  --color-surface-2: #fafafa;
+}
+
+.dark {
+  --color-surface-1: #18181b;
+  --color-surface-2: #27272a;
 }
 
 :root {
@@ -53,10 +63,18 @@
   }
   body {
     @apply bg-base-50 text-base-900 font-sans antialiased;
-    font-feature-settings: "ss01", "ss02";
+    font-feature-settings: "ss01", "ss02", "tnum";
+    /* Pretendard variable axes — slight weight bias for primary surfaces */
+    font-variation-settings: "wght" 420;
+    letter-spacing: -0.01em;
   }
   .dark body {
     @apply bg-base-950 text-base-50;
+  }
+  h1,
+  h2,
+  h3 {
+    letter-spacing: -0.022em;
   }
   a {
     @apply text-point-500;

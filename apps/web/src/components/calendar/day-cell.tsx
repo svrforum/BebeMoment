@@ -10,9 +10,10 @@ type Props = {
   date: Date
   assets: Asset[]
   isCurrentMonth: boolean
+  isToday?: boolean
 }
 
-export function DayCell({ date, assets, isCurrentMonth }: Props) {
+export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props) {
   const hasAssets = assets.length > 0
   const dayNum = date.getDate()
   const dateParam = date.toISOString().slice(0, 10)
@@ -26,13 +27,14 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
     <Link
       href={`/timeline?date=${dateParam}`}
       className={cn(
-        'relative flex aspect-square rounded-lg overflow-hidden',
-        'transition-transform ease-ios active:scale-95',
-        !isCurrentMonth && 'opacity-40',
+        'group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl',
+        'transition-transform ease-ios active:scale-[0.94]',
+        !isCurrentMonth && 'opacity-35',
         hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
+        isToday && 'ring-2 ring-point-500 ring-offset-2 ring-offset-base-50 dark:ring-offset-base-950',
       )}
     >
-      {hasThumb ? (
+      {hasThumb && (
         <PictureImage
           trio={trio}
           fallbackUrl={fallbackUrl}
@@ -42,18 +44,28 @@ export function DayCell({ date, assets, isCurrentMonth }: Props) {
           className="absolute inset-0 h-full w-full"
           loading="lazy"
         />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center text-sm text-base-400">
+      )}
+      {!hasAssets && (
+        <span
+          className={cn(
+            'text-[15px] font-medium tabular-nums',
+            isToday
+              ? 'text-point-500'
+              : isCurrentMonth
+                ? 'text-base-700 dark:text-base-300'
+                : 'text-base-400 dark:text-base-600',
+          )}
+        >
           {dayNum}
-        </div>
+        </span>
       )}
       {hasAssets && (
-        <span className="absolute top-1 left-1 rounded bg-black/50 px-1 text-[10px] text-white font-medium">
+        <span className="absolute left-1.5 top-1.5 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-sm">
           {dayNum}
         </span>
       )}
       {assets.length > 1 && (
-        <span className="absolute bottom-1 right-1 rounded-full bg-black/60 px-1.5 text-[10px] text-white font-medium">
+        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-sm">
           +{assets.length - 1}
         </span>
       )}
