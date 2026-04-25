@@ -27,6 +27,9 @@ const mkAsset = (overrides: Partial<Asset> = {}): Asset => ({
   status: 'ready',
   processingError: null,
   derivatives: {},
+  blurhash: null,
+  dominantColor: null,
+  aspectRatioCached: null,
   visibility: 'family',
   tags: [],
   caption: null,
@@ -67,5 +70,39 @@ describe('resolveAssetUrls', () => {
   test('expiresAt is ISO-8601 Z timestamp', async () => {
     const urls = await resolveAssetUrls(mkAsset())
     expect(urls.expiresAt).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}.*Z$/)
+  })
+
+  test('populates derivative tiers when derivatives v2 present', async () => {
+    const urls = await resolveAssetUrls(mkAsset({
+      derivatives: {
+        v: 2,
+        thumb256: { avif: 'a256', webp: 'w256', jpeg: 'j256' },
+        thumb512: { avif: 'a512', webp: 'w512', jpeg: 'j512' },
+        display1080: { avif: 'a1080', webp: 'w1080', jpeg: 'j1080' },
+      },
+    } as unknown as Partial<Asset>))
+    expect(urls.thumb256?.avif).toContain('/media/v1/files/')
+    expect(urls.thumb256?.webp).toContain('/media/v1/files/')
+    expect(urls.thumb256?.jpeg).toContain('/media/v1/files/')
+    expect(urls.thumb512?.jpeg).toContain('/media/v1/files/')
+    expect(urls.display1080?.avif).toContain('/media/v1/files/')
+  })
+
+  test('blurhash and dominantColor flow through from asset row', async () => {
+    const urls = await resolveAssetUrls(mkAsset({
+      blurhash: 'L6PZfSi_.AyE_3t7t7R**0o#DgR4',
+      dominantColor: '#a5b4c3',
+    } as unknown as Partial<Asset>))
+    expect(urls.blurhash).toBe('L6PZfSi_.AyE_3t7t7R**0o#DgR4')
+    expect(urls.dominantColor).toBe('#a5b4c3')
+  })
+
+  test('aspectRatioCached takes precedence over width/height calculation', async () => {
+    const urls = await resolveAssetUrls(mkAsset({
+      width: 1920,
+      height: 1080,
+      aspectRatioCached: 2.0,
+    } as unknown as Partial<Asset>))
+    expect(urls.aspectRatio).toBe(2.0)
   })
 })
