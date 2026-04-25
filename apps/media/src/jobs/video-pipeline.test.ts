@@ -45,14 +45,20 @@ afterAll(async () => {
 })
 
 describe('processVideo', () => {
-  it('generates poster JPEG and preview MP4', async () => {
+  it('produces v2 derivatives: image trios from poster + videoPoster + videoCompat', async () => {
     if (!ffmpegAvailable) return
     const result = await processVideo(
       { originalKey: 'originals/sample.mp4', assetId: 'asset-v1' },
       storage,
     )
-    expect(result.derivatives.poster).toBeTruthy()
-    expect(result.derivatives.preview_video).toBeTruthy()
+    expect(result.derivatives.v).toBe(2)
+    expect(result.derivatives.thumb256.jpeg).toContain('asset-v1')
+    expect(result.derivatives.thumb256.webp).toContain('asset-v1')
+    expect(result.derivatives.display1080.jpeg).toContain('asset-v1')
+    expect(result.derivatives.videoPoster).toContain('asset-v1')
+    expect(result.derivatives.videoCompat).toContain('asset-v1')
+    expect(result.blurhash).toBeTruthy()
+    expect(result.aspectRatio).toBeGreaterThan(0)
     expect(result.durationMs).toBeGreaterThan(1000)
     expect(result.durationMs).toBeLessThan(3000)
   }, 60_000)

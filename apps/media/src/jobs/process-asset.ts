@@ -91,6 +91,9 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       width = r.width
       height = r.height
       durationMs = r.durationMs
+      aspectRatio = r.aspectRatio
+      blurhash = r.blurhash
+      dominantColor = r.dominantColor
     }
 
     await prisma.asset.update({

@@ -1,34 +1,12 @@
 import type { StorageAdapter } from '@bebe/storage'
 import sharp from 'sharp'
 import { computeBlurhash } from '@/domain/blurhash'
-
-type SizeKey = 'thumb256' | 'thumb512' | 'display1080'
-type FormatKey = 'avif' | 'webp' | 'jpeg'
-
-const SIZES: Record<SizeKey, number> = {
-  thumb256: 256,
-  thumb512: 512,
-  display1080: 1080,
-}
-
-const QUALITY: Record<FormatKey, number> = {
-  avif: 50,
-  webp: 80,
-  jpeg: 82,
-}
-
-const CONTENT_TYPE: Record<FormatKey, string> = {
-  avif: 'image/avif',
-  webp: 'image/webp',
-  jpeg: 'image/jpeg',
-}
+import { generateTrios, type Trio } from './derivative-trios'
 
 export type ProcessImageInput = {
   originalKey: string
   assetId: string
 }
-
-type Trio = { avif: string; webp: string; jpeg: string }
 
 export type ProcessImageResult = {
   width: number | undefined
@@ -56,15 +34,6 @@ function rgbToHex(r: number, g: number, b: number): string {
   return `#${h(r)}${h(g)}${h(b)}`
 }
 
-async function encodeFormat(buf: Buffer, max: number, format: FormatKey): Promise<Buffer> {
-  const base = sharp(buf, { failOn: 'none' })
-    .rotate()
-    .resize({ width: max, height: max, fit: 'inside', withoutEnlargement: true })
-  if (format === 'avif') return base.avif({ quality: QUALITY.avif }).toBuffer()
-  if (format === 'webp') return base.webp({ quality: QUALITY.webp }).toBuffer()
-  return base.jpeg({ quality: QUALITY.jpeg, progressive: true }).toBuffer()
-}
-
 export async function processImage(
   input: ProcessImageInput,
   storage: StorageAdapter,
@@ -84,29 +53,7 @@ export async function processImage(
   }
 
   const blurhash = await computeBlurhash(buf)
-
-  const includeAvif = process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF !== 'false'
-  const formatsToGenerate: FormatKey[] = includeAvif ? ['avif', 'webp', 'jpeg'] : ['webp', 'jpeg']
-
-  const sizeKeys = Object.keys(SIZES) as SizeKey[]
-  const trios: Record<SizeKey, Trio> = {
-    thumb256: { avif: '', webp: '', jpeg: '' },
-    thumb512: { avif: '', webp: '', jpeg: '' },
-    display1080: { avif: '', webp: '', jpeg: '' },
-  }
-
-  for (const sizeKey of sizeKeys) {
-    const max = SIZES[sizeKey]
-    for (const format of formatsToGenerate) {
-      const out = await encodeFormat(buf, max, format)
-      const key = `derivatives/${input.assetId}/${sizeKey}.${format}`
-      await storage.writeBuffer(key, out, CONTENT_TYPE[format])
-      trios[sizeKey][format] = key
-    }
-    if (!includeAvif) {
-      trios[sizeKey].avif = trios[sizeKey].webp
-    }
-  }
+  const trios = await generateTrios({ buffer: buf, assetId: input.assetId, storage })
 
   const aspectRatio =
     meta.width && meta.height && meta.width > 0 && meta.height > 0

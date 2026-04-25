@@ -11,12 +11,23 @@ describe('parseDerivativesV2', () => {
     }
     const parsed = parseDerivativesV2(input)
     expect(parsed?.v).toBe(2)
-    expect(parsed?.thumb256.avif).toBe('k1')
+    expect(parsed?.thumb256?.avif).toBe('k1')
   })
 
-  test('returns null for v1 legacy shape', () => {
+  test('returns null for v1 legacy shape (thumb_sm/_md/_lg)', () => {
     const legacy = { thumb_sm: 'k1', thumb_md: 'k2', thumb_lg: 'k3' }
     expect(parseDerivativesV2(legacy)).toBeNull()
+  })
+
+  test('adapts legacy video shape { poster, preview_video } to v2', () => {
+    const legacy = {
+      poster: 'derivatives/x/poster.jpg',
+      preview_video: 'derivatives/x/preview.mp4',
+    }
+    const parsed = parseDerivativesV2(legacy)
+    expect(parsed?.videoPoster).toBe('derivatives/x/poster.jpg')
+    expect(parsed?.videoCompat).toBe('derivatives/x/preview.mp4')
+    expect(parsed?.thumb256).toBeUndefined()
   })
 
   test('returns null for empty / invalid', () => {

@@ -8,7 +8,13 @@ export function pickDisplayUrl(urls: AssetUrls | null | undefined): string | nul
 
 export function pickThumbUrl(urls: AssetUrls | null | undefined): string | null {
   if (!urls) return null
-  return urls.thumb256?.jpeg ?? urls.thumb512?.jpeg ?? urls.original
+  return (
+    urls.thumb256?.jpeg ??
+    urls.thumb512?.jpeg ??
+    // Legacy videos have only videoPoster — use it as a thumb fallback.
+    urls.videoPoster ??
+    urls.original
+  )
 }
 
 export function pickVideoPosterUrl(urls: AssetUrls | null | undefined): string | null {

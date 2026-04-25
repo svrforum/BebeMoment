@@ -33,9 +33,15 @@ export async function resolveAssetUrls(asset: Asset): Promise<AssetUrls> {
 
   const derivatives = parseDerivativesV2(asset.derivatives)
 
-  const thumb256 = derivatives ? await trioFromKeys(asset, derivatives.thumb256) : null
-  const thumb512 = derivatives ? await trioFromKeys(asset, derivatives.thumb512) : null
-  const display1080 = derivatives ? await trioFromKeys(asset, derivatives.display1080) : null
+  const thumb256 = derivatives?.thumb256
+    ? await trioFromKeys(asset, derivatives.thumb256)
+    : null
+  const thumb512 = derivatives?.thumb512
+    ? await trioFromKeys(asset, derivatives.thumb512)
+    : null
+  const display1080 = derivatives?.display1080
+    ? await trioFromKeys(asset, derivatives.display1080)
+    : null
 
   const videoPoster = derivatives?.videoPoster
     ? await buildSignedUrl({

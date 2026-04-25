@@ -1,8 +1,9 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
 import dynamic from 'next/dynamic'
-import { useRouter } from 'next/navigation'
 import { type ReactNode, createContext, useContext, useMemo, useState } from 'react'
+import { UploadManagerProvider } from './upload-manager'
+import { UploadStatusPill } from './upload-status-pill'
 
 const LazyUploadDashboard = dynamic(
   () => import('./upload-dashboard').then((m) => ({ default: m.UploadDashboard })),
@@ -30,24 +31,22 @@ export function useUploadSheet(): UploadSheetContextType {
 }
 
 export function UploadSheetProvider({ children }: { children: ReactNode }) {
-  const router = useRouter()
   const [isOpen, setOpen] = useState(false)
 
-  const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
+  const value = useMemo(
+    () => ({ open: () => setOpen(true), close: () => setOpen(false) }),
+    [],
+  )
 
   return (
-    <UploadSheetContext.Provider value={value}>
-      {children}
-      <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
-        {isOpen && (
-          <LazyUploadDashboard
-            onComplete={() => {
-              router.refresh()
-              setOpen(false)
-            }}
-          />
-        )}
-      </Sheet>
-    </UploadSheetContext.Provider>
+    <UploadManagerProvider>
+      <UploadSheetContext.Provider value={value}>
+        {children}
+        <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
+          {isOpen && <LazyUploadDashboard onFilesPicked={() => setOpen(false)} />}
+        </Sheet>
+        <UploadStatusPill onClick={() => setOpen(true)} />
+      </UploadSheetContext.Provider>
+    </UploadManagerProvider>
   )
 }

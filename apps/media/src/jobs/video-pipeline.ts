@@ -5,6 +5,9 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
+import sharp from 'sharp'
+import { computeBlurhash } from '@/domain/blurhash'
+import { generateTrios, type Trio } from './derivative-trios'
 
 export type ProcessVideoInput = {
   originalKey: string
@@ -15,7 +18,17 @@ export type ProcessVideoResult = {
   durationMs: number
   width: number | undefined
   height: number | undefined
-  derivatives: { poster: string; preview_video: string }
+  aspectRatio: number | null
+  blurhash: string | null
+  dominantColor: string | null
+  derivatives: {
+    v: 2
+    thumb256: Trio
+    thumb512: Trio
+    display1080: Trio
+    videoPoster: string
+    videoCompat: string
+  }
 }
 
 async function writeToLocal(
@@ -25,6 +38,12 @@ async function writeToLocal(
 ): Promise<void> {
   const readStream = await storage.read(key)
   await pipeline(readStream, createWriteStream(localPath))
+}
+
+function rgbToHex(r: number, g: number, b: number): string {
+  const h = (n: number): string =>
+    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
+  return `#${h(r)}${h(g)}${h(b)}`
 }
 
 export async function processVideo(
@@ -57,7 +76,7 @@ export async function processVideo(
           '-q:v',
           '3',
           '-vf',
-          'scale=720:-2',
+          'scale=1280:-2',
         ])
         .output(posterPath)
         .on('end', () => resolve())
@@ -66,7 +85,7 @@ export async function processVideo(
     })
 
     const previewPath = path.join(work, 'preview.mp4')
-    await new Promise<void>((resolve, reject) => {
+    const previewPromise = new Promise<void>((resolve, reject) => {
       ffmpeg(local)
         .outputOptions([
           '-c:v',
@@ -92,16 +111,57 @@ export async function processVideo(
         .run()
     })
 
+    // Build the same image trio grid we generate for photos, sourced from the
+    // poster frame. Done in parallel with the preview transcode.
+    const posterBuf = await readFile(posterPath)
+    let dominantColor: string | null = null
+    try {
+      const stats = await sharp(posterBuf, { failOn: 'none' }).stats()
+      if (stats.channels.length >= 3) {
+        const [r, g, b] = stats.channels
+        dominantColor = rgbToHex(r?.mean ?? 0, g?.mean ?? 0, b?.mean ?? 0)
+      }
+    } catch {
+      // best-effort
+    }
+    const blurhash = await computeBlurhash(posterBuf)
+    const triosPromise = generateTrios({
+      buffer: posterBuf,
+      assetId: input.assetId,
+      storage,
+    })
+
     const posterKey = `derivatives/${input.assetId}/poster.jpg`
     const previewKey = `derivatives/${input.assetId}/preview.mp4`
-    await storage.writeBuffer(posterKey, await readFile(posterPath), 'image/jpeg')
-    await storage.write(previewKey, createReadStream(previewPath))
+
+    const [, trios] = await Promise.all([
+      previewPromise.then(() =>
+        storage.write(previewKey, createReadStream(previewPath)),
+      ),
+      triosPromise,
+    ])
+    await storage.writeBuffer(posterKey, posterBuf, 'image/jpeg')
+
+    const aspectRatio =
+      width && height && width > 0 && height > 0
+        ? Number((width / height).toFixed(4))
+        : null
 
     return {
       durationMs,
       width,
       height,
-      derivatives: { poster: posterKey, preview_video: previewKey },
+      aspectRatio,
+      blurhash,
+      dominantColor,
+      derivatives: {
+        v: 2,
+        thumb256: trios.thumb256,
+        thumb512: trios.thumb512,
+        display1080: trios.display1080,
+        videoPoster: posterKey,
+        videoCompat: previewKey,
+      },
     }
   } finally {
     await rm(work, { recursive: true, force: true })

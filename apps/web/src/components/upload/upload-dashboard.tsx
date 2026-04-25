@@ -1,17 +1,8 @@
 'use client'
-import { useToast } from '@/lib/toast'
-import Uppy, { type UppyFile } from '@uppy/core'
-import Tus from '@uppy/tus'
 import { ImagePlus, X } from 'lucide-react'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { type FileRow, useUploadManager } from './upload-manager'
 import { UploadProgressBar } from './UploadProgressBar'
-import { startUpload } from './actions'
-
-type UppyFileMeta = { uploadToken?: string; assetId?: string }
-type UppyBody = { xhr: XMLHttpRequest }
-type FileRow = UppyFile<UppyFileMeta, UppyBody>
-
-const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -104,164 +95,34 @@ function FileRowItem({
   )
 }
 
-export function UploadDashboard({ onComplete }: { onComplete: () => void }) {
-  const toast = useToast()
-  const [files, setFiles] = useState<FileRow[]>([])
-  const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
+export function UploadDashboard({ onFilesPicked }: { onFilesPicked?: () => void }) {
+  const { files, addFiles, removeFile, markAssetDone } = useUploadManager()
   const [dragOver, setDragOver] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
 
-  const markAssetDone = useCallback((assetId: string) => {
-    setDoneIds((prev) => {
-      if (prev.has(assetId)) return prev
-      const next = new Set(prev)
-      next.add(assetId)
-      return next
-    })
-  }, [])
-
-  const [uppy] = useState<Uppy<UppyFileMeta, UppyBody>>(() => {
-    const u = new Uppy<UppyFileMeta, UppyBody>({
-      restrictions: {
-        maxFileSize: MAX_FILE_SIZE,
-        allowedFileTypes: ['image/*', 'video/*'],
-      },
-      autoProceed: true,
-    }).use(Tus, {
-      chunkSize: 8 * 1024 * 1024,
-      retryDelays: [0, 1000, 3000, 5000],
-      headers: (file) => {
-        const token = file.meta?.uploadToken
-        return token ? { authorization: `Bearer ${token}` } : {}
-      },
-    })
-
-    u.addPreProcessor(async (fileIDs) => {
-      for (const id of fileIDs) {
-        const file = u.getFile(id)
-        if (!file) continue
-        if (file.meta?.uploadToken) continue
-        const init = await startUpload({
-          mime: file.type ?? 'application/octet-stream',
-          sizeBytes: file.size ?? 0,
-          originalName: file.name ?? `upload-${id}`,
-        })
-        u.setFileMeta(id, { uploadToken: init.uploadToken, assetId: init.assetId })
-        u.setFileState(id, {
-          tus: { uploadUrl: init.tusUploadUrl },
-        })
-      }
-    })
-
-    return u
-  })
-
-  // Sync Uppy file state to React.
-  useEffect(() => {
-    const sync = () => setFiles(uppy.getFiles() as FileRow[])
-    sync()
-    uppy.on('file-added', sync)
-    uppy.on('file-removed', sync)
-    uppy.on('upload-progress', sync)
-    uppy.on('upload-success', sync)
-    uppy.on('upload-error', sync)
-    uppy.on('preprocess-complete', sync)
-    return () => {
-      uppy.off('file-added', sync)
-      uppy.off('file-removed', sync)
-      uppy.off('upload-progress', sync)
-      uppy.off('upload-success', sync)
-      uppy.off('upload-error', sync)
-      uppy.off('preprocess-complete', sync)
-    }
-  }, [uppy])
-
-  // Surface errors as toasts.
-  useEffect(() => {
-    const onError = (file: FileRow | undefined, error: Error) => {
-      toast({
-        title: `${file?.name ?? '파일'} 업로드 실패`,
-        description: error.message,
-        variant: 'danger',
-      })
-    }
-    const onRestrictionFailed = (_file: FileRow | undefined, error: Error) => {
-      toast({
-        title: '업로드 제한',
-        description: error.message,
-        variant: 'danger',
-      })
-    }
-    uppy.on('upload-error', onError)
-    uppy.on('restriction-failed', onRestrictionFailed)
-    if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
-      ;(window as unknown as { __uppy?: typeof uppy }).__uppy = uppy
-    }
-    return () => {
-      uppy.off('upload-error', onError)
-      uppy.off('restriction-failed', onRestrictionFailed)
-    }
-  }, [uppy, toast])
-
-  // Auto-close once every queued file has finished processing (status: ready/failed).
-  // Slight delay so the user sees "완료" land before the sheet dismisses.
-  useEffect(() => {
-    if (files.length === 0) return
-    const allHaveAsset = files.every((f) => f.meta?.assetId)
-    if (!allHaveAsset) return
-    const allDone = files.every((f) => {
-      const id = f.meta?.assetId
-      return id ? doneIds.has(id) : false
-    })
-    if (!allDone) return
-    const t = setTimeout(() => onComplete(), 700)
-    return () => clearTimeout(t)
-  }, [files, doneIds, onComplete])
-
-  const addFiles = useCallback(
+  const handleAdd = useCallback(
     (list: FileList | File[]) => {
-      const arr = Array.from(list)
-      for (const f of arr) {
-        try {
-          uppy.addFile({
-            name: f.name,
-            type: f.type,
-            data: f,
-          })
-        } catch (e) {
-          toast({
-            title: `${f.name} 추가 실패`,
-            description: (e as Error).message,
-            variant: 'danger',
-          })
-        }
-      }
+      const added = addFiles(list)
+      if (added > 0) onFilesPicked?.()
     },
-    [uppy, toast],
+    [addFiles, onFilesPicked],
   )
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) addFiles(e.target.files)
+      if (e.target.files) handleAdd(e.target.files)
       e.target.value = ''
     },
-    [addFiles],
+    [handleAdd],
   )
 
   const onDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault()
       setDragOver(false)
-      if (e.dataTransfer?.files) addFiles(e.dataTransfer.files)
+      if (e.dataTransfer?.files) handleAdd(e.dataTransfer.files)
     },
-    [addFiles],
-  )
-
-  const remove = useCallback(
-    (id: string) => {
-      uppy.removeFile(id)
-    },
-    [uppy],
+    [handleAdd],
   )
 
   const hasFiles = files.length > 0
@@ -304,7 +165,12 @@ export function UploadDashboard({ onComplete }: { onComplete: () => void }) {
       {hasFiles && (
         <ul className="max-h-[360px] divide-y divide-base-100 overflow-y-auto rounded-xl border border-base-200 px-1 dark:divide-base-800 dark:border-base-800">
           {files.map((f) => (
-            <FileRowItem key={f.id} file={f} onRemove={remove} onAssetDone={markAssetDone} />
+            <FileRowItem
+              key={f.id}
+              file={f}
+              onRemove={removeFile}
+              onAssetDone={markAssetDone}
+            />
           ))}
         </ul>
       )}
