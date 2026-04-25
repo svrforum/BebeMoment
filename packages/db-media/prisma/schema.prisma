@@ -25,6 +25,10 @@ model Asset {
   height                  Int?
   durationMs              Int?      @map("duration_ms")
 
+  blurhash                String?  @map("blurhash")
+  dominantColor           String?  @map("dominant_color")
+  aspectRatioCached       Decimal? @map("aspect_ratio_cached") @db.Decimal(6, 4)
+
   takenAt                 DateTime  @map("taken_at")
   takenAtSource           TakenAtSource @map("taken_at_source")
   uploadedAt              DateTime  @default(now()) @map("uploaded_at")
