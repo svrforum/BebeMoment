@@ -16,22 +16,34 @@ type AlbumNode = {
 type Props = {
   open: boolean
   onOpenChange: (next: boolean) => void
-  assetId: string
+  /** Single id (back-compat) — equivalent to assetIds of length 1. */
+  assetId?: string
+  /** Bulk add: tap one album → all assets attached at once. */
+  assetIds?: string[]
+  /** Optional close-after-attach hook so the caller can clear selection. */
+  onAttached?: (albumId: string) => void
 }
 
 /**
  * Bottom-sheet album picker. Shows a collapsible tree of family albums;
- * tapping any node attaches the asset to it. Inline "새 앨범" creates a
- * sibling at the current level (or root) and immediately attaches.
+ * tapping any node attaches the target asset(s) to it. Inline "새 앨범"
+ * creates a root album and immediately attaches.
  */
-export function AlbumPicker({ open, onOpenChange, assetId }: Props) {
+export function AlbumPicker({
+  open,
+  onOpenChange,
+  assetId,
+  assetIds,
+  onAttached,
+}: Props) {
   const toast = useToast()
   const [tree, setTree] = useState<AlbumNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
-  const [pending, setPending] = useState<string | null>(null) // album id being attached
+  const [pending, setPending] = useState<string | null>(null)
   const [recent, setRecent] = useState<Set<string>>(new Set())
 
-  // Load tree when opening.
+  const targetIds = assetIds && assetIds.length > 0 ? assetIds : assetId ? [assetId] : []
+
   useEffect(() => {
     if (!open) return
     let alive = true
@@ -49,19 +61,37 @@ export function AlbumPicker({ open, onOpenChange, assetId }: Props) {
     }
   }, [open, toast])
 
+  // Reset the "recently added" checkmarks when the picker reopens for a
+  // different asset / batch.
+  useEffect(() => {
+    if (!open) {
+      setRecent(new Set())
+    }
+  }, [open])
+
   const attach = async (albumId: string) => {
+    if (targetIds.length === 0) return
     setPending(albumId)
     try {
       const res = await fetch(`/api/albums/${albumId}/assets`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assetIds: [assetId] }),
+        body: JSON.stringify({ assetIds: targetIds }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
         throw new Error((err as { error?: string }).error ?? '추가 실패')
       }
+      const result = (await res.json()) as { added: number; total: number }
       setRecent((prev) => new Set(prev).add(albumId))
+      if (targetIds.length > 1) {
+        const dup = targetIds.length - result.added
+        toast({
+          title: `${result.added}장 추가됨`,
+          ...(dup > 0 ? { description: `${dup}장은 이미 있었어요` } : {}),
+        })
+      }
+      onAttached?.(albumId)
     } catch (e) {
       toast({ title: (e as Error).message, variant: 'danger' })
     } finally {
@@ -78,10 +108,13 @@ export function AlbumPicker({ open, onOpenChange, assetId }: Props) {
     })
   }
 
+  const headerCount =
+    targetIds.length > 1 ? `사진 ${targetIds.length}장 앨범에 추가` : '앨범에 추가'
+
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title="앨범에 추가">
+    <Sheet open={open} onOpenChange={onOpenChange} title={headerCount}>
       <div className="flex flex-col gap-3 pb-8">
-        <CreateRow parentId={null} onCreated={attach} />
+        <CreateRow onCreated={attach} />
         {tree.length === 0 ? (
           <p className="px-2 py-4 text-center text-[13px] text-base-500">
             아직 앨범이 없어요. 위에 입력해서 첫 앨범을 만들어보세요.
@@ -182,13 +215,7 @@ function AlbumRow({
   )
 }
 
-function CreateRow({
-  parentId,
-  onCreated,
-}: {
-  parentId: string | null
-  onCreated: (id: string) => void
-}) {
+function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
   const toast = useToast()
   const [name, setName] = useState('')
   const [pending, setPending] = useState(false)
@@ -201,10 +228,7 @@ function CreateRow({
       const res = await fetch('/api/albums', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: name.trim(),
-          ...(parentId ? { parentId } : {}),
-        }),
+        body: JSON.stringify({ name: name.trim() }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))

@@ -13,9 +13,21 @@ type Props = {
   label: string
   assets: AssetRow[]
   index?: number
+  selectionMode?: boolean
+  selected?: Set<string>
+  onLongPress?: (id: string) => void
+  onTapInSelection?: (id: string) => void
 }
 
-export function BucketSection({ label, assets, index = 0 }: Props) {
+export function BucketSection({
+  label,
+  assets,
+  index = 0,
+  selectionMode = false,
+  selected,
+  onLongPress,
+  onTapInSelection,
+}: Props) {
   return (
     <section
       className="section-enter mb-10"
@@ -36,7 +48,16 @@ export function BucketSection({ label, assets, index = 0 }: Props) {
             className="asset-enter"
             style={{ '--enter-delay': `${Math.min(i * 30, 360)}ms` } as CSSProperties}
           >
-            <AssetCard id={a.id} urls={a.urls} status={a.status} kind={a.kind} />
+            <AssetCard
+              id={a.id}
+              urls={a.urls}
+              status={a.status}
+              kind={a.kind}
+              selectionMode={selectionMode}
+              selected={selected?.has(a.id) ?? false}
+              {...(onLongPress ? { onLongPress } : {})}
+              {...(onTapInSelection ? { onTapInSelection } : {})}
+            />
           </div>
         ))}
       </div>
