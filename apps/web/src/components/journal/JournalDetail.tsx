@@ -1,9 +1,13 @@
+'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
-import ReactMarkdown from 'react-markdown'
-import rehypeSanitize from 'rehype-sanitize'
+import dynamic from 'next/dynamic'
+
+// react-markdown + rehype-sanitize together are ~80KB and only mount when
+// a journal detail page opens. Code-split out of the main bundle.
+const MarkdownBody = dynamic(() => import('./markdown-body'), { ssr: false })
 
 export function JournalDetail({
   entry,
@@ -17,9 +21,7 @@ export function JournalDetail({
         {entry.mood ? ` · ${entry.mood}` : ''}
       </div>
       {entry.title && <h1 className="text-xl font-semibold">{entry.title}</h1>}
-      <div className="prose prose-sm dark:prose-invert max-w-none">
-        <ReactMarkdown rehypePlugins={[rehypeSanitize]}>{entry.body}</ReactMarkdown>
-      </div>
+      <MarkdownBody body={entry.body} />
       {entry.assets.length > 0 && (
         <div className="grid grid-cols-3 gap-1">
           {entry.assets

@@ -101,8 +101,8 @@ export function UploadDashboard({ onFilesPicked }: { onFilesPicked?: () => void 
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const handleAdd = useCallback(
-    (list: FileList | File[]) => {
-      const added = addFiles(list)
+    async (list: FileList | File[]) => {
+      const added = await addFiles(list)
       if (added.length > 0) onFilesPicked?.()
     },
     [addFiles, onFilesPicked],

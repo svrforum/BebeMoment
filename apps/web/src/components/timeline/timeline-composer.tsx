@@ -95,11 +95,12 @@ export function TimelineComposer({
   }, [])
 
   const onPick = useCallback(
-    (e: ChangeEvent<HTMLInputElement>) => {
+    async (e: ChangeEvent<HTMLInputElement>) => {
       const list = e.target.files
       if (!list) return
       const picked = Array.from(list)
-      const ids = addFiles(picked)
+      e.target.value = ''
+      const ids = await addFiles(picked)
       const fresh: Attachment[] = []
       for (let i = 0; i < ids.length; i++) {
         const fileId = ids[i]
@@ -119,7 +120,6 @@ export function TimelineComposer({
         setAttachments((prev) => [...prev, ...fresh])
         setExpanded(true)
       }
-      e.target.value = ''
     },
     [addFiles],
   )

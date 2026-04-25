@@ -22,8 +22,6 @@
     "@serwist/next": "^9.5.7",
     "@tailwindcss/postcss": "^4.2.3",
     "@uppy/core": "^5.2.0",
-    "@uppy/dashboard": "^5.1.1",
-    "@uppy/react": "^5.2.0",
     "@uppy/tus": "^5.1.1",
     "autoprefixer": "^10.5.0",
     "bcryptjs": "^3.0.3",
