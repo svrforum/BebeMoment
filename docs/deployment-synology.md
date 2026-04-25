@@ -12,11 +12,27 @@
 3. **경로**: `/volume1/docker/bebe-moment`
 4. **소스**: `docker-compose.yml 만들기`
 5. **docker-compose.yml 내용 붙여넣기**: 아래 병합본 참고
+6. **`Caddyfile` 도 같은 경로에 업로드**: File Station 으로
+   `/volume1/docker/bebe-moment/Caddyfile` 위치에 `compose/Caddyfile` 내용을
+   복사. Caddy 컨테이너가 이 파일을 read-only 로 마운트한다.
 
 ### `docker-compose.yml` (Synology)
 
 ```yaml
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "3000:80"
+    volumes:
+      - /volume1/docker/bebe-moment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /volume1/docker/bebe-moment/caddy/data:/data
+      - /volume1/docker/bebe-moment/caddy/config:/config
+    depends_on:
+      web: { condition: service_healthy }
+      media: { condition: service_healthy }
+    restart: unless-stopped
+
   web:
     image: ghcr.io/svrforum/bebe-moment/web:latest
     environment:
@@ -38,13 +54,18 @@ services:
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
     volumes:
       - /volume1/docker/bebe-moment/data:/data
-    ports:
-      - "3000:3000"
+    expose:
+      - "3000"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
       media: { condition: service_healthy }
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
 
   media:
     image: ghcr.io/svrforum/bebe-moment/media:latest
@@ -67,8 +88,8 @@ services:
       PGID: "100"
     volumes:
       - /volume1/docker/bebe-moment/data:/data
-    ports:
-      - "3001:3001"
+    expose:
+      - "3001"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -101,6 +122,12 @@ services:
       test: ["CMD", "redis-cli", "ping"]
 ```
 
+> **포트 라우팅**: 외부에 노출되는 컨테이너는 **Caddy 하나뿐** (호스트
+> `3000` → Caddy `:80`). Caddy 가 `/media/*` 는 `media:3001` 로, 그 외는
+> `web:3000` 으로 내부 도커 네트워크에서 reverse proxy 한다. 따라서 web /
+> media 는 `ports:` 가 아니라 `expose:` 만 사용 — Synology 호스트 포트
+> 충돌이 줄어든다.
+
 6. **.env 편집** (하단 env 파일 탭):
 ```
 SECRET_KEY=<openssl rand -hex 32 결과>
@@ -126,24 +153,48 @@ BEBE_MEDIA_DB_PASSWORD=<복잡한 문자열>
 
 7. **시작**.
 
-## TLS (DSM 리버스 프록시)
+## TLS
+
+내부 Caddy 가 이미 `/media/*` 와 그 외 트래픽을 분리해 web/media 컨테이너로
+나눠 보내므로, **외부에서는 단일 호스트·단일 포트 (3000) 만 신경쓰면 된다.**
+TLS 종단은 두 가지 방법 중 하나:
+
+### 방법 1 — DSM 리버스 프록시로 TLS 종단 (가장 간단)
 
 - DSM → 제어판 → 로그인 포털 → 고급 → 리버스 프록시
 - Source: `bebe.mydomain.synology.me`, 443, HTTPS
-- Destination: `localhost`, 3000, HTTP
+- Destination: `localhost`, 3000, HTTP  *(내부 Caddy)*
+- 사용자 정의 헤더에서 **WebSocket** 켜기, **타임아웃 ≥ 600 초** (큰 tus
+  업로드·SSE 가 끊기지 않도록).
+- `NEXT_PUBLIC_MEDIA_BASE_URL=${PUBLIC_URL}` 그대로. 별도 서브도메인 불필요
+  — 내부 Caddy 가 `/media/*` 경로 라우팅을 처리한다.
 
-**media 서비스 노출 옵션** (Phase B): 브라우저가 업로드·SSE 를 위해 media
-에 직접 붙어야 한다. 두 가지 방법 중 하나 선택:
+### 방법 2 — Caddy 자체에서 TLS 종단
 
-1. **같은 호스트 + 경로 라우팅**: `bebe.mydomain.synology.me/media/*` 만
-   `localhost:3001` 로 보내는 추가 규칙. `NEXT_PUBLIC_MEDIA_BASE_URL` 은
-   `${PUBLIC_URL}` 그대로.
-2. **별도 서브도메인**: `media.mydomain.synology.me` 를 `localhost:3001`
-   로. `NEXT_PUBLIC_MEDIA_BASE_URL=https://media.mydomain.synology.me`.
+`Caddyfile` 의 `:80 { … }` 블록을 도메인 블록으로 교체:
 
-어느 쪽이든 리버스 프록시에서 **타임아웃 충분히 (≥ 10 분)**, **WebSocket /
-SSE 업그레이드 허용** 옵션 켜야 한다. tus 큰 파일 업로드와 진행률 SSE 가
-끊기면 업로드가 실패한다.
+```caddyfile
+bebe.mydomain.synology.me {
+  handle /media/* {
+    reverse_proxy media:3001 {
+      flush_interval -1
+      transport http {
+        response_header_timeout 0s
+        read_timeout 600s
+      }
+    }
+  }
+  handle {
+    reverse_proxy web:3000
+  }
+  encode gzip zstd
+}
+```
+
+이 경우 compose 의 caddy `ports:` 를 `"443:443"` + `"80:80"` 으로 바꾸고
+DSM 80/443 포트가 비어 있어야 한다 (DSM 기본은 5000/5001 이라 보통 OK,
+다른 패키지가 점유 중이면 충돌). Caddy 가 자동으로 Let's Encrypt 인증서를
+발급·갱신한다 — 도메인이 NAS 의 공인 IP 로 정상 해석되는지 먼저 확인.
 
 ## PUID/PGID
 
@@ -152,11 +203,13 @@ SSE 업그레이드 허용** 옵션 켜야 한다. tus 큰 파일 업로드와 �
 
 ## 백업 — Hyper Backup
 
-Hyper Backup 에서 다음 3개 공유 폴더 또는 하위를 백업 대상으로 지정:
+Hyper Backup 에서 다음 공유 폴더 또는 하위를 백업 대상으로 지정:
 - `/volume1/docker/bebe-moment/data` — 사진 원본 + 파생물
 - `/volume1/docker/bebe-moment/pg` — 메타데이터 DB
 
-redis 데이터는 큐 임시 상태라 백업 불필요.
+redis 데이터는 큐 임시 상태라 백업 불필요. `caddy/data` 는 Let's Encrypt
+인증서·키 캐시 — 사라져도 자동 재발급되지만 같이 백업하면 재시작 시
+rate-limit 위험을 줄일 수 있다.
 
 ## 업데이트
 

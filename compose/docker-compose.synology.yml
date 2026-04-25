@@ -1,6 +1,11 @@
 # Synology DSM 변형 — 공유 폴더 기준 볼륨 경로 + PUID/PGID 기본값
 # 사용: docker-compose.yml 대신 단독 사용 or override 로 병합
 services:
+  caddy:
+    volumes:
+      - /volume1/docker/bebe-moment/Caddyfile:/etc/caddy/Caddyfile:ro
+      - /volume1/docker/bebe-moment/caddy/data:/data
+      - /volume1/docker/bebe-moment/caddy/config:/config
   web:
     volumes:
       - /volume1/docker/bebe-moment/data:/data
