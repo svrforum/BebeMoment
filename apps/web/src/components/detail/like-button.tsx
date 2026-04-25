@@ -1,24 +1,36 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
+import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useState } from 'react'
 
-export function LikeButton({
-  assetId,
-  initialLiked,
-  initialCount,
-  size = 'md',
-}: {
+type Controlled = {
+  liked: boolean
+  setLiked: (next: boolean) => void
+  count: number
+  setCount: (next: number) => void
+}
+
+type Props = {
   assetId: string
-  initialLiked: boolean
-  initialCount: number
   size?: 'sm' | 'md'
-}) {
-  const [liked, setLiked] = useState(initialLiked)
-  const [count, setCount] = useState(initialCount)
+} & (
+  | { initialLiked: boolean; initialCount: number; controlled?: undefined }
+  | { initialLiked?: undefined; initialCount?: undefined; controlled: Controlled }
+)
+
+export function LikeButton(props: Props) {
+  const { assetId, size = 'md' } = props
+  const [internalLiked, setInternalLiked] = useState(props.initialLiked ?? false)
+  const [internalCount, setInternalCount] = useState(props.initialCount ?? 0)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+
+  const liked = props.controlled ? props.controlled.liked : internalLiked
+  const count = props.controlled ? props.controlled.count : internalCount
+  const setLiked = props.controlled ? props.controlled.setLiked : setInternalLiked
+  const setCount = props.controlled ? props.controlled.setCount : setInternalCount
 
   async function onClick() {
     if (pending) return
@@ -56,10 +68,19 @@ export function LikeButton({
         pending && 'opacity-70',
       )}
     >
-      <Heart
-        size={iconSize}
-        className={cn('transition', liked ? 'fill-point-500 text-point-500' : 'text-base-500')}
-      />
+      <motion.span
+        animate={{ scale: liked ? [1, 1.35, 1] : 1 }}
+        transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+        className="inline-flex"
+      >
+        <Heart
+          size={iconSize}
+          className={cn(
+            'transition-colors',
+            liked ? 'fill-point-500 text-point-500' : 'text-base-500',
+          )}
+        />
+      </motion.span>
       {count > 0 && <span className="text-sm tabular-nums">{count}</span>}
     </button>
   )

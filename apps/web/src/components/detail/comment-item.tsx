@@ -42,12 +42,14 @@ export function CommentItem({
   currentUserId,
   canDeleteAny,
   familyMembers,
+  isOptimistic = false,
   onChanged,
 }: {
   comment: CommentWithAuthor
   currentUserId: string
   canDeleteAny: boolean
   familyMembers: Member[]
+  isOptimistic?: boolean
   onChanged?: () => void
 }) {
   const [editing, setEditing] = useState(false)
@@ -93,7 +95,7 @@ export function CommentItem({
   }
 
   return (
-    <div className="group py-2">
+    <div className={cn('group py-2', isOptimistic && 'opacity-60')}>
       <div className="flex items-start justify-between gap-2">
         <div className="flex-1">
           <div className="text-xs text-base-500">

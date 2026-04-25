@@ -21,8 +21,12 @@ export function ViewerBottomSheet({
   familyMembers,
   meta,
   likers,
-  initialLiked,
-  initialBookmarked,
+  liked,
+  setLiked,
+  count,
+  setCount,
+  bookmarked,
+  setBookmarked,
   initialComments,
 }: {
   open: boolean
@@ -33,8 +37,12 @@ export function ViewerBottomSheet({
   familyMembers: Member[]
   meta: MetaProps
   likers: { count: number; users: User[] }
-  initialLiked: boolean
-  initialBookmarked: boolean
+  liked: boolean
+  setLiked: (next: boolean) => void
+  count: number
+  setCount: (next: number) => void
+  bookmarked: boolean
+  setBookmarked: (next: boolean) => void
   initialComments: CommentWithAuthor[]
 }) {
   return (
@@ -43,8 +51,8 @@ export function ViewerBottomSheet({
         <MetadataSection {...meta} />
         <div className="space-y-2 border-t pt-4">
           <div className="flex items-center gap-2">
-            <LikeButton assetId={assetId} initialLiked={initialLiked} initialCount={likers.count} />
-            <BookmarkButton assetId={assetId} initialBookmarked={initialBookmarked} />
+            <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
+            <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
           </div>
           <LikerAvatars users={likers.users} />
         </div>

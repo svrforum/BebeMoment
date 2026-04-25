@@ -5,14 +5,23 @@ import { useEffect, useRef, useState } from 'react'
 
 type Member = { id: string; displayName: string }
 
+export type OptimisticDraft = {
+  body: string
+  tempId: string
+}
+
 export function CommentComposer({
   assetId,
   familyMembers,
   onSubmit,
+  onOptimistic,
+  onOptimisticFail,
 }: {
   assetId: string
   familyMembers: Member[]
   onSubmit?: () => void
+  onOptimistic?: (draft: OptimisticDraft) => void
+  onOptimisticFail?: (tempId: string) => void
 }) {
   const [body, setBody] = useState('')
   const [pending, setPending] = useState(false)
@@ -43,17 +52,21 @@ export function CommentComposer({
   async function submit() {
     if (!body.trim() || pending) return
     setPending(true)
+    const tempId = `tmp-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`
+    const draftBody = body
+    onOptimistic?.({ body: draftBody, tempId })
+    setBody('')
     try {
       const res = await fetch(`/api/asset/${assetId}/comments`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body }),
+        body: JSON.stringify({ body: draftBody }),
       })
       if (!res.ok) throw new Error('failed')
-      setBody('')
       onSubmit?.()
-      toast({ title: '댓글이 등록됐어요', variant: 'success' })
     } catch {
+      onOptimisticFail?.(tempId)
+      setBody(draftBody)
       toast({ title: '댓글을 등록하지 못했어요', variant: 'danger' })
     } finally {
       setPending(false)

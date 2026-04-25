@@ -6,15 +6,23 @@ import { LikeButton } from './like-button'
 
 export function ViewerActionBar({
   assetId,
-  likeState,
-  bookmarkState,
+  liked,
+  setLiked,
+  count,
+  setCount,
+  bookmarked,
+  setBookmarked,
   commentCount,
   visible,
   onCommentTap,
 }: {
   assetId: string
-  likeState: { liked: boolean; count: number }
-  bookmarkState: { bookmarked: boolean }
+  liked: boolean
+  setLiked: (next: boolean) => void
+  count: number
+  setCount: (next: number) => void
+  bookmarked: boolean
+  setBookmarked: (next: boolean) => void
   commentCount: number
   visible: boolean
   onCommentTap: () => void
@@ -26,7 +34,7 @@ export function ViewerActionBar({
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <LikeButton assetId={assetId} initialLiked={likeState.liked} initialCount={likeState.count} />
+      <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
       <button
         type="button"
         onClick={onCommentTap}
@@ -36,7 +44,7 @@ export function ViewerActionBar({
         <MessageCircle size={22} />
         {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
       </button>
-      <BookmarkButton assetId={assetId} initialBookmarked={bookmarkState.bookmarked} />
+      <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
     </div>
   )
 }

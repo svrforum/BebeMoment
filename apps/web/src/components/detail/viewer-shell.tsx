@@ -46,6 +46,9 @@ export function ViewerShell({
   // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [liked, setLiked] = useState(initialLiked)
+  const [count, setCount] = useState(likers.count)
+  const [bookmarked, setBookmarked] = useState(initialBookmarked)
 
   return (
     <div className="relative min-h-screen bg-black md:flex">
@@ -63,8 +66,12 @@ export function ViewerShell({
       <div className="md:hidden">
         <ViewerActionBar
           assetId={current.id}
-          likeState={{ liked: initialLiked, count: likers.count }}
-          bookmarkState={{ bookmarked: initialBookmarked }}
+          liked={liked}
+          setLiked={setLiked}
+          count={count}
+          setCount={setCount}
+          bookmarked={bookmarked}
+          setBookmarked={setBookmarked}
           commentCount={initialComments.filter((c) => !c.deletedAt).length}
           visible={chromeVisible}
           onCommentTap={() => setSheetOpen(true)}
@@ -78,8 +85,12 @@ export function ViewerShell({
           familyMembers={familyMembers}
           meta={meta}
           likers={likers}
-          initialLiked={initialLiked}
-          initialBookmarked={initialBookmarked}
+          liked={liked}
+          setLiked={setLiked}
+          count={count}
+          setCount={setCount}
+          bookmarked={bookmarked}
+          setBookmarked={setBookmarked}
           initialComments={initialComments}
         />
       </div>
@@ -93,8 +104,12 @@ export function ViewerShell({
           familyMembers={familyMembers}
           meta={meta}
           likers={likers}
-          initialLiked={initialLiked}
-          initialBookmarked={initialBookmarked}
+          liked={liked}
+          setLiked={setLiked}
+          count={count}
+          setCount={setCount}
+          bookmarked={bookmarked}
+          setBookmarked={setBookmarked}
           initialComments={initialComments}
         />
       </aside>

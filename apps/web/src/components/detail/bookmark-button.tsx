@@ -4,18 +4,27 @@ import { useToast } from '@/lib/toast'
 import { Bookmark } from 'lucide-react'
 import { useState } from 'react'
 
-export function BookmarkButton({
-  assetId,
-  initialBookmarked,
-  size = 'md',
-}: {
+type Controlled = {
+  bookmarked: boolean
+  setBookmarked: (next: boolean) => void
+}
+
+type Props = {
   assetId: string
-  initialBookmarked: boolean
   size?: 'sm' | 'md'
-}) {
-  const [bookmarked, setBookmarked] = useState(initialBookmarked)
+} & (
+  | { initialBookmarked: boolean; controlled?: undefined }
+  | { initialBookmarked?: undefined; controlled: Controlled }
+)
+
+export function BookmarkButton(props: Props) {
+  const { assetId, size = 'md' } = props
+  const [internalBookmarked, setInternalBookmarked] = useState(props.initialBookmarked ?? false)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+
+  const bookmarked = props.controlled ? props.controlled.bookmarked : internalBookmarked
+  const setBookmarked = props.controlled ? props.controlled.setBookmarked : setInternalBookmarked
 
   async function onClick() {
     if (pending) return
