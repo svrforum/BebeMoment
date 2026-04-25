@@ -22,13 +22,18 @@ ToastViewport.displayName = 'ToastViewport'
 
 export const Toast = forwardRef<
   ElementRef<typeof ToastPrimitive.Root>,
-  ComponentPropsWithoutRef<typeof ToastPrimitive.Root> & { variant?: 'default' | 'danger' }
+  ComponentPropsWithoutRef<typeof ToastPrimitive.Root> & {
+    variant?: 'default' | 'danger' | 'success'
+  }
 >(({ className, variant = 'default', ...props }, ref) => (
   <ToastPrimitive.Root
     ref={ref}
     className={cn(
       'group rounded-2xl bg-base-900 text-base-50 shadow-elevated px-4 py-3 flex items-center gap-3',
+      'data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-bottom-4',
+      'data-[state=closed]:animate-out data-[state=closed]:fade-out',
       variant === 'danger' && 'bg-danger text-white',
+      variant === 'success' && 'bg-emerald-600 text-white',
       className,
     )}
     {...props}

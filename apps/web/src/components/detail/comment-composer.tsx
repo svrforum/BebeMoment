@@ -1,5 +1,6 @@
 'use client'
 import { Button } from '@/components/ui/button'
+import { useToast } from '@/lib/toast'
 import { useEffect, useRef, useState } from 'react'
 
 type Member = { id: string; displayName: string }
@@ -18,6 +19,7 @@ export function CommentComposer({
   const [showMention, setShowMention] = useState(false)
   const [mentionQuery, setMentionQuery] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const toast = useToast()
 
   useEffect(() => {
     const match = body.match(/@([^\s@]{0,20})$/)
@@ -50,6 +52,9 @@ export function CommentComposer({
       if (!res.ok) throw new Error('failed')
       setBody('')
       onSubmit?.()
+      toast({ title: '댓글이 등록됐어요', variant: 'success' })
+    } catch {
+      toast({ title: '댓글을 등록하지 못했어요', variant: 'danger' })
     } finally {
       setPending(false)
     }

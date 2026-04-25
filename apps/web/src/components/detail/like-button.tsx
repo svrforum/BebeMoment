@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import { Heart } from 'lucide-react'
 import { useState } from 'react'
 
@@ -17,6 +18,7 @@ export function LikeButton({
   const [liked, setLiked] = useState(initialLiked)
   const [count, setCount] = useState(initialCount)
   const [pending, setPending] = useState(false)
+  const toast = useToast()
 
   async function onClick() {
     if (pending) return
@@ -34,6 +36,7 @@ export function LikeButton({
     } catch {
       setLiked(prevLiked)
       setCount(prevCount)
+      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
     } finally {
       setPending(false)
     }

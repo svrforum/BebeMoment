@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import { Bookmark } from 'lucide-react'
 import { useState } from 'react'
 
@@ -14,6 +15,7 @@ export function BookmarkButton({
 }) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
   const [pending, setPending] = useState(false)
+  const toast = useToast()
 
   async function onClick() {
     if (pending) return
@@ -27,6 +29,7 @@ export function BookmarkButton({
       setBookmarked(data.bookmarked)
     } catch {
       setBookmarked(prev)
+      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
     } finally {
       setPending(false)
     }

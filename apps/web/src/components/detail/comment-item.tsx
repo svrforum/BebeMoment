@@ -1,6 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import { MoreHorizontal } from 'lucide-react'
 import { useState } from 'react'
 
@@ -52,28 +53,37 @@ export function CommentItem({
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.body)
   const [menuOpen, setMenuOpen] = useState(false)
+  const toast = useToast()
 
   const isOwn = comment.author.id === currentUserId
   const canEdit = isOwn && !comment.deletedAt
   const canDelete = (isOwn || canDeleteAny) && !comment.deletedAt
 
   async function save() {
-    const res = await fetch(`/api/asset/${comment.assetId}/comments/${comment.id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ body: draft }),
-    })
-    if (res.ok) {
+    try {
+      const res = await fetch(`/api/asset/${comment.assetId}/comments/${comment.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ body: draft }),
+      })
+      if (!res.ok) throw new Error('failed')
       setEditing(false)
       onChanged?.()
+    } catch {
+      toast({ title: '댓글을 수정하지 못했어요', variant: 'danger' })
     }
   }
 
   async function remove() {
-    const res = await fetch(`/api/asset/${comment.assetId}/comments/${comment.id}`, {
-      method: 'DELETE',
-    })
-    if (res.ok) onChanged?.()
+    try {
+      const res = await fetch(`/api/asset/${comment.assetId}/comments/${comment.id}`, {
+        method: 'DELETE',
+      })
+      if (!res.ok) throw new Error('failed')
+      onChanged?.()
+    } catch {
+      toast({ title: '댓글을 삭제하지 못했어요', variant: 'danger' })
+    }
   }
 
   const ts = typeof comment.createdAt === 'string' ? new Date(comment.createdAt) : comment.createdAt
