@@ -1,4 +1,17 @@
 services:
+  caddy:
+    image: caddy:2-alpine
+    ports:
+      - "${PORT:-3000}:80"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      web: { condition: service_healthy }
+      media: { condition: service_healthy }
+    restart: unless-stopped
+
   web:
     image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/web:${TAG:-latest}
     environment:
@@ -21,8 +34,8 @@ services:
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
     volumes:
       - ${DATA_DIR:-./data}:/data
-    ports:
-      - "${PORT:-3000}:3000"
+    expose:
+      - "3000"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -60,8 +73,8 @@ services:
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
     volumes:
       - ${DATA_DIR:-./data}:/data
-    ports:
-      - "${MEDIA_PORT_HOST:-3001}:3001"
+    expose:
+      - "3001"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
@@ -110,3 +123,7 @@ services:
       resources:
         limits:
           memory: ${REDIS_MEMORY_LIMIT:-128m}
+
+volumes:
+  caddy_data:
+  caddy_config:
