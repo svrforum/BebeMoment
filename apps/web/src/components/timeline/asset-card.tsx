@@ -92,7 +92,7 @@ export function AssetCard({
         </div>
       )}
       {kind === 'video' && (
-        <div className="absolute right-2 top-2 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
+        <div className="absolute right-2 top-2 z-20 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
           VIDEO
         </div>
       )}
@@ -100,7 +100,9 @@ export function AssetCard({
         <>
           <div
             className={cn(
-              'pointer-events-none absolute inset-0 box-border transition-all ease-ios',
+              // z-10 so the overlay sits above the <img> / <video> poster
+              // (PictureImage gives the inner img z-index:1).
+              'pointer-events-none absolute inset-0 z-10 box-border transition-all ease-ios',
               selected
                 ? 'bg-point-500/15 ring-[3px] ring-point-500'
                 : 'bg-black/10 ring-[3px] ring-transparent',
@@ -108,10 +110,10 @@ export function AssetCard({
           />
           <div
             className={cn(
-              'absolute left-2 top-2 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-all ease-ios',
+              'absolute left-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-all ease-ios',
               selected
-                ? 'bg-point-500 text-white scale-100'
-                : 'bg-base-0/85 text-transparent scale-90 dark:bg-base-900/85',
+                ? 'scale-100 bg-point-500 text-white'
+                : 'scale-90 bg-base-0/90 text-base-400 dark:bg-base-900/90',
             )}
           >
             <Check size={16} strokeWidth={3} />

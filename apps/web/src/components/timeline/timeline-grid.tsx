@@ -5,7 +5,7 @@ import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { FolderPlus, ImagePlus, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { BucketSection } from './bucket-section'
 
 type AssetRow = {
@@ -60,6 +60,20 @@ export function TimelineGrid({ initialGroups }: Props) {
   }, [])
 
   const clearSelection = useCallback(() => setSelected(new Set()), [])
+
+  // Esc clears the selection — only when a sheet/modal isn't taking
+  // priority over the keyboard. Skipping when the picker is open lets the
+  // sheet's own Esc handler close it first; the second Esc clears.
+  useEffect(() => {
+    if (selected.size === 0) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      if (pickerOpen) return
+      clearSelection()
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [selected.size, pickerOpen, clearSelection])
 
   if (initialGroups.length === 0) {
     return (
