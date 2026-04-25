@@ -20,10 +20,13 @@ export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {
       where: { id: { in: assetIds }, familyId, deletedAt: null },
     })
 
-    const urls: Record<string, AssetUrls> = {}
-    for (const asset of assets) {
-      urls[asset.id] = await resolveAssetUrls(asset)
-    }
+    // Resolve every asset's URLs in parallel — the inner resolveAssetUrls
+    // is itself parallel, so a 100-asset batch goes from ~100×N×roundtrip
+    // sequential JWT signs to one wall-time burst.
+    const resolved = await Promise.all(
+      assets.map(async (asset) => [asset.id, await resolveAssetUrls(asset)] as const),
+    )
+    const urls: Record<string, AssetUrls> = Object.fromEntries(resolved)
 
     const payload = batchUrlsResponse.parse({ v: 1, urls })
     reply.status(200).send(payload)

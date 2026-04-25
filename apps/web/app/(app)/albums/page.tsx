@@ -7,7 +7,8 @@ import { listAlbums } from '@/server/album/list'
 import { getContext } from '@/server/context'
 import { FolderPlus } from 'lucide-react'
 
-export const dynamic = 'force-dynamic'
+// Cookie access via `getContext()` already opts this route into dynamic
+// rendering; the explicit `force-dynamic` was redundant.
 
 const PREVIEW_PER_ALBUM = 4
 

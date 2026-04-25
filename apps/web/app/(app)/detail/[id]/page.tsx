@@ -1,11 +1,10 @@
 import { ViewerShell } from '@/components/detail/viewer-shell'
 import { pickDisplayUrl, pickVideoPosterUrl } from '@/lib/asset-url'
-import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getAssetForFamily } from '@/server/asset/get'
 import { listComments } from '@/server/comment/list'
-import { resolveContext } from '@/server/context'
+import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
 import { can } from '@bebe/core'
@@ -13,12 +12,10 @@ import { notFound } from 'next/navigation'
 
 export default async function DetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
-  const { session } = await getAuth()
-  if (!session) return null
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
+  // getContext() is `cache()`-wrapped so layout + page share one fetch.
+  // resolveContext() called directly would duplicate the user/membership
+  // queries on every detail navigation.
+  const ctx = await getContext()
   if (!ctx.family || !ctx.user) return null
 
   const media = getMediaClient()

@@ -13,8 +13,6 @@ import { getContext } from '@/server/context'
 import { ImagePlus } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
-export const dynamic = 'force-dynamic'
-
 const PREVIEW_PER_CHILD = 4
 
 export default async function AlbumDetailPage({

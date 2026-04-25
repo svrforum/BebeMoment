@@ -4,7 +4,12 @@ import { getContext } from '@/server/context'
 import { redirect } from 'next/navigation'
 import { AppShellClient } from './shell-client'
 
-export const dynamic = 'force-dynamic'
+// `force-dynamic` removed from the layout — it was forcing every page in
+// the (app) segment to re-render fully on each request. Auth + per-family
+// data is request-scoped via `cookies()` inside `getContext()`, so Next.js
+// already recognizes this layout as dynamic where it matters; pages keep
+// the freedom to opt back in to caching where appropriate (e.g. journal
+// list with 60s revalidate).
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext()

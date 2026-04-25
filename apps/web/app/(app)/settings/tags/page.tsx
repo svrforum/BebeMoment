@@ -4,7 +4,6 @@ import { getContext } from '@/server/context'
 import { listTagsWithCounts } from '@/server/tag/list'
 import { TagsManager } from './tags-manager'
 
-export const dynamic = 'force-dynamic'
 
 export default async function TagsSettingsPage() {
   const ctx = await getContext()

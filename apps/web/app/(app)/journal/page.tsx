@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { JournalCard } from '@/components/timeline/journal-card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
@@ -59,26 +60,7 @@ export default async function JournalPage() {
           <ul className="space-y-3">
             {items.map((e) => (
               <li key={e.id}>
-                <Link
-                  href={`/journal/${e.id}`}
-                  className="block transition-transform ease-ios active:scale-[0.985]"
-                >
-                  <article className="rounded-3xl border border-base-200/70 bg-base-0 p-5 shadow-card transition-shadow hover:shadow-elevated dark:border-base-800/70 dark:bg-base-900">
-                    <div className="flex items-center gap-2 text-[12px] font-medium tabular-nums text-base-400">
-                      <span>{e.entryDate.toISOString().slice(0, 10)}</span>
-                      <span aria-hidden className="h-1 w-1 rounded-full bg-base-300 dark:bg-base-700" />
-                      <span>일기</span>
-                    </div>
-                    {e.title && (
-                      <h3 className="mt-1.5 text-[17px] font-semibold tracking-tight text-base-900 dark:text-base-50">
-                        {e.title}
-                      </h3>
-                    )}
-                    <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-base-500">
-                      {e.body}
-                    </p>
-                  </article>
-                </Link>
+                <JournalCard entry={e} />
               </li>
             ))}
           </ul>

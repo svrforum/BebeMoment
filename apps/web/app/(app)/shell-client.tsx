@@ -2,6 +2,7 @@
 import { FAB } from '@/components/shell/fab'
 import { ToastProvider, ToastViewport } from '@/components/ui/toast'
 import { UploadSheetProvider, useUploadSheet } from '@/components/upload/upload-sheet'
+import { FamilySSEProvider } from '@/lib/sse'
 import { ToastEmitterProvider } from '@/lib/toast'
 import { usePathname } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -22,10 +23,12 @@ export function AppShellClient({ children }: { children: ReactNode }) {
   return (
     <ToastProvider swipeDirection="down">
       <ToastEmitterProvider>
-        <UploadSheetProvider>
-          {children}
-          <FabTrigger />
-        </UploadSheetProvider>
+        <FamilySSEProvider>
+          <UploadSheetProvider>
+            {children}
+            <FabTrigger />
+          </UploadSheetProvider>
+        </FamilySSEProvider>
       </ToastEmitterProvider>
       <ToastViewport />
     </ToastProvider>
