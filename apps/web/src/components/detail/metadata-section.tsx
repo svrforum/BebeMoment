@@ -49,7 +49,7 @@ export function MetadataSection(p: Props) {
       <div className="flex items-start gap-2">
         <Calendar size={16} className="mt-0.5 text-base-500" />
         <div>
-          <div>{p.takenAt.toLocaleString('ko-KR')}</div>
+          <div>{p.takenAt.toLocaleString('ko-KR', { dateStyle: 'long', timeStyle: 'short' })}</div>
           {p.takenAtSource !== 'exif' && (
             <div className="text-xs text-base-500">({p.takenAtSource})</div>
           )}

@@ -1,7 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { MoreVertical, X } from 'lucide-react'
-import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export function ViewerTopBar({
@@ -14,6 +14,15 @@ export function ViewerTopBar({
   onDelete?: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
+  const router = useRouter()
+
+  function close() {
+    if (typeof window !== 'undefined' && window.history.length > 1) {
+      router.back()
+    } else {
+      router.push('/timeline')
+    }
+  }
 
   return (
     <div
@@ -22,9 +31,9 @@ export function ViewerTopBar({
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <Link href="/timeline" aria-label="닫기" className="text-white">
+      <button type="button" onClick={close} aria-label="닫기" className="text-white">
         <X className="h-6 w-6" />
-      </Link>
+      </button>
       <div className="relative">
         <button
           type="button"
@@ -35,7 +44,7 @@ export function ViewerTopBar({
           <MoreVertical className="h-6 w-6" />
         </button>
         {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 rounded-xl border bg-base-0 shadow-lg dark:bg-base-900">
+          <div className="absolute right-0 top-full mt-2 rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
             <a
               href={`/api/asset/${assetId}/original`}
               download

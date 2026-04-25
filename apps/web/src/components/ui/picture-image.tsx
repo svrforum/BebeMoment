@@ -93,7 +93,7 @@ export function PictureImage({
     }
     return (
       <div
-        className={className}
+        className={`${className ?? ''} bg-base-100 dark:bg-base-800`}
         style={{
           aspectRatio: aspectRatio ?? undefined,
           backgroundColor: dominantColor ?? undefined,

@@ -85,10 +85,10 @@ export function CommentComposer({
         placeholder="댓글 입력… (@이름 으로 멘션)"
         rows={2}
         maxLength={2000}
-        className="w-full rounded-xl border px-3 py-2 text-sm"
+        className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
       />
       {showMention && candidates.length > 0 && (
-        <div className="absolute bottom-full left-0 z-10 mb-1 rounded-xl border bg-base-0 shadow-lg dark:bg-base-900">
+        <div className="absolute bottom-full left-0 z-10 mb-1 rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
           {candidates.map((m) => (
             <button
               type="button"

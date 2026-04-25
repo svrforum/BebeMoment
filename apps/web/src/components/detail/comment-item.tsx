@@ -120,7 +120,7 @@ export function CommentItem({
                 }}
                 rows={2}
                 maxLength={2000}
-                className="w-full rounded-xl border px-3 py-2 text-sm"
+                className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
               />
               <div className="flex gap-2">
                 <Button type="button" size="sm" onClick={save}>
@@ -152,14 +152,14 @@ export function CommentItem({
               onClick={() => setMenuOpen((o) => !o)}
               aria-label="댓글 메뉴"
               className={cn(
-                'rounded p-1 text-base-500 opacity-0 group-hover:opacity-100',
-                menuOpen && 'opacity-100',
+                'rounded p-1 text-base-500 md:opacity-0 md:group-hover:opacity-100',
+                menuOpen && 'opacity-100 md:opacity-100',
               )}
             >
               <MoreHorizontal size={16} />
             </button>
             {menuOpen && (
-              <div className="absolute right-0 top-full z-10 mt-1 rounded-xl border bg-base-0 shadow-lg dark:bg-base-900">
+              <div className="absolute right-0 top-full z-10 mt-1 rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
                 {canEdit && (
                   <button
                     type="button"

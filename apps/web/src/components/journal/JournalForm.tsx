@@ -43,7 +43,7 @@ export function JournalForm({
         <Label>대상</Label>
         <select
           name="babyId"
-          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
           defaultValue={defaults?.babyId ?? ''}
         >
           <option value="">가족 전체</option>
@@ -77,7 +77,7 @@ export function JournalForm({
           rows={8}
           maxLength={20000}
           defaultValue={defaults?.body ?? ''}
-          className="w-full rounded-xl border px-3 py-2 text-sm"
+          className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
         />
       </div>
       <div>
@@ -85,7 +85,7 @@ export function JournalForm({
         <select
           id="mood"
           name="mood"
-          className="mt-1 w-full rounded-xl border px-3 py-2 text-sm"
+          className="mt-1 w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
           defaultValue={defaults?.mood ?? ''}
         >
           {MOODS.map((m) => (

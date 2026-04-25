@@ -53,7 +53,7 @@ export function AssetPickerSheet({
                 type="button"
                 key={a.id}
                 onClick={() => toggle(a.id)}
-                className={`relative aspect-square overflow-hidden rounded-lg border ${isSel ? 'ring-2 ring-point-500' : ''}`}
+                className={`relative aspect-square overflow-hidden rounded-lg border border-base-200 dark:border-base-800 ${isSel ? 'ring-2 ring-point-500' : ''}`}
               >
                 {hasImage ? (
                   <PictureImage
