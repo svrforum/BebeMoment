@@ -2,8 +2,8 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
-import { softDeleteJournalEntry } from '@/server/journal/soft-delete'
-import { updateJournalEntry } from '@/server/journal/update'
+import { softDeleteDiaryEntry } from '@/server/diary/soft-delete'
+import { updateDiaryEntry } from '@/server/diary/update'
 import { redirect } from 'next/navigation'
 
 function parseAssetIds(v: FormDataEntryValue | null): string[] {
@@ -16,7 +16,7 @@ function parseAssetIds(v: FormDataEntryValue | null): string[] {
   }
 }
 
-export async function updateJournalAction(id: string, formData: FormData) {
+export async function updateDiaryAction(id: string, formData: FormData) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -26,7 +26,7 @@ export async function updateJournalAction(id: string, formData: FormData) {
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const babyId = String(formData.get('babyId') ?? '').trim()
   const mood = String(formData.get('mood') ?? '').trim()
-  await updateJournalEntry(
+  await updateDiaryEntry(
     {
       id,
       familyId: ctx.family.id,
@@ -46,7 +46,7 @@ export async function updateJournalAction(id: string, formData: FormData) {
   redirect(`/diary/${id}`)
 }
 
-export async function deleteJournalAction(id: string) {
+export async function deleteDiaryAction(id: string) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -54,6 +54,6 @@ export async function deleteJournalAction(id: string) {
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
-  await softDeleteJournalEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
+  await softDeleteDiaryEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
   redirect('/diary')
 }

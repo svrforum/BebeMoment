@@ -1,17 +1,17 @@
-import { DiaryDeleteButton } from '@/components/journal/DiaryDeleteButton'
-import { JournalDetail } from '@/components/journal/JournalDetail'
-import { JournalForm } from '@/components/journal/JournalForm'
+import { DiaryDeleteButton } from '@/components/diary/DiaryDeleteButton'
+import { DiaryDetail } from '@/components/diary/DiaryDetail'
+import { DiaryForm } from '@/components/diary/DiaryForm'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
-import { getJournalEntry } from '@/server/journal/get'
+import { getDiaryEntry } from '@/server/diary/get'
 import { ChevronLeft, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { deleteJournalAction, updateJournalAction } from './actions'
+import { deleteDiaryAction, updateDiaryAction } from './actions'
 
-export default async function JournalDetailPage({
+export default async function DiaryDetailPage({
   params,
   searchParams,
 }: {
@@ -27,13 +27,7 @@ export default async function JournalDetailPage({
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
-  const entry = await getJournalEntry(
-    id,
-    ctx.family.id,
-    prismaPublic,
-    prismaMedia,
-    getMediaClient(),
-  )
+  const entry = await getDiaryEntry(id, ctx.family.id, prismaPublic, prismaMedia, getMediaClient())
   if (!entry) notFound()
 
   if (sp.edit === '1') {
@@ -76,8 +70,8 @@ export default async function JournalDetailPage({
           </div>
         </header>
         <div className="mx-auto max-w-2xl px-5 py-4">
-          <JournalForm
-            action={updateJournalAction.bind(null, id)}
+          <DiaryForm
+            action={updateDiaryAction.bind(null, id)}
             babies={babies}
             availableAssets={pickerAssets}
             submitLabel="저장"
@@ -99,7 +93,7 @@ export default async function JournalDetailPage({
     <>
       <DiaryDetailHeader />
       <div className="mx-auto max-w-2xl px-5 py-4">
-        <JournalDetail entry={entry} />
+        <DiaryDetail entry={entry} />
         <div className="mt-3 flex items-center justify-end gap-1 text-[12px]">
           <Link
             href={`/diary/${id}?edit=1`}
@@ -108,7 +102,7 @@ export default async function JournalDetailPage({
             <Pencil size={13} strokeWidth={2.2} />
             <span>편집</span>
           </Link>
-          <DiaryDeleteButton onDelete={deleteJournalAction.bind(null, id)} />
+          <DiaryDeleteButton onDelete={deleteDiaryAction.bind(null, id)} />
         </div>
       </div>
     </>

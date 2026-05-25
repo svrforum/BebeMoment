@@ -2,9 +2,9 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
-import { getJournalEntry } from '@/server/journal/get'
-import { softDeleteJournalEntry } from '@/server/journal/soft-delete'
-import { updateJournalEntry } from '@/server/journal/update'
+import { getDiaryEntry } from '@/server/diary/get'
+import { softDeleteDiaryEntry } from '@/server/diary/soft-delete'
+import { updateDiaryEntry } from '@/server/diary/update'
 import { NextResponse } from 'next/server'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -16,13 +16,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const { id } = await params
-  const entry = await getJournalEntry(
-    id,
-    ctx.family.id,
-    prismaPublic,
-    prismaMedia,
-    getMediaClient(),
-  )
+  const entry = await getDiaryEntry(id, ctx.family.id, prismaPublic, prismaMedia, getMediaClient())
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(entry)
 }
@@ -38,7 +32,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   try {
     const { id } = await params
     const patch = await req.json()
-    const entry = await updateJournalEntry(
+    const entry = await updateDiaryEntry(
       { id, familyId: ctx.family.id, byUserId: ctx.user.id, patch },
       prismaPublic,
       prismaMedia,
@@ -59,10 +53,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
-    await softDeleteJournalEntry(
-      { id, familyId: ctx.family.id, byUserId: ctx.user.id },
-      prismaPublic,
-    )
+    await softDeleteDiaryEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

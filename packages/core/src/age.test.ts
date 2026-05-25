@@ -54,4 +54,12 @@ describe('bucketLabel', () => {
   it('2주년', () => {
     expect(bucketLabel(birth, new Date('2028-01-01'))).toBe('2주년')
   })
+
+  // 출산 예정일(birthDate)이 미래인 태아기 사진 — 출산까지 남은 일수 D-day 카운트다운
+  it('출산 하루 전은 "D-1"', () => {
+    expect(bucketLabel(birth, new Date('2025-12-31'))).toBe('D-1')
+  })
+  it('출산 119일 전은 "D-119"', () => {
+    expect(bucketLabel(birth, new Date('2025-09-04'))).toBe('D-119')
+  })
 })

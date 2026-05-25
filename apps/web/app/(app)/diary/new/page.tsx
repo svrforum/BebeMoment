@@ -1,4 +1,4 @@
-import { JournalForm } from '@/components/journal/JournalForm'
+import { DiaryForm } from '@/components/diary/DiaryForm'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
@@ -6,9 +6,9 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { redirect } from 'next/navigation'
-import { createJournalAction } from './actions'
+import { createDiaryAction } from './actions'
 
-export default async function NewJournalPage() {
+export default async function NewDiaryPage() {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -47,11 +47,7 @@ export default async function NewJournalPage() {
       <div className="mx-auto max-w-sm px-5 py-6">
         <Card>
           <CardBody>
-            <JournalForm
-              action={createJournalAction}
-              babies={babies}
-              availableAssets={pickerAssets}
-            />
+            <DiaryForm action={createDiaryAction} babies={babies} availableAssets={pickerAssets} />
           </CardBody>
         </Card>
       </div>

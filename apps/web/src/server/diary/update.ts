@@ -22,7 +22,7 @@ const Input = z.object({
   }),
 })
 
-export async function updateJournalEntry(
+export async function updateDiaryEntry(
   raw: unknown,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,

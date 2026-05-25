@@ -15,7 +15,7 @@ const MOODS: { key: string; label: string }[] = [
   { key: 'calm', label: '차분해요' },
 ]
 
-export function JournalForm({
+export function DiaryForm({
   action,
   babies,
   availableAssets,

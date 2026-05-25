@@ -8,7 +8,7 @@ import { AppShellClient } from './shell-client'
 // the (app) segment to re-render fully on each request. Auth + per-family
 // data is request-scoped via `cookies()` inside `getContext()`, so Next.js
 // already recognizes this layout as dynamic where it matters; pages keep
-// the freedom to opt back in to caching where appropriate (e.g. journal
+// the freedom to opt back in to caching where appropriate (e.g. diary
 // list with 60s revalidate).
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {

@@ -1,4 +1,4 @@
-import { MOODS, isMood } from '@/components/journal/mood'
+import { MOODS, isMood } from '@/components/diary/mood'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
@@ -12,7 +12,7 @@ type Props = {
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-export function JournalCard({ entry }: Props) {
+export function DiaryCard({ entry }: Props) {
   const thumbs = entry.assets.slice(0, 3)
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
   const d = entry.entryDate

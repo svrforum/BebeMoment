@@ -126,8 +126,12 @@ export function MetadataEditor({
         ) : (
           <ClickRow
             label={new Date(takenAt).toLocaleString('ko-KR', {
-              dateStyle: 'long',
-              timeStyle: 'short',
+              year: 'numeric',
+              month: 'long',
+              day: 'numeric',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
             })}
             secondary={`촬영일${takenAtSource !== 'exif' ? ` (${takenAtSource})` : ''}`}
             onEdit={() => setEditing('takenAt')}

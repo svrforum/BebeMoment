@@ -3,8 +3,8 @@ import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
+import { createDiaryEntry } from '../diary/create'
 import { createFamily } from '../family/create'
-import { createJournalEntry } from '../journal/create'
 import { listTimeline } from './merged-list'
 
 let db: FullTestDb
@@ -69,10 +69,10 @@ describe('listTimeline', () => {
     expect(nextCursor).toBeNull()
   })
 
-  it('interleaves assets and journal by descending date', async () => {
+  it('interleaves assets and diary by descending date', async () => {
     const { user, family } = await setup()
     await makeAsset(family.id, user.id, new Date('2026-04-10'), 'a1')
-    await createJournalEntry(
+    await createDiaryEntry(
       { familyId: family.id, babyId: null, entryDate: '2026-04-12', body: 'b', byUserId: user.id },
       db.prismaPublic,
       db.prismaMedia,

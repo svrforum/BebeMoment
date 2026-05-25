@@ -8,7 +8,7 @@ const Input = z.object({
   byUserId: z.string().uuid(),
 })
 
-export async function softDeleteJournalEntry(raw: unknown, prisma: PrismaClient): Promise<void> {
+export async function softDeleteDiaryEntry(raw: unknown, prisma: PrismaClient): Promise<void> {
   const input = Input.parse(raw)
   const entry = await prisma.journalEntry.findFirst({
     where: { id: input.id, familyId: input.familyId, deletedAt: null },

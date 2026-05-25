@@ -10,7 +10,7 @@ type Props = {
 
 /**
  * Single-purpose FAB: photo / video upload.
- * Journal-style posts now live in the timeline composer at the top of
+ * Diary-style posts now live in the timeline composer at the top of
  * /timeline, so the dual-action menu was retired in favor of a one-tap
  * upload button. Less ambiguity, less motion.
  */

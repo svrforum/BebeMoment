@@ -43,7 +43,7 @@ export function BucketSection({
           {assets.length}장
         </span>
       </header>
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">
+      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6">
         {assets.map((a, i) => (
           <div
             key={a.id}

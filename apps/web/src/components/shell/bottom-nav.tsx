@@ -13,6 +13,8 @@ const items = [
 
 export function BottomNav() {
   const pathname = usePathname()
+  // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
+  if (pathname?.startsWith('/detail') === true) return null
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
       <div className="mx-auto grid h-16 max-w-3xl grid-cols-4 pb-[env(safe-area-inset-bottom)]">

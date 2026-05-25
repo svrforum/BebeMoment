@@ -7,9 +7,11 @@ type Props = {
   subtitle?: string
   left?: ReactNode
   right?: ReactNode
+  /** 사진 그리드 등 넓은 화면에서 데스크탑 공간을 활용하는 페이지 */
+  wide?: boolean
 }
 
-export function AppHeader({ title, subtitle, left, right }: Props) {
+export function AppHeader({ title, subtitle, left, right, wide = false }: Props) {
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
@@ -36,7 +38,7 @@ export function AppHeader({ title, subtitle, left, right }: Props) {
       )}
       style={{ WebkitBackdropFilter: compact ? 'blur(20px) saturate(180%)' : undefined }}
     >
-      <div className="mx-auto max-w-3xl px-5">
+      <div className={cn('mx-auto px-5', wide ? 'max-w-3xl lg:max-w-5xl' : 'max-w-3xl')}>
         <div className="flex h-12 items-center justify-between gap-3">
           {left && <div className="flex flex-shrink-0 items-center gap-2">{left}</div>}
           <div

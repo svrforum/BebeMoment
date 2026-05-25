@@ -1,18 +1,18 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { JournalCard } from '@/components/timeline/journal-card'
+import { DiaryCard } from '@/components/timeline/diary-card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
-import { listJournalEntries } from '@/server/journal/list'
+import { listDiaryEntries } from '@/server/diary/list'
 import { BookOpen, Plus } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
-export default async function JournalPage() {
+export default async function DiaryPage() {
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
 
-  const { items } = await listJournalEntries(
+  const { items } = await listDiaryEntries(
     ctx.family.id,
     { limit: 50 },
     prismaPublic,
@@ -60,7 +60,7 @@ export default async function JournalPage() {
           <ul className="space-y-3">
             {items.map((e) => (
               <li key={e.id}>
-                <JournalCard entry={e} />
+                <DiaryCard entry={e} />
               </li>
             ))}
           </ul>

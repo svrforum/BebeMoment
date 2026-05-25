@@ -8,7 +8,7 @@ import type {
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/get'
 
-export async function getJournalEntry(
+export async function getDiaryEntry(
   id: string,
   familyId: string,
   prismaPublic: PrismaPublic,

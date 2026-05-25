@@ -1,10 +1,13 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
+import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
-import { createJournalEntry } from './create'
-import { updateJournalEntry } from './update'
+import { createDiaryEntry } from './create'
+import { getDiaryEntry } from './get'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -37,38 +40,59 @@ async function setup() {
   return { user, family, baby }
 }
 
-describe('updateJournalEntry', () => {
-  it('updates own title and body', async () => {
+describe('getDiaryEntry', () => {
+  it('returns entry with assets and baby', async () => {
     const { user, family, baby } = await setup()
-    const entry = await createJournalEntry(
+    const asset = await createAsset(
+      {
+        familyId: family.id,
+        uploadedByUserId: user.id,
+        kind: 'image',
+        originalKey: 'o1',
+        originalFilename: 'a.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1n,
+        sha256: 'a'.repeat(64),
+        takenAt: new Date('2026-03-01'),
+        takenAtSource: 'uploaded',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await updateAssetStatus(
+      { assetId: asset.id, familyId: family.id, status: 'ready' },
+      db.prismaMedia,
+    )
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
-        title: '원제목',
-        body: '원본문',
+        body: '본문',
+        assetIds: [asset.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
-    const updated = await updateJournalEntry(
-      {
-        id: entry.id,
-        familyId: family.id,
-        byUserId: user.id,
-        patch: { title: '새제목', body: '새본문' },
-      },
+    const found = await getDiaryEntry(
+      entry.id,
+      family.id,
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
-    expect(updated.title).toBe('새제목')
-    expect(updated.body).toBe('새본문')
+    expect(found?.id).toBe(entry.id)
+    expect(found?.assets).toHaveLength(1)
+    expect(found?.assets[0]?.asset?.id).toBe(asset.id)
+    expect(found?.assets[0]?.asset?.urls).not.toBeNull()
+    expect(found?.baby?.id).toBe(baby.id)
   })
 
-  it('toggles babyId to null', async () => {
+  it('returns null for entry in another family', async () => {
     const { user, family, baby } = await setup()
-    const entry = await createJournalEntry(
+    const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -79,16 +103,13 @@ describe('updateJournalEntry', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    const updated = await updateJournalEntry(
-      {
-        id: entry.id,
-        familyId: family.id,
-        byUserId: user.id,
-        patch: { babyId: null },
-      },
+    const found = await getDiaryEntry(
+      entry.id,
+      family2.id,
       db.prismaPublic,
       db.prismaMedia,
+      new FakeMediaClient(),
     )
-    expect(updated.babyId).toBeNull()
+    expect(found).toBeNull()
   })
 })

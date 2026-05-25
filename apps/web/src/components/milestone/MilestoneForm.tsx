@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import type { MilestonePreset } from '@bebe/core'
 import { useState } from 'react'
-import { AssetPickerSheet, type PickerAsset } from '../journal/AssetPickerSheet'
+import { AssetPickerSheet, type PickerAsset } from '../diary/AssetPickerSheet'
 
 export function MilestoneForm({
   action,

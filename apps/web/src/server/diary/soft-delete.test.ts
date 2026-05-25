@@ -3,8 +3,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
-import { createJournalEntry } from './create'
-import { softDeleteJournalEntry } from './soft-delete'
+import { createDiaryEntry } from './create'
+import { softDeleteDiaryEntry } from './soft-delete'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -37,10 +37,10 @@ async function setup() {
   return { user, family, baby }
 }
 
-describe('softDeleteJournalEntry', () => {
+describe('softDeleteDiaryEntry', () => {
   it('soft-deletes own entry', async () => {
     const { user, family, baby } = await setup()
-    const entry = await createJournalEntry(
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -51,7 +51,7 @@ describe('softDeleteJournalEntry', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await softDeleteJournalEntry(
+    await softDeleteDiaryEntry(
       { id: entry.id, familyId: family.id, byUserId: user.id },
       db.prismaPublic,
     )

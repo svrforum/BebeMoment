@@ -5,7 +5,7 @@ import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
-import { createJournalEntry } from './create'
+import { createDiaryEntry } from './create'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -64,10 +64,10 @@ async function makeReadyAsset(
   return asset
 }
 
-describe('createJournalEntry', () => {
+describe('createDiaryEntry', () => {
   it('creates entry with babyId', async () => {
     const { user, family, baby } = await setup()
-    const entry = await createJournalEntry(
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -85,7 +85,7 @@ describe('createJournalEntry', () => {
 
   it('creates family-wide entry with babyId=null', async () => {
     const { user, family } = await setup()
-    const entry = await createJournalEntry(
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: null,
@@ -103,7 +103,7 @@ describe('createJournalEntry', () => {
   it('rejects empty body', async () => {
     const { user, family, baby } = await setup()
     await expect(
-      createJournalEntry(
+      createDiaryEntry(
         {
           familyId: family.id,
           babyId: baby.id,
@@ -120,7 +120,7 @@ describe('createJournalEntry', () => {
   it('rejects invalid mood', async () => {
     const { user, family, baby } = await setup()
     await expect(
-      createJournalEntry(
+      createDiaryEntry(
         {
           familyId: family.id,
           babyId: baby.id,
@@ -139,7 +139,7 @@ describe('createJournalEntry', () => {
     const { user, family, baby } = await setup()
     const a1 = await makeReadyAsset(family.id, user.id, 'a'.repeat(64), 'o1')
     const a2 = await makeReadyAsset(family.id, user.id, 'b'.repeat(64), 'o2')
-    const entry = await createJournalEntry(
+    const entry = await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,

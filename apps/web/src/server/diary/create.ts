@@ -19,7 +19,7 @@ const Input = z.object({
   byUserId: z.string().uuid(),
 })
 
-export async function createJournalEntry(
+export async function createDiaryEntry(
   raw: unknown,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,

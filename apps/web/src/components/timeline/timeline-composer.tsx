@@ -29,7 +29,7 @@ type Attachment = {
 
 /**
  * SNS-style top-of-timeline post composer. One submit creates:
- *   1) journal entry (body + entryDate = today)
+ *   1) diary entry (body + entryDate = today)
  *   2) attached photos as regular media uploads (visible in the timeline
  *      grid like any other upload)
  *   3) the journal entry references those uploads via JournalEntryAsset,

@@ -8,7 +8,7 @@ import dynamic from 'next/dynamic'
 import { MOODS, isMood } from './mood'
 
 // react-markdown + rehype-sanitize together are ~80KB and only mount when
-// a journal detail page opens. Code-split out of the main bundle.
+// a diary detail page opens. Code-split out of the main bundle.
 const MarkdownBody = dynamic(() => import('./markdown-body'), { ssr: false })
 
 type Entry = JournalEntry & {
@@ -18,7 +18,7 @@ type Entry = JournalEntry & {
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-export function JournalDetail({ entry }: { entry: Entry }) {
+export function DiaryDetail({ entry }: { entry: Entry }) {
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
   const sortedAssets = [...entry.assets].sort((a, b) => a.order - b.order)
   const trimmed = entry.body.trim()

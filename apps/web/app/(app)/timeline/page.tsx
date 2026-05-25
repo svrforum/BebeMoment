@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { JournalCard } from '@/components/timeline/journal-card'
+import { DiaryCard } from '@/components/timeline/diary-card'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { TimelineComposer } from '@/components/timeline/timeline-composer'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
@@ -40,7 +40,7 @@ export default async function TimelinePage({
   const birthDate = baby?.birthDate ?? new Date()
 
   const assetItems = items.filter((it) => it.kind === 'asset')
-  const journalItems = items.filter((it) => it.kind === 'journal')
+  const diaryItems = items.filter((it) => it.kind === 'journal')
 
   const groups = groupAssetsByBucket(
     assetItems.map((it) => {
@@ -60,13 +60,13 @@ export default async function TimelinePage({
   return (
     <>
       {baby ? (
-        <AppHeader title={ctx.family.name} subtitle={baby.name} />
+        <AppHeader title={ctx.family.name} subtitle={baby.name} wide />
       ) : (
-        <AppHeader title={ctx.family.name} />
+        <AppHeader title={ctx.family.name} wide />
       )}
       <TagFilterStrip familyId={ctx.family.id} prismaPublic={prismaPublic} activeSlugs={tagSlugs} />
       {tagSlugs.length === 0 && (
-        <div className="mx-auto max-w-3xl px-5 pt-3">
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
             userDisplayName={ctx.user?.displayName ?? '나'}
             userAvatarPath={ctx.user?.avatarPath ?? null}
@@ -75,11 +75,11 @@ export default async function TimelinePage({
           />
         </div>
       )}
-      {journalItems.length > 0 && (
-        <div className="mx-auto max-w-3xl px-5 pt-4 space-y-3">
-          {journalItems.map((it) => {
+      {diaryItems.length > 0 && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
+          {diaryItems.map((it) => {
             if (it.kind !== 'journal') return null
-            return <JournalCard key={`j-${it.id}`} entry={it.entry} />
+            return <DiaryCard key={`j-${it.id}`} entry={it.entry} />
           })}
         </div>
       )}

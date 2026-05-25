@@ -43,7 +43,7 @@ export async function listTimeline(
     tagSlug?: string
     /** AND filter: assets matching ALL slugs. */
     tagSlugs?: string[]
-    /** Viewer's role — drives journal-entry visibility filtering. Defaults
+    /** Viewer's role — drives diary-entry visibility filtering. Defaults
      *  to 'family' which is the most restrictive (won't see guardians-only
      *  entries). Pass 'owner' / 'guardian' to include them. */
     viewerRole?: 'owner' | 'guardian' | 'family'
@@ -109,7 +109,7 @@ export async function listTimeline(
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
-    // When filtering by tag, hide journal entries — they're not tagged.
+    // When filtering by tag, hide diary entries — they're not tagged.
     tagAssetIds
       ? prismaPublic.journalEntry.findMany({
           where: { familyId, id: '00000000-0000-0000-0000-000000000000' },

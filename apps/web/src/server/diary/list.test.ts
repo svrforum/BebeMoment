@@ -4,8 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
-import { createJournalEntry } from './create'
-import { listJournalEntries } from './list'
+import { createDiaryEntry } from './create'
+import { listDiaryEntries } from './list'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -38,10 +38,10 @@ async function setup() {
   return { user, family, baby }
 }
 
-describe('listJournalEntries', () => {
+describe('listDiaryEntries', () => {
   it('returns entries in desc order by entryDate', async () => {
     const { user, family, baby } = await setup()
-    await createJournalEntry(
+    await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -52,7 +52,7 @@ describe('listJournalEntries', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await createJournalEntry(
+    await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -63,7 +63,7 @@ describe('listJournalEntries', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await createJournalEntry(
+    await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -74,7 +74,7 @@ describe('listJournalEntries', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    const { items, nextCursor } = await listJournalEntries(
+    const { items, nextCursor } = await listDiaryEntries(
       family.id,
       {},
       db.prismaPublic,
@@ -91,7 +91,7 @@ describe('listJournalEntries', () => {
       { familyId: family.id, name: 'B2', birthDate: '2026-01-15', byUserId: user.id },
       db.prismaPublic,
     )
-    await createJournalEntry(
+    await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
@@ -102,7 +102,7 @@ describe('listJournalEntries', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await createJournalEntry(
+    await createDiaryEntry(
       {
         familyId: family.id,
         babyId: baby2.id,
@@ -113,7 +113,7 @@ describe('listJournalEntries', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    const { items } = await listJournalEntries(
+    const { items } = await listDiaryEntries(
       family.id,
       { babyId: baby.id },
       db.prismaPublic,
@@ -127,7 +127,7 @@ describe('listJournalEntries', () => {
   it('paginates via cursor', async () => {
     const { user, family, baby } = await setup()
     for (let i = 0; i < 5; i += 1) {
-      await createJournalEntry(
+      await createDiaryEntry(
         {
           familyId: family.id,
           babyId: baby.id,
@@ -140,7 +140,7 @@ describe('listJournalEntries', () => {
       )
     }
     const media = new FakeMediaClient()
-    const page1 = await listJournalEntries(
+    const page1 = await listDiaryEntries(
       family.id,
       { limit: 3 },
       db.prismaPublic,
@@ -149,7 +149,7 @@ describe('listJournalEntries', () => {
     )
     expect(page1.items).toHaveLength(3)
     expect(page1.nextCursor).not.toBeNull()
-    const page2 = await listJournalEntries(
+    const page2 = await listDiaryEntries(
       family.id,
       { limit: 3, cursor: page1.nextCursor as string },
       db.prismaPublic,

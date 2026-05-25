@@ -16,7 +16,7 @@ function decodeCursor(s: string): Cursor | null {
   return null
 }
 
-export async function listJournalEntries(
+export async function listDiaryEntries(
   familyId: string,
   params: { babyId?: string; cursor?: string; limit?: number },
   prismaPublic: PrismaPublic,

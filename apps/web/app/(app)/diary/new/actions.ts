@@ -2,7 +2,7 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
-import { createJournalEntry } from '@/server/journal/create'
+import { createDiaryEntry } from '@/server/diary/create'
 import { redirect } from 'next/navigation'
 
 function parseAssetIds(v: FormDataEntryValue | null): string[] {
@@ -15,7 +15,7 @@ function parseAssetIds(v: FormDataEntryValue | null): string[] {
   }
 }
 
-export async function createJournalAction(formData: FormData) {
+export async function createDiaryAction(formData: FormData) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -26,7 +26,7 @@ export async function createJournalAction(formData: FormData) {
 
   const babyId = String(formData.get('babyId') ?? '').trim()
   const mood = String(formData.get('mood') ?? '').trim()
-  await createJournalEntry(
+  await createDiaryEntry(
     {
       familyId: ctx.family.id,
       babyId: babyId || null,

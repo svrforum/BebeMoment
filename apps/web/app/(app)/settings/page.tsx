@@ -4,7 +4,26 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import {
+  Baby,
+  Bookmark,
+  ChevronRight,
+  type LucideIcon,
+  NotebookPen,
+  Tags,
+  Trash2,
+  Users,
+} from 'lucide-react'
 import Link from 'next/link'
+
+const MANAGE_ROWS: { href: string; label: string; icon: LucideIcon }[] = [
+  { href: '/babies', label: '아기 관리', icon: Baby },
+  { href: '/family', label: '가족 멤버', icon: Users },
+  { href: '/saved', label: '저장함', icon: Bookmark },
+  { href: '/settings/tags', label: '태그 관리', icon: Tags },
+  { href: '/diary', label: '일기', icon: NotebookPen },
+  { href: '/trash', label: '휴지통', icon: Trash2 },
+]
 
 export default async function SettingsPage() {
   const { session } = await getAuth()
@@ -15,7 +34,7 @@ export default async function SettingsPage() {
   return (
     <>
       <AppHeader title="설정" />
-      <div className="mx-auto max-w-3xl px-5 py-4 space-y-4">
+      <div className="mx-auto max-w-3xl px-5 py-4 space-y-6">
         <Card>
           <CardBody>
             <h2 className="font-semibold mb-2">계정</h2>
@@ -29,31 +48,28 @@ export default async function SettingsPage() {
             <ThemeToggle />
           </CardBody>
         </Card>
-        <Card>
-          <CardBody className="space-y-2">
-            <h2 className="font-semibold mb-2">관리</h2>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/babies">아기 관리</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/family">가족 멤버</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/saved">저장함</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/settings/tags">태그 관리</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/diary">일기</Link>
-            </Button>
-            <Button asChild variant="ghost" className="w-full justify-start">
-              <Link href="/trash">휴지통</Link>
-            </Button>
-          </CardBody>
-        </Card>
+        <section className="space-y-2">
+          <h2 className="px-1 text-[13px] font-semibold text-base-500">관리</h2>
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-sm divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
+            {MANAGE_ROWS.map(({ href, label, icon: Icon }) => (
+              <Link
+                key={href}
+                href={href}
+                className="flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
+              >
+                <Icon className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
+                <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">{label}</span>
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 dark:text-base-600" />
+              </Link>
+            ))}
+          </div>
+        </section>
         <form action="/api/auth/logout" method="post">
-          <Button type="submit" variant="danger" className="w-full">
+          <Button
+            type="submit"
+            variant="ghost"
+            className="w-full text-danger hover:bg-danger/10 hover:text-danger"
+          >
             로그아웃
           </Button>
         </form>
