@@ -126,11 +126,7 @@ describe('tenant-middleware (public)', () => {
 
   test('non-relevant actions (queryRaw) pass through without check', async () => {
     const prisma = install('throw')
-    await expect(
-      prisma.run({ model: 'Baby', action: 'queryRaw', args: {} }),
-    ).resolves.toBeNull()
-    await expect(
-      prisma.run({ model: 'Baby', action: 'executeRaw', args: {} }),
-    ).resolves.toBeNull()
+    await expect(prisma.run({ model: 'Baby', action: 'queryRaw', args: {} })).resolves.toBeNull()
+    await expect(prisma.run({ model: 'Baby', action: 'executeRaw', args: {} })).resolves.toBeNull()
   })
 })

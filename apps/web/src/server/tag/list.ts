@@ -7,7 +7,11 @@ export type TagWithCount = {
   slug: string
   color: string | null
   assetCount: number
-  createdAt: Date
+  // ms since epoch. Stored as number (not Date) because this struct flows
+  // through `unstable_cache` which serializes payloads to JSON — Date
+  // objects come back as ISO strings on cache-hit and break consumers
+  // that call `.getTime()`.
+  createdAt: number
 }
 
 /**
@@ -21,11 +25,10 @@ export function listTagsWithCounts(
   familyId: string,
   prismaPublic: PrismaPublic,
 ): Promise<TagWithCount[]> {
-  return unstable_cache(
-    () => listTagsWithCountsRaw(familyId, prismaPublic),
-    ['tags', familyId],
-    { revalidate: 60, tags: [`tags:${familyId}`] },
-  )()
+  return unstable_cache(() => listTagsWithCountsRaw(familyId, prismaPublic), ['tags', familyId], {
+    revalidate: 60,
+    tags: [`tags:${familyId}`],
+  })()
 }
 
 async function listTagsWithCountsRaw(
@@ -51,6 +54,6 @@ async function listTagsWithCountsRaw(
     slug: t.slug,
     color: t.color,
     assetCount: countByTag.get(t.id) ?? 0,
-    createdAt: t.createdAt,
+    createdAt: t.createdAt.getTime(),
   }))
 }

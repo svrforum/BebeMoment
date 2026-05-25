@@ -121,9 +121,7 @@ export async function listTimeline(
             deletedAt: null,
             // Family viewer sees only family-visible entries; owner /
             // guardian see everything.
-            ...(params.viewerRole === 'family'
-              ? { visibility: 'family' }
-              : {}),
+            ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
             ...(cursorTs && cur
               ? {
                   OR: [

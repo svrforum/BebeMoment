@@ -1,5 +1,5 @@
-import type { FastifyRequest } from 'fastify'
 import { type UploadTokenPayload, verifyUploadToken } from '@/lib/jwt'
+import type { FastifyRequest } from 'fastify'
 import { MediaHttpError } from './error-handler'
 
 export async function extractUploadToken(req: FastifyRequest): Promise<UploadTokenPayload> {
@@ -28,8 +28,7 @@ export async function extractUploadToken(req: FastifyRequest): Promise<UploadTok
     return await verifyUploadToken(token)
   } catch (e) {
     const msg = (e as Error).message
-    const expired =
-      msg.includes('exp') || msg.includes('JWT expired') || msg.includes('expired')
+    const expired = msg.includes('exp') || msg.includes('JWT expired') || msg.includes('expired')
     throw new MediaHttpError({
       code: expired ? 'UPLOAD_TOKEN_EXPIRED' : 'UPLOAD_TOKEN_INVALID',
       status: 401,

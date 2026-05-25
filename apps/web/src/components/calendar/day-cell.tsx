@@ -31,7 +31,8 @@ export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props
         'transition-transform ease-ios active:scale-[0.94]',
         !isCurrentMonth && 'opacity-35',
         hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
-        isToday && 'ring-2 ring-point-500 ring-offset-2 ring-offset-base-50 dark:ring-offset-base-950',
+        isToday &&
+          'ring-2 ring-point-500 ring-offset-2 ring-offset-base-50 dark:ring-offset-base-950',
       )}
     >
       {hasThumb && (

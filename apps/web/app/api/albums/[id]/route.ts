@@ -19,10 +19,7 @@ async function getCtx() {
   return { ctx } as const
 }
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
   try {
@@ -34,7 +31,10 @@ export async function GET(
     if (!album) return NextResponse.json({ error: 'not found' }, { status: 404 })
     return NextResponse.json({ album })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }
 
@@ -44,10 +44,7 @@ export async function GET(
  *   { parentId: string | null }               — move (separate so the path
  *                                                 rewrite logic is explicit)
  */
-export async function PATCH(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
   try {
@@ -70,7 +67,11 @@ export async function PATCH(
         prismaPublic,
       )
       // Body might also include rename in the same request — apply after move.
-      if (body.name !== undefined || body.description !== undefined || body.coverAssetId !== undefined) {
+      if (
+        body.name !== undefined ||
+        body.description !== undefined ||
+        body.coverAssetId !== undefined
+      ) {
         const updated = await updateAlbum(
           {
             albumId: id,
@@ -102,14 +103,14 @@ export async function PATCH(
     )
     return NextResponse.json({ album })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }
 
-export async function DELETE(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
   try {
@@ -127,6 +128,7 @@ export async function DELETE(
     )
     return NextResponse.json(result)
   } catch (e) {
-    const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status })
+    const { status, message } = toHttpError(e)
+    return NextResponse.json({ error: message }, { status })
   }
 }

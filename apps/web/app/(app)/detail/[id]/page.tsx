@@ -40,48 +40,42 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
     members,
     initialTags,
   ] = await Promise.all([
-      prismaMedia.asset.findFirst({
-        where: {
-          familyId: ctx.family.id,
-          deletedAt: null,
-          status: 'ready',
-          OR: [
-            { takenAt: { gt: asset.takenAt } },
-            { takenAt: asset.takenAt, id: { gt: asset.id } },
-          ],
-        },
-        orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
-      }),
-      prismaMedia.asset.findFirst({
-        where: {
-          familyId: ctx.family.id,
-          deletedAt: null,
-          status: 'ready',
-          OR: [
-            { takenAt: { lt: asset.takenAt } },
-            { takenAt: asset.takenAt, id: { lt: asset.id } },
-          ],
-        },
-        orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-      }),
-      likersForAsset(ctx.family.id, asset.id, prismaPublic),
-      listComments(ctx.family.id, asset.id, prismaPublic),
-      prismaPublic.assetLike.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.assetBookmark.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaMedia.assetBaby.findMany({
-        where: { assetId: asset.id },
-        select: { babyId: true },
-      }),
-      prismaPublic.membership.findMany({
-        where: { familyId: ctx.family.id, deletedAt: null },
-        include: { user: { select: { id: true, displayName: true } } },
-      }),
-      listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
-    ])
+    prismaMedia.asset.findFirst({
+      where: {
+        familyId: ctx.family.id,
+        deletedAt: null,
+        status: 'ready',
+        OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
+      },
+      orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
+    }),
+    prismaMedia.asset.findFirst({
+      where: {
+        familyId: ctx.family.id,
+        deletedAt: null,
+        status: 'ready',
+        OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
+      },
+      orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
+    }),
+    likersForAsset(ctx.family.id, asset.id, prismaPublic),
+    listComments(ctx.family.id, asset.id, prismaPublic),
+    prismaPublic.assetLike.findFirst({
+      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+    }),
+    prismaPublic.assetBookmark.findFirst({
+      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+    }),
+    prismaMedia.assetBaby.findMany({
+      where: { assetId: asset.id },
+      select: { babyId: true },
+    }),
+    prismaPublic.membership.findMany({
+      where: { familyId: ctx.family.id, deletedAt: null },
+      include: { user: { select: { id: true, displayName: true } } },
+    }),
+    listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
+  ])
 
   const babyIds = assetBabyLinks.map((link) => link.babyId)
   const babyRows = babyIds.length

@@ -7,24 +7,23 @@ import { createOrGetTag } from '@/server/tag/create'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
 import { NextResponse } from 'next/server'
 
-export async function GET(
-  _req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
     const tags = await listTagsForAsset({ assetId: id, familyId: ctx.family.id }, prismaPublic)
     return NextResponse.json({ tags })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }
 
@@ -35,26 +34,27 @@ export async function GET(
  *
  * Mixed: { tagIds, name } attaches both.
  */
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
     const body = (await req.json()) as { tagIds?: string[]; name?: string; color?: string }
     const tagIds: string[] = [...(body.tagIds ?? [])]
 
-    if (body.name && body.name.trim()) {
+    if (body.name?.trim()) {
       const created = await createOrGetTag(
-        { familyId: ctx.family.id, byUserId: ctx.user.id, name: body.name, ...(body.color ? { color: body.color } : {}) },
+        {
+          familyId: ctx.family.id,
+          byUserId: ctx.user.id,
+          name: body.name,
+          ...(body.color ? { color: body.color } : {}),
+        },
         prismaPublic,
       )
       tagIds.push(created.id)
@@ -72,6 +72,9 @@ export async function POST(
     const tags = await listTagsForAsset({ assetId: id, familyId: ctx.family.id }, prismaPublic)
     return NextResponse.json({ ...result, tags })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }

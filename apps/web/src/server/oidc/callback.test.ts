@@ -73,7 +73,9 @@ describe('linkOrCreateUser', () => {
       db.prismaPublic,
     )
     expect(u.id).toBe(existing.id)
-    const identity = await db.prismaPublic.oidcIdentity.findFirst({ where: { userId: existing.id } })
+    const identity = await db.prismaPublic.oidcIdentity.findFirst({
+      where: { userId: existing.id },
+    })
     expect(identity?.subject).toBe('sub-new')
   })
 

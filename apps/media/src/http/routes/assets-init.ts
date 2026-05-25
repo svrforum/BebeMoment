@@ -1,7 +1,7 @@
-import { initAssetRequest, initAssetResponse } from '@bebe/media-client'
-import type { FastifyPluginAsync } from 'fastify'
 import { initAsset } from '@/domain/upload/init'
 import { prisma } from '@/lib/prisma'
+import { initAssetRequest, initAssetResponse } from '@bebe/media-client'
+import type { FastifyPluginAsync } from 'fastify'
 import { assertServiceToken } from '../middleware/service-token'
 
 export const assetsInitRoute: FastifyPluginAsync = async (app) => {

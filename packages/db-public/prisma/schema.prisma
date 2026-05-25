@@ -2,6 +2,10 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
   output          = "./generated/client"
+  // native = host (dev). linux-musl-openssl-3.0.x = Alpine container —
+  // without this the Prisma engine looks for libssl.so.1.1 which Alpine
+  // 3.20+ no longer ships and Prisma fails to load at startup.
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {

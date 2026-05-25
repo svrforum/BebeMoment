@@ -43,10 +43,7 @@ export function AlbumMenu({ albumId, currentName, hasChildrenOrPhotos, parentId 
   }
 
   const remove = async () => {
-    if (
-      hasChildrenOrPhotos &&
-      !confirm('안에 사진이나 하위 앨범이 있어요. 함께 삭제할까요?')
-    ) {
+    if (hasChildrenOrPhotos && !confirm('안에 사진이나 하위 앨범이 있어요. 함께 삭제할까요?')) {
       return
     }
     setPending(true)

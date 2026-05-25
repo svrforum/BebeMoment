@@ -1,6 +1,6 @@
+import { buildApp } from '@/server'
 import { type TestDb, startTestDb } from '@bebe/db-media/src/test-db'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
-import { buildApp } from '@/server'
 
 const SECRET = 'a'.repeat(40)
 const TOKEN = 'b'.repeat(40)

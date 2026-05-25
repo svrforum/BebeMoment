@@ -163,6 +163,7 @@
 
 /* Phase C-2: View Transitions for asset → detail page */
 @view-transition {
+  /* biome-ignore lint/correctness/noUnknownProperty: `navigation` is the @view-transition descriptor, not yet recognized by biome */
   navigation: auto;
 }
 

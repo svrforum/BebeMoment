@@ -1,11 +1,11 @@
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import type { UploadTokenPayload } from '@/lib/jwt'
 import { parseEnv } from '@bebe/config'
 import type { PrismaClient } from '@bebe/db-media'
 import type { Upload } from '@tus/server'
 import type { Queue } from 'bullmq'
 import type pino from 'pino'
-import type { UploadTokenPayload } from '@/lib/jwt'
 
 /**
  * Move the uploaded bytes from the tus tmp directory to the final storage key

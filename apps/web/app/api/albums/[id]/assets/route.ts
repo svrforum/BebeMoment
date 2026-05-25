@@ -5,18 +5,14 @@ import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 
-export async function POST(
-  req: Request,
-  { params }: { params: Promise<{ id: string }> },
-) {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
     const body = (await req.json()) as { assetIds: string[] }
@@ -32,6 +28,9 @@ export async function POST(
     )
     return NextResponse.json(result)
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }

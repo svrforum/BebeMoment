@@ -2,7 +2,6 @@
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
 import type { UppyFile } from '@uppy/core'
-import { useRouter } from 'next/navigation'
 import {
   type ReactNode,
   createContext,
@@ -69,7 +68,6 @@ export function useUploadManager(): UploadManager {
  */
 export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
-  const router = useRouter()
   const [files, setFiles] = useState<FileRow[]>([])
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
   const [uppy, setUppy] = useState<UppyInstance | null>(null)
@@ -80,6 +78,21 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     if (initLock.current) return initLock.current
 
     const promise = (async () => {
+      // Wipe any leftover tus resume entries from previous sessions before
+      // wiring up Uppy. Even with storeFingerprintForResuming:false set,
+      // tus-js-client still *reads* old entries from localStorage on
+      // startup; if the partial upload no longer exists server-side the
+      // HEAD request 403s and Uppy logs a misleading "cannot resume"
+      // error. Cheap to do once; the rest of the session writes nothing.
+      if (typeof window !== 'undefined') {
+        try {
+          const stale = Object.keys(window.localStorage).filter((k) => k.startsWith('tus::'))
+          for (const k of stale) window.localStorage.removeItem(k)
+        } catch {
+          // Private mode / storage disabled — nothing to clean.
+        }
+      }
+
       const [{ default: UppyCtor }, { default: Tus }] = await Promise.all([
         import('@uppy/core'),
         import('@uppy/tus'),
@@ -93,12 +106,20 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       }).use(Tus, {
         chunkSize: 8 * 1024 * 1024,
         retryDelays: [0, 1000, 3000, 5000],
-        // biome-ignore lint/suspicious/noExplicitAny: Uppy's generic headers
-        // signature is awkward across the dynamic-import boundary
+        // We always create a fresh upload via startUpload server action.
+        // localStorage-based resume of a previous session's URL has caused
+        // 403s when the partial upload had been cleaned up server-side
+        // ("unable to resume upload"). Disable fingerprint persistence —
+        // for our typical 1MB-50MB files the resume value is marginal,
+        // and a clean re-upload is far less confusing than a stuck error.
+        storeFingerprintForResuming: false,
+        removeFingerprintOnSuccess: true,
+        // Uppy's generic headers signature is awkward across the
+        // dynamic-import boundary, so the function is cast below.
         headers: ((file: { meta?: UppyFileMeta }) => {
           const token = file.meta?.uploadToken
           return token ? { authorization: `Bearer ${token}` } : {}
-          // biome-ignore lint/suspicious/noExplicitAny: same as above
+          // biome-ignore lint/suspicious/noExplicitAny: Uppy's loose header-fn signature across the dynamic-import boundary
         }) as any,
       })
 
@@ -141,10 +162,9 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           variant: 'danger',
         })
       }
-      // biome-ignore lint/suspicious/noExplicitAny: Uppy's strict event
-      // signature differs across module reload boundaries; cast to unblock.
+      // biome-ignore lint/suspicious/noExplicitAny: Uppy's event signature differs across module reload boundaries
       u.on('upload-error', onError as any)
-      // biome-ignore lint/suspicious/noExplicitAny: same
+      // biome-ignore lint/suspicious/noExplicitAny: same as upload-error above
       u.on('restriction-failed', onRestrictionFailed as any)
 
       if (typeof window !== 'undefined' && process.env.NODE_ENV !== 'production') {
@@ -187,7 +207,10 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   )
 
   // When every queued file finishes processing, flush state so a fresh batch
-  // starts clean and the floating pill disappears.
+  // starts clean and the floating pill disappears. Note: we don't call
+  // router.refresh() here — TimelineGrid's SSE handler already debounces a
+  // refresh after the last asset settles, so doing it again would just
+  // cause a second flicker.
   useEffect(() => {
     if (!uppy || files.length === 0) return
     const allHaveAsset = files.every((f) => f.meta?.assetId)
@@ -200,15 +223,28 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     const t = setTimeout(() => {
       uppy.cancelAll()
       setDoneIds(new Set())
-      router.refresh()
     }, 700)
     return () => clearTimeout(t)
-  }, [files, doneIds, uppy, router])
+  }, [files, doneIds, uppy])
 
   const addFiles = useCallback(
     async (list: FileList | File[]): Promise<string[]> => {
-      const u = await initUppy()
+      // Snapshot to a plain array BEFORE the await — FileList is live-bound
+      // to the <input>, and the caller (onPick) clears `input.value = ''`
+      // synchronously after kicking off this async function. By the time
+      // we resume after `await initUppy()`, the original FileList is empty.
       const arr = Array.from(list)
+      let u: UppyInstance
+      try {
+        u = await initUppy()
+      } catch (e) {
+        toast({
+          title: '업로더 초기화 실패',
+          description: (e as Error).message,
+          variant: 'danger',
+        })
+        return []
+      }
       const ids: string[] = []
       for (const f of arr) {
         try {

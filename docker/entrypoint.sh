@@ -6,15 +6,23 @@ PGID="${PGID:-1000}"
 
 # Adjust uid/gid of 'bebe' user if differ
 if [ "$(id -u bebe)" != "$PUID" ] || [ "$(id -g bebe)" != "$PGID" ]; then
-  delgroup bebe 2>/dev/null || true
-  deluser bebe 2>/dev/null || true
-  addgroup -g "$PGID" -S bebe 2>/dev/null || true
-  adduser -u "$PUID" -S bebe -G bebe 2>/dev/null || true
+  # Try Alpine-style first, fall back to Debian-style.
+  (delgroup bebe 2>/dev/null || groupdel bebe 2>/dev/null) || true
+  (deluser bebe 2>/dev/null || userdel bebe 2>/dev/null) || true
+  (addgroup -g "$PGID" -S bebe 2>/dev/null || groupadd -g "$PGID" bebe 2>/dev/null) || true
+  (adduser -u "$PUID" -S bebe -G bebe 2>/dev/null || useradd -u "$PUID" -g bebe bebe 2>/dev/null) || true
 fi
 
 # Ensure /data is writable by bebe
 if [ -d /data ]; then
   chown -R bebe:bebe /data 2>/dev/null || true
+fi
+
+# Next.js writes incremental cache (`.next/cache/fetch-cache`, image cache,
+# unstable_cache entries) at runtime. Builder stage created `.next` as
+# root, so bebe (uid 1000) can't write there without this.
+if [ -d /repo/apps/web/.next ]; then
+  chown -R bebe:bebe /repo/apps/web/.next 2>/dev/null || true
 fi
 
 # Run migrations (web container; media sets PRISMA_SKIP_MIGRATE=1)

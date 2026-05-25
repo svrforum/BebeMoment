@@ -14,10 +14,7 @@ export default async function AlbumsRootPage() {
   const ctx = await getContext()
   if (!ctx.family) return null
 
-  const albums = await listAlbums(
-    { familyId: ctx.family.id, parentId: null },
-    prismaPublic,
-  )
+  const albums = await listAlbums({ familyId: ctx.family.id, parentId: null }, prismaPublic)
 
   // Up to N most-recent attachments per album in a single window-function
   // query — replaces the "fetch all rows, slice in JS" pattern which
@@ -31,9 +28,7 @@ export default async function AlbumsRootPage() {
     prismaPublic,
   )
 
-  const allPreviewIds = Array.from(
-    new Set(Array.from(previewByAlbum.values()).flat()),
-  )
+  const allPreviewIds = Array.from(new Set(Array.from(previewByAlbum.values()).flat()))
   const readyAssets = allPreviewIds.length
     ? await prismaMedia.asset.findMany({
         where: {

@@ -48,12 +48,8 @@ export async function listAlbums(
     }),
   ])
 
-  const childByParent = new Map(
-    childCounts.map((c) => [c.parentId, c._count._all]),
-  )
-  const assetByAlbum = new Map(
-    assetCounts.map((c) => [c.albumId, c._count._all]),
-  )
+  const childByParent = new Map(childCounts.map((c) => [c.parentId, c._count._all]))
+  const assetByAlbum = new Map(assetCounts.map((c) => [c.albumId, c._count._all]))
 
   return albums.map((a) => ({
     id: a.id,

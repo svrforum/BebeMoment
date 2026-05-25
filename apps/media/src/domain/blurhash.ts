@@ -1,5 +1,5 @@
-import sharp from 'sharp'
 import { encode } from 'blurhash'
+import sharp from 'sharp'
 
 /**
  * Encode a blurhash from any image buffer.

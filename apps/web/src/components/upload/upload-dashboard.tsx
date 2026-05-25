@@ -1,8 +1,8 @@
 'use client'
 import { ImagePlus, X } from 'lucide-react'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { type FileRow, useUploadManager } from './upload-manager'
 import { UploadProgressBar } from './UploadProgressBar'
+import { type FileRow, useUploadManager } from './upload-manager'
 
 function formatSize(bytes: number): string {
   if (bytes < 1024) return `${bytes} B`
@@ -165,12 +165,7 @@ export function UploadDashboard({ onFilesPicked }: { onFilesPicked?: () => void 
       {hasFiles && (
         <ul className="max-h-[360px] divide-y divide-base-100 overflow-y-auto rounded-xl border border-base-200 px-1 dark:divide-base-800 dark:border-base-800">
           {files.map((f) => (
-            <FileRowItem
-              key={f.id}
-              file={f}
-              onRemove={removeFile}
-              onAssetDone={markAssetDone}
-            />
+            <FileRowItem key={f.id} file={f} onRemove={removeFile} onAssetDone={markAssetDone} />
           ))}
         </ul>
       )}

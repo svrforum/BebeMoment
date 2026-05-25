@@ -15,7 +15,10 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     return NextResponse.json({ error: 'No current family' }, { status: 400 })
   try {
     const { id } = await params
-    await revokeInvite({ inviteId: id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
+    await revokeInvite(
+      { inviteId: id, familyId: ctx.family.id, byUserId: ctx.user.id },
+      prismaPublic,
+    )
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

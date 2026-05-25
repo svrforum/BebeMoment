@@ -1,7 +1,7 @@
+import { computeBlurhash } from '@/domain/blurhash'
 import type { StorageAdapter } from '@bebe/storage'
 import sharp from 'sharp'
-import { computeBlurhash } from '@/domain/blurhash'
-import { generateTrios, type Trio } from './derivative-trios'
+import { type Trio, generateTrios } from './derivative-trios'
 
 export type ProcessImageInput = {
   originalKey: string
@@ -30,7 +30,9 @@ async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
 
 function rgbToHex(r: number, g: number, b: number): string {
   const h = (n: number): string =>
-    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, '0')
   return `#${h(r)}${h(g)}${h(b)}`
 }
 

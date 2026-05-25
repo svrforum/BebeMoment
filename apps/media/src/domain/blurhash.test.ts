@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
 import sharp from 'sharp'
+import { describe, expect, test } from 'vitest'
 import { computeBlurhash } from './blurhash'
 
 describe('computeBlurhash', () => {

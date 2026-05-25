@@ -42,7 +42,12 @@ export class MediaError extends Error {
   readonly code: MediaErrorCode | string
   readonly retriable: boolean
   readonly details?: Record<string, unknown>
-  constructor(code: string, message: string, retriable: boolean, details?: Record<string, unknown>) {
+  constructor(
+    code: string,
+    message: string,
+    retriable: boolean,
+    details?: Record<string, unknown>,
+  ) {
     super(`[${code}] ${message}`)
     this.code = code
     this.retriable = retriable
@@ -92,10 +97,14 @@ export class HttpMediaClient implements MediaClient {
   }
 
   async initAsset(input: InitAssetRequest): Promise<InitAssetResponse> {
-    return this.request('/media/v1/assets/init', {
-      method: 'POST',
-      body: JSON.stringify(input),
-    }, (b) => initAssetResponse.parse(b))
+    return this.request(
+      '/media/v1/assets/init',
+      {
+        method: 'POST',
+        body: JSON.stringify(input),
+      },
+      (b) => initAssetResponse.parse(b),
+    )
   }
 
   async getAssetUrls(assetId: string, familyId: string): Promise<AssetUrls> {
@@ -106,7 +115,10 @@ export class HttpMediaClient implements MediaClient {
     )
   }
 
-  async getAssetUrlsBatch(familyId: string, assetIds: string[]): Promise<Record<string, AssetUrls>> {
+  async getAssetUrlsBatch(
+    familyId: string,
+    assetIds: string[],
+  ): Promise<Record<string, AssetUrls>> {
     return this.request(
       '/media/v1/assets/urls:batch',
       { method: 'POST', body: JSON.stringify({ familyId, assetIds }) },

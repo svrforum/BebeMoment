@@ -1,11 +1,11 @@
 import {
-  installTenantMiddleware as installPublicMiddleware,
-  prisma as prismaPublic,
-} from '@bebe/db-public'
-import {
   installTenantMiddleware as installMediaMiddleware,
   prisma as prismaMedia,
 } from '@bebe/db-media'
+import {
+  installTenantMiddleware as installPublicMiddleware,
+  prisma as prismaPublic,
+} from '@bebe/db-public'
 
 const globalForInit = globalThis as unknown as { __bebeMwInstalled?: boolean }
 

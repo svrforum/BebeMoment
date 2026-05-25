@@ -131,11 +131,7 @@ export function ViewerShell({
         />
       </aside>
 
-      <AlbumPicker
-        open={albumPickerOpen}
-        onOpenChange={setAlbumPickerOpen}
-        assetId={current.id}
-      />
+      <AlbumPicker open={albumPickerOpen} onOpenChange={setAlbumPickerOpen} assetId={current.id} />
     </div>
   )
 }

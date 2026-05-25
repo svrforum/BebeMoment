@@ -1,26 +1,27 @@
+import { randomUUID } from 'node:crypto'
 import { can } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
-import { randomUUID } from 'node:crypto'
 import { z } from 'zod'
+import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath } from './path'
-import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   familyId: z.string().uuid(),
   byUserId: z.string().uuid(),
-  name: z.string().min(1).max(80).refine((s) => !s.includes('/'), {
-    message: 'name must not contain slashes',
-  }),
+  name: z
+    .string()
+    .min(1)
+    .max(80)
+    .refine((s) => !s.includes('/'), {
+      message: 'name must not contain slashes',
+    }),
   parentId: z.string().uuid().optional(),
   description: z.string().max(500).optional(),
 })
 
-export async function createAlbum(
-  raw: unknown,
-  prismaPublic: PrismaPublic,
-): Promise<Album> {
+export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Promise<Album> {
   const input = Input.parse(raw)
 
   const membership = await prismaPublic.membership.findUnique({

@@ -1,7 +1,7 @@
 import type { Asset } from '@bebe/db-media'
 import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
-import { buildSignedUrl } from './signed-url'
 import { parseDerivativesV2 } from './derivatives-v2'
+import { buildSignedUrl } from './signed-url'
 
 async function trioFromKeys(
   asset: Asset,

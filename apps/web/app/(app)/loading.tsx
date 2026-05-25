@@ -11,9 +11,9 @@ export default function Loading() {
       </div>
       {/* Body skeleton */}
       <div className="mx-auto max-w-3xl space-y-3 px-5 py-4">
-        {[56, 96, 72, 120, 80].map((h, i) => (
+        {[56, 96, 72, 120, 80].map((h) => (
           <div
-            key={`sk-${i}`}
+            key={`sk-${h}`}
             style={{ height: h }}
             className="animate-pulse rounded-2xl bg-base-100 dark:bg-base-800"
           />

@@ -37,10 +37,7 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id } = await params
-    await softDeleteMilestone(
-      { id, familyId: ctx.family.id, byUserId: ctx.user.id },
-      prismaPublic,
-    )
+    await softDeleteMilestone({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

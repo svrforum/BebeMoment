@@ -23,18 +23,11 @@ function buildHref(slugs: string[]): string {
  * Multiple slugs can be active at once for AND filtering. Tap an active
  * chip removes it; tap an inactive chip adds it.
  */
-export async function TagFilterStrip({
-  familyId,
-  prismaPublic,
-  activeSlugs = [],
-}: Props) {
+export async function TagFilterStrip({ familyId, prismaPublic, activeSlugs = [] }: Props) {
   const tags = await listTagsWithCounts(familyId, prismaPublic)
   if (tags.length === 0 && activeSlugs.length === 0) return null
 
-  const sorted = [...tags].sort(
-    (a, b) =>
-      b.assetCount - a.assetCount || b.createdAt.getTime() - a.createdAt.getTime(),
-  )
+  const sorted = [...tags].sort((a, b) => b.assetCount - a.assetCount || b.createdAt - a.createdAt)
   const visible = sorted.slice(0, 8)
   const active = new Set(activeSlugs)
 
@@ -70,11 +63,7 @@ export async function TagFilterStrip({
           .filter((t) => !active.has(t.slug))
           .map((t) => (
             <div key={t.id} className="shrink-0">
-              <TagChip
-                name={t.name}
-                color={t.color}
-                href={buildHref([...activeSlugs, t.slug])}
-              />
+              <TagChip name={t.name} color={t.color} href={buildHref([...activeSlugs, t.slug])} />
             </div>
           ))}
       </div>

@@ -15,6 +15,7 @@
     "typecheck": "pnpm -r typecheck",
     "lint": "biome check .",
     "format": "biome format --write .",
+    "check:lines": "scripts/check-line-limit.sh",
     "db:migrate": "pnpm --filter @bebe/db-public migrate:dev && pnpm --filter @bebe/db-media migrate:dev",
     "db:studio": "pnpm --filter @bebe/db-public studio"
   },

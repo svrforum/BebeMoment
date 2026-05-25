@@ -1,10 +1,5 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-import {
-  signFileServeToken,
-  signUploadToken,
-  verifyFileServeToken,
-  verifyUploadToken,
-} from './jwt'
+import { signFileServeToken, signUploadToken, verifyFileServeToken, verifyUploadToken } from './jwt'
 
 const SECRET = 'a'.repeat(40)
 

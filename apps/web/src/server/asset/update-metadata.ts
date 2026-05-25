@@ -47,8 +47,7 @@ export async function updateAssetMetadata(
 
   const isOwner = asset.uploadedByUserId === input.byUserId
   const allowed =
-    (isOwner && can(membership.role, 'asset.edit.own')) ||
-    can(membership.role, 'asset.edit.any')
+    (isOwner && can(membership.role, 'asset.edit.own')) || can(membership.role, 'asset.edit.any')
   if (!allowed) throw new Error('No permission to edit this asset')
 
   return media.updateAssetMetadata(input.assetId, {

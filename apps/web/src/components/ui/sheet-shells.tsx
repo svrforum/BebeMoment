@@ -38,9 +38,7 @@ export function MobileDrawerShell({
             aria-hidden
           />
           {title && (
-            <Drawer.Title className="px-5 pt-4 text-lg font-semibold">
-              {title}
-            </Drawer.Title>
+            <Drawer.Title className="px-5 pt-4 text-lg font-semibold">{title}</Drawer.Title>
           )}
           <div className="overflow-y-auto px-5 py-4">{children}</div>
         </Drawer.Content>
@@ -93,6 +91,7 @@ export function DesktopModalShell({
             onClick={() => onOpenChange(false)}
             aria-hidden
           />
+          {/* biome-ignore lint/a11y/useSemanticElements: custom framer-motion modal; native <dialog> conflicts with the overlay + spring animation setup */}
           <motion.div
             role="dialog"
             aria-modal="true"

@@ -68,9 +68,7 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
             className="w-[320px] rounded-3xl bg-base-0 p-5 shadow-elevated dark:bg-base-900"
           >
             <h2 className="text-[17px] font-semibold tracking-tight">새 앨범</h2>
-            {parentName && (
-              <p className="mt-1 text-[12px] text-base-500">상위: {parentName}</p>
-            )}
+            {parentName && <p className="mt-1 text-[12px] text-base-500">상위: {parentName}</p>}
             <input
               // biome-ignore lint/a11y/noAutofocus: modal opened by intent
               autoFocus

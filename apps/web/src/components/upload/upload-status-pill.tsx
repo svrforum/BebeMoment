@@ -26,8 +26,7 @@ export function UploadStatusPill({ onClick }: Props) {
       totalBytes += size
       uploadedBytes += size * pct
     }
-    const overallPct =
-      totalBytes > 0 ? Math.round((uploadedBytes / totalBytes) * 100) : 0
+    const overallPct = totalBytes > 0 ? Math.round((uploadedBytes / totalBytes) * 100) : 0
 
     if (uploadingCount > 0) {
       return {
@@ -76,7 +75,7 @@ export function UploadStatusPill({ onClick }: Props) {
               <Check className="h-4 w-4" strokeWidth={2.6} />
             ) : uploadingCount > 0 ? (
               <>
-                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 28 28" aria-hidden>
+                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 28 28" aria-hidden="true">
                   <circle
                     cx="14"
                     cy="14"
@@ -104,9 +103,7 @@ export function UploadStatusPill({ onClick }: Props) {
               <Loader2 className="h-4 w-4 animate-spin text-point-500" strokeWidth={2.4} />
             )}
           </span>
-          <span className="truncate">
-            {completed ? '업로드 완료' : label}
-          </span>
+          <span className="truncate">{completed ? '업로드 완료' : label}</span>
         </motion.button>
       )}
     </AnimatePresence>

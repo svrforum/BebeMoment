@@ -39,8 +39,17 @@ export function installTenantMiddleware(prisma: PrismaClient, opts: Options = {}
     if (!model || !TENANT_SCOPED_MODELS.has(model)) return next(params)
 
     const relevantActions = [
-      'findMany', 'findUnique', 'findFirst', 'count', 'aggregate', 'groupBy',
-      'update', 'updateMany', 'delete', 'deleteMany', 'upsert',
+      'findMany',
+      'findUnique',
+      'findFirst',
+      'count',
+      'aggregate',
+      'groupBy',
+      'update',
+      'updateMany',
+      'delete',
+      'deleteMany',
+      'upsert',
     ]
     if (!relevantActions.includes(action)) return next(params)
 

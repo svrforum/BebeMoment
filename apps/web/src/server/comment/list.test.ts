@@ -75,10 +75,7 @@ describe('listComments', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await softDeleteComment(
-      { id: c1.id, familyId: family.id, byUserId: user.id },
-      db.prismaPublic,
-    )
+    await softDeleteComment({ id: c1.id, familyId: family.id, byUserId: user.id }, db.prismaPublic)
 
     const items = await listComments(family.id, asset.id, db.prismaPublic)
     expect(items).toHaveLength(2)

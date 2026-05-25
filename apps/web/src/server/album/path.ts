@@ -23,11 +23,7 @@ export function depthFromPath(path: string): number {
 }
 
 /** Replace one prefix of `path` with another. Used when moving subtrees. */
-export function rewritePathPrefix(
-  path: string,
-  oldPrefix: string,
-  newPrefix: string,
-): string {
+export function rewritePathPrefix(path: string, oldPrefix: string, newPrefix: string): string {
   if (path === oldPrefix) return newPrefix
   if (path.startsWith(`${oldPrefix}/`)) {
     return `${newPrefix}/${path.slice(oldPrefix.length + 1)}`
@@ -37,10 +33,7 @@ export function rewritePathPrefix(
 
 /** True if `candidate` is `ancestor` itself or sits under it. */
 export function isDescendant(candidatePath: string, ancestorPath: string): boolean {
-  return (
-    candidatePath === ancestorPath ||
-    candidatePath.startsWith(`${ancestorPath}/`)
-  )
+  return candidatePath === ancestorPath || candidatePath.startsWith(`${ancestorPath}/`)
 }
 
 /** Parent uuid (penultimate segment) or null for root albums. */

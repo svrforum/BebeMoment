@@ -86,7 +86,10 @@ export function ViewerInfoPanel({
         </div>
         <div className="flex flex-col gap-2">
           <h3 className="text-[13px] font-semibold tracking-tight text-base-500">
-            댓글 <span className="tabular-nums text-base-700 dark:text-base-300">{liveCommentCount}</span>
+            댓글{' '}
+            <span className="tabular-nums text-base-700 dark:text-base-300">
+              {liveCommentCount}
+            </span>
           </h3>
           <CommentList
             assetId={assetId}

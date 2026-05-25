@@ -1,13 +1,13 @@
-import { parseEnv } from '@bebe/config'
-import { ASSET_QUEUE } from '@bebe/core'
-import { MemoryLocker, Server as TusServer, type Upload } from '@tus/server'
-import { Queue } from 'bullmq'
-import type { FastifyPluginAsync } from 'fastify'
 import { onUploadFinishMedia } from '@/domain/upload/tus-hooks'
 import type { UploadTokenPayload } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { createRedisConnection } from '@/lib/redis'
 import { getTusStore } from '@/lib/tus-store'
+import { parseEnv } from '@bebe/config'
+import { ASSET_QUEUE } from '@bebe/core'
+import { MemoryLocker, Server as TusServer, type Upload } from '@tus/server'
+import { Queue } from 'bullmq'
+import type { FastifyPluginAsync } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
 import { extractUploadToken } from '../middleware/upload-token'
 
@@ -23,9 +23,8 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
   // tus PATCH 요청의 Content-Type 은 application/offset+octet-stream.
   // Fastify 의 기본 contentTypeParser 가 unknown MIME 을 415 로 거부하므로
   // tus 가 raw body 를 읽기 전에 우회시키는 passthrough parser 를 등록.
-  app.addContentTypeParser(
-    'application/offset+octet-stream',
-    (_req, payload, done) => done(null, payload),
+  app.addContentTypeParser('application/offset+octet-stream', (_req, payload, done) =>
+    done(null, payload),
   )
 
   const tusServer = new TusServer({
@@ -65,7 +64,6 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
         retriable: false,
       })
     }
-
     ;(req.raw as unknown as NodeReqWithToken).__bebeUploadToken = token
 
     reply.hijack()

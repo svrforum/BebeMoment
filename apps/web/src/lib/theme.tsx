@@ -1,5 +1,6 @@
 'use client'
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { THEME_STORAGE_KEY as STORAGE_KEY } from './theme-init-script'
 
 export type ThemeMode = 'auto' | 'light' | 'dark'
 
@@ -8,8 +9,6 @@ type ThemeCtx = {
   resolved: 'light' | 'dark'
   setMode: (m: ThemeMode) => void
 }
-
-const STORAGE_KEY = 'bebe.theme'
 
 const Ctx = createContext<ThemeCtx | null>(null)
 
@@ -59,10 +58,3 @@ export function useTheme(): ThemeCtx {
   if (!v) throw new Error('useTheme must be used inside ThemeProvider')
   return v
 }
-
-/**
- * Inline script body for the <head> that applies the user's stored theme
- * (or OS preference) BEFORE React hydrates, so the first paint matches
- * the final theme and there's no white flash.
- */
-export const themeInitScript = `(function(){try{var t=localStorage.getItem('${STORAGE_KEY}');var d=(t==='dark')||((!t||t==='auto')&&window.matchMedia('(prefers-color-scheme: dark)').matches);document.documentElement.classList.toggle('dark',d);document.documentElement.style.colorScheme=d?'dark':'light';}catch(e){}})();`

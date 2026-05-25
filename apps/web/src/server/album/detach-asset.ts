@@ -1,7 +1,7 @@
 import { can } from '@bebe/core'
-import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -21,11 +21,7 @@ export async function detachAssetFromAlbum(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (
-    !membership ||
-    membership.deletedAt ||
-    !can(membership.role, 'album.asset.detach')
-  ) {
+  if (!membership || membership.deletedAt || !can(membership.role, 'album.asset.detach')) {
     throw new Error('No permission')
   }
 

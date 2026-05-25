@@ -19,11 +19,12 @@ describe('slugifyTag', () => {
   })
 
   test('NFC-normalizes — visually-equal Korean strings collide', () => {
-    // "ㄱ" + "ㅏ" decomposed vs "가" composed — same to a human.
+    // U+1100 (ᄀ) + U+1161 (ᅡ) decomposed vs U+AC00 (가) composed — same to a human.
     const decomposed = '가'
-    const composed = '¬00'.replace('00ac', 'ac00') // '가'
+    const composed = '가' // '가'
     // They differ before normalization but collapse to the same NFC form.
-    expect(slugifyTag(decomposed)).toBe(slugifyTag('가'))
+    expect(decomposed).not.toBe(composed)
+    expect(slugifyTag(decomposed)).toBe(slugifyTag(composed))
   })
 
   test('empty / whitespace-only input returns empty (caller validates)', () => {

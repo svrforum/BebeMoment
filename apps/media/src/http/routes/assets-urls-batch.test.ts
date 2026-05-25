@@ -1,6 +1,6 @@
+import { buildApp } from '@/server'
 import { type TestDb, startTestDb } from '@bebe/db-media/src/test-db'
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest'
-import { buildApp } from '@/server'
 
 const SECRET = 'a'.repeat(40)
 const TOKEN = 'b'.repeat(40)
@@ -33,7 +33,10 @@ describe('POST /media/v1/assets/urls:batch', () => {
     `)
   })
 
-  async function seedAsset(id: string, familyId = '11111111-1111-1111-1111-111111111111'): Promise<void> {
+  async function seedAsset(
+    id: string,
+    familyId = '11111111-1111-1111-1111-111111111111',
+  ): Promise<void> {
     await db.prisma.asset.create({
       data: {
         id,

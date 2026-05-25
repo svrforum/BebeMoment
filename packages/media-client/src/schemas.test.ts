@@ -104,9 +104,15 @@ describe('media-client schemas', () => {
       v: 1,
       urls: {
         [id]: {
-          blurhash: null, dominantColor: null, aspectRatio: null,
-          thumb256: null, thumb512: null, display1080: null,
-          original: null, videoPoster: null, videoCompat: null,
+          blurhash: null,
+          dominantColor: null,
+          aspectRatio: null,
+          thumb256: null,
+          thumb512: null,
+          display1080: null,
+          original: null,
+          videoPoster: null,
+          videoCompat: null,
           expiresAt: '2026-04-24T12:00:00Z',
         },
       },

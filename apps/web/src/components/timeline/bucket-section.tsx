@@ -1,6 +1,6 @@
 import type { AssetUrls } from '@bebe/media-client'
 import type { CSSProperties } from 'react'
-import { AssetCard } from './asset-card'
+import { AssetCard, type TapModifiers } from './asset-card'
 
 type AssetRow = {
   id: string
@@ -16,7 +16,8 @@ type Props = {
   selectionMode?: boolean
   selected?: Set<string>
   onLongPress?: (id: string) => void
-  onTapInSelection?: (id: string) => void
+  onTap?: (id: string, mods: TapModifiers) => void
+  onContextMenu?: (id: string, x: number, y: number) => void
 }
 
 export function BucketSection({
@@ -26,7 +27,8 @@ export function BucketSection({
   selectionMode = false,
   selected,
   onLongPress,
-  onTapInSelection,
+  onTap,
+  onContextMenu,
 }: Props) {
   return (
     <section
@@ -56,7 +58,8 @@ export function BucketSection({
               selectionMode={selectionMode}
               selected={selected?.has(a.id) ?? false}
               {...(onLongPress ? { onLongPress } : {})}
-              {...(onTapInSelection ? { onTapInSelection } : {})}
+              {...(onTap ? { onTap } : {})}
+              {...(onContextMenu ? { onContextMenu } : {})}
             />
           </div>
         ))}

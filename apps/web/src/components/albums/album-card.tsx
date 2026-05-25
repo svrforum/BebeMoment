@@ -20,10 +20,7 @@ export function AlbumCard({ id, name, childCount, assetCount, preview = [], clas
   return (
     <Link
       href={`/albums/${id}`}
-      className={cn(
-        'group block transition-transform ease-ios active:scale-[0.985]',
-        className,
-      )}
+      className={cn('group block transition-transform ease-ios active:scale-[0.985]', className)}
     >
       <div className="relative aspect-square overflow-hidden rounded-3xl bg-base-100 dark:bg-base-900">
         {hasPreview ? (

@@ -27,6 +27,8 @@ export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
   get(_target, prop) {
     const inner = getPrisma() as unknown as Record<string | symbol, unknown>
     const value = inner[prop]
-    return typeof value === 'function' ? (value as (...args: unknown[]) => unknown).bind(inner) : value
+    return typeof value === 'function'
+      ? (value as (...args: unknown[]) => unknown).bind(inner)
+      : value
   },
 })

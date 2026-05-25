@@ -1,9 +1,9 @@
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import fs from 'node:fs'
-import path from 'node:path'
 import os from 'node:os'
-import sharp from 'sharp'
+import path from 'node:path'
 import { createAdapter } from '@bebe/storage'
+import sharp from 'sharp'
+import { afterEach, beforeEach, describe, expect, test } from 'vitest'
 import { processImage } from './image-pipeline'
 
 describe('processImage', () => {
@@ -75,6 +75,7 @@ describe('processImage', () => {
       expect(fs.existsSync(path.join(dir, 'derivatives/asset-2/thumb256.avif'))).toBe(false)
       expect(r.derivatives.thumb256.avif).toBe(r.derivatives.thumb256.webp)
     } finally {
+      // biome-ignore lint/performance/noDelete: env vars must be unset via delete; assigning undefined stringifies to "undefined"
       if (orig === undefined) delete process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
       else process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = orig
     }

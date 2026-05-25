@@ -1,7 +1,7 @@
+import { streamProgress } from '@/progress/sse'
 import { parseEnv } from '@bebe/config'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { streamProgress } from '@/progress/sse'
 import { MediaHttpError } from '../middleware/error-handler'
 import { extractUploadToken } from '../middleware/upload-token'
 

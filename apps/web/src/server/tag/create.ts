@@ -1,10 +1,10 @@
 import { can } from '@bebe/core'
 import type { PrismaClient as PrismaPublic, Tag } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateTagsTag } from '../cache-tags'
 import { ForbiddenError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
-import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   familyId: z.string().uuid(),
@@ -21,10 +21,7 @@ const Input = z.object({
  * the autocomplete-then-create flow on the detail page never errors when two
  * users hit the same name at once.
  */
-export async function createOrGetTag(
-  raw: unknown,
-  prismaPublic: PrismaPublic,
-): Promise<Tag> {
+export async function createOrGetTag(raw: unknown, prismaPublic: PrismaPublic): Promise<Tag> {
   const input = Input.parse(raw)
   const slug = slugifyTag(input.name)
   if (!slug) throw new Error('태그 이름이 비어있어요')

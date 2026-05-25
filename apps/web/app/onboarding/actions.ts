@@ -36,7 +36,10 @@ export async function completeOnboarding(
   }
 
   try {
-    const { family } = await createFamily({ name: parsed.data.familyName, userId: user.id }, prismaPublic)
+    const { family } = await createFamily(
+      { name: parsed.data.familyName, userId: user.id },
+      prismaPublic,
+    )
     await createBaby(
       {
         familyId: family.id,

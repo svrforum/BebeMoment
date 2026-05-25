@@ -40,12 +40,7 @@ type Attachment = {
  * the manager wipes its queue after each batch finishes, but our list
  * already captured the asset id by then so submit still works.
  */
-export function TimelineComposer({
-  userDisplayName,
-  userAvatarPath,
-  babyId,
-  viewerRole,
-}: Props) {
+export function TimelineComposer({ userDisplayName, userAvatarPath, babyId, viewerRole }: Props) {
   const router = useRouter()
   const toast = useToast()
   const { files, addFiles } = useUploadManager()
@@ -64,6 +59,7 @@ export function TimelineComposer({
   // Sync asset-id + ready state from the upload manager into our own
   // attachment objects. Keeps progress info alive after the manager
   // cancelAlls its queue once a batch is fully processed.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: re-syncs only when `files` changes; the attachments read is a guard, not a trigger
   useEffect(() => {
     if (attachments.length === 0) return
     const byFileId = new Map(files.map((f) => [f.id, f]))
@@ -81,17 +77,16 @@ export function TimelineComposer({
       })
       return changed ? next : prev
     })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [files])
 
   // Cleanup object URLs on unmount.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: unmount-only cleanup; deliberately runs once
   useEffect(() => {
     return () => {
       for (const a of attachments) {
         if (a.previewUrl) URL.revokeObjectURL(a.previewUrl)
       }
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
   const onPick = useCallback(
@@ -157,10 +152,7 @@ export function TimelineComposer({
       // Wait up to 30s for any still-resolving asset ids (preprocessor).
       // Most photos resolve in ~1s on a fast LAN.
       const deadline = Date.now() + 30_000
-      while (
-        Date.now() < deadline &&
-        attachments.some((a) => !a.assetId)
-      ) {
+      while (Date.now() < deadline && attachments.some((a) => !a.assetId)) {
         await new Promise((r) => setTimeout(r, 200))
       }
 
@@ -173,7 +165,7 @@ export function TimelineComposer({
       }
 
       const today = new Date().toISOString().slice(0, 10)
-      const res = await fetch('/api/journal', {
+      const res = await fetch('/api/diary', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -315,11 +307,7 @@ export function TimelineComposer({
                       <VisibilityOption
                         active={visibility === 'guardians'}
                         icon={
-                          <ShieldCheck
-                            size={14}
-                            strokeWidth={2.2}
-                            className="text-point-500"
-                          />
+                          <ShieldCheck size={14} strokeWidth={2.2} className="text-point-500" />
                         }
                         title="보호자만"
                         subtitle="owner / guardian 역할에게만 보여요"
@@ -350,10 +338,7 @@ export function TimelineComposer({
             <button
               type="button"
               onClick={submit}
-              disabled={
-                submitting ||
-                (body.trim().length === 0 && attachments.length === 0)
-              }
+              disabled={submitting || (body.trim().length === 0 && attachments.length === 0)}
               className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
             >
               {submitting ? '올리는 중…' : '올리기'}
@@ -390,9 +375,7 @@ function VisibilityOption({
         {icon}
       </div>
       <div className="min-w-0 flex-1">
-        <div className="text-[13px] font-semibold text-base-900 dark:text-base-50">
-          {title}
-        </div>
+        <div className="text-[13px] font-semibold text-base-900 dark:text-base-50">{title}</div>
         <div className="mt-0.5 text-[11px] text-base-500">{subtitle}</div>
       </div>
     </button>
@@ -407,13 +390,7 @@ function Avatar({
   initial: string
 }) {
   if (avatarPath) {
-    return (
-      <img
-        src={avatarPath}
-        alt=""
-        className="h-10 w-10 shrink-0 rounded-full object-cover"
-      />
-    )
+    return <img src={avatarPath} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
   }
   return (
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[14px] font-semibold text-point-500">

@@ -42,7 +42,10 @@ describe('resolveContext', () => {
       db.prismaPublic,
     )
     const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
-    const ctx = await resolveContext({ userId: user.id, currentFamilyId: family.id }, db.prismaPublic)
+    const ctx = await resolveContext(
+      { userId: user.id, currentFamilyId: family.id },
+      db.prismaPublic,
+    )
     expect(ctx.family?.id).toBe(family.id)
     expect(ctx.membership?.role).toBe('owner')
   })

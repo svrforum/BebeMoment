@@ -1,7 +1,7 @@
+import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 
 describe('DB role boundary (Phase B M3)', () => {
   let db: FullTestDb
@@ -33,39 +33,39 @@ describe('DB role boundary (Phase B M3)', () => {
   })
 
   test('web role cannot SELECT from media.assets (raw table)', async () => {
-    await expect(
-      webPrisma.$queryRawUnsafe(`SELECT id FROM media.assets LIMIT 1`),
-    ).rejects.toThrow(/permission denied/i)
+    await expect(webPrisma.$queryRawUnsafe('SELECT id FROM media.assets LIMIT 1')).rejects.toThrow(
+      /permission denied/i,
+    )
   })
 
   test('web role cannot SELECT from media.asset_babies (raw table)', async () => {
     await expect(
-      webPrisma.$queryRawUnsafe(`SELECT asset_id FROM media.asset_babies LIMIT 1`),
+      webPrisma.$queryRawUnsafe('SELECT asset_id FROM media.asset_babies LIMIT 1'),
     ).rejects.toThrow(/permission denied/i)
   })
 
   test('web role CAN SELECT from media.assets_v_public view', async () => {
     const rows = await webPrisma.$queryRawUnsafe<Array<unknown>>(
-      `SELECT id FROM media.assets_v_public LIMIT 1`,
+      'SELECT id FROM media.assets_v_public LIMIT 1',
     )
     expect(Array.isArray(rows)).toBe(true)
   })
 
   test('media role cannot SELECT from public.users', async () => {
     await expect(
-      mediaPrisma.$queryRawUnsafe(`SELECT id FROM public.users LIMIT 1`),
+      mediaPrisma.$queryRawUnsafe('SELECT id FROM public.users LIMIT 1'),
     ).rejects.toThrow(/permission denied/i)
   })
 
   test('media role cannot SELECT from public.families', async () => {
     await expect(
-      mediaPrisma.$queryRawUnsafe(`SELECT id FROM public.families LIMIT 1`),
+      mediaPrisma.$queryRawUnsafe('SELECT id FROM public.families LIMIT 1'),
     ).rejects.toThrow(/permission denied/i)
   })
 
   test('media role CAN SELECT from media.assets', async () => {
     const rows = await mediaPrisma.$queryRawUnsafe<Array<unknown>>(
-      `SELECT id FROM media.assets LIMIT 1`,
+      'SELECT id FROM media.assets LIMIT 1',
     )
     expect(Array.isArray(rows)).toBe(true)
   })

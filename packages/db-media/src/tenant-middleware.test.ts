@@ -111,8 +111,6 @@ describe('tenant-middleware (media)', () => {
 
   test('non-relevant actions (queryRaw) pass through without check', async () => {
     const prisma = install('throw')
-    await expect(
-      prisma.run({ model: 'Asset', action: 'queryRaw', args: {} }),
-    ).resolves.toBeNull()
+    await expect(prisma.run({ model: 'Asset', action: 'queryRaw', args: {} })).resolves.toBeNull()
   })
 })

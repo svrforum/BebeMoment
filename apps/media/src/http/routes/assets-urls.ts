@@ -1,8 +1,8 @@
+import { resolveAssetUrls } from '@/domain/url-resolver'
+import { prisma } from '@/lib/prisma'
 import { getAssetUrlsResponse } from '@bebe/media-client'
 import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
-import { resolveAssetUrls } from '@/domain/url-resolver'
-import { prisma } from '@/lib/prisma'
 import { MediaHttpError } from '../middleware/error-handler'
 import { assertServiceToken } from '../middleware/service-token'
 

@@ -1,8 +1,8 @@
 import { can } from '@bebe/core'
-import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -34,11 +34,7 @@ export async function attachAssetsToAlbum(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (
-    !membership ||
-    membership.deletedAt ||
-    !can(membership.role, 'album.asset.attach')
-  ) {
+  if (!membership || membership.deletedAt || !can(membership.role, 'album.asset.attach')) {
     throw new Error('No permission')
   }
 

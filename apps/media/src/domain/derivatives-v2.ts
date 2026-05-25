@@ -34,9 +34,7 @@ export function parseDerivativesV2(input: unknown): DerivativesV2 | null {
     return {
       v: 2,
       videoPoster: obj.poster,
-      ...(typeof obj.preview_video === 'string'
-        ? { videoCompat: obj.preview_video }
-        : {}),
+      ...(typeof obj.preview_video === 'string' ? { videoCompat: obj.preview_video } : {}),
     }
   }
 

@@ -43,7 +43,7 @@ export async function updateJournalAction(id: string, formData: FormData) {
     prismaPublic,
     prismaMedia,
   )
-  redirect(`/journal/${id}`)
+  redirect(`/diary/${id}`)
 }
 
 export async function deleteJournalAction(id: string) {
@@ -55,5 +55,5 @@ export async function deleteJournalAction(id: string) {
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   await softDeleteJournalEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
-  redirect('/journal')
+  redirect('/diary')
 }

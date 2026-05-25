@@ -2,6 +2,8 @@ generator client {
   provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
   output          = "./generated/client"
+  // See db-public/prisma/schema.prisma for rationale on the Alpine target.
+  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
 }
 
 datasource db {

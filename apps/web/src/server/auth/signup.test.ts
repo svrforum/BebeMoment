@@ -26,9 +26,15 @@ describe('signup', () => {
   })
 
   it('rejects duplicate email', async () => {
-    await signup({ email: 'a@b.com', password: 'strong-password-1', displayName: 'A' }, db.prismaPublic)
+    await signup(
+      { email: 'a@b.com', password: 'strong-password-1', displayName: 'A' },
+      db.prismaPublic,
+    )
     await expect(
-      signup({ email: 'a@b.com', password: 'strong-password-2', displayName: 'B' }, db.prismaPublic),
+      signup(
+        { email: 'a@b.com', password: 'strong-password-2', displayName: 'B' },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow(/이미 가입/)
   })
 
@@ -40,7 +46,10 @@ describe('signup', () => {
 
   it('rejects invalid email', async () => {
     await expect(
-      signup({ email: 'not-email', password: 'strong-password-1', displayName: 'A' }, db.prismaPublic),
+      signup(
+        { email: 'not-email', password: 'strong-password-1', displayName: 'A' },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow(/email/i)
   })
 })

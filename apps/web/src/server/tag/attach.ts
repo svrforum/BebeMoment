@@ -1,8 +1,8 @@
 import { can } from '@bebe/core'
-import { revalidateTagsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   assetId: z.string().uuid(),
@@ -35,11 +35,7 @@ export async function attachTagsToAsset(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (
-    !membership ||
-    membership.deletedAt ||
-    !can(membership.role, 'asset.tag.attach')
-  ) {
+  if (!membership || membership.deletedAt || !can(membership.role, 'asset.tag.attach')) {
     throw new Error('No permission: cannot tag assets')
   }
 

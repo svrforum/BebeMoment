@@ -40,5 +40,5 @@ export async function createJournalAction(formData: FormData) {
     prismaPublic,
     prismaMedia,
   )
-  redirect('/journal')
+  redirect('/diary')
 }

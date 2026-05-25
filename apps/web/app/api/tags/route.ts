@@ -13,13 +13,15 @@ export async function GET() {
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const tags = await listTagsWithCounts(ctx.family.id, prismaPublic)
     return NextResponse.json({ tags })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }
 
@@ -30,8 +32,7 @@ export async function POST(req: Request) {
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const body = await req.json()
     const tag = await createOrGetTag(
@@ -40,6 +41,9 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ tag })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }

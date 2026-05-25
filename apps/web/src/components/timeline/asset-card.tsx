@@ -7,6 +7,8 @@ import { Check } from 'lucide-react'
 import Link from 'next/link'
 import { type CSSProperties, type MouseEvent, useRef } from 'react'
 
+export type TapModifiers = { ctrl: boolean; shift: boolean }
+
 type Props = {
   id: string
   urls: AssetUrls | null
@@ -17,7 +19,16 @@ type Props = {
   selectionMode?: boolean
   selected?: boolean
   onLongPress?: (id: string) => void
-  onTapInSelection?: (id: string) => void
+  /**
+   * Fires when the user taps the card in a selection-changing way:
+   * - In selection mode: any click (modifiers indicate range/extend).
+   * - Outside selection mode: only when Ctrl/Cmd or Shift is held — a
+   *   plain click follows the navigation Link.
+   */
+  onTap?: (id: string, mods: TapModifiers) => void
+  /** Right-click handler. Receives the asset id and viewport coords so
+   *  the parent can position a context menu. */
+  onContextMenu?: (id: string, x: number, y: number) => void
 }
 
 const STATUS_KO: Record<Props['status'], string> = {
@@ -37,7 +48,8 @@ export function AssetCard({
   selectionMode = false,
   selected = false,
   onLongPress,
-  onTapInSelection,
+  onTap,
+  onContextMenu,
 }: Props) {
   const trio = pickThumbTrio(urls)
   const fallbackUrl = pickThumbUrl(urls)
@@ -70,7 +82,25 @@ export function AssetCard({
       e.preventDefault()
       e.stopPropagation()
       longFired.current = false
+      return
     }
+    // Modifier-click outside selection mode = enter selection / extend.
+    // Swallow the navigation so the Link doesn't fire.
+    if (e.ctrlKey || e.metaKey || e.shiftKey) {
+      e.preventDefault()
+      e.stopPropagation()
+      onTap?.(id, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })
+    }
+  }
+
+  const handleSelectionClick = (e: MouseEvent) => {
+    onTap?.(id, { ctrl: e.ctrlKey || e.metaKey, shift: e.shiftKey })
+  }
+
+  const handleContextMenu = (e: MouseEvent) => {
+    if (!onContextMenu) return
+    e.preventDefault()
+    onContextMenu(id, e.clientX, e.clientY)
   }
 
   const inner = (
@@ -134,7 +164,8 @@ export function AssetCard({
     return (
       <button
         type="button"
-        onClick={() => onTapInSelection?.(id)}
+        onClick={handleSelectionClick}
+        onContextMenu={handleContextMenu}
         onTouchStart={startPress}
         onTouchEnd={cancelPress}
         onTouchMove={cancelPress}
@@ -153,6 +184,7 @@ export function AssetCard({
     <Link
       href={`/detail/${id}`}
       onClick={handleNavClick}
+      onContextMenu={handleContextMenu}
       onTouchStart={startPress}
       onTouchEnd={cancelPress}
       onTouchMove={cancelPress}

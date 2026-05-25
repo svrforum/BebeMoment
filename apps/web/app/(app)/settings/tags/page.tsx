@@ -4,7 +4,6 @@ import { getContext } from '@/server/context'
 import { listTagsWithCounts } from '@/server/tag/list'
 import { TagsManager } from './tags-manager'
 
-
 export default async function TagsSettingsPage() {
   const ctx = await getContext()
   if (!ctx.family) return null

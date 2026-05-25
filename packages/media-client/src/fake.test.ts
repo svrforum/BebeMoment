@@ -33,7 +33,9 @@ describe('FakeMediaClient', () => {
       dominantColor: '#ccbbaa',
       aspectRatio: 1.5,
       thumb256: {
-        avif: 'https://m/256.avif', webp: 'https://m/256.webp', jpeg: 'https://m/256.jpg',
+        avif: 'https://m/256.avif',
+        webp: 'https://m/256.webp',
+        jpeg: 'https://m/256.jpg',
       },
       thumb512: null,
       display1080: null,

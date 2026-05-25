@@ -22,11 +22,10 @@ export function listAlbumTree(
   familyId: string,
   prismaPublic: PrismaPublic,
 ): Promise<AlbumTreeNode[]> {
-  return unstable_cache(
-    () => listAlbumTreeRaw(familyId, prismaPublic),
-    ['album-tree', familyId],
-    { revalidate: 60, tags: [`albums:${familyId}`] },
-  )()
+  return unstable_cache(() => listAlbumTreeRaw(familyId, prismaPublic), ['album-tree', familyId], {
+    revalidate: 60,
+    tags: [`albums:${familyId}`],
+  })()
 }
 
 async function listAlbumTreeRaw(

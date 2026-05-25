@@ -1,10 +1,10 @@
 import { can } from '@bebe/core'
 import type { PrismaClient as PrismaPublic, Tag } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateTagsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { slugifyTag } from './slug'
-import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   tagId: z.string().uuid(),
@@ -18,10 +18,7 @@ const Input = z.object({
  * guards against collision, but we pre-check so callers get a friendly
  * error instead of a raw P2002.
  */
-export async function renameTag(
-  raw: unknown,
-  prismaPublic: PrismaPublic,
-): Promise<Tag> {
+export async function renameTag(raw: unknown, prismaPublic: PrismaPublic): Promise<Tag> {
   const input = Input.parse(raw)
   const slug = slugifyTag(input.name)
   if (!slug) throw new Error('태그 이름이 비어있어요')

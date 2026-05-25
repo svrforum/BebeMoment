@@ -64,11 +64,7 @@ export default async function TimelinePage({
       ) : (
         <AppHeader title={ctx.family.name} />
       )}
-      <TagFilterStrip
-        familyId={ctx.family.id}
-        prismaPublic={prismaPublic}
-        activeSlugs={tagSlugs}
-      />
+      <TagFilterStrip familyId={ctx.family.id} prismaPublic={prismaPublic} activeSlugs={tagSlugs} />
       {tagSlugs.length === 0 && (
         <div className="mx-auto max-w-3xl px-5 pt-3">
           <TimelineComposer

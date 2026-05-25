@@ -52,9 +52,7 @@ export async function listAlbumAssets(
   const byId = new Map(assets.map((a) => [a.id, a]))
 
   const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
-  const urlsMap = readyIds.length
-    ? await media.getAssetUrlsBatch(args.familyId, readyIds)
-    : {}
+  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(args.familyId, readyIds) : {}
 
   return {
     assets: links

@@ -33,10 +33,7 @@ export function useUploadSheet(): UploadSheetContextType {
 export function UploadSheetProvider({ children }: { children: ReactNode }) {
   const [isOpen, setOpen] = useState(false)
 
-  const value = useMemo(
-    () => ({ open: () => setOpen(true), close: () => setOpen(false) }),
-    [],
-  )
+  const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
 
   return (
     <UploadManagerProvider>

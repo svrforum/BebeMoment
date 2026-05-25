@@ -16,10 +16,7 @@ type Props = {
 }
 
 export function TagChip({ name, color, size = 'md', href, onRemove, className }: Props) {
-  const sizeClasses =
-    size === 'sm'
-      ? 'h-6 px-2.5 text-[11px]'
-      : 'h-7 px-3 text-[12px]'
+  const sizeClasses = size === 'sm' ? 'h-6 px-2.5 text-[11px]' : 'h-7 px-3 text-[12px]'
 
   const colorStyle = color
     ? {
@@ -31,8 +28,7 @@ export function TagChip({ name, color, size = 'md', href, onRemove, className }:
   const base = cn(
     'inline-flex items-center gap-1 rounded-full font-medium transition-transform ease-ios active:scale-95',
     sizeClasses,
-    !color &&
-      'bg-point-500/12 text-point-500 hover:bg-point-500/20 dark:bg-point-500/15',
+    !color && 'bg-point-500/12 text-point-500 hover:bg-point-500/20 dark:bg-point-500/15',
     className,
   )
 

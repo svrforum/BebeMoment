@@ -67,10 +67,7 @@ describe('softDeleteComment', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await softDeleteComment(
-      { id: c.id, familyId: family.id, byUserId: user.id },
-      db.prismaPublic,
-    )
+    await softDeleteComment({ id: c.id, familyId: family.id, byUserId: user.id }, db.prismaPublic)
     const after = await db.prismaPublic.assetComment.findUnique({ where: { id: c.id } })
     expect(after?.deletedAt).toBeInstanceOf(Date)
   })
@@ -90,10 +87,7 @@ describe('softDeleteComment', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await softDeleteComment(
-      { id: c.id, familyId: family.id, byUserId: owner.id },
-      db.prismaPublic,
-    )
+    await softDeleteComment({ id: c.id, familyId: family.id, byUserId: owner.id }, db.prismaPublic)
     const after = await db.prismaPublic.assetComment.findUnique({ where: { id: c.id } })
     expect(after?.deletedAt).toBeInstanceOf(Date)
   })
@@ -121,10 +115,7 @@ describe('softDeleteComment', () => {
       db.prismaMedia,
     )
     await expect(
-      softDeleteComment(
-        { id: c.id, familyId: family.id, byUserId: u3.id },
-        db.prismaPublic,
-      ),
+      softDeleteComment({ id: c.id, familyId: family.id, byUserId: u3.id }, db.prismaPublic),
     ).rejects.toThrow(/permission/)
   })
 })

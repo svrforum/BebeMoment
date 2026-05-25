@@ -1,8 +1,8 @@
+import { resolveAssetUrls } from '@/domain/url-resolver'
+import { prisma } from '@/lib/prisma'
 import { batchUrlsRequest, batchUrlsResponse } from '@bebe/media-client'
 import type { AssetUrls } from '@bebe/media-client'
 import type { FastifyPluginAsync } from 'fastify'
-import { resolveAssetUrls } from '@/domain/url-resolver'
-import { prisma } from '@/lib/prisma'
 import { assertServiceToken } from '../middleware/service-token'
 
 export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {

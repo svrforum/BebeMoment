@@ -26,7 +26,7 @@ export default async function JournalPage() {
         title="일기"
         right={
           <Link
-            href="/journal/new"
+            href="/diary/new"
             className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
             aria-label="일기 쓰기"
           >
@@ -50,7 +50,7 @@ export default async function JournalPage() {
               </p>
             </div>
             <Link
-              href="/journal/new"
+              href="/diary/new"
               className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 dark:bg-base-50 dark:text-base-900"
             >
               일기 쓰기

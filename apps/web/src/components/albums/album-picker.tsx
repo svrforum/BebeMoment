@@ -29,13 +29,7 @@ type Props = {
  * tapping any node attaches the target asset(s) to it. Inline "새 앨범"
  * creates a root album and immediately attaches.
  */
-export function AlbumPicker({
-  open,
-  onOpenChange,
-  assetId,
-  assetIds,
-  onAttached,
-}: Props) {
+export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached }: Props) {
   const toast = useToast()
   const [tree, setTree] = useState<AlbumNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())

@@ -13,18 +13,17 @@ export async function GET(req: Request) {
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const url = new URL(req.url)
     const parentId = url.searchParams.get('parentId')
-    const albums = await listAlbums(
-      { familyId: ctx.family.id, parentId },
-      prismaPublic,
-    )
+    const albums = await listAlbums({ familyId: ctx.family.id, parentId }, prismaPublic)
     return NextResponse.json({ albums })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }
 
@@ -35,8 +34,7 @@ export async function POST(req: Request) {
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const body = await req.json()
     const album = await createAlbum(
@@ -45,6 +43,9 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ album })
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }

@@ -1,7 +1,7 @@
 import { can } from '@bebe/core'
-import { revalidateTagsTag } from '../cache-tags'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateTagsTag } from '../cache-tags'
 
 const Input = z.object({
   tagId: z.string().uuid(),
@@ -29,11 +29,7 @@ export async function deleteTag(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (
-    !membership ||
-    membership.deletedAt ||
-    !can(membership.role, 'tag.delete')
-  ) {
+  if (!membership || membership.deletedAt || !can(membership.role, 'tag.delete')) {
     throw new Error('No permission: cannot delete tags')
   }
 

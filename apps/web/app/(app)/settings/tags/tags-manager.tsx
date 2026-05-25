@@ -81,9 +81,7 @@ export function TagsManager({ initial }: { initial: Tag[] }) {
   const remove = async (tag: Tag) => {
     if (
       tag.assetCount > 0 &&
-      !confirm(
-        `"${tag.name}" 태그가 ${tag.assetCount}장 사진에 달려있어요. 정말 삭제할까요?`,
-      )
+      !confirm(`"${tag.name}" 태그가 ${tag.assetCount}장 사진에 달려있어요. 정말 삭제할까요?`)
     ) {
       return
     }
@@ -129,18 +127,14 @@ export function TagsManager({ initial }: { initial: Tag[] }) {
       </form>
 
       {tags.length === 0 ? (
-        <p className="px-2 py-6 text-center text-[13px] text-base-500">
-          아직 태그가 없어요
-        </p>
+        <p className="px-2 py-6 text-center text-[13px] text-base-500">아직 태그가 없어요</p>
       ) : (
         <ul className="rounded-2xl border border-base-200 bg-base-0 dark:border-base-800 dark:bg-base-900">
           {tags.map((t, i) => (
             <li
               key={t.id}
               className={`flex items-center gap-2 px-4 py-2.5 ${
-                i < tags.length - 1
-                  ? 'border-b border-base-100 dark:border-base-800/60'
-                  : ''
+                i < tags.length - 1 ? 'border-b border-base-100 dark:border-base-800/60' : ''
               }`}
             >
               {editingId === t.id ? (
@@ -159,9 +153,7 @@ export function TagsManager({ initial }: { initial: Tag[] }) {
               ) : (
                 <div className="flex flex-1 items-center gap-2">
                   <TagChip name={t.name} color={t.color} />
-                  <span className="text-[12px] tabular-nums text-base-400">
-                    · {t.assetCount}
-                  </span>
+                  <span className="text-[12px] tabular-nums text-base-400">· {t.assetCount}</span>
                 </div>
               )}
               <button

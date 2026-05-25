@@ -1,5 +1,5 @@
-import { describe, expect, test } from 'vitest'
 import { buildApp } from '@/server'
+import { describe, expect, test } from 'vitest'
 
 describe('GET /media/v1/health', () => {
   test('returns ok payload', async () => {

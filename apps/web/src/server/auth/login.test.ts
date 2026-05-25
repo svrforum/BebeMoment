@@ -13,12 +13,18 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   await db.prismaPublic.user.deleteMany()
-  await signup({ email: 'u@e.com', password: 'correct-password', displayName: 'U' }, db.prismaPublic)
+  await signup(
+    { email: 'u@e.com', password: 'correct-password', displayName: 'U' },
+    db.prismaPublic,
+  )
 })
 
 describe('login', () => {
   it('returns user on correct credentials', async () => {
-    const { user } = await login({ email: 'u@e.com', password: 'correct-password' }, db.prismaPublic)
+    const { user } = await login(
+      { email: 'u@e.com', password: 'correct-password' },
+      db.prismaPublic,
+    )
     expect(user.email).toBe('u@e.com')
   })
 
@@ -29,8 +35,8 @@ describe('login', () => {
   })
 
   it('throws on unknown email (no enumeration)', async () => {
-    await expect(login({ email: 'x@x.com', password: 'anything' }, db.prismaPublic)).rejects.toThrow(
-      /invalid/i,
-    )
+    await expect(
+      login({ email: 'x@x.com', password: 'anything' }, db.prismaPublic),
+    ).rejects.toThrow(/invalid/i)
   })
 })

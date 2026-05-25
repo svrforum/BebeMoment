@@ -22,7 +22,7 @@ export async function streamProgress(args: {
     'access-control-allow-credentials': 'true',
     vary: 'Origin',
   })
-  reply.raw.write(`: connected\n\n`)
+  reply.raw.write(': connected\n\n')
   if (typeof (reply.raw as { flushHeaders?: () => void }).flushHeaders === 'function') {
     ;(reply.raw as { flushHeaders: () => void }).flushHeaders()
   }
@@ -32,7 +32,7 @@ export async function streamProgress(args: {
   await sub.subscribe(channel)
 
   const heartbeat = setInterval(() => {
-    reply.raw.write(`: heartbeat\n\n`)
+    reply.raw.write(': heartbeat\n\n')
   }, heartbeatMs)
 
   sub.on('message', (_ch, message) => {

@@ -15,8 +15,7 @@ export async function DELETE(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const { id, assetId } = await params
     const result = await detachAssetFromAlbum(
@@ -30,6 +29,9 @@ export async function DELETE(
     )
     return NextResponse.json(result)
   } catch (e) {
-    { const { status, message } = toHttpError(e); return NextResponse.json({ error: message }, { status }) }
+    {
+      const { status, message } = toHttpError(e)
+      return NextResponse.json({ error: message }, { status })
+    }
   }
 }

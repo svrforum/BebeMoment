@@ -1,8 +1,8 @@
 import { can } from '@bebe/core'
-import { revalidateAlbumsTag } from '../cache-tags'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 
@@ -75,12 +75,8 @@ export async function updateAlbum(
       where: { id: album.id },
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
-        ...(input.description !== undefined
-          ? { description: input.description }
-          : {}),
-        ...(input.coverAssetId !== undefined
-          ? { coverAssetId: input.coverAssetId }
-          : {}),
+        ...(input.description !== undefined ? { description: input.description } : {}),
+        ...(input.coverAssetId !== undefined ? { coverAssetId: input.coverAssetId } : {}),
       },
     })
     revalidateAlbumsTag(input.familyId)

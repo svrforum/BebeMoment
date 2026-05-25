@@ -1,10 +1,10 @@
 import { can } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath, isDescendant, rewritePathPrefix } from './path'
-import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -29,10 +29,7 @@ const Input = z.object({
  * mover stole the spot between our check and our write, and surfaces a
  * Korean error instead of a 500.
  */
-export async function moveAlbum(
-  raw: unknown,
-  prismaPublic: PrismaPublic,
-): Promise<Album> {
+export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promise<Album> {
   const input = Input.parse(raw)
 
   const membership = await prismaPublic.membership.findUnique({
@@ -50,8 +47,7 @@ export async function moveAlbum(
       if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
 
       const allowed =
-        (album.createdByUserId === input.byUserId &&
-          can(membership.role, 'album.update.own')) ||
+        (album.createdByUserId === input.byUserId && can(membership.role, 'album.update.own')) ||
         can(membership.role, 'album.update.any')
       if (!allowed) throw new ForbiddenError('이 앨범을 옮길 권한이 없어요')
 

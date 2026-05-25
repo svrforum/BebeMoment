@@ -1,5 +1,5 @@
-import { beforeAll, describe, expect, test } from 'vitest'
 import { buildApp } from '@/server'
+import { beforeAll, describe, expect, test } from 'vitest'
 
 const SECRET = 'a'.repeat(40)
 const SERVICE_TOKEN = 'b'.repeat(40)

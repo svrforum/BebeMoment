@@ -20,9 +20,7 @@ export async function previewAttachmentsByAlbum(
   const { familyId, albumIds, perAlbum } = args
   if (albumIds.length === 0) return new Map()
 
-  const rows = await prismaPublic.$queryRaw<
-    { album_id: string; asset_id: string }[]
-  >`
+  const rows = await prismaPublic.$queryRaw<{ album_id: string; asset_id: string }[]>`
     SELECT album_id, asset_id FROM (
       SELECT
         album_id,

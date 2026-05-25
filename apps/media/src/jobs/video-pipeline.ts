@@ -3,11 +3,11 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
+import { computeBlurhash } from '@/domain/blurhash'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
 import sharp from 'sharp'
-import { computeBlurhash } from '@/domain/blurhash'
-import { generateTrios, type Trio } from './derivative-trios'
+import { type Trio, generateTrios } from './derivative-trios'
 
 export type ProcessVideoInput = {
   originalKey: string
@@ -42,7 +42,9 @@ async function writeToLocal(
 
 function rgbToHex(r: number, g: number, b: number): string {
   const h = (n: number): string =>
-    Math.max(0, Math.min(255, Math.round(n))).toString(16).padStart(2, '0')
+    Math.max(0, Math.min(255, Math.round(n)))
+      .toString(16)
+      .padStart(2, '0')
   return `#${h(r)}${h(g)}${h(b)}`
 }
 
@@ -135,17 +137,13 @@ export async function processVideo(
     const previewKey = `derivatives/${input.assetId}/preview.mp4`
 
     const [, trios] = await Promise.all([
-      previewPromise.then(() =>
-        storage.write(previewKey, createReadStream(previewPath)),
-      ),
+      previewPromise.then(() => storage.write(previewKey, createReadStream(previewPath))),
       triosPromise,
     ])
     await storage.writeBuffer(posterKey, posterBuf, 'image/jpeg')
 
     const aspectRatio =
-      width && height && width > 0 && height > 0
-        ? Number((width / height).toFixed(4))
-        : null
+      width && height && width > 0 && height > 0 ? Number((width / height).toFixed(4)) : null
 
     return {
       durationMs,

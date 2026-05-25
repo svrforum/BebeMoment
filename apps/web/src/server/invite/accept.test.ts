@@ -56,9 +56,9 @@ describe('acceptInvite', () => {
       { email: 'new@new.com', password: 'password123', displayName: 'N' },
       db.prismaPublic,
     )
-    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)).rejects.toThrow(
-      /expired/i,
-    )
+    await expect(
+      acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
+    ).rejects.toThrow(/expired/i)
   })
 
   it('rejects already accepted token', async () => {
@@ -68,9 +68,9 @@ describe('acceptInvite', () => {
       db.prismaPublic,
     )
     await acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)
-    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)).rejects.toThrow(
-      /already accepted/i,
-    )
+    await expect(
+      acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
+    ).rejects.toThrow(/already accepted/i)
   })
 
   it('rejects revoked token', async () => {
@@ -83,9 +83,9 @@ describe('acceptInvite', () => {
       { email: 'new@new.com', password: 'password123', displayName: 'N' },
       db.prismaPublic,
     )
-    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)).rejects.toThrow(
-      /revoked/i,
-    )
+    await expect(
+      acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
+    ).rejects.toThrow(/revoked/i)
   })
 
   it('rejects if user email does not match invite email', async () => {
@@ -94,8 +94,8 @@ describe('acceptInvite', () => {
       { email: 'other@other.com', password: 'password123', displayName: 'X' },
       db.prismaPublic,
     )
-    await expect(acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)).rejects.toThrow(
-      /email/i,
-    )
+    await expect(
+      acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
+    ).rejects.toThrow(/email/i)
   })
 })

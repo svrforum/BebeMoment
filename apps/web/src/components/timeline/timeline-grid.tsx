@@ -1,12 +1,16 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
+import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { useFamilySSE } from '@/lib/sse'
+import { useToast } from '@/lib/toast'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
-import { FolderPlus, ImagePlus, X } from 'lucide-react'
+import { FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { TapModifiers } from './asset-card'
 import { BucketSection } from './bucket-section'
+import { TimelineContextMenu } from './timeline-context-menu'
 
 type AssetRow = {
   id: string
@@ -23,19 +27,41 @@ type Props = {
 
 export function TimelineGrid({ initialGroups }: Props) {
   const router = useRouter()
+  const toast = useToast()
 
   const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [anchor, setAnchor] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false)
+  const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
 
   const selectionMode = selected.size > 0
 
+  // Flat ordered list of asset ids — used by Shift-click range selection
+  // and to clamp range bounds. Stable across re-renders via useMemo.
+  const orderedIds = useMemo(
+    () => initialGroups.flatMap((g) => g.assets.map((a) => a.id)),
+    [initialGroups],
+  )
+
+  // SSE fires one event per asset settling. A multi-file upload would call
+  // router.refresh() N times in quick succession — each refresh re-fetches
+  // the page payload and the AppHeader visibly flickers. Debounce so we
+  // only refresh after a short idle window.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  useEffect(() => {
+    return () => {
+      if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    }
+  }, [])
   const handleEvent = useCallback(
     (event: AssetEvent) => {
       if (
         event.type === 'asset.updated' &&
         (event.status === 'ready' || event.status === 'failed')
       ) {
-        router.refresh()
+        if (refreshTimer.current) clearTimeout(refreshTimer.current)
+        refreshTimer.current = setTimeout(() => router.refresh(), 800)
       }
     },
     [router],
@@ -48,18 +74,74 @@ export function TimelineGrid({ initialGroups }: Props) {
       next.add(id)
       return next
     })
+    setAnchor(id)
   }, [])
 
-  const onTapInSelection = useCallback((id: string) => {
-    setSelected((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
+  const onTap = useCallback(
+    (id: string, mods: TapModifiers) => {
+      // Shift-click extends a contiguous range from the last anchor to the
+      // tapped id, in flat-grid order. With no anchor, behaves like a
+      // plain modifier-click (just adds the single id).
+      if (mods.shift && anchor && anchor !== id) {
+        const a = orderedIds.indexOf(anchor)
+        const b = orderedIds.indexOf(id)
+        if (a >= 0 && b >= 0) {
+          const [from, to] = a < b ? [a, b] : [b, a]
+          setSelected((prev) => {
+            const next = new Set(prev)
+            for (let i = from; i <= to; i++) {
+              const k = orderedIds[i]
+              if (k) next.add(k)
+            }
+            return next
+          })
+          setAnchor(id)
+          return
+        }
+      }
+      // Otherwise (ctrl/cmd, or plain tap inside selection mode): toggle.
+      setSelected((prev) => {
+        const next = new Set(prev)
+        if (next.has(id)) next.delete(id)
+        else next.add(id)
+        return next
+      })
+      setAnchor(id)
+    },
+    [anchor, orderedIds],
+  )
+
+  const clearSelection = useCallback(() => {
+    setSelected(new Set())
+    setAnchor(null)
   }, [])
 
-  const clearSelection = useCallback(() => setSelected(new Set()), [])
+  const bulkDelete = useCallback(async () => {
+    const ids = Array.from(selected)
+    if (ids.length === 0) return
+    // Per-asset POST in parallel. softDelete is idempotent + cheap so the
+    // failures-allowed semantics of allSettled are fine — we surface a
+    // single toast summarising any failures.
+    const results = await Promise.allSettled(
+      ids.map((id) =>
+        fetch(`/api/asset/${id}/delete`, { method: 'POST' }).then(async (r) => {
+          if (!r.ok) throw new Error((await r.json()).error ?? `HTTP ${r.status}`)
+        }),
+      ),
+    )
+    const failures = results.filter((r) => r.status === 'rejected').length
+    if (failures > 0) {
+      toast({
+        title: '일부 삭제 실패',
+        description: `${ids.length - failures}/${ids.length}개 삭제됨. 다시 시도해주세요.`,
+        variant: 'danger',
+      })
+    } else {
+      toast({ title: `${ids.length}장 삭제됨`, description: '휴지통에서 복구할 수 있어요' })
+    }
+    clearSelection()
+    router.refresh()
+  }, [selected, clearSelection, router, toast])
 
   // Esc clears the selection — only when a sheet/modal isn't taking
   // priority over the keyboard. Skipping when the picker is open lets the
@@ -91,6 +173,41 @@ export function TimelineGrid({ initialGroups }: Props) {
     )
   }
 
+  // Right-click context menu — operates on a single asset id, regardless
+  // of selection. If the asset isn't already selected, the menu's
+  // toggle/album/delete actions implicitly use just that one asset.
+  const onContextMenu = useCallback((id: string, x: number, y: number) => {
+    setMenu({ id, x, y })
+  }, [])
+  const closeMenu = useCallback(() => setMenu(null), [])
+
+  // The context menu's "삭제" / "앨범" actions need to act on the right
+  // target. If the asset was already in the selection set, fall back to
+  // the bulk path. Otherwise act on just the right-clicked asset.
+  const targetIdsForMenu = useCallback((): string[] => {
+    if (!menu) return []
+    if (selected.has(menu.id)) return Array.from(selected)
+    return [menu.id]
+  }, [menu, selected])
+
+  const onMenuAlbum = useCallback(() => {
+    const ids = targetIdsForMenu()
+    if (ids.length === 0) return
+    if (!selected.has(menu?.id ?? '')) {
+      // Promote single asset into the selection set so the AlbumPicker
+      // shares one source-of-truth.
+      setSelected(new Set(ids))
+    }
+    setPickerOpen(true)
+  }, [menu, selected, targetIdsForMenu])
+
+  const onMenuDelete = useCallback(() => {
+    const ids = targetIdsForMenu()
+    if (ids.length === 0) return
+    if (!selected.has(menu?.id ?? '')) setSelected(new Set(ids))
+    setDeleteOpen(true)
+  }, [menu, selected, targetIdsForMenu])
+
   return (
     <>
       <div className="mx-auto max-w-3xl px-5 py-4">
@@ -103,7 +220,8 @@ export function TimelineGrid({ initialGroups }: Props) {
             selectionMode={selectionMode}
             selected={selected}
             onLongPress={onLongPress}
-            onTapInSelection={onTapInSelection}
+            onTap={onTap}
+            onContextMenu={onContextMenu}
           />
         ))}
       </div>
@@ -113,6 +231,7 @@ export function TimelineGrid({ initialGroups }: Props) {
           count={selected.size}
           onCancel={clearSelection}
           onAlbum={() => setPickerOpen(true)}
+          onDelete={() => setDeleteOpen(true)}
         />
       )}
 
@@ -125,6 +244,27 @@ export function TimelineGrid({ initialGroups }: Props) {
           // Only clear once user explicitly closes by tapping outside.
         }}
       />
+
+      <ConfirmSheet
+        open={deleteOpen}
+        onOpenChange={setDeleteOpen}
+        title={`${selected.size}장을 삭제할까요?`}
+        description="휴지통으로 옮겨지고, 거기서 30일 안에 복구할 수 있어요."
+        onConfirm={bulkDelete}
+      />
+
+      <TimelineContextMenu
+        assetId={menu?.id ?? null}
+        x={menu?.x ?? 0}
+        y={menu?.y ?? 0}
+        isSelected={menu ? selected.has(menu.id) : false}
+        onClose={closeMenu}
+        onToggleSelect={() => {
+          if (menu) onTap(menu.id, { ctrl: true, shift: false })
+        }}
+        onAlbum={onMenuAlbum}
+        onDelete={onMenuDelete}
+      />
     </>
   )
 }
@@ -133,10 +273,12 @@ function SelectionBar({
   count,
   onCancel,
   onAlbum,
+  onDelete,
 }: {
   count: number
   onCancel: () => void
   onAlbum: () => void
+  onDelete: () => void
 }) {
   return (
     <div
@@ -151,9 +293,15 @@ function SelectionBar({
       >
         <X size={18} strokeWidth={2} />
       </button>
-      <span className="flex-1 px-1 text-[13px] font-medium tabular-nums">
-        {count}장 선택됨
-      </span>
+      <span className="flex-1 px-1 text-[13px] font-medium tabular-nums">{count}장 선택됨</span>
+      <button
+        type="button"
+        onClick={onDelete}
+        aria-label="삭제"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+      >
+        <Trash2 size={18} strokeWidth={2.2} />
+      </button>
       <button
         type="button"
         onClick={onAlbum}

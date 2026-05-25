@@ -57,9 +57,7 @@ function Row({ icon, primary, secondary, last }: RowProps) {
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[14px] text-base-900 dark:text-base-100">{primary}</div>
-        {secondary && (
-          <div className="mt-0.5 text-[12px] text-base-500">{secondary}</div>
-        )}
+        {secondary && <div className="mt-0.5 text-[12px] text-base-500">{secondary}</div>}
       </div>
     </div>
   )

@@ -1,14 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Plus } from 'lucide-react'
-import {
-  type KeyboardEvent,
-  useCallback,
-  useEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { type KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { TagChip } from './tag-chip'
 
 export type AssetTag = {
@@ -73,18 +66,14 @@ export function TagEditor({ assetId, initial }: Props) {
     if (!q) return candidates.filter((c) => !attached.has(c.id)).slice(0, 8)
     return candidates
       .filter((c) => !attached.has(c.id))
-      .filter(
-        (c) => c.name.toLowerCase().startsWith(q) || c.slug.startsWith(q),
-      )
+      .filter((c) => c.name.toLowerCase().startsWith(q) || c.slug.startsWith(q))
       .slice(0, 8)
   }, [candidates, query, attached])
 
   const exactExists = useMemo(() => {
     const q = query.trim().toLowerCase()
     if (!q) return false
-    return candidates.some(
-      (c) => c.name.toLowerCase() === q || c.slug === q,
-    )
+    return candidates.some((c) => c.name.toLowerCase() === q || c.slug === q)
   }, [candidates, query])
 
   const attach = useCallback(
@@ -147,12 +136,7 @@ export function TagEditor({ assetId, initial }: Props) {
   return (
     <div className="relative flex flex-wrap items-center gap-1.5">
       {tags.map((t) => (
-        <TagChip
-          key={t.id}
-          name={t.name}
-          color={t.color ?? null}
-          onRemove={() => detach(t.id)}
-        />
+        <TagChip key={t.id} name={t.name} color={t.color ?? null} onRemove={() => detach(t.id)} />
       ))}
       <button
         type="button"
@@ -187,9 +171,7 @@ export function TagEditor({ assetId, initial }: Props) {
                 >
                   <span className="truncate">{t.name}</span>
                   {typeof t.assetCount === 'number' && (
-                    <span className="text-[11px] tabular-nums text-base-400">
-                      {t.assetCount}
-                    </span>
+                    <span className="text-[11px] tabular-nums text-base-400">{t.assetCount}</span>
                   )}
                 </button>
               </li>

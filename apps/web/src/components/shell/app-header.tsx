@@ -5,10 +5,11 @@ import { type ReactNode, useEffect, useState } from 'react'
 type Props = {
   title: string
   subtitle?: string
+  left?: ReactNode
   right?: ReactNode
 }
 
-export function AppHeader({ title, subtitle, right }: Props) {
+export function AppHeader({ title, subtitle, left, right }: Props) {
   const [progress, setProgress] = useState(0)
 
   useEffect(() => {
@@ -37,6 +38,7 @@ export function AppHeader({ title, subtitle, right }: Props) {
     >
       <div className="mx-auto max-w-3xl px-5">
         <div className="flex h-12 items-center justify-between gap-3">
+          {left && <div className="flex flex-shrink-0 items-center gap-2">{left}</div>}
           <div
             className={cn(
               'min-w-0 flex-1 transition-opacity ease-ios duration-200',
@@ -66,9 +68,7 @@ export function AppHeader({ title, subtitle, right }: Props) {
             >
               {title}
             </h1>
-            {subtitle && (
-              <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>
-            )}
+            {subtitle && <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>}
           </div>
         </div>
       </div>

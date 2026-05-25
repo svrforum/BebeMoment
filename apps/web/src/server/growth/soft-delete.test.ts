@@ -47,7 +47,10 @@ describe('softDeleteGrowthRecord', () => {
       },
       db.prismaPublic,
     )
-    await softDeleteGrowthRecord({ id: rec.id, familyId: family.id, byUserId: user.id }, db.prismaPublic)
+    await softDeleteGrowthRecord(
+      { id: rec.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+    )
     const fresh = await db.prismaPublic.growthRecord.findUnique({ where: { id: rec.id } })
     expect(fresh?.deletedAt).not.toBeNull()
   })

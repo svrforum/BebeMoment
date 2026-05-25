@@ -11,8 +11,7 @@ export async function GET() {
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
     const tree = await listAlbumTree(ctx.family.id, prismaPublic)
     return NextResponse.json({ tree })

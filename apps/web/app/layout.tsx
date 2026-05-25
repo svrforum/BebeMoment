@@ -1,4 +1,5 @@
-import { ThemeProvider, themeInitScript } from '@/lib/theme'
+import { ThemeProvider } from '@/lib/theme'
+import { themeInitScript } from '@/lib/theme-init-script'
 import type { Metadata, Viewport } from 'next'
 import './globals.css'
 

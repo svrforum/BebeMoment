@@ -19,7 +19,7 @@ const items = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/albums', label: '앨범', icon: FolderOpen },
-  { href: '/journal', label: '일기', icon: BookmarkIcon },
+  { href: '/diary', label: '일기', icon: BookmarkIcon },
   { href: '/family', label: '가족', icon: Users },
   { href: '/settings', label: '설정', icon: Settings },
 ] as const
@@ -59,7 +59,7 @@ export function SideNav({ familyName }: Props) {
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {items.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname.startsWith(`${href}/`)
+          const active = pathname === href || pathname?.startsWith(`${href}/`) === true
           return (
             <Link
               key={href}

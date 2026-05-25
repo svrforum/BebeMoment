@@ -92,11 +92,7 @@ export function MetadataEditor({
             placeholder="파일명"
           />
         ) : (
-          <ClickRow
-            label={filename}
-            secondary="파일명"
-            onEdit={() => setEditing('filename')}
-          />
+          <ClickRow label={filename} secondary="파일명" onEdit={() => setEditing('filename')} />
         )}
       </Row>
 
@@ -185,9 +181,7 @@ function ClickRow({
       <div className="min-w-0 flex-1">
         <div
           className={`whitespace-pre-wrap break-words text-[14px] ${
-            muted
-              ? 'text-base-400'
-              : 'text-base-900 dark:text-base-100'
+            muted ? 'text-base-400' : 'text-base-900 dark:text-base-100'
           }`}
         >
           {label}

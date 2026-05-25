@@ -41,23 +41,13 @@ export function Sheet({ open, onOpenChange, title, children, className }: SheetP
 
   if (isDesktop) {
     return (
-      <DesktopModal
-        open={open}
-        onOpenChange={onOpenChange}
-        title={title}
-        className={className}
-      >
+      <DesktopModal open={open} onOpenChange={onOpenChange} title={title} className={className}>
         {children}
       </DesktopModal>
     )
   }
   return (
-    <MobileDrawer
-      open={open}
-      onOpenChange={onOpenChange}
-      title={title}
-      className={className}
-    >
+    <MobileDrawer open={open} onOpenChange={onOpenChange} title={title} className={className}>
       {children}
     </MobileDrawer>
   )

@@ -129,10 +129,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
       </div>
       <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-base-400">
         {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
-          <div
-            key={d}
-            className={cn(i === 0 && 'text-danger/70', i === 6 && 'text-point-500/70')}
-          >
+          <div key={d} className={cn(i === 0 && 'text-danger/70', i === 6 && 'text-point-500/70')}>
             {d}
           </div>
         ))}

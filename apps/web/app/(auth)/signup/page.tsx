@@ -25,8 +25,8 @@ function scorePassword(pw: string): 0 | 1 | 2 | 3 {
 function SignupWizard() {
   const router = useRouter()
   const params = useSearchParams()
-  const inviteToken = params.get('invite')
-  const prefilledEmail = params.get('email') ?? ''
+  const inviteToken = params?.get('invite') ?? null
+  const prefilledEmail = params?.get('email') ?? ''
 
   const [step, setStep] = useState<Step>('email')
   const [dir, setDir] = useState<1 | -1>(1)
