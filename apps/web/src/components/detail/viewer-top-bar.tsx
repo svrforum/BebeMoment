@@ -1,6 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
-import { MoreVertical, X } from 'lucide-react'
+import { Info, MoreVertical, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -8,10 +8,13 @@ export function ViewerTopBar({
   assetId,
   visible,
   onDelete,
+  onInfo,
 }: {
   assetId: string
   visible: boolean
   onDelete?: () => void
+  /** 모바일 전용 — 세부정보 시트 열기 (데스크탑은 사이드 패널 상시 노출) */
+  onInfo?: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
@@ -34,39 +37,51 @@ export function ViewerTopBar({
       <button type="button" onClick={close} aria-label="닫기" className="text-white">
         <X className="h-6 w-6" />
       </button>
-      <div className="relative">
-        <button
-          type="button"
-          onClick={() => setMenuOpen((o) => !o)}
-          aria-label="메뉴"
-          className="text-white"
-        >
-          <MoreVertical className="h-6 w-6" />
-        </button>
-        {menuOpen && (
-          <div className="absolute right-0 top-full mt-2 w-44 overflow-hidden rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
-            <a
-              href={`/api/asset/${assetId}/original`}
-              download
-              className="block px-4 py-2 text-sm hover:bg-base-100 dark:hover:bg-base-800"
-              onClick={() => setMenuOpen(false)}
-            >
-              원본 다운로드
-            </a>
-            {onDelete && (
-              <button
-                type="button"
-                onClick={() => {
-                  setMenuOpen(false)
-                  onDelete()
-                }}
-                className="block w-full px-4 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
-              >
-                휴지통으로 이동
-              </button>
-            )}
-          </div>
+      <div className="flex items-center gap-1">
+        {onInfo && (
+          <button
+            type="button"
+            onClick={onInfo}
+            aria-label="세부정보"
+            className="text-white transition-transform ease-ios active:scale-90 md:hidden"
+          >
+            <Info className="h-6 w-6" />
+          </button>
         )}
+        <div className="relative">
+          <button
+            type="button"
+            onClick={() => setMenuOpen((o) => !o)}
+            aria-label="메뉴"
+            className="text-white"
+          >
+            <MoreVertical className="h-6 w-6" />
+          </button>
+          {menuOpen && (
+            <div className="absolute right-0 top-full mt-2 w-44 overflow-hidden rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
+              <a
+                href={`/api/asset/${assetId}/original`}
+                download
+                className="block px-4 py-2 text-sm hover:bg-base-100 dark:hover:bg-base-800"
+                onClick={() => setMenuOpen(false)}
+              >
+                원본 다운로드
+              </a>
+              {onDelete && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onDelete()
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
+                >
+                  휴지통으로 이동
+                </button>
+              )}
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )

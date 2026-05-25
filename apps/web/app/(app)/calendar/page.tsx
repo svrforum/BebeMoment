@@ -41,15 +41,17 @@ export default async function CalendarPage() {
   return (
     <>
       <AppHeader title="캘린더" />
-      <MonthGrid
-        initialYear={now.getFullYear()}
-        initialMonth={now.getMonth()}
-        assets={rawAssets.map((a) => ({
-          id: a.id,
-          takenAtISO: a.takenAt.toISOString(),
-          urls: urlsMap[a.id] ?? null,
-        }))}
-      />
+      <div className="section-enter">
+        <MonthGrid
+          initialYear={now.getFullYear()}
+          initialMonth={now.getMonth()}
+          assets={rawAssets.map((a) => ({
+            id: a.id,
+            takenAtISO: a.takenAt.toISOString(),
+            urls: urlsMap[a.id] ?? null,
+          }))}
+        />
+      </div>
     </>
   )
 }

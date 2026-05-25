@@ -35,7 +35,7 @@ export default async function DiaryPage() {
           </Link>
         }
       />
-      <div className="mx-auto max-w-3xl px-5 py-4">
+      <div className="section-enter mx-auto max-w-3xl px-5 py-4">
         {items.length === 0 ? (
           <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-4 py-16 text-center">
             <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">

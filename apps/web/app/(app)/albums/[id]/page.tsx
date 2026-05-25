@@ -103,10 +103,12 @@ export default async function AlbumDetailPage({
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
               {children.map((c) => {
                 const ids = previewByAlbum.get(c.id) ?? []
-                const preview = ids.map((aid) => ({
-                  id: aid,
-                  urls: childUrlsMap[aid] ?? null,
-                }))
+                // ready + URL 있는 자산만 — 그 외엔 폴더 아이콘 폴백
+                const preview = ids
+                  .map((aid) => ({ id: aid, urls: childUrlsMap[aid] ?? null }))
+                  .filter(
+                    (p): p is { id: string; urls: NonNullable<typeof p.urls> } => p.urls !== null,
+                  )
                 return (
                   <AlbumCard
                     key={c.id}

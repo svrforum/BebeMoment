@@ -34,7 +34,7 @@ export default async function SettingsPage() {
   return (
     <>
       <AppHeader title="설정" />
-      <div className="mx-auto max-w-3xl px-5 py-4 space-y-6">
+      <div className="section-enter mx-auto max-w-3xl px-5 py-4 space-y-6">
         <Card>
           <CardBody>
             <h2 className="font-semibold mb-2">계정</h2>
