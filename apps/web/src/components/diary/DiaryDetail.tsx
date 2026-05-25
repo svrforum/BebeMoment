@@ -3,7 +3,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/get'
 import type { Baby, JournalEntry, JournalEntryAsset } from '@bebe/db-public'
-import { ShieldCheck } from 'lucide-react'
+import { NotebookPen, ShieldCheck } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import { MOODS, isMood } from './mood'
 
@@ -31,7 +31,6 @@ export function DiaryDetail({ entry }: { entry: Entry }) {
   const heroTint =
     mood?.tint ??
     'from-base-100 via-base-50 to-base-0 dark:from-base-800/60 dark:via-base-800/20 dark:to-transparent'
-  const heroGlyph = mood?.emoji ?? '📖'
 
   const d = entry.entryDate
   const day = DAYS[d.getDay()]
@@ -40,11 +39,12 @@ export function DiaryDetail({ entry }: { entry: Entry }) {
     <article className="overflow-hidden rounded-3xl border border-base-200/70 bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900">
       {/* Hero — soft gradient by mood, big date, mood emoji */}
       <header className={`relative bg-gradient-to-b ${heroTint} px-6 pt-7 pb-6`}>
-        <div
-          aria-hidden
-          className={`absolute right-5 top-5 text-[44px] leading-none drop-shadow-sm ${mood ? '' : 'opacity-50'}`}
-        >
-          {heroGlyph}
+        <div aria-hidden className="absolute right-5 top-5 leading-none">
+          {mood ? (
+            <span className="text-[44px] drop-shadow-sm">{mood.emoji}</span>
+          ) : (
+            <NotebookPen className="h-9 w-9 text-base-400/70 dark:text-base-500/70" strokeWidth={1.6} />
+          )}
         </div>
         <div className="flex items-baseline gap-2 text-base-700 dark:text-base-200">
           <span className="text-[44px] font-bold leading-none tabular-nums tracking-tight text-base-900 dark:text-base-50">
