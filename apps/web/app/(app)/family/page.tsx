@@ -118,7 +118,15 @@ export default function FamilyPage() {
                     {inv.email} <span className="text-sm text-base-500">({inv.role})</span>
                   </div>
                   <div className="text-xs text-base-500">
-                    만료 {new Date(inv.expiresAt).toLocaleString('ko-KR')}
+                    만료{' '}
+                    {new Date(inv.expiresAt).toLocaleString('ko-KR', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric',
+                      hour: '2-digit',
+                      minute: '2-digit',
+                      hour12: false,
+                    })}
                   </div>
                 </div>
                 <Button variant="danger" size="sm" onClick={() => revoke(inv.id)}>

@@ -47,8 +47,8 @@ export default async function AlbumsRootPage() {
 
   return (
     <>
-      <AppHeader title="앨범" right={<AlbumCreateButton />} />
-      <div className="mx-auto max-w-3xl px-5 py-4">
+      <AppHeader title="앨범" right={<AlbumCreateButton />} wide />
+      <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
         {albums.length === 0 ? (
           <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-4 py-16 text-center">
             <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
@@ -65,13 +65,15 @@ export default async function AlbumsRootPage() {
             <AlbumCreateButton />
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
             {albums.map((a) => {
               const previewIds = previewByAlbum.get(a.id) ?? []
-              const preview = previewIds.map((id) => ({
-                id,
-                urls: urlsMap[id] ?? null,
-              }))
+              // ready + URL 있는 자산만 미리보기에 — 그 외엔 폴더 아이콘 폴백
+              const preview = previewIds
+                .map((id) => ({ id, urls: urlsMap[id] ?? null }))
+                .filter(
+                  (p): p is { id: string; urls: NonNullable<typeof p.urls> } => p.urls !== null,
+                )
               return (
                 <AlbumCard
                   key={a.id}

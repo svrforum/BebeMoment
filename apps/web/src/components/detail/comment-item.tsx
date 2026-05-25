@@ -103,7 +103,14 @@ export function CommentItem({
               {comment.author.displayName}
             </span>
             {' · '}
-            {ts.toLocaleString('ko-KR', { dateStyle: 'short', timeStyle: 'short' })}
+            {ts.toLocaleString('ko-KR', {
+              year: '2-digit',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
+              hour12: false,
+            })}
             {comment.editedAt && ' · (수정됨)'}
           </div>
           {editing ? (
