@@ -43,7 +43,10 @@ export function DiaryDetail({ entry }: { entry: Entry }) {
           {mood ? (
             <span className="text-[44px] drop-shadow-sm">{mood.emoji}</span>
           ) : (
-            <NotebookPen className="h-9 w-9 text-base-400/70 dark:text-base-500/70" strokeWidth={1.6} />
+            <NotebookPen
+              className="h-9 w-9 text-base-400/70 dark:text-base-500/70"
+              strokeWidth={1.6}
+            />
           )}
         </div>
         <div className="flex items-baseline gap-2 text-base-700 dark:text-base-200">
