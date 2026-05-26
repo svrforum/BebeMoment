@@ -43,7 +43,7 @@ describe('process-asset module', () => {
   it('enqueues asset.uploaded after the asset is marked ready', async () => {
     const asset = fakeAsset()
     const prisma = fakePrisma(asset)
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
 
     await processAsset({
       job: {
@@ -73,7 +73,7 @@ describe('process-asset module', () => {
     const asset = fakeAsset()
     const prisma = fakePrisma(asset)
     prisma.asset.update = vi.fn().mockRejectedValueOnce(new Error('boom')).mockResolvedValue(asset)
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
 
     await expect(
       processAsset({

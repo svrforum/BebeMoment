@@ -6,6 +6,6 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 120_000,
     pool: 'forks',
-    poolOptions: { forks: { singleFork: true } },
+    maxWorkers: 1,
   },
 })

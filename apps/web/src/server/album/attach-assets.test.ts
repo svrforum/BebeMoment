@@ -61,7 +61,7 @@ describe('attachAssetsToAlbum notifications', () => {
     const { user, family, album } = await setup()
     const a1 = await makeAsset(family.id, user.id, 'a1')
     const a2 = await makeAsset(family.id, user.id, 'a2')
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
 
     const result = await attachAssetsToAlbum(
       { albumId: album.id, familyId: family.id, byUserId: user.id, assetIds: [a1.id, a2.id] },
@@ -82,7 +82,7 @@ describe('attachAssetsToAlbum notifications', () => {
 
   it('does not enqueue when nothing is attached', async () => {
     const { user, family, album } = await setup()
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
 
     const result = await attachAssetsToAlbum(
       {

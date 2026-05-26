@@ -74,7 +74,7 @@ describe('createGrowthRecord', () => {
 
   it('enqueues growth.created on success', async () => {
     const { user, family, baby } = await setup()
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
     const rec = await createGrowthRecord(
       {
         familyId: family.id,

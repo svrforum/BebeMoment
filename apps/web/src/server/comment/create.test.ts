@@ -117,7 +117,7 @@ describe('createComment', () => {
   it('enqueues comment.created on success', async () => {
     const { user, family } = await setup()
     const asset = await makeReadyAsset(family.id, user.id, 'a1')
-    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
     const c = await createComment(
       { assetId: asset.id, familyId: family.id, body: 'hi', byUserId: user.id },
       db.prismaPublic,
