@@ -3,6 +3,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -20,6 +21,7 @@ export async function attachAssetsToAlbum(
   raw: unknown,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<{ added: number; total: number }> {
   const input = Input.parse(raw)
 
@@ -66,5 +68,15 @@ export async function attachAssetsToAlbum(
     where: { albumId: input.albumId, familyId: input.familyId },
   })
   revalidateAlbumsTag(input.familyId)
+
+  if (result.count > 0) {
+    await enqueue({
+      familyId: input.familyId,
+      actorUserId: input.byUserId,
+      type: 'album.asset_added',
+      payload: { albumId: input.albumId },
+    })
+  }
+
   return { added: result.count, total }
 }
