@@ -1,7 +1,7 @@
 import { encryptSecret } from '@/lib/crypto'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { linkOrCreateUser } from './callback'
+import { findLinkedUser, linkOrCreateUser } from './callback'
 
 let db: FullTestDb
 let providerId: string
@@ -34,8 +34,9 @@ describe('linkOrCreateUser', () => {
       },
       db.prismaPublic,
     )
-    expect(u.email).toBe('a@b.com')
-    expect(u.emailVerified).toBe(true)
+    expect(u.user.email).toBe('a@b.com')
+    expect(u.user.emailVerified).toBe(true)
+    expect(u.created).toBe(true)
   })
 
   it('creates new user with emailVerified=false when IdP does not verify', async () => {
@@ -48,8 +49,9 @@ describe('linkOrCreateUser', () => {
       },
       db.prismaPublic,
     )
-    expect(u.email).toBe('a@b.com')
-    expect(u.emailVerified).toBe(false)
+    expect(u.user.email).toBe('a@b.com')
+    expect(u.user.emailVerified).toBe(false)
+    expect(u.created).toBe(true)
   })
 
   it('reuses user on second callback (same subject)', async () => {
@@ -61,7 +63,8 @@ describe('linkOrCreateUser', () => {
       { providerId, subject: 'sub-1', email: 'a@b.com', emailVerified: true },
       db.prismaPublic,
     )
-    expect(u1.id).toBe(u2.id)
+    expect(u1.user.id).toBe(u2.user.id)
+    expect(u2.created).toBe(false)
   })
 
   it('links to existing user by email only when IdP asserts verified', async () => {
@@ -72,7 +75,8 @@ describe('linkOrCreateUser', () => {
       { providerId, subject: 'sub-new', email: 'x@x.com', emailVerified: true },
       db.prismaPublic,
     )
-    expect(u.id).toBe(existing.id)
+    expect(u.user.id).toBe(existing.id)
+    expect(u.created).toBe(false)
     const identity = await db.prismaPublic.oidcIdentity.findFirst({
       where: { userId: existing.id },
     })
@@ -97,5 +101,15 @@ describe('linkOrCreateUser', () => {
       where: { userId: existing.id },
     })
     expect(stillAloneIdentity).toBeNull()
+  })
+})
+
+describe('findLinkedUser', () => {
+  it('returns null when no identity and no verified-email match', async () => {
+    const u = await findLinkedUser(
+      { providerId, subject: 's', emailVerified: false },
+      db.prismaPublic,
+    )
+    expect(u).toBeNull()
   })
 })

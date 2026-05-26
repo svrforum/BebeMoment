@@ -69,18 +69,33 @@ export type LinkOrCreateInput = {
   displayName?: string
 }
 
+export async function findLinkedUser(
+  args: LinkOrCreateInput,
+  prisma: PrismaClient,
+): Promise<User | null> {
+  const identity = await prisma.oidcIdentity.findUnique({
+    where: { providerId_subject: { providerId: args.providerId, subject: args.subject } },
+    include: { user: true },
+  })
+  if (identity) return identity.user
+  if (args.email && args.emailVerified) {
+    const existingUser = await prisma.user.findUnique({ where: { email: args.email } })
+    if (existingUser) return existingUser
+  }
+  return null
+}
+
 export async function linkOrCreateUser(
   args: LinkOrCreateInput,
   prisma: PrismaClient,
-): Promise<User> {
+): Promise<{ user: User; created: boolean }> {
   return prisma.$transaction(async (tx) => {
     const identity = await tx.oidcIdentity.findUnique({
       where: { providerId_subject: { providerId: args.providerId, subject: args.subject } },
       include: { user: true },
     })
-    if (identity) return identity.user
+    if (identity) return { user: identity.user, created: false }
 
-    // Only link by email if the IdP asserts the email is verified.
     if (args.email && args.emailVerified) {
       const existingUser = await tx.user.findUnique({ where: { email: args.email } })
       if (existingUser) {
@@ -92,7 +107,7 @@ export async function linkOrCreateUser(
             email: args.email,
           },
         })
-        return existingUser
+        return { user: existingUser, created: false }
       }
     }
 
@@ -112,6 +127,6 @@ export async function linkOrCreateUser(
         email: args.email ?? null,
       },
     })
-    return user
+    return { user, created: true }
   })
 }

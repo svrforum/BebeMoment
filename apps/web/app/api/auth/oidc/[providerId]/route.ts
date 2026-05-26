@@ -5,7 +5,7 @@ import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-export async function GET(_req: Request, { params }: { params: Promise<{ providerId: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
   const { providerId } = await params
   const env = parseEnv(process.env as Record<string, string | undefined>)
 
@@ -44,6 +44,17 @@ export async function GET(_req: Request, { params }: { params: Promise<{ provide
     path: '/',
     maxAge: 600,
   })
+
+  const inviteToken = new URL(req.url).searchParams.get('invite')
+  if (inviteToken) {
+    cookieStore.set('oidc_invite', inviteToken, {
+      httpOnly: true,
+      sameSite: 'lax',
+      secure: env.NODE_ENV === 'production',
+      path: '/',
+      maxAge: 600,
+    })
+  }
 
   return NextResponse.redirect(`${disc.authorization_endpoint}?${query.toString()}`)
 }

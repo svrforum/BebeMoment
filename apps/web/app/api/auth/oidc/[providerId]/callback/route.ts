@@ -4,10 +4,13 @@ import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import {
   exchangeCodeForTokens,
   fetchUserInfo,
+  findLinkedUser,
   linkOrCreateUser,
   verifyIdToken,
 } from '@/server/oidc/callback'
 import { fetchDiscovery } from '@/server/oidc/discovery'
+import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
+import { acceptInvite } from '@/server/invite/accept'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -63,25 +66,60 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     const emailVerified =
       (idTokenPayload.email_verified as boolean | undefined) ?? info.email_verified ?? false
 
-    const user = await linkOrCreateUser(
-      {
-        providerId,
-        subject,
-        ...(email !== undefined ? { email } : {}),
-        emailVerified,
-        ...(info.name !== undefined ? { displayName: info.name } : {}),
-      },
-      prismaPublic,
-    )
+    const linkInput = {
+      providerId,
+      subject,
+      ...(email !== undefined ? { email } : {}),
+      emailVerified,
+      ...(info.name !== undefined ? { displayName: info.name } : {}),
+    }
 
-    const membership = await prismaPublic.membership.findFirst({
-      where: { userId: user.id, deletedAt: null },
-      orderBy: { joinedAt: 'asc' },
-    })
-    await createSessionAndSetCookie(user.id, membership?.familyId ?? null)
+    const inviteToken = cookieStore.get('oidc_invite')?.value ?? null
+
+    const existing = await findLinkedUser(linkInput, prismaPublic)
+    if (!existing) {
+      const open = await isRegistrationOpen(prismaPublic)
+      if (!open) {
+        const ok = inviteToken ? await validateInviteForSignup(inviteToken, prismaPublic) : false
+        if (!ok) {
+          cookieStore.delete('oidc_state')
+          cookieStore.delete('oidc_nonce')
+          cookieStore.delete('oidc_invite')
+          return NextResponse.redirect(new URL('/login?error=invite_required', req.url))
+        }
+      }
+    }
+
+    const { user } = await linkOrCreateUser(linkInput, prismaPublic)
+
+    let currentFamilyId: string | null = null
+    if (inviteToken) {
+      const existingMembership = await prismaPublic.membership.findFirst({
+        where: { userId: user.id, deletedAt: null },
+      })
+      if (!existingMembership) {
+        try {
+          const r = await acceptInvite({ token: inviteToken, userId: user.id }, prismaPublic)
+          currentFamilyId = r.familyId
+        } catch {
+          // 초대 만료/취소 — 로그인은 진행(가족 없으면 온보딩/안내로 유도).
+        }
+      }
+    }
+
+    if (!currentFamilyId) {
+      const membership = await prismaPublic.membership.findFirst({
+        where: { userId: user.id, deletedAt: null },
+        orderBy: { joinedAt: 'asc' },
+      })
+      currentFamilyId = membership?.familyId ?? null
+    }
+
+    await createSessionAndSetCookie(user.id, currentFamilyId)
 
     cookieStore.delete('oidc_state')
     cookieStore.delete('oidc_nonce')
+    cookieStore.delete('oidc_invite')
 
     return NextResponse.redirect(new URL('/', req.url))
   } catch (e) {
