@@ -97,10 +97,12 @@ describe('resolveCan', () => {
   })
   it('family follows config', () => {
     expect(resolveCan('family', 'asset.upload', effectiveFamilyCapabilities([]))).toBe(false)
-    expect(resolveCan('family', 'social.comment.create', effectiveFamilyCapabilities([]))).toBe(true)
-    expect(resolveCan('family', 'asset.upload', effectiveFamilyCapabilities(['asset.upload']))).toBe(
+    expect(resolveCan('family', 'social.comment.create', effectiveFamilyCapabilities([]))).toBe(
       true,
     )
+    expect(
+      resolveCan('family', 'asset.upload', effectiveFamilyCapabilities(['asset.upload'])),
+    ).toBe(true)
   })
   it('static can() still reports family max', () => {
     expect(can('family', 'asset.upload')).toBe(true)
