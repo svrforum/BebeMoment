@@ -6,6 +6,11 @@ import Link from 'next/link'
 const sections = [
   { href: '/admin/general', label: '일반', description: '앱 이름, 기본 언어' },
   { href: '/admin/auth', label: '인증', description: '가입 허용, OIDC 프로바이더' },
+  {
+    href: '/admin/members',
+    label: '구성원 권한',
+    description: '가족 구성원이 할 수 있는 작업 설정',
+  },
   { href: '/admin/smtp', label: 'SMTP', description: '이메일 발송 설정 + 테스트' },
   { href: '/admin/storage', label: '스토리지', description: '로컬/S3 모드 확인' },
   { href: '/admin/retention', label: '리텐션', description: '휴지통 자동 삭제' },

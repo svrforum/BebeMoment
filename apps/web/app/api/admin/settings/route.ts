@@ -26,16 +26,19 @@ export async function GET() {
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   const AnySchema = z.unknown()
-  const [appName, signupEnabled, retentionDays, uploadConvert] = await Promise.all([
-    getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
-    getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
-    getSetting('retention.trash_days', AnySchema, 30, prismaPublic),
-    getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),
-  ])
+  const [appName, signupEnabled, retentionDays, uploadConvert, permissionsFamily] =
+    await Promise.all([
+      getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
+      getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
+      getSetting('retention.trash_days', AnySchema, 30, prismaPublic),
+      getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),
+      getSetting('permissions.family', AnySchema, [], prismaPublic),
+    ])
   return NextResponse.json({
     general: { app_name: appName },
     auth: { signup_enabled: signupEnabled },
     retention: { trash_days: retentionDays },
     upload: { convert_to_compatible: uploadConvert },
+    permissions: { family: permissionsFamily },
   })
 }
