@@ -14,6 +14,7 @@ export default defineConfig({
     include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
     environment: 'node',
     testTimeout: 120_000,
+    hookTimeout: 120_000,
     pool: 'forks',
     poolOptions: { forks: { singleFork: true } },
   },
