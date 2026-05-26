@@ -27,6 +27,8 @@ export function ViewerInfoPanel({
   setCount,
   bookmarked,
   setBookmarked,
+  commentCount,
+  onCommentCountChange,
   initialComments,
   initialTags,
   initialFilename,
@@ -45,13 +47,14 @@ export function ViewerInfoPanel({
   setCount: (next: number) => void
   bookmarked: boolean
   setBookmarked: (next: boolean) => void
+  commentCount: number
+  onCommentCountChange: (count: number) => void
   initialComments: CommentWithAuthor[]
   initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
   onAlbumTap: () => void
 }) {
-  const liveCommentCount = initialComments.filter((c) => !c.deletedAt).length
   return (
     <div className="flex h-full flex-col">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-200/70 bg-base-0/85 px-5 py-3.5 backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/85">
@@ -87,9 +90,7 @@ export function ViewerInfoPanel({
         <div className="flex flex-col gap-2">
           <h3 className="text-[13px] font-semibold tracking-tight text-base-500">
             댓글{' '}
-            <span className="tabular-nums text-base-700 dark:text-base-300">
-              {liveCommentCount}
-            </span>
+            <span className="tabular-nums text-base-700 dark:text-base-300">{commentCount}</span>
           </h3>
           <CommentList
             assetId={assetId}
@@ -97,6 +98,7 @@ export function ViewerInfoPanel({
             canDeleteAny={canDeleteAny}
             familyMembers={familyMembers}
             initialComments={initialComments}
+            onCountChange={onCommentCountChange}
           />
         </div>
       </div>

@@ -58,6 +58,9 @@ export function ViewerShell({
   const [liked, setLiked] = useState(initialLiked)
   const [count, setCount] = useState(likers.count)
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
+  const [commentCount, setCommentCount] = useState(
+    () => initialComments.filter((c) => !c.deletedAt).length,
+  )
 
   return (
     <div className="relative min-h-screen bg-black md:flex">
@@ -85,7 +88,7 @@ export function ViewerShell({
           setCount={setCount}
           bookmarked={bookmarked}
           setBookmarked={setBookmarked}
-          commentCount={initialComments.filter((c) => !c.deletedAt).length}
+          commentCount={commentCount}
           visible={chromeVisible}
           onCommentTap={() => setSheetOpen(true)}
           onAlbumTap={() => setAlbumPickerOpen(true)}
@@ -105,6 +108,8 @@ export function ViewerShell({
           setCount={setCount}
           bookmarked={bookmarked}
           setBookmarked={setBookmarked}
+          commentCount={commentCount}
+          onCommentCountChange={setCommentCount}
           initialComments={initialComments}
           initialTags={initialTags}
           initialFilename={initialFilename}
@@ -127,6 +132,8 @@ export function ViewerShell({
           setCount={setCount}
           bookmarked={bookmarked}
           setBookmarked={setBookmarked}
+          commentCount={commentCount}
+          onCommentCountChange={setCommentCount}
           initialComments={initialComments}
           initialTags={initialTags}
           initialFilename={initialFilename}

@@ -1,6 +1,6 @@
 'use client'
 import { useFamilySSE } from '@/lib/sse'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { CommentComposer, type OptimisticDraft } from './comment-composer'
 import { CommentItem, type CommentWithAuthor } from './comment-item'
 
@@ -14,6 +14,7 @@ export function CommentList({
   canDeleteAny,
   familyMembers,
   initialComments,
+  onCountChange,
 }: {
   assetId: string
   currentUserId: string
@@ -21,6 +22,7 @@ export function CommentList({
   canDeleteAny: boolean
   familyMembers: Member[]
   initialComments: CommentWithAuthor[]
+  onCountChange?: (count: number) => void
 }) {
   const [comments, setComments] = useState<CommentWithAuthor[]>(initialComments)
   const [optimistic, setOptimistic] = useState<CommentWithAuthor[]>([])
@@ -71,6 +73,11 @@ export function CommentList({
   )
 
   const merged = [...comments, ...optimistic]
+  const liveCount = merged.filter((c) => !c.deletedAt).length
+
+  useEffect(() => {
+    onCountChange?.(liveCount)
+  }, [liveCount, onCountChange])
 
   return (
     <div className="space-y-1">

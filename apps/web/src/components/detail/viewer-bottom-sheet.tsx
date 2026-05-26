@@ -29,6 +29,8 @@ export function ViewerBottomSheet({
   setCount,
   bookmarked,
   setBookmarked,
+  commentCount,
+  onCommentCountChange,
   initialComments,
   initialTags,
   initialFilename,
@@ -48,6 +50,8 @@ export function ViewerBottomSheet({
   setCount: (next: number) => void
   bookmarked: boolean
   setBookmarked: (next: boolean) => void
+  commentCount: number
+  onCommentCountChange: (count: number) => void
   initialComments: CommentWithAuthor[]
   initialTags: AssetTag[]
   initialFilename: string
@@ -73,15 +77,14 @@ export function ViewerBottomSheet({
           <LikerAvatars users={likers.users} />
         </div>
         <div className="border-t pt-4">
-          <h3 className="mb-2 text-sm font-semibold">
-            댓글 {initialComments.filter((c) => !c.deletedAt).length}
-          </h3>
+          <h3 className="mb-2 text-sm font-semibold">댓글 {commentCount}</h3>
           <CommentList
             assetId={assetId}
             currentUserId={currentUserId}
             canDeleteAny={canDeleteAny}
             familyMembers={familyMembers}
             initialComments={initialComments}
+            onCountChange={onCommentCountChange}
           />
         </div>
       </div>
