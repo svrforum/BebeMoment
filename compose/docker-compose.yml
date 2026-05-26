@@ -10,6 +10,8 @@ services:
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
       PUBLIC_URL: ${PUBLIC_URL}
+      # web 서버사이드가 같은 컨테이너의 media 로 호출(런타임) + Next /media rewrite(빌드)
+      MEDIA_INTERNAL_URL: http://localhost:3001
       NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-${PUBLIC_URL}}
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-${PUBLIC_URL}}
       MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
