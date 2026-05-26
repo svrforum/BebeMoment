@@ -16,6 +16,7 @@ datasource db {
 model User {
   id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   email         String?  @unique
+  username      String?  @unique
   emailVerified Boolean  @default(false) @map("email_verified")
   passwordHash  String?  @map("password_hash")
   displayName   String   @map("display_name")
@@ -205,7 +206,7 @@ model Invite {
   id           String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   familyId     String     @map("family_id") @db.Uuid
   invitedById  String     @map("invited_by_id") @db.Uuid
-  email        String
+  email        String?
   role         InviteRole
   token        String     @unique
   expiresAt    DateTime   @map("expires_at")
