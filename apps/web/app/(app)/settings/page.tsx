@@ -1,9 +1,12 @@
+import { NotificationPrefs } from '@/components/settings/notification-prefs'
+import { PushToggle } from '@/components/settings/push-toggle'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '@bebe/core'
 import {
   Baby,
   Bookmark,
@@ -31,6 +34,14 @@ export default async function SettingsPage() {
   const user = await prismaPublic.user.findUnique({ where: { id: session.userId } })
   if (!user) return null
 
+  const prefRows = await prismaPublic.notificationPref.findMany({
+    where: { userId: session.userId },
+  })
+  const prefMap = new Map(prefRows.map((r) => [r.category, r.enabled]))
+  const initialPrefs = Object.fromEntries(
+    NOTIFICATION_CATEGORIES.map((c) => [c, prefMap.get(c) ?? true]),
+  ) as Record<NotificationCategory, boolean>
+
   return (
     <>
       <AppHeader title="설정" />
@@ -48,6 +59,15 @@ export default async function SettingsPage() {
             <ThemeToggle />
           </CardBody>
         </Card>
+        <section className="space-y-2">
+          <h2 className="px-1 text-[13px] font-semibold text-base-500">알림</h2>
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-sm dark:border-base-800/70 dark:bg-base-900">
+            <PushToggle />
+          </div>
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-2 shadow-sm dark:border-base-800/70 dark:bg-base-900">
+            <NotificationPrefs initial={initialPrefs} />
+          </div>
+        </section>
         <section className="space-y-2">
           <h2 className="px-1 text-[13px] font-semibold text-base-500">관리</h2>
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-sm divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
