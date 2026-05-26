@@ -10,6 +10,7 @@
       "!**/.turbo",
       "!**/build",
       "!**/generated",
+      "!**/next-env.d.ts",
       "!**/*.md",
       "!**/data",
       "!**/pg",

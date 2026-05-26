@@ -9,7 +9,7 @@ import { revalidateTag } from 'next/cache'
 
 export function revalidateTagsTag(familyId: string): void {
   try {
-    revalidateTag(`tags:${familyId}`)
+    revalidateTag(`tags:${familyId}`, 'max')
   } catch {
     // outside request scope (tests); cache helpers are no-ops there
   }
@@ -17,7 +17,7 @@ export function revalidateTagsTag(familyId: string): void {
 
 export function revalidateAlbumsTag(familyId: string): void {
   try {
-    revalidateTag(`albums:${familyId}`)
+    revalidateTag(`albums:${familyId}`, 'max')
   } catch {
     // outside request scope
   }

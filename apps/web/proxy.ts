@@ -1,6 +1,6 @@
 import { type NextRequest, NextResponse } from 'next/server'
 
-export function middleware(req: NextRequest): NextResponse {
+export function proxy(req: NextRequest): NextResponse {
   const method = req.method
   if (method === 'GET' || method === 'HEAD' || method === 'OPTIONS') {
     return NextResponse.next()
