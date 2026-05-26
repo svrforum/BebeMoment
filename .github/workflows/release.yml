@@ -46,9 +46,6 @@ jobs:
   build:
     needs: [verify]
     runs-on: ubuntu-latest
-    strategy:
-      matrix:
-        target: [web, media]
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-qemu-action@v3
@@ -61,19 +58,19 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}/${{ matrix.target }}
+          images: ghcr.io/${{ github.repository }}/app
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
       - uses: docker/build-push-action@v6
         with:
           context: .
-          file: docker/${{ matrix.target }}.Dockerfile
+          file: docker/app.Dockerfile
           platforms: linux/amd64,linux/arm64
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,scope=${{ matrix.target }},mode=max
+          cache-from: type=gha,scope=app
+          cache-to: type=gha,scope=app,mode=max
           provenance: true
           sbom: true
