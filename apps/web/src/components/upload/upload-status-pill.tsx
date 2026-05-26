@@ -40,14 +40,24 @@ export function UploadStatusPill({ onClick }: Props) {
   // After a batch completes (totalActive transitions to 0), keep the pill
   // visible for ~1.4s in "완료" state so the user gets confirmation.
   const [recentlyDone, setRecentlyDone] = useState(false)
+
+  // Arm "완료" when a batch settles; disarm when a new upload starts. We must
+  // NOT key the auto-hide timer off `files.length` — the UploadManager calls
+  // uppy.cancelAll() ~700ms after completion, which empties `files` and would
+  // otherwise re-run this effect and clear the 1.4s timer before it fires,
+  // leaving the pill stuck on "업로드 완료" forever.
   useEffect(() => {
-    if (totalActive === 0 && files.length > 0) {
-      setRecentlyDone(true)
-      const t = setTimeout(() => setRecentlyDone(false), 1400)
-      return () => clearTimeout(t)
-    }
-    if (files.length > 0) setRecentlyDone(false)
+    if (totalActive === 0 && files.length > 0) setRecentlyDone(true)
+    else if (totalActive > 0) setRecentlyDone(false)
   }, [totalActive, files.length])
+
+  // Independent auto-hide: once armed, hide after 1.4s regardless of whether
+  // `files` has since been cleared.
+  useEffect(() => {
+    if (!recentlyDone) return
+    const t = setTimeout(() => setRecentlyDone(false), 1400)
+    return () => clearTimeout(t)
+  }, [recentlyDone])
 
   const visible = totalActive > 0 || recentlyDone
   const completed = recentlyDone && totalActive === 0

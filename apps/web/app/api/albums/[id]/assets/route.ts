@@ -3,6 +3,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { attachAssetsToAlbum } from '@/server/album/attach-assets'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -26,6 +27,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       prismaPublic,
       prismaMedia,
     )
+    revalidatePath('/albums', 'layout')
     return NextResponse.json(result)
   } catch (e) {
     {

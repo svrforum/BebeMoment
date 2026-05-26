@@ -2,7 +2,8 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/lib/toast'
 import { Check, ChevronRight, FolderOpen, FolderPlus, Plus } from 'lucide-react'
-import { type FormEvent, useEffect, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { type FormEvent, useCallback, useEffect, useState } from 'react'
 
 type AlbumNode = {
   id: string
@@ -31,6 +32,7 @@ type Props = {
  */
 export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached }: Props) {
   const toast = useToast()
+  const router = useRouter()
   const [tree, setTree] = useState<AlbumNode[]>([])
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [pending, setPending] = useState<string | null>(null)
@@ -38,22 +40,21 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
 
   const targetIds = assetIds && assetIds.length > 0 ? assetIds : assetId ? [assetId] : []
 
+  const loadTree = useCallback(async () => {
+    try {
+      const r = await fetch('/api/albums/tree')
+      if (!r.ok) throw r
+      const data = await r.json()
+      setTree(data.tree as AlbumNode[])
+    } catch {
+      toast({ title: '앨범 목록을 불러오지 못했어요', variant: 'danger' })
+    }
+  }, [toast])
+
   useEffect(() => {
     if (!open) return
-    let alive = true
-    fetch('/api/albums/tree')
-      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
-      .then((data) => {
-        if (!alive) return
-        setTree(data.tree as AlbumNode[])
-      })
-      .catch(() => {
-        toast({ title: '앨범 목록을 불러오지 못했어요', variant: 'danger' })
-      })
-    return () => {
-      alive = false
-    }
-  }, [open, toast])
+    loadTree()
+  }, [open, loadTree])
 
   // Reset the "recently added" checkmarks when the picker reopens for a
   // different asset / batch.
@@ -86,6 +87,9 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
         })
       }
       onAttached?.(albumId)
+      // Re-render the page behind the sheet (timeline / detail / album views)
+      // so the attachment shows without a manual reload.
+      router.refresh()
     } catch (e) {
       toast({ title: (e as Error).message, variant: 'danger' })
     } finally {
@@ -108,7 +112,14 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={headerCount}>
       <div className="flex flex-col gap-3 pb-8">
-        <CreateRow onCreated={attach} />
+        <CreateRow
+          onCreated={async (albumId) => {
+            // Refresh the tree so the just-created album appears in the list,
+            // then attach the target asset(s) to it.
+            await loadTree()
+            await attach(albumId)
+          }}
+        />
         {tree.length === 0 ? (
           <p className="px-2 py-4 text-center text-[13px] text-base-500">
             아직 앨범이 없어요. 위에 입력해서 첫 앨범을 만들어보세요.

@@ -4,6 +4,7 @@ import { createAlbum } from '@/server/album/create'
 import { listAlbums } from '@/server/album/list'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -41,6 +42,7 @@ export async function POST(req: Request) {
       { ...body, familyId: ctx.family.id, byUserId: ctx.user.id },
       prismaPublic,
     )
+    revalidatePath('/albums', 'layout')
     return NextResponse.json({ album })
   } catch (e) {
     {
