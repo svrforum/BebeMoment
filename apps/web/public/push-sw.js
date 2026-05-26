@@ -16,7 +16,7 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const url = (event.notification.data && event.notification.data.url) || '/timeline'
+  const url = event.notification.data?.url || '/timeline'
   event.waitUntil(
     (async () => {
       const all = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
