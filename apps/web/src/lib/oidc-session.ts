@@ -2,7 +2,8 @@ import { auth } from '@/lib/auth-config'
 import { cookies } from 'next/headers'
 
 /**
- * Mints a Better Auth session for an already-verified identity (OIDC/SSO) and
+ * Mints a Better Auth session for an already-verified identity (비밀번호 검증을 이미
+ * 마친 신원 — OIDC·아이디 가입/로그인) and
  * writes the session-token cookie. There is no password, so we cannot use
  * signInEmail; instead we go through Better Auth's internal adapter (the same
  * path signInEmail uses to create the session row) and then sign the cookie
@@ -13,7 +14,7 @@ import { cookies } from 'next/headers'
  * produced cookie back through auth.api.getSession — if the format ever drifts
  * from Better Auth's reader, that test fails.
  */
-export async function createOidcSessionAndSetCookie(
+export async function createSessionAndSetCookie(
   userId: string,
   currentFamilyId: string | null,
 ): Promise<void> {

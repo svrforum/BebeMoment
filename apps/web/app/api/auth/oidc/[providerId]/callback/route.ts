@@ -1,6 +1,6 @@
 import { decryptSecret } from '@/lib/crypto'
 import { prismaPublic } from '@/lib/db-init'
-import { createOidcSessionAndSetCookie } from '@/lib/oidc-session'
+import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import {
   exchangeCodeForTokens,
   fetchUserInfo,
@@ -78,7 +78,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       where: { userId: user.id, deletedAt: null },
       orderBy: { joinedAt: 'asc' },
     })
-    await createOidcSessionAndSetCookie(user.id, membership?.familyId ?? null)
+    await createSessionAndSetCookie(user.id, membership?.familyId ?? null)
 
     cookieStore.delete('oidc_state')
     cookieStore.delete('oidc_nonce')
