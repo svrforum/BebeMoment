@@ -22,7 +22,7 @@ export function AlbumCard({ id, name, childCount, assetCount, preview = [], clas
       href={`/albums/${id}`}
       className={cn('group block transition-transform ease-ios active:scale-[0.985]', className)}
     >
-      <div className="relative aspect-square overflow-hidden rounded-3xl bg-base-100 dark:bg-base-900">
+      <div className="relative aspect-square overflow-hidden rounded-3xl bg-base-100 shadow-card transition-shadow duration-200 ease-ios md:group-hover:shadow-elevated dark:bg-base-900">
         {hasPreview ? (
           <CollagePreview items={preview} />
         ) : (

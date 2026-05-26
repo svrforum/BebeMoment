@@ -63,7 +63,7 @@ export function LikeButton(props: Props) {
       aria-pressed={liked}
       aria-label={liked ? '좋아요 취소' : '좋아요'}
       className={cn(
-        'inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition',
+        'focus-ring inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',
         pending && 'opacity-70',
       )}

@@ -1,12 +1,20 @@
 import { cn } from '@/lib/cn'
 import { type HTMLAttributes, forwardRef } from 'react'
 
-export const Card = forwardRef<HTMLDivElement, HTMLAttributes<HTMLDivElement>>(
-  ({ className, ...props }, ref) => (
+type CardProps = HTMLAttributes<HTMLDivElement> & {
+  /** Opt-in hover-lift + press feedback for clickable cards. Leave off
+   *  for static content surfaces (settings, account). */
+  interactive?: boolean
+}
+
+export const Card = forwardRef<HTMLDivElement, CardProps>(
+  ({ className, interactive = false, ...props }, ref) => (
     <div
       ref={ref}
       className={cn(
         'rounded-2xl border border-base-200/70 bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900',
+        interactive &&
+          'transition-[transform,box-shadow] duration-200 ease-ios hover:-translate-y-0.5 hover:shadow-elevated active:translate-y-0 active:shadow-card motion-reduce:transition-none motion-reduce:hover:translate-y-0',
         className,
       )}
       {...props}
