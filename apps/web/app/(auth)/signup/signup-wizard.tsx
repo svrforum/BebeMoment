@@ -7,10 +7,9 @@ import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
-type Step = 'email' | 'password' | 'name'
-
-const STEPS: Step[] = ['email', 'password', 'name']
-
+type Step = 'username' | 'password' | 'name' | 'email'
+const STEPS: Step[] = ['username', 'password', 'name', 'email']
+const USERNAME_RE = /^[a-z0-9._-]{3,30}$/
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
 
 function scorePassword(pw: string): 0 | 1 | 2 | 3 {
@@ -22,18 +21,18 @@ function scorePassword(pw: string): 0 | 1 | 2 | 3 {
   return Math.min(3, score) as 0 | 1 | 2 | 3
 }
 
-function SignupWizardInner() {
+function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | undefined }) {
   const router = useRouter()
   const params = useSearchParams()
-  const inviteToken = params?.get('invite') ?? null
-  const prefilledEmail = params?.get('email') ?? ''
+  const inviteToken = inviteTokenProp ?? params?.get('invite') ?? null
 
-  const [step, setStep] = useState<Step>('email')
+  const [step, setStep] = useState<Step>('username')
   const [dir, setDir] = useState<1 | -1>(1)
-  const [email, setEmail] = useState(prefilledEmail)
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [displayName, setDisplayName] = useState('')
+  const [email, setEmail] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
@@ -47,9 +46,10 @@ function SignupWizardInner() {
   }, [step])
 
   const stepValid = (() => {
-    if (step === 'email') return EMAIL_RE.test(email.trim())
+    if (step === 'username') return USERNAME_RE.test(username.trim().toLowerCase())
     if (step === 'password') return password.length >= 8 && confirm === password
     if (step === 'name') return displayName.trim().length > 0
+    if (step === 'email') return email.trim() === '' || EMAIL_RE.test(email.trim())
     return false
   })()
 
@@ -71,9 +71,10 @@ function SignupWizardInner() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: email.trim(),
+          username: username.trim().toLowerCase(),
           password,
           displayName: displayName.trim(),
+          ...(email.trim() ? { email: email.trim() } : {}),
           ...(inviteToken ? { inviteToken } : {}),
         }),
       })
@@ -82,9 +83,9 @@ function SignupWizardInner() {
         const message = data.error ?? '가입에 실패했어요'
         setError(message)
         setSubmitting(false)
-        if (message.includes('이메일')) {
+        if (message.includes('아이디')) {
           setDir(-1)
-          setStep('email')
+          setStep('username')
         }
         return
       }
@@ -95,13 +96,10 @@ function SignupWizardInner() {
           body: JSON.stringify({ token: inviteToken }),
         })
         if (!acceptRes.ok) {
-          // 계정은 만들어졌지만 가족 합류에 실패 — 조용히 넘기면 가족 없는 계정으로
-          // 온보딩 루프에 빠진다. 에러를 보여주고 이동하지 않는다.
           setError('가족 합류에 실패했어요. 초대 링크를 다시 열어 합류해주세요.')
           setSubmitting(false)
           return
         }
-        // Hard navigation so the new session cookie attaches to the next RSC request
         window.location.replace('/')
       } else {
         window.location.replace('/onboarding')
@@ -110,11 +108,11 @@ function SignupWizardInner() {
       setError('네트워크 오류가 발생했어요')
       setSubmitting(false)
     }
-  }, [email, password, displayName, inviteToken])
+  }, [username, password, displayName, email, inviteToken])
 
   const goNext = useCallback(() => {
     if (!stepValid || submitting) return
-    if (step === 'name') {
+    if (step === 'email') {
       submitSignup()
       return
     }
@@ -131,6 +129,8 @@ function SignupWizardInner() {
   }
 
   const pwScore = scorePassword(password)
+  const inputCls =
+    'mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80'
 
   return (
     <main className="flex min-h-[100dvh] flex-col px-6 pb-8 pt-6 md:min-h-0 md:p-0">
@@ -171,7 +171,7 @@ function SignupWizardInner() {
             exit={{ x: dir === 1 ? -48 : 48, opacity: 0 }}
             transition={{ type: 'spring', stiffness: 420, damping: 34 }}
           >
-            {step === 'email' && (
+            {step === 'username' && (
               <>
                 {inviteToken && (
                   <p className="mb-4 rounded-2xl bg-point-500/10 px-4 py-3 text-sm text-point-500">
@@ -179,20 +179,20 @@ function SignupWizardInner() {
                   </p>
                 )}
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  이메일을 알려주세요
+                  아이디를 정해주세요
                 </h1>
-                <p className="mt-3 text-base text-base-500">앞으로 로그인에 사용할 이메일이에요.</p>
+                <p className="mt-3 text-base text-base-500">
+                  영문 소문자·숫자·._- 3~30자. 로그인에 사용해요.
+                </p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="name@example.com"
-                  inputMode="email"
-                  autoComplete="email"
-                  className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
+                  placeholder="예: minjun"
+                  autoComplete="username"
+                  className={inputCls}
                 />
               </>
             )}
@@ -202,9 +202,7 @@ function SignupWizardInner() {
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
                   비밀번호를 만들어주세요
                 </h1>
-                <p className="mt-3 text-base text-base-500">
-                  8자 이상, 다른 곳에서 쓰지 않은 값으로.
-                </p>
+                <p className="mt-3 text-base text-base-500">8자 이상, 다른 곳에서 쓰지 않은 값으로.</p>
                 <div className="relative mt-8">
                   <input
                     // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
@@ -244,10 +242,7 @@ function SignupWizardInner() {
                     className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                   {confirm.length > 0 && confirm === password && (
-                    <Check
-                      size={20}
-                      className="absolute right-5 top-1/2 -translate-y-1/2 text-point-500"
-                    />
+                    <Check size={20} className="absolute right-5 top-1/2 -translate-y-1/2 text-point-500" />
                   )}
                 </div>
                 {confirm.length > 0 && confirm !== password && (
@@ -268,10 +263,33 @@ function SignupWizardInner() {
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="예: 김민준"
+                  placeholder="예: 민준 아빠"
                   autoComplete="name"
                   maxLength={80}
-                  className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
+                  className={inputCls}
+                />
+              </>
+            )}
+
+            {step === 'email' && (
+              <>
+                <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+                  이메일을 추가할까요?
+                </h1>
+                <p className="mt-3 text-base text-base-500">
+                  선택이에요. 추가하면 이메일로도 로그인할 수 있어요.
+                </p>
+                <input
+                  // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
+                  autoFocus
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  placeholder="name@example.com (선택)"
+                  inputMode="email"
+                  autoComplete="email"
+                  className={inputCls}
                 />
               </>
             )}
@@ -286,16 +304,10 @@ function SignupWizardInner() {
       </div>
 
       <div className="pt-6">
-        <Button
-          type="button"
-          size="lg"
-          className="w-full"
-          disabled={!stepValid || submitting}
-          onClick={goNext}
-        >
-          {submitting ? '가입하는 중…' : step === 'name' ? '시작하기' : '다음'}
+        <Button type="button" size="lg" className="w-full" disabled={!stepValid || submitting} onClick={goNext}>
+          {submitting ? '가입하는 중…' : step === 'email' ? (email.trim() ? '가입하기' : '건너뛰고 가입') : '다음'}
         </Button>
-        {step === 'email' && (
+        {step === 'username' && (
           <p className="pt-4 text-center text-sm text-base-500">
             이미 계정이 있으신가요?{' '}
             <Link href="/login" className="font-medium text-point-500">
@@ -310,8 +322,7 @@ function SignupWizardInner() {
 
 function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible: boolean }) {
   if (!visible) return <div className="mt-6 h-6" />
-  const label =
-    score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
+  const label = score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
   return (
     <div className="mt-6">
       <div className="flex gap-1.5">
@@ -336,10 +347,10 @@ function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible
   )
 }
 
-export function SignupWizard() {
+export function SignupWizard({ inviteToken }: { inviteToken?: string }) {
   return (
     <Suspense fallback={null}>
-      <SignupWizardInner />
+      <SignupWizardInner inviteTokenProp={inviteToken} />
     </Suspense>
   )
 }
