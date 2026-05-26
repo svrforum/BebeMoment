@@ -1,28 +1,39 @@
 import { describe, expect, test, vi } from 'vitest'
-import type { PrismaClient } from '../prisma/generated/client'
+import type { PrismaClient } from '../prisma/generated/client/client'
 import { installTenantMiddleware } from './tenant-middleware'
 
-type MiddlewareFn = (params: unknown, next: (p: unknown) => unknown) => unknown
+type AllOps = (a: {
+  model: string | undefined
+  operation: string
+  args: unknown
+  query: (args: unknown) => Promise<unknown>
+}) => Promise<unknown>
 
+// Prisma 7 enforces tenant isolation via $extends instead of $use. The mock
+// captures the registered $allOperations interceptor and exposes a `run` that
+// invokes it exactly as the real client would (passing model/operation/args
+// plus a `query` continuation that resolves to null).
 function mkPrismaMock(): {
-  $use: (m: MiddlewareFn) => void
-  run: (p: unknown) => Promise<unknown>
+  $extends: (ext: { query?: { $allModels?: { $allOperations?: AllOps } } }) => unknown
+  run: (p: { model?: string; action: string; args: unknown }) => Promise<unknown>
 } {
-  const middlewares: Array<MiddlewareFn> = []
-  return {
-    $use(m) {
-      middlewares.push(m)
+  let captured: AllOps | undefined
+  const self = {
+    $extends(ext: { query?: { $allModels?: { $allOperations?: AllOps } } }) {
+      captured = ext.query?.$allModels?.$allOperations
+      return self
     },
-    async run(params) {
-      const stack = [...middlewares]
-      const next = async (p: unknown): Promise<unknown> => {
-        const m = stack.shift()
-        if (!m) return null
-        return m(p, next)
-      }
-      return next(params)
+    async run(p: { model?: string; action: string; args: unknown }) {
+      if (!captured) return null
+      return captured({
+        model: p.model,
+        operation: p.action,
+        args: p.args,
+        query: async () => null,
+      })
     },
   }
+  return self
 }
 
 function install(mode: 'throw' | 'warn' = 'throw') {
@@ -124,7 +135,7 @@ describe('tenant-middleware (public)', () => {
     warnSpy.mockRestore()
   })
 
-  test('non-relevant actions (queryRaw) pass through without check', async () => {
+  test('non-relevant operations (queryRaw) pass through without check', async () => {
     const prisma = install('throw')
     await expect(prisma.run({ model: 'Baby', action: 'queryRaw', args: {} })).resolves.toBeNull()
     await expect(prisma.run({ model: 'Baby', action: 'executeRaw', args: {} })).resolves.toBeNull()
