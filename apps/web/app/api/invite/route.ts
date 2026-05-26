@@ -6,7 +6,7 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const BodySchema = z.object({
-  email: z.string().email(),
+  email: z.string().email().optional(),
   role: z.enum(['guardian', 'family']),
 })
 

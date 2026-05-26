@@ -48,18 +48,13 @@ describe('validateInviteForSignup', () => {
     )
   }
 
-  it('accepts a valid token with matching email (case-insensitive)', async () => {
+  it('accepts a valid token', async () => {
     const invite = await makeInvite('New@New.com')
-    expect(await validateInviteForSignup(invite.token, 'new@new.com', db.prismaPublic)).toBe(true)
+    expect(await validateInviteForSignup(invite.token, db.prismaPublic)).toBe(true)
   })
 
   it('rejects an unknown token', async () => {
-    expect(await validateInviteForSignup('nope', 'new@new.com', db.prismaPublic)).toBe(false)
-  })
-
-  it('rejects when email does not match', async () => {
-    const invite = await makeInvite('new@new.com')
-    expect(await validateInviteForSignup(invite.token, 'other@x.com', db.prismaPublic)).toBe(false)
+    expect(await validateInviteForSignup('nope', db.prismaPublic)).toBe(false)
   })
 
   it('rejects an expired token', async () => {
@@ -68,7 +63,7 @@ describe('validateInviteForSignup', () => {
       where: { id: invite.id },
       data: { expiresAt: new Date(Date.now() - 1000) },
     })
-    expect(await validateInviteForSignup(invite.token, 'new@new.com', db.prismaPublic)).toBe(false)
+    expect(await validateInviteForSignup(invite.token, db.prismaPublic)).toBe(false)
   })
 
   it('rejects a revoked token', async () => {
@@ -77,7 +72,7 @@ describe('validateInviteForSignup', () => {
       where: { id: invite.id },
       data: { revokedAt: new Date() },
     })
-    expect(await validateInviteForSignup(invite.token, 'new@new.com', db.prismaPublic)).toBe(false)
+    expect(await validateInviteForSignup(invite.token, db.prismaPublic)).toBe(false)
   })
 
   it('rejects an already-accepted token', async () => {
@@ -86,6 +81,6 @@ describe('validateInviteForSignup', () => {
       where: { id: invite.id },
       data: { acceptedAt: new Date() },
     })
-    expect(await validateInviteForSignup(invite.token, 'new@new.com', db.prismaPublic)).toBe(false)
+    expect(await validateInviteForSignup(invite.token, db.prismaPublic)).toBe(false)
   })
 })

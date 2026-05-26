@@ -20,9 +20,6 @@ export async function acceptInvite(
 
   const user = await prisma.user.findUnique({ where: { id: input.userId } })
   if (!user) throw new Error('User not found')
-  if (user.email?.toLowerCase() !== invite.email.toLowerCase()) {
-    throw new Error('Invite email does not match your account email')
-  }
 
   return prisma.$transaction(async (tx) => {
     const existing = await tx.membership.findUnique({

@@ -88,14 +88,13 @@ describe('acceptInvite', () => {
     ).rejects.toThrow(/revoked/i)
   })
 
-  it('rejects if user email does not match invite email', async () => {
+  it('accepts regardless of user email (token-only)', async () => {
     const { invite } = await setup()
     const { user } = await signup(
-      { email: 'other@other.com', password: 'password123', displayName: 'X' },
+      { username: 'whoever', password: 'password123', displayName: 'W' },
       db.prismaPublic,
     )
-    await expect(
-      acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
-    ).rejects.toThrow(/email/i)
+    const r = await acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)
+    expect(r.membership.userId).toBe(user.id)
   })
 })

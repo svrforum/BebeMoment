@@ -7,7 +7,7 @@ const INVITE_TTL_MS = 14 * 24 * 60 * 60 * 1000
 
 const Input = z.object({
   familyId: z.string().uuid(),
-  email: z.string().email(),
+  email: z.string().email().optional(),
   role: z.enum(['guardian', 'family']),
   byUserId: z.string().uuid(),
 })
@@ -22,17 +22,19 @@ export async function createInvite(raw: unknown, prisma: PrismaClient): Promise<
     throw new Error('No permission to invite')
   }
 
-  const existing = await prisma.invite.findFirst({
-    where: {
-      familyId: input.familyId,
-      email: input.email,
-      acceptedAt: null,
-      revokedAt: null,
-      expiresAt: { gt: new Date() },
-    },
-  })
-  if (existing) {
-    throw new Error('This email is already invited and the invite is still pending')
+  if (input.email) {
+    const existing = await prisma.invite.findFirst({
+      where: {
+        familyId: input.familyId,
+        email: input.email,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+    })
+    if (existing) {
+      throw new Error('This email is already invited and the invite is still pending')
+    }
   }
 
   const token = crypto.randomBytes(32).toString('base64url')
@@ -40,7 +42,7 @@ export async function createInvite(raw: unknown, prisma: PrismaClient): Promise<
     data: {
       familyId: input.familyId,
       invitedById: input.byUserId,
-      email: input.email,
+      email: input.email ?? null,
       role: input.role,
       token,
       expiresAt: new Date(Date.now() + INVITE_TTL_MS),
