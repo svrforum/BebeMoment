@@ -1,5 +1,11 @@
 import { describe, expect, it } from 'vitest'
-import { type Role, can } from './permissions'
+import {
+  type Role,
+  can,
+  capabilitiesForRole,
+  effectiveFamilyCapabilities,
+  resolveCan,
+} from './permissions'
 
 describe('can', () => {
   const roles: Role[] = ['owner', 'guardian', 'family']
@@ -66,6 +72,54 @@ describe('record capabilities', () => {
     ['family', 'record.delete.any', false],
   ] as const)('%s can %s → %s', (role, cap, expected) => {
     expect(can(role, cap)).toBe(expected)
+  })
+})
+
+describe('effectiveFamilyCapabilities', () => {
+  it('defaults to view/comment/react, no upload', () => {
+    const s = effectiveFamilyCapabilities([])
+    expect(s.has('social.comment.create')).toBe(true)
+    expect(s.has('asset.view.family')).toBe(true)
+    expect(s.has('asset.upload')).toBe(false)
+    expect(s.has('record.create')).toBe(false)
+  })
+  it('adds grantable keys', () => {
+    expect(effectiveFamilyCapabilities(['asset.upload']).has('asset.upload')).toBe(true)
+  })
+  it('ignores non-grantable / unknown keys', () => {
+    expect(effectiveFamilyCapabilities(['family.delete', 'bogus']).has('family.delete')).toBe(false)
+  })
+})
+
+describe('resolveCan', () => {
+  it('owner unaffected by family config', () => {
+    expect(resolveCan('owner', 'asset.upload', effectiveFamilyCapabilities([]))).toBe(true)
+  })
+  it('family follows config', () => {
+    expect(resolveCan('family', 'asset.upload', effectiveFamilyCapabilities([]))).toBe(false)
+    expect(resolveCan('family', 'social.comment.create', effectiveFamilyCapabilities([]))).toBe(true)
+    expect(resolveCan('family', 'asset.upload', effectiveFamilyCapabilities(['asset.upload']))).toBe(
+      true,
+    )
+  })
+  it('static can() still reports family max', () => {
+    expect(can('family', 'asset.upload')).toBe(true)
+  })
+})
+
+describe('capabilitiesForRole', () => {
+  it('owner gets full matrix, family gets effective set', () => {
+    expect(
+      capabilitiesForRole('owner', effectiveFamilyCapabilities([])).includes('asset.upload'),
+    ).toBe(true)
+    expect(
+      capabilitiesForRole('family', effectiveFamilyCapabilities([])).includes('asset.upload'),
+    ).toBe(false)
+    expect(
+      capabilitiesForRole('family', effectiveFamilyCapabilities([])).includes(
+        'social.comment.create',
+      ),
+    ).toBe(true)
   })
 })
 
