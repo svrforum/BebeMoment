@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -36,10 +37,11 @@ export async function updateAlbum(
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwnAlbum = album.createdByUserId === input.byUserId
   const allowed =
-    (isOwnAlbum && can(membership.role, 'album.update.own')) ||
-    can(membership.role, 'album.update.any')
+    (isOwnAlbum && resolveCan(membership.role, 'album.update.own', familyCaps)) ||
+    resolveCan(membership.role, 'album.update.any', familyCaps)
   if (!allowed) throw new ForbiddenError('이 앨범을 편집할 권한이 없어요')
 
   // Cover asset must (a) exist in the same family, (b) be ready, (c) be

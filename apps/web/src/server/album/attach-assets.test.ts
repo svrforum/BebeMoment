@@ -15,6 +15,7 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.appSetting.deleteMany()
   await db.prismaPublic.albumAsset.deleteMany()
   await db.prismaPublic.album.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()

@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
@@ -33,6 +34,7 @@ export async function deleteAlbum(
     },
   })
   if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
 
   return prismaPublic
     .$transaction(async (tx) => {
@@ -42,8 +44,9 @@ export async function deleteAlbum(
       if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
 
       const allowed =
-        (album.createdByUserId === input.byUserId && can(membership.role, 'album.delete.own')) ||
-        can(membership.role, 'album.delete.any')
+        (album.createdByUserId === input.byUserId &&
+          resolveCan(membership.role, 'album.delete.own', familyCaps)) ||
+        resolveCan(membership.role, 'album.delete.any', familyCaps)
       if (!allowed) throw new ForbiddenError('이 앨범을 삭제할 권한이 없어요')
 
       const [childCount, attachmentCount] = await Promise.all([

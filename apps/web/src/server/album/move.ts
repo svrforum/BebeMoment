@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
@@ -38,6 +39,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
     },
   })
   if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
 
   try {
     const moved = await prismaPublic.$transaction(async (tx) => {
@@ -47,8 +49,9 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
 
       const allowed =
-        (album.createdByUserId === input.byUserId && can(membership.role, 'album.update.own')) ||
-        can(membership.role, 'album.update.any')
+        (album.createdByUserId === input.byUserId &&
+          resolveCan(membership.role, 'album.update.own', familyCaps)) ||
+        resolveCan(membership.role, 'album.update.any', familyCaps)
       if (!allowed) throw new ForbiddenError('이 앨범을 옮길 권한이 없어요')
 
       if (input.newParentId === album.id) throw new ConflictError('자기 자신을 부모로 둘 수 없어요')

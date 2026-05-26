@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto'
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
@@ -27,7 +28,8 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'album.create')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'album.create', familyCaps)) {
     throw new ForbiddenError('앨범을 만들 권한이 없어요')
   }
 

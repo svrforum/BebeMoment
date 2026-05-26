@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -36,7 +37,12 @@ export async function attachAssetsToAlbum(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'album.asset.attach')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'album.asset.attach', familyCaps)
+  ) {
     throw new Error('No permission')
   }
 
