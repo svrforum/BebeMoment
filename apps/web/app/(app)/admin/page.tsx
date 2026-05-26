@@ -9,6 +9,7 @@ const sections = [
   { href: '/admin/smtp', label: 'SMTP', description: '이메일 발송 설정 + 테스트' },
   { href: '/admin/storage', label: '스토리지', description: '로컬/S3 모드 확인' },
   { href: '/admin/retention', label: '리텐션', description: '휴지통 자동 삭제' },
+  { href: '/admin/notifications', label: '알림', description: '푸시 알림 + VAPID 키' },
 ]
 
 export default function AdminPage() {
