@@ -2,6 +2,7 @@ import { can, isValidPresetKey } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Milestone, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const Input = z
   .object({
@@ -22,6 +23,7 @@ export async function createMilestone(
   raw: unknown,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<Milestone> {
   const input = Input.parse(raw)
 
@@ -60,8 +62,9 @@ export async function createMilestone(
     }
   }
 
+  let milestone: Milestone
   try {
-    return await prismaPublic.milestone.create({
+    milestone = await prismaPublic.milestone.create({
       data: {
         familyId: input.familyId,
         babyId: input.babyId,
@@ -81,4 +84,13 @@ export async function createMilestone(
     }
     throw e
   }
+
+  await enqueue({
+    familyId: input.familyId,
+    actorUserId: input.byUserId,
+    type: 'milestone.created',
+    payload: { milestoneId: milestone.id, babyId: input.babyId },
+  })
+
+  return milestone
 }

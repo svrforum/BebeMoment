@@ -1,5 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { NotificationJob } from '@bebe/core'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
@@ -111,6 +112,26 @@ describe('createComment', () => {
         db.prismaMedia,
       ),
     ).rejects.toThrow()
+  })
+
+  it('enqueues comment.created on success', async () => {
+    const { user, family } = await setup()
+    const asset = await makeReadyAsset(family.id, user.id, 'a1')
+    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const c = await createComment(
+      { assetId: asset.id, familyId: family.id, body: 'hi', byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+      undefined,
+      enqueue,
+    )
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith({
+      familyId: family.id,
+      actorUserId: user.id,
+      type: 'comment.created',
+      payload: { assetId: asset.id, commentId: c.id },
+    })
   })
 
   it('rejects asset from another family', async () => {

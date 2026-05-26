@@ -1,5 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { NotificationJob } from '@bebe/core'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -69,6 +70,29 @@ describe('createGrowthRecord', () => {
     )
     expect(rec.heightCm).toBeNull()
     expect(Number(rec.weightKg)).toBe(7.2)
+  })
+
+  it('enqueues growth.created on success', async () => {
+    const { user, family, baby } = await setup()
+    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const rec = await createGrowthRecord(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        measuredAt: '2026-04-15',
+        weightKg: 7,
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      enqueue,
+    )
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith({
+      familyId: family.id,
+      actorUserId: user.id,
+      type: 'growth.created',
+      payload: { recordId: rec.id, babyId: baby.id },
+    })
   })
 
   it('rejects when no measurement provided', async () => {

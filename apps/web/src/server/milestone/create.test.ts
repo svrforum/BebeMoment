@@ -1,5 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { NotificationJob } from '@bebe/core'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
@@ -54,6 +55,30 @@ describe('createMilestone', () => {
     expect(ms.presetKey).toBe('first_smile')
     expect(ms.customLabel).toBeNull()
     expect(ms.familyId).toBe(family.id)
+  })
+
+  it('enqueues milestone.created on success', async () => {
+    const { user, family, baby } = await setup()
+    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const ms = await createMilestone(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        presetKey: 'first_smile',
+        achievedAt: '2026-03-01',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+      enqueue,
+    )
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith({
+      familyId: family.id,
+      actorUserId: user.id,
+      type: 'milestone.created',
+      payload: { milestoneId: ms.id, babyId: baby.id },
+    })
   })
 
   it('creates custom milestone', async () => {

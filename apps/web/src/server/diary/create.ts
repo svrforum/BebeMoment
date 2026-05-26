@@ -2,6 +2,7 @@ import { can } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { JournalEntry, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const MOODS = ['happy', 'grateful', 'tired', 'sad', 'proud', 'calm'] as const
 
@@ -23,6 +24,7 @@ export async function createDiaryEntry(
   raw: unknown,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<JournalEntry> {
   const input = Input.parse(raw)
 
@@ -62,7 +64,7 @@ export async function createDiaryEntry(
     if (count !== input.assetIds.length) throw new Error('one or more assets invalid')
   }
 
-  return prismaPublic.journalEntry.create({
+  const entry = await prismaPublic.journalEntry.create({
     data: {
       familyId: input.familyId,
       babyId: input.babyId,
@@ -81,4 +83,13 @@ export async function createDiaryEntry(
         : {}),
     },
   })
+
+  await enqueue({
+    familyId: input.familyId,
+    actorUserId: input.byUserId,
+    type: 'diary.created',
+    payload: { entryId: entry.id, visibility: entry.visibility },
+  })
+
+  return entry
 }

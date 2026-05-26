@@ -1,5 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import type { NotificationJob } from '@bebe/core'
+import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
@@ -133,6 +134,31 @@ describe('createDiaryEntry', () => {
         db.prismaMedia,
       ),
     ).rejects.toThrow()
+  })
+
+  it('enqueues diary.created with the stored visibility', async () => {
+    const { user, family, baby } = await setup()
+    const enqueue = vi.fn<[NotificationJob], Promise<void>>(async () => {})
+    const entry = await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '비밀 일기',
+        visibility: 'guardians',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+      enqueue,
+    )
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith({
+      familyId: family.id,
+      actorUserId: user.id,
+      type: 'diary.created',
+      payload: { entryId: entry.id, visibility: 'guardians' },
+    })
   })
 
   it('preserves asset order', async () => {

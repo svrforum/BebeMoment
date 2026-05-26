@@ -1,6 +1,7 @@
 import { can } from '@bebe/core'
 import type { GrowthRecord, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const Input = z
   .object({
@@ -20,6 +21,7 @@ const Input = z
 export async function createGrowthRecord(
   raw: unknown,
   prisma: PrismaClient,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<GrowthRecord> {
   const input = Input.parse(raw)
 
@@ -42,7 +44,7 @@ export async function createGrowthRecord(
     throw new Error('measured_at cannot be in the future')
   }
 
-  return prisma.growthRecord.create({
+  const record = await prisma.growthRecord.create({
     data: {
       familyId: input.familyId,
       babyId: input.babyId,
@@ -54,4 +56,13 @@ export async function createGrowthRecord(
       createdByUserId: input.byUserId,
     },
   })
+
+  await enqueue({
+    familyId: input.familyId,
+    actorUserId: input.byUserId,
+    type: 'growth.created',
+    payload: { recordId: record.id, babyId: input.babyId },
+  })
+
+  return record
 }

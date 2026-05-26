@@ -4,6 +4,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { AssetComment, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 import { parseMentions } from './parse-mentions'
 
 const Input = z.object({
@@ -18,6 +19,7 @@ export async function createComment(
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   publisher?: IORedis,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<AssetComment> {
   const input = Input.parse(raw)
 
@@ -59,5 +61,13 @@ export async function createComment(
     }
     await publisher.publish(channelForFamily(input.familyId), JSON.stringify(event))
   }
+
+  await enqueue({
+    familyId: input.familyId,
+    actorUserId: input.byUserId,
+    type: 'comment.created',
+    payload: { assetId: input.assetId, commentId: comment.id },
+  })
+
   return comment
 }
