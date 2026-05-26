@@ -1,60 +1,46 @@
-import { prismaPublic } from '@/lib/db-init'
-import { PrismaAdapter } from '@lucia-auth/adapter-prisma'
-import { Lucia, TimeSpan } from 'lucia'
-import { cookies } from 'next/headers'
+import { auth } from '@/lib/auth-config'
+import { headers } from 'next/headers'
 import { cache } from 'react'
 
-const adapter = new PrismaAdapter(prismaPublic.session, prismaPublic.user)
+export { auth }
 
-export const lucia = new Lucia(adapter, {
-  sessionExpiresIn: new TimeSpan(30, 'd'),
-  sessionCookie: {
-    name: 'bebe_session',
-    expires: false,
-    attributes: {
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'lax',
-    },
-  },
-  getUserAttributes: (attrs) => ({
-    email: attrs.email,
-    displayName: attrs.display_name,
-    locale: attrs.locale,
-  }),
-  getSessionAttributes: (attrs) => ({
-    currentFamilyId: attrs.currentFamilyId,
-  }),
-})
-
-declare module 'lucia' {
-  interface Register {
-    Lucia: typeof lucia
-    DatabaseUserAttributes: {
-      email: string | null
-      display_name: string
-      locale: string
-    }
-    DatabaseSessionAttributes: {
-      currentFamilyId: string | null
-    }
-  }
+export type AuthUser = {
+  id: string
+  email: string | null
+  displayName: string
+  locale: string
 }
 
-export const getAuth = cache(async () => {
-  const sessionId = (await cookies()).get(lucia.sessionCookieName)?.value ?? null
-  if (!sessionId) return { user: null, session: null }
-  const result = await lucia.validateSession(sessionId)
-  try {
-    if (result.session?.fresh) {
-      const c = lucia.createSessionCookie(result.session.id)
-      ;(await cookies()).set(c.name, c.value, c.attributes)
-    }
-    if (!result.session) {
-      const c = lucia.createBlankSessionCookie()
-      ;(await cookies()).set(c.name, c.value, c.attributes)
-    }
-  } catch {
-    // RSC context cannot set cookies — ignore
+export type AuthSession = {
+  id: string
+  userId: string
+  currentFamilyId: string | null
+}
+
+export type AuthResult = { user: AuthUser; session: AuthSession } | { user: null; session: null }
+
+/**
+ * Request-scoped session validation, deduped via React cache() across
+ * layout + page in one render. Returns the same `{ user, session }` shape the
+ * Lucia version exposed so resolveContext / getContext / route handlers keep
+ * working unchanged: `session.userId` + `session.currentFamilyId`.
+ */
+export const getAuth = cache(async (): Promise<AuthResult> => {
+  const result = await auth.api.getSession({ headers: await headers() })
+  if (!result) return { user: null, session: null }
+
+  const { user, session } = result
+  return {
+    user: {
+      id: user.id,
+      email: user.email ?? null,
+      displayName: user.name,
+      locale: (user as { locale?: string }).locale ?? 'ko',
+    },
+    session: {
+      id: session.id,
+      userId: session.userId,
+      currentFamilyId: (session as { currentFamilyId?: string | null }).currentFamilyId ?? null,
+    },
   }
-  return result
 })

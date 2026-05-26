@@ -9,6 +9,7 @@ vi.mock('react', async () => {
 })
 
 vi.mock('next/headers', () => ({
+  headers: async () => new Headers(),
   cookies: async () => ({
     get: () => undefined,
     set: () => undefined,
@@ -16,9 +17,9 @@ vi.mock('next/headers', () => ({
 }))
 
 describe('auth module', () => {
-  it('exports lucia and getAuth', async () => {
+  it('exports auth instance and getAuth', async () => {
     const mod = await import('./auth')
-    expect(mod.lucia).toBeDefined()
+    expect(mod.auth).toBeDefined()
     expect(mod.getAuth).toBeDefined()
   })
 })

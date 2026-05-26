@@ -1,19 +1,30 @@
-import { lucia } from '@/lib/auth'
-import { prismaPublic } from '@/lib/db-init'
-import { cookies } from 'next/headers'
+import type { PrismaClient } from '@bebe/db-public'
 
 /**
- * Creates a new lucia session for the user (with first-family as current)
- * and writes the session cookie. Use after signup, login, or OIDC callback.
+ * After Better Auth creates a session (signInEmail / signUpEmail), stamp the
+ * user's first family onto it. Better Auth sessions start with
+ * currentFamilyId = null; the app's multi-tenancy reads session.currentFamilyId,
+ * so we set it on the newest session row. Cookie cache is off, so the next
+ * getSession reads this fresh from the DB.
  */
-export async function createSessionAndSetCookie(userId: string): Promise<void> {
-  const membership = await prismaPublic.membership.findFirst({
+export async function setCurrentFamilyOnLatestSession(
+  userId: string,
+  prisma: PrismaClient,
+): Promise<void> {
+  const membership = await prisma.membership.findFirst({
     where: { userId, deletedAt: null },
     orderBy: { joinedAt: 'asc' },
   })
-  const session = await lucia.createSession(userId, {
-    currentFamilyId: membership?.familyId ?? null,
+  if (!membership) return
+
+  const latest = await prisma.session.findFirst({
+    where: { userId },
+    orderBy: { createdAt: 'desc' },
   })
-  const c = lucia.createSessionCookie(session.id)
-  ;(await cookies()).set(c.name, c.value, c.attributes)
+  if (!latest) return
+
+  await prisma.session.update({
+    where: { id: latest.id },
+    data: { currentFamilyId: membership.familyId },
+  })
 }

@@ -11,18 +11,24 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.account.deleteMany()
   await db.prismaPublic.user.deleteMany()
 })
 
-describe('signup', () => {
-  it('creates a new user with hashed password', async () => {
+describe('signup helper', () => {
+  it('creates a user with a credential account holding a bcrypt hash', async () => {
     const result = await signup(
       { email: 'alice@example.com', password: 'strong-password-1', displayName: 'Alice' },
       db.prismaPublic,
     )
     expect(result.user.email).toBe('alice@example.com')
-    expect(result.user.passwordHash).not.toBe('strong-password-1')
     expect(result.user.passwordHash).toMatch(/^\$2[aby]\$/)
+
+    const account = await db.prismaPublic.account.findFirst({
+      where: { userId: result.user.id, providerId: 'credential' },
+    })
+    expect(account?.accountId).toBe(result.user.id)
+    expect(account?.password).toMatch(/^\$2[aby]\$/)
   })
 
   it('rejects duplicate email', async () => {
@@ -41,7 +47,7 @@ describe('signup', () => {
   it('rejects short password', async () => {
     await expect(
       signup({ email: 'a@b.com', password: 'short', displayName: 'A' }, db.prismaPublic),
-    ).rejects.toThrow(/password/i)
+    ).rejects.toThrow(/password|비밀번호/i)
   })
 
   it('rejects invalid email', async () => {
@@ -50,6 +56,6 @@ describe('signup', () => {
         { email: 'not-email', password: 'strong-password-1', displayName: 'A' },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/email/i)
+    ).rejects.toThrow(/email|이메일/i)
   })
 })

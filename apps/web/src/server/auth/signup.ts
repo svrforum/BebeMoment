@@ -11,6 +11,12 @@ const SignupInput = z.object({
 export type SignupInput = z.infer<typeof SignupInput>
 export type SignupResult = { user: User }
 
+/**
+ * Low-level user creation used by tests/seeds. The production signup route goes
+ * through Better Auth (auth.api.signUpEmail); this helper writes the same shape
+ * directly — a user row plus a `credential` account holding the bcrypt hash —
+ * so seeded users are indistinguishable from Better Auth-created ones.
+ */
 export async function signup(raw: unknown, prisma: PrismaClient): Promise<SignupResult> {
   const input = SignupInput.parse(raw)
   const passwordHash = await hashPassword(input.password)
@@ -23,7 +29,18 @@ export async function signup(raw: unknown, prisma: PrismaClient): Promise<Signup
       email: input.email,
       displayName: input.displayName,
       passwordHash,
+      accounts: {
+        create: { accountId: '', providerId: 'credential', password: passwordHash },
+      },
     },
   })
+
+  // accountId mirrors Better Auth's convention (accountId = user.id) once the id
+  // exists.
+  await prisma.account.updateMany({
+    where: { userId: user.id, providerId: 'credential' },
+    data: { accountId: user.id },
+  })
+
   return { user }
 }

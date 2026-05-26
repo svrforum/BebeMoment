@@ -1,14 +1,15 @@
-import { getAuth, lucia } from '@/lib/auth'
-import { cookies } from 'next/headers'
+import { auth } from '@/lib/auth-config'
+import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (session) {
-    await lucia.invalidateSession(session.id)
+  // Invalidates the session row and clears the cookie (nextCookies forwards the
+  // Set-Cookie). Safe to call without an active session.
+  try {
+    await auth.api.signOut({ headers: await headers() })
+  } catch {
+    // No active session — nothing to invalidate.
   }
-  const c = lucia.createBlankSessionCookie()
-  ;(await cookies()).set(c.name, c.value, c.attributes)
 
   // Browser HTML form submits (Accept: text/html) → 303 to /login.
   // fetch() callers with JSON Accept get the JSON body.
