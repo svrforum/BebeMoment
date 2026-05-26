@@ -3,6 +3,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { createBaby } from '@/server/baby/create'
 import { createFamily } from '@/server/family/create'
+import { isRegistrationOpen } from '@/server/auth/registration'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -20,6 +21,8 @@ export async function completeOnboarding(
 ): Promise<OnboardingState> {
   const { user, session } = await getAuth()
   if (!user || !session) redirect('/login')
+
+  if (!(await isRegistrationOpen(prismaPublic))) redirect('/')
 
   const parsed = Input.safeParse({
     familyName: formData.get('familyName'),
@@ -39,6 +42,7 @@ export async function completeOnboarding(
     const { family } = await createFamily(
       { name: parsed.data.familyName, userId: user.id },
       prismaPublic,
+      { enforceSingle: true },
     )
     await createBaby(
       {
