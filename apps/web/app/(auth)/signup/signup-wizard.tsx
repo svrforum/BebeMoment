@@ -89,11 +89,18 @@ function SignupWizardInner() {
         return
       }
       if (inviteToken) {
-        await fetch('/api/invite/accept', {
+        const acceptRes = await fetch('/api/invite/accept', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ token: inviteToken }),
         })
+        if (!acceptRes.ok) {
+          // 계정은 만들어졌지만 가족 합류에 실패 — 조용히 넘기면 가족 없는 계정으로
+          // 온보딩 루프에 빠진다. 에러를 보여주고 이동하지 않는다.
+          setError('가족 합류에 실패했어요. 초대 링크를 다시 열어 합류해주세요.')
+          setSubmitting(false)
+          return
+        }
         // Hard navigation so the new session cookie attaches to the next RSC request
         window.location.replace('/')
       } else {

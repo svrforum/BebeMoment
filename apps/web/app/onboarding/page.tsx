@@ -1,256 +1,42 @@
-'use client'
-import { Button } from '@/components/ui/button'
-import { cn } from '@/lib/cn'
-import { AnimatePresence, motion } from 'framer-motion'
-import { ArrowLeft, Calendar } from 'lucide-react'
-import { useActionState, useCallback, useRef, useState } from 'react'
-import { useFormStatus } from 'react-dom'
-import { completeOnboarding } from './actions'
+import { getAuth } from '@/lib/auth'
+import { prismaPublic } from '@/lib/db-init'
+import { isRegistrationOpen } from '@/server/auth/registration'
+import { redirect } from 'next/navigation'
+import { OnboardingWizard } from './onboarding-wizard'
 
-type Step = 'family' | 'baby' | 'date'
+export const dynamic = 'force-dynamic'
 
-const STEPS: Step[] = ['family', 'baby', 'date']
+export default async function OnboardingPage() {
+  const { user } = await getAuth()
+  if (!user) redirect('/login')
 
-function SubmitButton({ disabled }: { disabled: boolean }) {
-  const { pending } = useFormStatus()
-  return (
-    <Button type="submit" size="lg" className="w-full" disabled={disabled || pending}>
-      {pending ? '만드는 중…' : '시작하기'}
-    </Button>
-  )
-}
+  // 이미 가족이 있으면 온보딩 불필요 — 타임라인으로.
+  const membership = await prismaPublic.membership.findFirst({
+    where: { userId: user.id, deletedAt: null },
+  })
+  if (membership) redirect('/')
 
-function yearsAgoISO(years: number): string {
-  const d = new Date()
-  d.setFullYear(d.getFullYear() - years)
-  return d.toISOString().slice(0, 10)
-}
-
-function daysFromNowISO(days: number): string {
-  const d = new Date(Date.now() + days * 86400_000)
-  return d.toISOString().slice(0, 10)
-}
-
-export default function OnboardingPage() {
-  const [state, formAction] = useActionState(completeOnboarding, null)
-
-  const [step, setStep] = useState<Step>('family')
-  const [dir, setDir] = useState<1 | -1>(1)
-  const [familyName, setFamilyName] = useState('')
-  const [babyName, setBabyName] = useState('')
-  const [birthDate, setBirthDate] = useState('')
-
-  const dateInputRef = useRef<HTMLInputElement>(null)
-
-  const idx = STEPS.indexOf(step)
-
-  const stepValid = (() => {
-    if (step === 'family') return familyName.trim().length > 0
-    if (step === 'baby') return babyName.trim().length > 0
-    if (step === 'date') return /^\d{4}-\d{2}-\d{2}$/.test(birthDate)
-    return false
-  })()
-
-  const goBack = useCallback(() => {
-    if (idx === 0) return
-    setDir(-1)
-    const prev = STEPS[idx - 1]
-    if (prev) setStep(prev)
-  }, [idx])
-
-  const goNext = useCallback(() => {
-    if (!stepValid) return
-    if (step === 'date') return // submit handled by form
-    setDir(1)
-    const next = STEPS[idx + 1]
-    if (next) setStep(next)
-  }, [stepValid, step, idx])
-
-  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
-    if (e.key === 'Enter') {
-      e.preventDefault()
-      goNext()
-    }
+  // 가족이 없는데 인스턴스는 이미 설정 완료(공개 가입 닫힘) — 가족 생성 폼 대신
+  // 합류 안내. (예: 초대 합류가 실패해 가족 없는 계정으로 남은 경우 — 폼을 보여주면
+  // 제출해도 createFamily 가드에 막혀 온보딩 루프에 빠진다.)
+  if (!(await isRegistrationOpen(prismaPublic))) {
+    return (
+      <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6 py-10 md:max-w-[480px]">
+        <h1 className="text-[32px] font-bold leading-tight tracking-tight">
+          초대를 받아 합류해주세요
+        </h1>
+        <p className="mt-3 text-base text-base-500">
+          이 인스턴스는 이미 가족 설정이 끝났어요. 가족 구성원이 보낸 초대 링크를 다시 열면 이
+          계정으로 합류할 수 있어요.
+        </p>
+        <form action="/api/auth/logout" method="post" className="mt-8">
+          <button type="submit" className="text-sm font-medium text-point-500">
+            다른 계정으로 로그인
+          </button>
+        </form>
+      </main>
+    )
   }
 
-  const openDatePicker = () => {
-    const el = dateInputRef.current
-    if (!el) return
-    if (typeof el.showPicker === 'function') {
-      try {
-        el.showPicker()
-      } catch {
-        el.focus()
-      }
-    } else {
-      el.focus()
-    }
-  }
-
-  const minDate = yearsAgoISO(20)
-  const maxDate = daysFromNowISO(400)
-
-  return (
-    <main className="relative mx-auto flex min-h-[100dvh] max-w-md flex-col px-6 pb-8 pt-6 md:min-h-[100dvh] md:max-w-[480px] md:justify-center md:py-16">
-      <div className="absolute inset-0 -z-10 hidden bg-[radial-gradient(ellipse_at_top,oklch(0.72_0.18_245/.15),transparent_60%)] md:block" />
-      <div className="mb-10 flex items-center justify-between">
-        <button
-          type="button"
-          onClick={goBack}
-          aria-label="이전"
-          disabled={idx === 0}
-          className={cn(
-            '-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-base-700 transition hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
-            idx === 0 && 'pointer-events-none opacity-30',
-          )}
-        >
-          <ArrowLeft size={20} />
-        </button>
-        <div className="flex items-center gap-1.5" aria-label={`${idx + 1} / ${STEPS.length}`}>
-          {STEPS.map((s, i) => (
-            <span
-              key={s}
-              className={cn(
-                'h-1.5 rounded-full transition-all',
-                i === idx
-                  ? 'w-6 bg-point-500'
-                  : i < idx
-                    ? 'w-1.5 bg-point-500/60'
-                    : 'w-1.5 bg-base-200 dark:bg-base-700',
-              )}
-            />
-          ))}
-        </div>
-        <div className="w-9" />
-      </div>
-
-      <form action={formAction} className="flex flex-1 flex-col">
-        {/* hidden fields so all 3 values submit when the form action fires */}
-        <input type="hidden" name="familyName" value={familyName} />
-        <input type="hidden" name="babyName" value={babyName} />
-        <input type="hidden" name="birthDate" value={birthDate} />
-
-        <div className="flex-1">
-          <AnimatePresence initial={false} mode="wait" custom={dir}>
-            <motion.div
-              key={step}
-              custom={dir}
-              initial={{ x: dir === 1 ? 48 : -48, opacity: 0 }}
-              animate={{ x: 0, opacity: 1 }}
-              exit={{ x: dir === 1 ? -48 : 48, opacity: 0 }}
-              transition={{ type: 'spring', stiffness: 420, damping: 34 }}
-            >
-              {step === 'family' && (
-                <>
-                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    가족 이름을 지어주세요
-                  </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    가족 구성원들이 함께 볼 공간의 이름이에요.
-                  </p>
-                  <input
-                    // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
-                    autoFocus
-                    value={familyName}
-                    onChange={(e) => setFamilyName(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    placeholder="예: 김씨네 가족"
-                    maxLength={80}
-                    className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
-                  />
-                </>
-              )}
-
-              {step === 'baby' && (
-                <>
-                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    아기 이름을 알려주세요
-                  </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    태명도 괜찮아요. 나중에 바꿀 수 있어요.
-                  </p>
-                  <input
-                    // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
-                    autoFocus
-                    value={babyName}
-                    onChange={(e) => setBabyName(e.target.value)}
-                    onKeyDown={onKeyDown}
-                    placeholder="예: 예준, 콩콩이"
-                    maxLength={40}
-                    className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
-                  />
-                </>
-              )}
-
-              {step === 'date' && (
-                <>
-                  <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    생년월일을 알려주세요
-                  </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    아직 태어나지 않았다면 예정일을 선택해주세요.
-                  </p>
-                  <button
-                    type="button"
-                    onClick={openDatePicker}
-                    className="mt-8 flex h-14 w-full items-center justify-between rounded-2xl border border-transparent bg-base-100 px-5 text-left transition-all hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:hover:bg-base-800/80"
-                  >
-                    <span
-                      className={cn(
-                        'text-[17px]',
-                        birthDate ? 'text-base-900 dark:text-base-50' : 'text-base-400',
-                      )}
-                    >
-                      {birthDate
-                        ? new Date(`${birthDate}T00:00:00`).toLocaleDateString('ko-KR', {
-                            year: 'numeric',
-                            month: 'long',
-                            day: 'numeric',
-                            weekday: 'short',
-                          })
-                        : '날짜 선택'}
-                    </span>
-                    <Calendar size={18} className="text-base-500" />
-                  </button>
-                  <input
-                    ref={dateInputRef}
-                    type="date"
-                    value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
-                    min={minDate}
-                    max={maxDate}
-                    required
-                    aria-label="생년월일"
-                    className="sr-only"
-                  />
-                </>
-              )}
-            </motion.div>
-          </AnimatePresence>
-
-          {state?.error && (
-            <p className="mt-4 text-sm text-danger" role="alert">
-              {state.error}
-            </p>
-          )}
-        </div>
-
-        <div className="pt-6">
-          {step === 'date' ? (
-            <SubmitButton disabled={!stepValid} />
-          ) : (
-            <Button
-              type="button"
-              size="lg"
-              className="w-full"
-              disabled={!stepValid}
-              onClick={goNext}
-            >
-              다음
-            </Button>
-          )}
-        </div>
-      </form>
-    </main>
-  )
+  return <OnboardingWizard />
 }
