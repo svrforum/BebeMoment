@@ -1,7 +1,7 @@
 'use client'
 import type { DerivativeTrio } from '@bebe/media-client'
 import { decode } from 'blurhash'
-import { type CSSProperties, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 
 export type PictureImageProps = {
   trio: DerivativeTrio | null
@@ -100,6 +100,14 @@ export function PictureImage({
 }: PictureImageProps) {
   const [loaded, setLoaded] = useState(false)
 
+  // When the image is served from cache it can finish loading before React
+  // attaches onLoad, so the load event never fires and the image stays at
+  // opacity 0 (only the blurhash shows). Detect the already-complete case in
+  // the ref callback and reveal it immediately.
+  const imgRef = useCallback((node: HTMLImageElement | null) => {
+    if (node?.complete && node.naturalWidth > 0) setLoaded(true)
+  }, [])
+
   // Empty: no image data at all.
   if (!trio && !fallbackUrl) {
     if (blurhash) {
@@ -162,6 +170,7 @@ export function PictureImage({
       <span className={className} style={wrapperStyle}>
         {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
         <img
+          ref={imgRef}
           src={fallbackUrl ?? ''}
           alt={alt}
           width={width}
@@ -183,6 +192,7 @@ export function PictureImage({
         <source srcSet={trio.avif} type="image/avif" />
         <source srcSet={trio.webp} type="image/webp" />
         <img
+          ref={imgRef}
           src={trio.jpeg}
           alt={alt}
           width={width}
