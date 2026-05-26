@@ -17,7 +17,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!ctx.family) redirect('/onboarding')
 
   return (
-    <AppShellClient>
+    <AppShellClient capabilities={ctx.capabilities}>
       <SideNav familyName={ctx.family.name} />
       <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
       <BottomNav />

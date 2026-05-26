@@ -21,6 +21,8 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   const ctx = await getContext()
   if (!ctx.family) return null
 
+  const canCreate = ctx.capabilities.includes('album.create')
+
   const album = await getAlbumWithBreadcrumbs(
     { albumId: id, familyId: ctx.family.id },
     prismaPublic,
@@ -75,7 +77,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
         title={album.name}
         right={
           <div className="flex items-center gap-2">
-            <AlbumCreateButton parentId={album.id} parentName={album.name} />
+            {canCreate && <AlbumCreateButton parentId={album.id} parentName={album.name} />}
             <AlbumMenu
               albumId={album.id}
               currentName={album.name}

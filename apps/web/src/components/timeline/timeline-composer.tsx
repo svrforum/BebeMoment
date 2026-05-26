@@ -12,6 +12,9 @@ type Props = {
   /** Viewer's role — gates the "보호자만" visibility option. Family viewers
    *  can't post guardians-only entries (they can only see their own role). */
   viewerRole: 'owner' | 'guardian' | 'family'
+  /** Gates the photo-attach button. Family viewers without `asset.upload`
+   *  can still post text-only diary entries (`record.create`). */
+  canUpload: boolean
 }
 
 type Visibility = 'family' | 'guardians'
@@ -40,7 +43,13 @@ type Attachment = {
  * the manager wipes its queue after each batch finishes, but our list
  * already captured the asset id by then so submit still works.
  */
-export function TimelineComposer({ userDisplayName, userAvatarPath, babyId, viewerRole }: Props) {
+export function TimelineComposer({
+  userDisplayName,
+  userAvatarPath,
+  babyId,
+  viewerRole,
+  canUpload,
+}: Props) {
   const router = useRouter()
   const toast = useToast()
   const { files, addFiles } = useUploadManager()
@@ -252,22 +261,26 @@ export function TimelineComposer({ userDisplayName, userAvatarPath, babyId, view
       {expanded && (
         <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
           <div className="flex items-center gap-1">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              aria-label="사진 첨부"
-              className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
-            >
-              <ImagePlus size={18} strokeWidth={2} />
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={onPick}
-              className="hidden"
-            />
+            {canUpload && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => fileInputRef.current?.click()}
+                  aria-label="사진 첨부"
+                  className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
+                >
+                  <ImagePlus size={18} strokeWidth={2} />
+                </button>
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/*,video/*"
+                  multiple
+                  onChange={onPick}
+                  className="hidden"
+                />
+              </>
+            )}
             {canPostGuardian && (
               <div className="relative">
                 <button

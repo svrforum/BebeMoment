@@ -15,6 +15,8 @@ export default async function AlbumsRootPage() {
   const ctx = await getContext()
   if (!ctx.family) return null
 
+  const canCreate = ctx.capabilities.includes('album.create')
+
   const albums = await listAlbums({ familyId: ctx.family.id, parentId: null }, prismaPublic)
 
   // Up to N most-recent attachments per album in a single window-function
@@ -48,14 +50,14 @@ export default async function AlbumsRootPage() {
 
   return (
     <>
-      <AppHeader title="앨범" right={<AlbumCreateButton />} wide />
+      <AppHeader title="앨범" right={canCreate ? <AlbumCreateButton /> : null} wide />
       <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
         {albums.length === 0 ? (
           <EmptyState
             icon={FolderPlus}
             title="첫 앨범을 만들어보세요"
             description={'"2026 → 여행" 처럼 폴더로 묶어서 정리할 수 있어요'}
-            action={<AlbumCreateButton />}
+            {...(canCreate ? { action: <AlbumCreateButton /> } : {})}
           />
         ) : (
           <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">

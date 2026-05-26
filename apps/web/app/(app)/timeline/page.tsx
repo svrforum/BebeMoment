@@ -65,13 +65,14 @@ export default async function TimelinePage({
         <AppHeader title={ctx.family.name} wide />
       )}
       <TagFilterStrip familyId={ctx.family.id} prismaPublic={prismaPublic} activeSlugs={tagSlugs} />
-      {tagSlugs.length === 0 && (
+      {tagSlugs.length === 0 && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
             userDisplayName={ctx.user?.displayName ?? '나'}
             userAvatarPath={ctx.user?.avatarPath ?? null}
             babyId={baby?.id ?? null}
             viewerRole={viewerRole}
+            canUpload={ctx.capabilities.includes('asset.upload')}
           />
         </div>
       )}
