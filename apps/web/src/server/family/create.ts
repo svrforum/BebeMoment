@@ -25,8 +25,14 @@ export async function createFamily(
   }
 
   return prisma.$transaction(async (tx) => {
-    if (opts.enforceSingle && (await tx.family.count()) > 0) {
-      throw new Error('이미 가족이 설정되어 있어요')
+    // 같은 트랜잭션 안에서 race-safe 하게 가족 수를 확인. tx.family.count() 는
+    // familyId 필터가 없어 tenant 미들웨어(dev=throw)가 막으므로 raw 로 우회한다
+    // ([[isRegistrationOpen]] 과 동일 이유 — 전역 카운트는 테넌트 비종속).
+    if (opts.enforceSingle) {
+      const rows = await tx.$queryRaw<{ count: bigint }[]>`SELECT count(*) AS count FROM families`
+      if ((rows[0]?.count ?? 0n) > 0n) {
+        throw new Error('이미 가족이 설정되어 있어요')
+      }
     }
     const family = await tx.family.create({
       data: {
