@@ -1,7 +1,7 @@
 import { MOODS, isMood } from '@/components/diary/mood'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
-import type { AssetWithUrls } from '@/server/asset/get'
+import type { AssetWithUrls } from '@/server/asset/types'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import { ShieldCheck } from 'lucide-react'
 import Link from 'next/link'

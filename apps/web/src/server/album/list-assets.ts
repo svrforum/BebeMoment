@@ -1,7 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
-import type { AssetWithUrls } from '../asset/get'
+import type { AssetWithUrls } from '../asset/types'
 
 export type ListAlbumAssetsResult = {
   assets: AssetWithUrls[]

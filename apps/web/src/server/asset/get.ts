@@ -1,7 +1,8 @@
-import type { Asset, PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { AssetUrls, MediaClient } from '@bebe/media-client'
+import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { MediaClient } from '@bebe/media-client'
+import type { AssetWithUrls } from './types'
 
-export type AssetWithUrls = Asset & { urls: AssetUrls | null }
+export type { AssetWithUrls } from './types'
 
 export async function getAssetForFamily(
   args: { assetId: string; familyId: string },

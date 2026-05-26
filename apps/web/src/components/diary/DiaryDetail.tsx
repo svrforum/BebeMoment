@@ -1,7 +1,7 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
-import type { AssetWithUrls } from '@/server/asset/get'
+import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, JournalEntry, JournalEntryAsset } from '@bebe/db-public'
 import { NotebookPen, ShieldCheck } from 'lucide-react'
 import dynamic from 'next/dynamic'

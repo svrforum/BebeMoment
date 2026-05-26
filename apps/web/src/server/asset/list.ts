@@ -1,6 +1,6 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { MediaClient } from '@bebe/media-client'
-import type { AssetWithUrls } from './get'
+import type { AssetWithUrls } from './types'
 
 export async function listAssets(
   args: {
