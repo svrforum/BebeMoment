@@ -2,12 +2,12 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
-import { Input, Label } from '@/components/ui/input'
+import { Label } from '@/components/ui/input'
 import { useEffect, useState } from 'react'
 
 type Invite = {
   id: string
-  email: string
+  email?: string | null
   role: string
   expiresAt: string
   token: string
@@ -15,7 +15,6 @@ type Invite = {
 
 export default function FamilyPage() {
   const [invites, setInvites] = useState<Invite[]>([])
-  const [email, setEmail] = useState('')
   const [role, setRole] = useState<'guardian' | 'family'>('family')
   const [lastCreated, setLastCreated] = useState<Invite | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +38,7 @@ export default function FamilyPage() {
     const res = await fetch('/api/invite', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, role }),
+      body: JSON.stringify({ role }),
     })
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
@@ -47,8 +46,7 @@ export default function FamilyPage() {
       return
     }
     const data = await res.json()
-    setLastCreated({ id: data.id, email, role, expiresAt: data.expiresAt, token: data.token })
-    setEmail('')
+    setLastCreated({ id: data.id, role, expiresAt: data.expiresAt, token: data.token })
     load()
   }
 
@@ -66,16 +64,6 @@ export default function FamilyPage() {
         <Card>
           <CardBody>
             <form onSubmit={submit} className="space-y-3">
-              <div>
-                <Label htmlFor="email">초대할 이메일</Label>
-                <Input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  required
-                />
-              </div>
               <div>
                 <Label htmlFor="role">역할</Label>
                 <select
@@ -115,7 +103,8 @@ export default function FamilyPage() {
               <CardBody className="flex items-center justify-between">
                 <div>
                   <div className="font-medium">
-                    {inv.email} <span className="text-sm text-base-500">({inv.role})</span>
+                    {inv.email ?? '링크 초대'}{' '}
+                    <span className="text-sm text-base-500">({inv.role})</span>
                   </div>
                   <div className="text-xs text-base-500">
                     만료{' '}
