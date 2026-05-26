@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic, Tag } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateTagsTag } from '../cache-tags'
@@ -31,7 +32,8 @@ export async function createOrGetTag(raw: unknown, prismaPublic: PrismaPublic): 
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'tag.create')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'tag.create', familyCaps)) {
     throw new ForbiddenError('태그를 만들 권한이 없어요')
   }
 

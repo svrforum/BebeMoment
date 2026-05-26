@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateTagsTag } from '../cache-tags'
@@ -21,7 +22,12 @@ export async function detachTagFromAsset(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'asset.tag.detach')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'asset.tag.detach', familyCaps)
+  ) {
     throw new Error('No permission')
   }
 
