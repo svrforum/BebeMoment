@@ -1,6 +1,7 @@
 import { auth } from '@/lib/auth-config'
-import { setCurrentFamilyOnLatestSession } from '@/lib/session-cookie'
 import { prismaPublic } from '@/lib/db-init'
+import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
+import { setCurrentFamilyOnLatestSession } from '@/lib/session-cookie'
 import { APIError } from 'better-auth/api'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
@@ -10,12 +11,26 @@ const SignupInput = z.object({
   email: z.string().email('올바른 이메일을 입력해주세요'),
   password: z.string().min(8, '비밀번호는 8자 이상이어야 해요'),
   displayName: z.string().min(1, '이름을 입력해주세요').max(80),
+  inviteToken: z.string().min(1).optional(),
 })
 
 export async function POST(req: Request) {
   try {
     const body = await req.json()
     const input = SignupInput.parse(body)
+
+    const open = await isRegistrationOpen(prismaPublic)
+    if (!open) {
+      const okInvite = input.inviteToken
+        ? await validateInviteForSignup(input.inviteToken, input.email, prismaPublic)
+        : false
+      if (!okInvite) {
+        return NextResponse.json(
+          { error: '공개 가입이 닫혀 있어요. 초대 링크로 가입해주세요.' },
+          { status: 403 },
+        )
+      }
+    }
 
     // Better Auth hashes via emailAndPassword.password.hash (bcryptjs), creates
     // the user + credential account, auto-signs-in, and (via nextCookies) sets
