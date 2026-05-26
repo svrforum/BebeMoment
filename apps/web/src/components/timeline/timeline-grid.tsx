@@ -157,22 +157,6 @@ export function TimelineGrid({ initialGroups }: Props) {
     return () => window.removeEventListener('keydown', onKey)
   }, [selected.size, pickerOpen, clearSelection])
 
-  if (initialGroups.length === 0) {
-    return (
-      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 py-16 text-center">
-        <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
-          <ImagePlus className="h-10 w-10 text-base-400" />
-        </div>
-        <div>
-          <p className="text-base font-semibold text-base-900 dark:text-base-50">
-            아직 올라온 사진이 없어요
-          </p>
-          <p className="mt-1 text-sm text-base-500">우측 하단 + 버튼을 눌러 첫 사진을 올려보세요</p>
-        </div>
-      </div>
-    )
-  }
-
   // Right-click context menu — operates on a single asset id, regardless
   // of selection. If the asset isn't already selected, the menu's
   // toggle/album/delete actions implicitly use just that one asset.
@@ -207,6 +191,24 @@ export function TimelineGrid({ initialGroups }: Props) {
     if (!selected.has(menu?.id ?? '')) setSelected(new Set(ids))
     setDeleteOpen(true)
   }, [menu, selected, targetIdsForMenu])
+
+  // 빈 상태 early-return 은 반드시 모든 훅 호출 뒤에 둔다. 위쪽에 두면 사진이
+  // 0→1 로 바뀌는 순간(신규 가족 첫 업로드) 훅 개수가 달라져 React #310 크래시.
+  if (initialGroups.length === 0) {
+    return (
+      <div className="mx-auto flex max-w-3xl flex-col items-center gap-4 px-5 py-16 text-center">
+        <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
+          <ImagePlus className="h-10 w-10 text-base-400" />
+        </div>
+        <div>
+          <p className="text-base font-semibold text-base-900 dark:text-base-50">
+            아직 올라온 사진이 없어요
+          </p>
+          <p className="mt-1 text-sm text-base-500">우측 하단 + 버튼을 눌러 첫 사진을 올려보세요</p>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <>
