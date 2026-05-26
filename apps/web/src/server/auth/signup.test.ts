@@ -59,3 +59,46 @@ describe('signup helper', () => {
     ).rejects.toThrow(/email|이메일/i)
   })
 })
+
+describe('signup with username', () => {
+  it('creates a user with username and null email', async () => {
+    const { user } = await signup(
+      { username: 'MinJun', password: 'password123', displayName: '민준아빠' },
+      db.prismaPublic,
+    )
+    expect(user.username).toBe('minjun')
+    expect(user.email).toBeNull()
+    const account = await db.prismaPublic.account.findFirst({
+      where: { userId: user.id, providerId: 'credential' },
+    })
+    expect(account?.password).toBeTruthy()
+  })
+
+  it('accepts optional email alongside username', async () => {
+    const { user } = await signup(
+      { username: 'dad', password: 'password123', displayName: 'D', email: 'd@x.com' },
+      db.prismaPublic,
+    )
+    expect(user.username).toBe('dad')
+    expect(user.email).toBe('d@x.com')
+  })
+
+  it('rejects invalid username', async () => {
+    await expect(
+      signup({ username: 'ab', password: 'password123', displayName: 'X' }, db.prismaPublic),
+    ).rejects.toThrow(/아이디/)
+  })
+
+  it('rejects duplicate username (case-insensitive)', async () => {
+    await signup({ username: 'dad', password: 'password123', displayName: 'D' }, db.prismaPublic)
+    await expect(
+      signup({ username: 'DAD', password: 'password123', displayName: 'D2' }, db.prismaPublic),
+    ).rejects.toThrow(/이미 사용/)
+  })
+
+  it('requires at least one of username or email', async () => {
+    await expect(
+      signup({ password: 'password123', displayName: 'X' }, db.prismaPublic),
+    ).rejects.toThrow(/아이디 또는 이메일/)
+  })
+})
