@@ -47,4 +47,33 @@ describe('createFamily', () => {
     const f2 = await createFamily({ name: 'Smith', userId: u2.id }, db.prismaPublic)
     expect(f1.family.slug).not.toBe(f2.family.slug)
   })
+
+  it('throws on second create when enforceSingle is set', async () => {
+    const { user: u1 } = await signup(
+      { email: 'a@b.com', password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { user: u2 } = await signup(
+      { email: 'c@d.com', password: 'password123', displayName: 'C' },
+      db.prismaPublic,
+    )
+    await createFamily({ name: '첫째네', userId: u1.id }, db.prismaPublic, { enforceSingle: true })
+    await expect(
+      createFamily({ name: '둘째네', userId: u2.id }, db.prismaPublic, { enforceSingle: true }),
+    ).rejects.toThrow(/이미 가족/)
+  })
+
+  it('still allows multiple families without enforceSingle (isolation tests)', async () => {
+    const { user: u1 } = await signup(
+      { email: 'a@b.com', password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { user: u2 } = await signup(
+      { email: 'c@d.com', password: 'password123', displayName: 'C' },
+      db.prismaPublic,
+    )
+    await createFamily({ name: 'F1', userId: u1.id }, db.prismaPublic)
+    const f2 = await createFamily({ name: 'F2', userId: u2.id }, db.prismaPublic)
+    expect(f2.family.id).toBeTruthy()
+  })
 })

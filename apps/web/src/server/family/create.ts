@@ -8,10 +8,12 @@ const Input = z.object({
 })
 
 export type CreateFamilyResult = { family: Family; membership: Membership }
+export type CreateFamilyOptions = { enforceSingle?: boolean }
 
 export async function createFamily(
   raw: unknown,
   prisma: PrismaClient,
+  opts: CreateFamilyOptions = {},
 ): Promise<CreateFamilyResult> {
   const input = Input.parse(raw)
   let slug = toSlug(input.name)
@@ -23,6 +25,9 @@ export async function createFamily(
   }
 
   return prisma.$transaction(async (tx) => {
+    if (opts.enforceSingle && (await tx.family.count()) > 0) {
+      throw new Error('이미 가족이 설정되어 있어요')
+    }
     const family = await tx.family.create({
       data: {
         name: input.name,
