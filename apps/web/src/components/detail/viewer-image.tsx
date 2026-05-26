@@ -2,9 +2,10 @@
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
-import { AnimatePresence, motion } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { useRouter } from 'next/navigation'
-import { type CSSProperties, useCallback, useEffect, useState } from 'react'
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useState } from 'react'
+import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 
 type AssetSlim = {
   id: string
@@ -24,21 +25,15 @@ export function ViewerImage({
   onToggleChrome?: () => void
 }) {
   const router = useRouter()
-  const [dir, setDir] = useState<'left' | 'right' | null>(null)
+  const [scale, setScale] = useState(1)
 
   const goNext = useCallback(() => {
-    if (siblings.nextId) {
-      setDir('left')
-      router.push(`/detail/${siblings.nextId}`)
-    }
+    if (siblings.nextId) router.push(`/detail/${siblings.nextId}`)
   }, [router, siblings.nextId])
-
   const goPrev = useCallback(() => {
-    if (siblings.prevId) {
-      setDir('right')
-      router.push(`/detail/${siblings.prevId}`)
-    }
+    if (siblings.prevId) router.push(`/detail/${siblings.prevId}`)
   }, [router, siblings.prevId])
+  const goBack = useCallback(() => router.back(), [router])
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -56,40 +51,43 @@ export function ViewerImage({
   const isVideo = current.kind === 'video'
   const noMedia = isVideo ? current.videoSrc === null : trio === null && fallbackUrl === null
 
+  const swipeEnabled = scale <= 1.01
+
+  if (noMedia) {
+    return (
+      <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
+        처리 중…
+      </div>
+    )
+  }
+
+  if (isVideo) {
+    return (
+      <SwipeLayer enabled onNext={goNext} onPrev={goPrev} onClose={goBack} onTap={onToggleChrome}>
+        <VideoWithFallback src={current.videoSrc ?? ''} poster={current.posterUrl} />
+      </SwipeLayer>
+    )
+  }
+
   return (
-    <AnimatePresence initial={false} mode="wait">
-      <motion.div
-        key={current.id}
-        initial={{
-          x: dir === 'left' ? '100%' : dir === 'right' ? '-100%' : 0,
-          opacity: 0,
-        }}
-        animate={{ x: 0, opacity: 1 }}
-        exit={{ x: dir === 'left' ? '-100%' : '100%', opacity: 0 }}
-        transition={{ type: 'spring', stiffness: 350, damping: 30 }}
-        drag="x"
-        dragConstraints={{ left: 0, right: 0 }}
-        onDragEnd={(_, info) => {
-          if (info.offset.x < -80) goNext()
-          else if (info.offset.x > 80) goPrev()
-        }}
-        onClick={onToggleChrome}
-        className="flex min-h-screen items-center justify-center"
+    <SwipeLayer
+      enabled={swipeEnabled}
+      onNext={goNext}
+      onPrev={goPrev}
+      onClose={goBack}
+      onTap={onToggleChrome}
+    >
+      <TransformWrapper
+        minScale={1}
+        maxScale={4}
+        doubleClick={{ mode: 'zoomIn', step: 1.5 }}
+        wheel={{ step: 0.2 }}
+        onTransform={(_ref, state) => setScale(state.scale)}
       >
-        {noMedia ? (
-          <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
-            처리 중…
-          </div>
-        ) : isVideo ? (
-          <video
-            src={current.videoSrc ?? ''}
-            poster={current.posterUrl}
-            controls
-            className="max-h-screen max-w-full"
-          >
-            <track kind="captions" />
-          </video>
-        ) : (
+        <TransformComponent
+          wrapperStyle={{ width: '100%', height: '100%' }}
+          contentStyle={{ width: '100%', height: '100%' }}
+        >
           <PictureImage
             trio={trio}
             fallbackUrl={fallbackUrl}
@@ -101,15 +99,82 @@ export function ViewerImage({
             fetchPriority="high"
             objectFit="contain"
             className="max-h-screen max-w-full"
-            style={
-              {
-                touchAction: 'pinch-zoom',
-                viewTransitionName: `asset-${current.id}`,
-              } as CSSProperties
-            }
+            style={{ viewTransitionName: `asset-${current.id}` } as CSSProperties}
           />
-        )}
-      </motion.div>
-    </AnimatePresence>
+        </TransformComponent>
+      </TransformWrapper>
+    </SwipeLayer>
+  )
+}
+
+// scale<=1 일 때 한 motion.div 로 가로 스와이프(prev/next) + 세로 드래그-다운(close).
+function SwipeLayer({
+  enabled,
+  onNext,
+  onPrev,
+  onClose,
+  onTap,
+  children,
+}: {
+  enabled: boolean
+  onNext: () => void
+  onPrev: () => void
+  onClose: () => void
+  onTap?: (() => void) | undefined
+  children: ReactNode
+}) {
+  const [dragging, setDragging] = useState(false)
+
+  return (
+    <motion.div
+      key="swipe"
+      drag={enabled}
+      dragDirectionLock
+      dragConstraints={{ left: 0, right: 0, top: 0, bottom: 0 }}
+      dragElastic={0.4}
+      onDragStart={() => setDragging(true)}
+      onDragEnd={(_, info) => {
+        // drag 종료 직후 click 이 따라오는 브라우저 대비 가드(아래 onClick).
+        window.setTimeout(() => setDragging(false), 0)
+        if (Math.abs(info.offset.x) > Math.abs(info.offset.y)) {
+          if (info.offset.x < -80) onNext()
+          else if (info.offset.x > 80) onPrev()
+        } else if (info.offset.y > 120) {
+          onClose()
+        }
+      }}
+      onClick={() => {
+        if (!dragging) onTap?.()
+      }}
+      className="flex min-h-screen w-full items-center justify-center"
+    >
+      {children}
+    </motion.div>
+  )
+}
+
+function VideoWithFallback({ src, poster }: { src: string; poster: string | undefined }) {
+  const [failed, setFailed] = useState(false)
+  if (failed) {
+    return (
+      <div className="flex flex-col items-center gap-3 p-8 text-center text-sm text-base-300">
+        <p>이 기기에서 재생할 수 없는 형식이에요.</p>
+        <a href={src} download className="rounded-full bg-base-700 px-4 py-2 text-base-50">
+          원본 다운로드
+        </a>
+      </div>
+    )
+  }
+  return (
+    <video
+      src={src}
+      poster={poster}
+      controls
+      playsInline
+      onError={() => setFailed(true)}
+      className="max-h-screen max-w-full"
+    >
+      <track kind="captions" />
+    </video>
   )
 }
