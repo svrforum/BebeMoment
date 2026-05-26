@@ -29,7 +29,11 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'album.create', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'album.create', familyCaps)
+  ) {
     throw new ForbiddenError('앨범을 만들 권한이 없어요')
   }
 

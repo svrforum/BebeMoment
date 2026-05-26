@@ -33,7 +33,11 @@ export async function createDiaryEntry(
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'record.create', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'record.create', familyCaps)
+  ) {
     throw new Error('No permission')
   }
 

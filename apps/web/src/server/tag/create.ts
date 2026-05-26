@@ -33,7 +33,11 @@ export async function createOrGetTag(raw: unknown, prismaPublic: PrismaPublic): 
     },
   })
   const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'tag.create', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'tag.create', familyCaps)
+  ) {
     throw new ForbiddenError('태그를 만들 권한이 없어요')
   }
 

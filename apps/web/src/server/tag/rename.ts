@@ -28,7 +28,11 @@ export async function renameTag(raw: unknown, prismaPublic: PrismaPublic): Promi
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'tag.rename', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'tag.rename', familyCaps)
+  ) {
     throw new ForbiddenError('태그를 변경할 권한이 없어요')
   }
 

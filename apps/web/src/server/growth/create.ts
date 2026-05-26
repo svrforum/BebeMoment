@@ -30,7 +30,11 @@ export async function createGrowthRecord(
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   const familyCaps = await getFamilyCapabilities(prisma)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'record.create', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'record.create', familyCaps)
+  ) {
     throw new Error('No permission: user is not a member of this family')
   }
 

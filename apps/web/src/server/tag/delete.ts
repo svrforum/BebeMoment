@@ -31,7 +31,11 @@ export async function deleteTag(
     },
   })
   const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'tag.delete', familyCaps)) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'tag.delete', familyCaps)
+  ) {
     throw new Error('No permission: cannot delete tags')
   }
 
