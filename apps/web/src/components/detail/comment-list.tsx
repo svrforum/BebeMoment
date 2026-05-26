@@ -15,6 +15,7 @@ export function CommentList({
   familyMembers,
   initialComments,
   onCountChange,
+  stickyComposer = false,
 }: {
   assetId: string
   currentUserId: string
@@ -23,6 +24,7 @@ export function CommentList({
   familyMembers: Member[]
   initialComments: CommentWithAuthor[]
   onCountChange?: (count: number) => void
+  stickyComposer?: boolean
 }) {
   const [comments, setComments] = useState<CommentWithAuthor[]>(initialComments)
   const [optimistic, setOptimistic] = useState<CommentWithAuthor[]>([])
@@ -79,34 +81,52 @@ export function CommentList({
     onCountChange?.(liveCount)
   }, [liveCount, onCountChange])
 
+  const list =
+    merged.length === 0 ? (
+      <p className="py-2 text-sm text-base-500">첫 댓글을 남겨보세요.</p>
+    ) : (
+      <div className="divide-y divide-base-100 dark:divide-base-800">
+        {merged.map((c) => (
+          <CommentItem
+            key={c.id}
+            comment={c}
+            currentUserId={currentUserId}
+            canDeleteAny={canDeleteAny}
+            familyMembers={familyMembers}
+            isOptimistic={c.id.startsWith('tmp-')}
+            onChanged={refetch}
+          />
+        ))}
+      </div>
+    )
+
+  const composer = (
+    <CommentComposer
+      assetId={assetId}
+      familyMembers={familyMembers}
+      onSubmit={refetch}
+      onOptimistic={onOptimistic}
+      onOptimisticFail={onOptimisticFail}
+    />
+  )
+
+  if (stickyComposer) {
+    // 댓글 본문은 위에서 스크롤되고, 작성칸은 시트 하단에 sticky 로 고정돼
+    // 모바일 키보드가 올라와도 항상 보인다.
+    return (
+      <div className="space-y-1">
+        {list}
+        <div className="sticky bottom-0 -mx-5 mt-1 border-t border-base-100 bg-base-0/95 px-5 pb-[env(safe-area-inset-bottom)] pt-3 backdrop-blur-xl dark:border-base-800 dark:bg-base-900/95">
+          {composer}
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="space-y-1">
-      {merged.length === 0 ? (
-        <p className="py-2 text-sm text-base-500">첫 댓글을 남겨보세요.</p>
-      ) : (
-        <div className="divide-y divide-base-100 dark:divide-base-800">
-          {merged.map((c) => (
-            <CommentItem
-              key={c.id}
-              comment={c}
-              currentUserId={currentUserId}
-              canDeleteAny={canDeleteAny}
-              familyMembers={familyMembers}
-              isOptimistic={c.id.startsWith('tmp-')}
-              onChanged={refetch}
-            />
-          ))}
-        </div>
-      )}
-      <div className="pt-3">
-        <CommentComposer
-          assetId={assetId}
-          familyMembers={familyMembers}
-          onSubmit={refetch}
-          onOptimistic={onOptimistic}
-          onOptimisticFail={onOptimisticFail}
-        />
-      </div>
+      {list}
+      <div className="pt-3">{composer}</div>
     </div>
   )
 }

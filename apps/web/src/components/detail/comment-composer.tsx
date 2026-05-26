@@ -79,6 +79,12 @@ export function CommentComposer({
         ref={textareaRef}
         value={body}
         onChange={(e) => setBody(e.target.value)}
+        onFocus={(e) => {
+          // 모바일 키보드가 올라올 때 작성칸이 가려지지 않도록 보이는 영역으로 끌어올린다.
+          requestAnimationFrame(() =>
+            e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+          )
+        }}
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit()
         }}
