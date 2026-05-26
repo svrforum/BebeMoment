@@ -23,6 +23,15 @@ export function pickVideoPosterUrl(urls: AssetUrls | null | undefined): string |
 }
 
 /**
+ * 동영상 재생 URL. 워커가 만든 H.264 호환본(videoCompat=preview.mp4) 우선, 없으면
+ * (레거시) 원본. <video src> 에는 절대 pickDisplayUrl(=JPEG 이미지) 을 쓰지 말 것.
+ */
+export function pickVideoUrl(urls: AssetUrls | null | undefined): string | null {
+  if (!urls) return null
+  return urls.videoCompat ?? urls.original ?? null
+}
+
+/**
  * 썸네일 trio (avif/webp/jpeg). Phase C-2 부터 채워짐. 레거시 자산은 null.
  * 사용처: 타임라인 카드, 캘린더 셀 — <picture> 태그용.
  */
