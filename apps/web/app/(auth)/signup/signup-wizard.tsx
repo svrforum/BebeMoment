@@ -202,7 +202,9 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
                   비밀번호를 만들어주세요
                 </h1>
-                <p className="mt-3 text-base text-base-500">8자 이상, 다른 곳에서 쓰지 않은 값으로.</p>
+                <p className="mt-3 text-base text-base-500">
+                  8자 이상, 다른 곳에서 쓰지 않은 값으로.
+                </p>
                 <div className="relative mt-8">
                   <input
                     // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
@@ -242,7 +244,10 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
                     className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                   {confirm.length > 0 && confirm === password && (
-                    <Check size={20} className="absolute right-5 top-1/2 -translate-y-1/2 text-point-500" />
+                    <Check
+                      size={20}
+                      className="absolute right-5 top-1/2 -translate-y-1/2 text-point-500"
+                    />
                   )}
                 </div>
                 {confirm.length > 0 && confirm !== password && (
@@ -304,8 +309,20 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
       </div>
 
       <div className="pt-6">
-        <Button type="button" size="lg" className="w-full" disabled={!stepValid || submitting} onClick={goNext}>
-          {submitting ? '가입하는 중…' : step === 'email' ? (email.trim() ? '가입하기' : '건너뛰고 가입') : '다음'}
+        <Button
+          type="button"
+          size="lg"
+          className="w-full"
+          disabled={!stepValid || submitting}
+          onClick={goNext}
+        >
+          {submitting
+            ? '가입하는 중…'
+            : step === 'email'
+              ? email.trim()
+                ? '가입하기'
+                : '건너뛰고 가입'
+              : '다음'}
         </Button>
         {step === 'username' && (
           <p className="pt-4 text-center text-sm text-base-500">
@@ -322,7 +339,8 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
 
 function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible: boolean }) {
   if (!visible) return <div className="mt-6 h-6" />
-  const label = score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
+  const label =
+    score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
   return (
     <div className="mt-6">
       <div className="flex gap-1.5">

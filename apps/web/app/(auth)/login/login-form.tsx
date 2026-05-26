@@ -10,7 +10,7 @@ type Props = {
 }
 
 export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
-  const [email, setEmail] = useState('')
+  const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -23,7 +23,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email, password }),
+      body: JSON.stringify({ identifier, password }),
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
@@ -39,17 +39,17 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
       {passwordEnabled && (
         <form onSubmit={submit} className="space-y-4">
           <div>
-            <label htmlFor="email" className="mb-1.5 block text-xs font-medium text-base-500">
-              이메일
+            <label htmlFor="identifier" className="mb-1.5 block text-xs font-medium text-base-500">
+              아이디 또는 이메일
             </label>
             <input
-              id="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              id="identifier"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
               required
-              autoComplete="email"
-              placeholder="name@example.com"
+              autoComplete="username"
+              placeholder="아이디 또는 name@example.com"
               className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
             />
           </div>
