@@ -44,6 +44,8 @@ model User {
   attachedTags          AssetTag[]       @relation("AssetTagAddedBy")
   createdAlbums         Album[]          @relation("AlbumCreatedBy")
   attachedAlbumAssets   AlbumAsset[]     @relation("AlbumAssetAddedBy")
+  pushSubscriptions     PushSubscription[]
+  notificationPrefs     NotificationPref[]
 
   @@map("users")
   @@schema("public")
@@ -488,5 +490,34 @@ model AlbumAsset {
   @@index([assetId])
   @@index([familyId, albumId, sortIndex])
   @@map("album_assets")
+  @@schema("public")
+}
+
+// ─────────────────────────────────────────────────────────────────────────
+// Push notifications — scoped by userId (not family), like Session.
+
+model PushSubscription {
+  id        String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  endpoint  String   @unique
+  p256dh    String
+  auth      String
+  userAgent String?  @map("user_agent")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([userId])
+  @@map("push_subscriptions")
+  @@schema("public")
+}
+
+model NotificationPref {
+  userId   String  @map("user_id") @db.Uuid
+  user     User    @relation(fields: [userId], references: [id], onDelete: Cascade)
+  category String
+  enabled  Boolean @default(true)
+
+  @@id([userId, category])
+  @@map("notification_prefs")
   @@schema("public")
 }

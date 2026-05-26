@@ -17,6 +17,8 @@ const TENANT_SCOPED_MODELS = new Set([
   'AssetTag',
   'Album',
   'AlbumAsset',
+  // NOTE: PushSubscription, NotificationPref are user-scoped (not family-scoped),
+  // like Session — queried by userId, no familyId filter required.
 ])
 
 type Mode = 'throw' | 'warn'
