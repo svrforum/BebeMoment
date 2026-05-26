@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { GrowthRecord, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
@@ -28,7 +29,8 @@ export async function createGrowthRecord(
   const membership = await prisma.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'record.create')) {
+  const familyCaps = await getFamilyCapabilities(prisma)
+  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'record.create', familyCaps)) {
     throw new Error('No permission: user is not a member of this family')
   }
 

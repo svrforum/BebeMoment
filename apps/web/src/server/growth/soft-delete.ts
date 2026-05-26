@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
@@ -20,9 +21,11 @@ export async function softDeleteGrowthRecord(raw: unknown, prisma: PrismaClient)
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt) throw new Error('No permission')
+  const familyCaps = await getFamilyCapabilities(prisma)
   const isOwn = rec.createdByUserId === input.byUserId
   const capability = isOwn ? 'record.delete.own' : 'record.delete.any'
-  if (!can(membership.role, capability)) throw new Error('No permission to delete this record')
+  if (!resolveCan(membership.role, capability, familyCaps))
+    throw new Error('No permission to delete this record')
 
   await prisma.growthRecord.update({
     where: { id: input.id, familyId: input.familyId },

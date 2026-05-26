@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { JournalEntry, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -38,8 +39,9 @@ export async function updateDiaryEntry(
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt) throw new Error('No permission')
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwn = entry.createdByUserId === input.byUserId
-  if (!can(membership.role, isOwn ? 'record.edit.own' : 'record.edit.any')) {
+  if (!resolveCan(membership.role, isOwn ? 'record.edit.own' : 'record.edit.any', familyCaps)) {
     throw new Error('No permission to edit this entry')
   }
   if (input.patch.babyId) {

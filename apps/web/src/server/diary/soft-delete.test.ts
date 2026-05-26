@@ -14,6 +14,7 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.appSetting.deleteMany()
   await db.prismaPublic.journalEntryAsset.deleteMany()
   await db.prismaPublic.journalEntry.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()

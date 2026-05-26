@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { GrowthRecord, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 
@@ -40,9 +41,10 @@ export async function updateGrowthRecord(
     throw new Error('No permission: not a member')
   }
 
+  const familyCaps = await getFamilyCapabilities(prisma)
   const isOwn = rec.createdByUserId === input.byUserId
   const capability = isOwn ? 'record.edit.own' : 'record.edit.any'
-  if (!can(membership.role, capability)) {
+  if (!resolveCan(membership.role, capability, familyCaps)) {
     throw new Error('No permission to edit this record')
   }
 

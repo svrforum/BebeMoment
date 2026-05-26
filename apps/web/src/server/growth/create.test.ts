@@ -14,6 +14,7 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.appSetting.deleteMany()
   await db.prismaPublic.growthRecord.deleteMany()
   await db.prismaPublic.baby.deleteMany()
   await db.prismaPublic.membership.deleteMany()

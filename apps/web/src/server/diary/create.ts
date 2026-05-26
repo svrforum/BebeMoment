@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { JournalEntry, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -31,7 +32,8 @@ export async function createDiaryEntry(
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'record.create')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (!membership || membership.deletedAt || !resolveCan(membership.role, 'record.create', familyCaps)) {
     throw new Error('No permission')
   }
 
