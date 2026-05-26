@@ -10,7 +10,9 @@ import { deleteGrowthAction, updateGrowthAction } from './actions'
 
 export default async function EditGrowthPage({
   params,
-}: { params: Promise<{ id: string; recordId: string }> }) {
+}: {
+  params: Promise<{ id: string; recordId: string }>
+}) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(

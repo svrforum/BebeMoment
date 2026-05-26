@@ -3,11 +3,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { redirect } from 'next/navigation'
 import { AcceptButton } from './accept-button'
 
-export default async function InvitePage({
-  params,
-}: {
-  params: Promise<{ token: string }>
-}) {
+export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const invite = await prismaPublic.invite.findUnique({
     where: { token },

@@ -16,11 +16,7 @@ import { notFound } from 'next/navigation'
 
 const PREVIEW_PER_CHILD = 4
 
-export default async function AlbumDetailPage({
-  params,
-}: {
-  params: Promise<{ id: string }>
-}) {
+export default async function AlbumDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
   const ctx = await getContext()
   if (!ctx.family) return null

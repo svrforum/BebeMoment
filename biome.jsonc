@@ -1,0 +1,82 @@
+{
+  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "files": {
+    "includes": [
+      "**",
+      "!**/node_modules",
+      "!**/dist",
+      "!**/.next",
+      "!**/coverage",
+      "!**/.turbo",
+      "!**/build",
+      "!**/generated",
+      "!**/*.md",
+      "!**/data",
+      "!**/pg",
+      "!**/redis",
+      "!**/apps/web/public/sw.js",
+      "!**/apps/web/public/sw.js.map",
+      "!**/apps/web/public/workbox-*.js",
+      "!**/apps/web/public/workbox-*.js.map",
+      "!**/apps/web/public/swe-worker-*.js",
+      "!**/apps/web/public/swe-worker-*.js.map",
+      "!**/e2e/test-results",
+      "!**/e2e/playwright-report"
+    ]
+  },
+  "assist": {
+    "actions": {
+      "source": {
+        // Biome 2's import-sort reorders specifiers differently than 1.9 (234 files); off to avoid churn-only diffs.
+        "organizeImports": "off"
+      }
+    }
+  },
+  "css": {
+    "parser": {
+      // globals.css uses Tailwind v4 directives (@theme, @custom-variant, @apply); without this the CSS parser errors on them.
+      "tailwindDirectives": true
+    }
+  },
+  "formatter": {
+    "enabled": true,
+    "indentStyle": "space",
+    "indentWidth": 2,
+    "lineWidth": 100,
+    "lineEnding": "lf"
+  },
+  "javascript": {
+    "formatter": {
+      "quoteStyle": "single",
+      "semicolons": "asNeeded",
+      "trailingCommas": "all",
+      "arrowParentheses": "always"
+    }
+  },
+  "linter": {
+    "enabled": true,
+    "rules": {
+      "recommended": true,
+      "a11y": {
+        // New biome 2 rules, too opinionated for intentional patterns here (drag-drop dropzone div,
+        // aria-label on blurhash/placeholder spans/divs). They also cascade into each other, so off.
+        "noStaticElementInteractions": "off",
+        "useAriaPropsSupportedByRole": "off",
+        "useSemanticElements": "off"
+      },
+      "style": {
+        "noNonNullAssertion": "warn",
+        "useConst": "error",
+        "useImportType": "error",
+        "useExportType": "error"
+      },
+      "correctness": {
+        "noUnusedVariables": "error",
+        "noUnusedImports": "error"
+      },
+      "suspicious": {
+        "noExplicitAny": "error"
+      }
+    }
+  }
+}

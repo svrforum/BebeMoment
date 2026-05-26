@@ -12,7 +12,9 @@ import { deleteMilestoneAction, updateMilestoneAction } from './actions'
 
 export default async function EditMilestonePage({
   params,
-}: { params: Promise<{ id: string; msId: string }> }) {
+}: {
+  params: Promise<{ id: string; msId: string }>
+}) {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(

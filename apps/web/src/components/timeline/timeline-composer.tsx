@@ -382,13 +382,7 @@ function VisibilityOption({
   )
 }
 
-function Avatar({
-  avatarPath,
-  initial,
-}: {
-  avatarPath: string | null
-  initial: string
-}) {
+function Avatar({ avatarPath, initial }: { avatarPath: string | null; initial: string }) {
   if (avatarPath) {
     return <img src={avatarPath} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
   }

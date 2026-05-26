@@ -1,13 +1,7 @@
 import type { GrowthRecord } from '@bebe/db-public'
 import Link from 'next/link'
 
-export function GrowthList({
-  records,
-  babyId,
-}: {
-  records: GrowthRecord[]
-  babyId: string
-}) {
+export function GrowthList({ records, babyId }: { records: GrowthRecord[]; babyId: string }) {
   if (records.length === 0) return null
   return (
     <ul className="divide-y rounded-2xl border">

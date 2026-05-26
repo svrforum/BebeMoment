@@ -193,12 +193,14 @@
   }
   .focus-ring:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 2px var(--color-base-0), 0 0 0 4px
-      color-mix(in srgb, var(--color-point-500) 55%, transparent);
+    box-shadow:
+      0 0 0 2px var(--color-base-0),
+      0 0 0 4px color-mix(in srgb, var(--color-point-500) 55%, transparent);
   }
   .dark .focus-ring:focus-visible {
-    box-shadow: 0 0 0 2px var(--color-base-950), 0 0 0 4px
-      color-mix(in srgb, var(--color-point-500) 55%, transparent);
+    box-shadow:
+      0 0 0 2px var(--color-base-950),
+      0 0 0 4px color-mix(in srgb, var(--color-point-500) 55%, transparent);
   }
   /* Glass surface for sheets / overlays */
   .glass {
@@ -212,33 +214,39 @@
   /* Subtle elevated card */
   .card-elevated {
     background-color: var(--color-base-0);
-    box-shadow: 0 1px 0 color-mix(in srgb, var(--color-base-900) 4%, transparent), 0 20px 40px -24px
-      color-mix(in srgb, var(--color-base-900) 14%, transparent);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, var(--color-base-900) 4%, transparent),
+      0 20px 40px -24px color-mix(in srgb, var(--color-base-900) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--color-base-900) 6%, transparent);
     border-radius: 1.25rem;
   }
   .dark .card-elevated {
     background-color: var(--color-base-900);
     border-color: color-mix(in srgb, var(--color-base-0) 6%, transparent);
-    box-shadow: 0 1px 0 color-mix(in srgb, #000 30%, transparent), 0 20px 40px -24px
-      color-mix(in srgb, #000 60%, transparent);
+    box-shadow:
+      0 1px 0 color-mix(in srgb, #000 30%, transparent),
+      0 20px 40px -24px color-mix(in srgb, #000 60%, transparent);
   }
   /* Halo behind empty-state / hero icons — a faint point-tinted radial
      glow + ring so the icon feels intentional, not a bare grey blob. */
   .icon-halo {
-    background: radial-gradient(
+    background:
+      radial-gradient(
         circle at center,
         color-mix(in srgb, var(--color-point-500) 12%, transparent),
         transparent 70%
-      ), var(--color-base-100);
+      ),
+      var(--color-base-100);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-point-500) 14%, transparent);
   }
   .dark .icon-halo {
-    background: radial-gradient(
+    background:
+      radial-gradient(
         circle at center,
         color-mix(in srgb, var(--color-point-500) 16%, transparent),
         transparent 70%
-      ), var(--color-base-800);
+      ),
+      var(--color-base-800);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--color-point-500) 22%, transparent);
   }
 }

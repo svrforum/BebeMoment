@@ -55,11 +55,7 @@ export function AlbumCard({ id, name, childCount, assetCount, preview = [], clas
   )
 }
 
-function CollagePreview({
-  items,
-}: {
-  items: { id: string; urls: AssetUrls | null }[]
-}) {
+function CollagePreview({ items }: { items: { id: string; urls: AssetUrls | null }[] }) {
   const cells = items.slice(0, 4)
   // 1 → fill; 2 → top + bottom; 3 → 1 large left + 2 right; 4 → 2x2.
   if (cells.length === 1) {

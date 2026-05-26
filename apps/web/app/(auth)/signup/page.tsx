@@ -300,13 +300,7 @@ function SignupWizard() {
   )
 }
 
-function PasswordStrengthBar({
-  score,
-  visible,
-}: {
-  score: 0 | 1 | 2 | 3
-  visible: boolean
-}) {
+function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible: boolean }) {
   if (!visible) return <div className="mt-6 h-6" />
   const label =
     score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'

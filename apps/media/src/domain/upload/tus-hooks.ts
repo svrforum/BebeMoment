@@ -12,10 +12,7 @@ import type pino from 'pino'
  * (`families/<familyId>/assets/<assetId>/original`). Atomic rename when same
  * filesystem; copy+unlink fallback otherwise.
  */
-async function moveTusToFinal(args: {
-  assetId: string
-  finalKey: string
-}): Promise<void> {
+async function moveTusToFinal(args: { assetId: string; finalKey: string }): Promise<void> {
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', args.assetId)
   const finalPath = path.join(env.STORAGE_PATH, args.finalKey)
