@@ -10,9 +10,12 @@ import { cookies } from 'next/headers'
  * exactly the way Better Auth does (better-call's signed-cookie format:
  * `encodeURIComponent(token + "." + base64(HMAC-SHA256(token, secret)))`).
  *
- * The signature round-trip is covered by oidc-session.test.ts, which feeds the
- * produced cookie back through auth.api.getSession — if the format ever drifts
- * from Better Auth's reader, that test fails.
+ * NOTE: we return the RAW `token.signature` — Next.js `cookies().set()` URL-encodes
+ * the value itself, so an extra encodeURIComponent here would double-encode
+ * (base64 `=` → `%3D` → `%253D`) and Better Auth's reader would reject it. The
+ * browser therefore receives a single-encoded cookie, matching what getSession
+ * expects. oidc-session.test.ts simulates the browser-sent (single-encoded)
+ * cookie via encodeURIComponent and feeds it to getSession.
  */
 export async function createSessionAndSetCookie(
   userId: string,
@@ -47,5 +50,6 @@ async function signCookieValue(value: string, secret: string): Promise<string> {
   )
   const sigBuf = await crypto.subtle.sign('HMAC', key, new TextEncoder().encode(value))
   const signature = btoa(String.fromCharCode(...new Uint8Array(sigBuf)))
-  return encodeURIComponent(`${value}.${signature}`)
+  // Raw — Next's cookies().set() URL-encodes the value once (see doc comment).
+  return `${value}.${signature}`
 }
