@@ -1,94 +1,43 @@
 services:
-  caddy:
-    image: caddy:2-alpine
+  app:
+    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/app:${TAG:-latest}
     ports:
-      - "${PORT:-3000}:80"
-    volumes:
-      - ./Caddyfile:/etc/caddy/Caddyfile:ro
-      - caddy_data:/data
-      - caddy_config:/config
-    depends_on:
-      web: { condition: service_healthy }
-      media: { condition: service_healthy }
-    restart: unless-stopped
-
-  web:
-    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/web:${TAG:-latest}
+      - "${PORT:-3000}:3000"
     environment:
       DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
       DATABASE_URL_WEB: postgres://bebe_web:${BEBE_WEB_DB_PASSWORD}@postgres:5432/bebe
+      DATABASE_URL_MEDIA: postgres://bebe_media:${BEBE_MEDIA_DB_PASSWORD}@postgres:5432/bebe
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
       PUBLIC_URL: ${PUBLIC_URL}
+      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-${PUBLIC_URL}}
+      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-${PUBLIC_URL}}
+      MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
+      MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
       STORAGE_MODE: ${STORAGE_MODE:-local}
       STORAGE_PATH: /data
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
       LOG_LEVEL: ${LOG_LEVEL:-info}
-      MEDIA_INTERNAL_URL: http://media:3001
-      MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
-      MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
-      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-${PUBLIC_URL}}
       BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
     volumes:
       - ${DATA_DIR:-./data}:/data
-    expose:
-      - "3000"
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      media: { condition: service_healthy }
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
+      start_period: 40s
     deploy:
       resources:
         limits:
-          memory: ${WEB_MEMORY_LIMIT:-1g}
-
-  media:
-    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/media:${TAG:-latest}
-    environment:
-      DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
-      DATABASE_URL_MEDIA: postgres://bebe_media:${BEBE_MEDIA_DB_PASSWORD}@postgres:5432/bebe
-      REDIS_URL: redis://redis:6379
-      SECRET_KEY: ${SECRET_KEY}
-      PUBLIC_URL: ${PUBLIC_URL}
-      STORAGE_MODE: ${STORAGE_MODE:-local}
-      STORAGE_PATH: /data
-      MEDIA_ROLE: both
-      MEDIA_PORT: 3001
-      MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
-      MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
-      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-${PUBLIC_URL}}
-      PUID: ${PUID:-1000}
-      PGID: ${PGID:-1000}
-      LOG_LEVEL: ${LOG_LEVEL:-info}
-      BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
-      BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
-    volumes:
-      - ${DATA_DIR:-./data}:/data
-    expose:
-      - "3001"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/media/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    deploy:
-      resources:
-        limits:
-          memory: ${MEDIA_MEMORY_LIMIT:-1536m}
+          memory: ${APP_MEMORY_LIMIT:-2560m}
 
   postgres:
     image: postgres:16-alpine
@@ -123,7 +72,3 @@ services:
       resources:
         limits:
           memory: ${REDIS_MEMORY_LIMIT:-128m}
-
-volumes:
-  caddy_data:
-  caddy_config:
