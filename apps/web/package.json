@@ -5,7 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "next dev -p 3000",
-    "build": "next build --experimental-build-mode=compile",
+    "build": "next build",
     "start": "next start -p 3000",
     "notifications-worker": "tsx scripts/notifications-worker.ts",
     "typecheck": "tsc --noEmit",
