@@ -61,25 +61,25 @@ export default async function SettingsPage() {
         </Card>
         <section className="space-y-2">
           <h2 className="px-1 text-[13px] font-semibold text-base-500">알림</h2>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-sm dark:border-base-800/70 dark:bg-base-900">
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <PushToggle />
           </div>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-2 shadow-sm dark:border-base-800/70 dark:bg-base-900">
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-2 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <NotificationPrefs initial={initialPrefs} />
           </div>
         </section>
         <section className="space-y-2">
           <h2 className="px-1 text-[13px] font-semibold text-base-500">관리</h2>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-sm divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-card divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
             {MANAGE_ROWS.map(({ href, label, icon: Icon }) => (
               <Link
                 key={href}
                 href={href}
-                className="flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
+                className="group flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
               >
                 <Icon className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
                 <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">{label}</span>
-                <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 dark:text-base-600" />
+                <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 transition-transform ease-ios group-hover:translate-x-0.5 dark:text-base-600" />
               </Link>
             ))}
           </div>

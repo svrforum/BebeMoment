@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { DiaryCard } from '@/components/timeline/diary-card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
@@ -37,25 +38,19 @@ export default async function DiaryPage() {
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
         {items.length === 0 ? (
-          <div className="mx-auto flex max-w-sm flex-col items-center gap-4 px-4 py-16 text-center">
-            <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
-              <BookOpen className="h-10 w-10 text-base-400" strokeWidth={1.6} />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-base-900 dark:text-base-50">
-                첫 일기를 시작해볼까요
-              </p>
-              <p className="mt-1 text-sm text-base-500">
-                오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요
-              </p>
-            </div>
-            <Link
-              href="/diary/new"
-              className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 dark:bg-base-50 dark:text-base-900"
-            >
-              일기 쓰기
-            </Link>
-          </div>
+          <EmptyState
+            icon={BookOpen}
+            title="첫 일기를 시작해볼까요"
+            description="오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요"
+            action={
+              <Link
+                href="/diary/new"
+                className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 hover:bg-base-800 dark:bg-base-50 dark:text-base-900 dark:hover:bg-base-200"
+              >
+                일기 쓰기
+              </Link>
+            }
+          />
         ) : (
           <ul className="space-y-3">
             {items.map((e) => (

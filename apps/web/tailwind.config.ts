@@ -48,8 +48,11 @@ export default {
         '3xl': '28px',
       },
       boxShadow: {
-        card: '0 1px 2px rgba(0,0,0,.04), 0 1px 3px rgba(0,0,0,.06)',
-        elevated: '0 4px 16px rgba(0,0,0,.08)',
+        // Two-layer "Toss-light" depth: a crisp 1px contact edge plus a soft
+        // ambient spread. Reads as layered without Material-style elevation.
+        card: '0 0 0 1px rgba(0,0,0,.03), 0 1px 2px rgba(0,0,0,.04), 0 4px 12px -6px rgba(0,0,0,.08)',
+        elevated:
+          '0 0 0 1px rgba(0,0,0,.04), 0 2px 6px -2px rgba(0,0,0,.06), 0 12px 32px -12px rgba(0,0,0,.16)',
       },
       transitionTimingFunction: {
         ios: 'cubic-bezier(0.4, 0, 0.2, 1)',
