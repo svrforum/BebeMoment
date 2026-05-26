@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 
@@ -19,9 +20,11 @@ export async function softDeleteAsset(
   })
   if (!asset) throw new Error('Asset not found')
 
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
   const canDelete =
-    (asset.uploadedByUserId === args.byUserId && can(membership.role, 'asset.delete.own')) ||
-    can(membership.role, 'asset.delete.any')
+    (asset.uploadedByUserId === args.byUserId &&
+      resolveCan(membership.role, 'asset.delete.own', familyCaps)) ||
+    resolveCan(membership.role, 'asset.delete.any', familyCaps)
   if (!canDelete) throw new Error('No permission to delete this asset')
 
   await prismaMedia.asset.update({

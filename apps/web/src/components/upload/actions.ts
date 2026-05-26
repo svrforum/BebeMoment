@@ -2,7 +2,9 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { initAssetViaMedia } from '@/server/upload/init'
+import { resolveCan } from '@bebe/core'
 import type { InitAssetResponse } from '@bebe/media-client'
 
 export type StartUploadInput = {
@@ -23,6 +25,11 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) throw new Error('No current family')
+  if (!ctx.membership) throw new Error('No current family')
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (!resolveCan(ctx.membership.role, 'asset.upload', familyCaps)) {
+    throw new Error('업로드 권한이 없어요. 관리자에게 문의하세요.')
+  }
 
   return await initAssetViaMedia({
     familyId: ctx.family.id,

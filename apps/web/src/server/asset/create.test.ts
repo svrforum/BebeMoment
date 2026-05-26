@@ -14,6 +14,7 @@ afterAll(async () => {
 })
 beforeEach(async () => {
   await db.prismaMedia.asset.deleteMany()
+  await db.prismaPublic.appSetting.deleteMany()
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
   await db.prismaPublic.user.deleteMany()
@@ -76,5 +77,34 @@ describe('createAsset', () => {
         db.prismaMedia,
       ),
     ).rejects.toThrow(/permission|member/i)
+  })
+
+  it('rejects family-role member when upload not granted', async () => {
+    const { family } = await setup()
+    const { user: fam } = await signup(
+      { email: 'fam@b.com', password: 'password123', displayName: 'Fam' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    await expect(
+      createAsset(
+        {
+          familyId: family.id,
+          uploadedByUserId: fam.id,
+          kind: 'image',
+          originalFilename: 'photo.jpg',
+          mimeType: 'image/jpeg',
+          originalKey: 'placeholder',
+          sizeBytes: 0n,
+          sha256: 'a'.repeat(64),
+          takenAt: new Date(),
+          takenAtSource: 'uploaded',
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow(/권한|permission/i)
   })
 })

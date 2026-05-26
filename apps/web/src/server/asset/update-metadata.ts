@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -45,9 +46,11 @@ export async function updateAssetMetadata(
   })
   if (!membership || membership.deletedAt) throw new Error('No permission')
 
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwner = asset.uploadedByUserId === input.byUserId
   const allowed =
-    (isOwner && can(membership.role, 'asset.edit.own')) || can(membership.role, 'asset.edit.any')
+    (isOwner && resolveCan(membership.role, 'asset.edit.own', familyCaps)) ||
+    resolveCan(membership.role, 'asset.edit.any', familyCaps)
   if (!allowed) throw new Error('No permission to edit this asset')
 
   return media.updateAssetMetadata(input.assetId, {

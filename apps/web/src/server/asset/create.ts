@@ -1,4 +1,5 @@
-import { can } from '@bebe/core'
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Asset, AssetKind, TakenAtSource } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
@@ -24,7 +25,12 @@ export async function createAsset(
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.uploadedByUserId } },
   })
-  if (!membership || membership.deletedAt || !can(membership.role, 'asset.upload')) {
+  const familyCaps = await getFamilyCapabilities(prismaPublic)
+  if (
+    !membership ||
+    membership.deletedAt ||
+    !resolveCan(membership.role, 'asset.upload', familyCaps)
+  ) {
     throw new Error('No permission to upload to this family')
   }
 
