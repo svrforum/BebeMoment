@@ -16,6 +16,7 @@ beforeEach(async () => {
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
   await db.prismaPublic.user.deleteMany()
+  await db.prismaPublic.appSetting.deleteMany()
 })
 
 describe('resolveContext', () => {
@@ -48,6 +49,41 @@ describe('resolveContext', () => {
     )
     expect(ctx.family?.id).toBe(family.id)
     expect(ctx.membership?.role).toBe('owner')
+  })
+
+  it('exposes owner capabilities including asset.upload', async () => {
+    const { user } = await signup(
+      { email: 'a@b.com', password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
+    const ctx = await resolveContext(
+      { userId: user.id, currentFamilyId: family.id },
+      db.prismaPublic,
+    )
+    expect(ctx.capabilities).toContain('asset.upload')
+  })
+
+  it('gates family-role capabilities by the family permission setting', async () => {
+    const { user: owner } = await signup(
+      { email: 'a@b.com', password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { user: member } = await signup(
+      { email: 'm@b.com', password: 'password123', displayName: 'M' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: owner.id }, db.prismaPublic)
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: member.id, role: 'family' },
+    })
+    const ctx = await resolveContext(
+      { userId: member.id, currentFamilyId: family.id },
+      db.prismaPublic,
+    )
+    expect(ctx.membership?.role).toBe('family')
+    expect(ctx.capabilities).not.toContain('asset.upload')
+    expect(ctx.capabilities).toContain('social.comment.create')
   })
 
   it("returns null family if currentFamilyId doesn't belong to user", async () => {
