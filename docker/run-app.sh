@@ -31,18 +31,22 @@ echo "[run-app] starting web on :3000"
 pnpm --filter @bebe/web exec next start -p 3000 -H 0.0.0.0 &
 WEB_PID=$!
 
+echo "[run-app] starting notifications worker"
+pnpm --filter @bebe/web exec tsx scripts/notifications-worker.ts &
+NOTIF_PID=$!
+
 shutdown() {
   trap - TERM INT
   echo "[run-app] signal received, stopping children"
-  kill -TERM "$MEDIA_PID" "$WEB_PID" 2>/dev/null || true
-  wait "$MEDIA_PID" "$WEB_PID" 2>/dev/null || true
+  kill -TERM "$MEDIA_PID" "$WEB_PID" "$NOTIF_PID" 2>/dev/null || true
+  wait "$MEDIA_PID" "$WEB_PID" "$NOTIF_PID" 2>/dev/null || true
   exit 0
 }
 trap shutdown TERM INT
 
-# 둘 중 하나라도 먼저 종료되면 컨테이너 전체를 내린다(Docker restart 유도).
+# 셋 중 하나라도 먼저 종료되면 컨테이너 전체를 내린다(Docker restart 유도).
 wait -n
 echo "[run-app] a child process exited — shutting down container" >&2
-kill -TERM "$MEDIA_PID" "$WEB_PID" 2>/dev/null || true
+kill -TERM "$MEDIA_PID" "$WEB_PID" "$NOTIF_PID" 2>/dev/null || true
 wait 2>/dev/null || true
 exit 1
