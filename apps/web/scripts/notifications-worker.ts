@@ -4,8 +4,8 @@ import { handleNotificationJob } from '@/server/notifications/worker'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { NOTIFICATIONS_QUEUE, type NotificationJob } from '@bebe/core'
+import { createRedisConnection } from '@bebe/queue'
 import { type Job, Worker } from 'bullmq'
-import IORedis from 'ioredis'
 import webpush from 'web-push'
 import { z } from 'zod'
 
@@ -26,9 +26,7 @@ async function main(): Promise<void> {
   const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
   webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
 
-  const connection = new IORedis(process.env.REDIS_URL ?? 'redis://localhost:6379', {
-    maxRetriesPerRequest: null,
-  })
+  const connection = createRedisConnection()
 
   const worker = new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,

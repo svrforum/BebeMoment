@@ -17,6 +17,7 @@
     "@bebe/db-media": "workspace:*",
     "@bebe/db-public": "workspace:*",
     "@bebe/media-client": "workspace:*",
+    "@bebe/queue": "workspace:*",
     "@lucia-auth/adapter-prisma": "^4.0.1",
     "@radix-ui/react-slot": "^1.2.4",
     "@radix-ui/react-toast": "^1.2.15",

@@ -14,6 +14,7 @@
     "@bebe/core": "workspace:*",
     "@bebe/db-media": "workspace:*",
     "@bebe/media-client": "workspace:*",
+    "@bebe/queue": "workspace:*",
     "@bebe/storage": "workspace:*",
     "@fastify/cors": "^9.0.1",
     "@tus/file-store": "^2.0.0",
