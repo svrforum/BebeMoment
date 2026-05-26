@@ -25,19 +25,21 @@ if [ -d /repo/apps/web/.next ]; then
   chown -R bebe:bebe /repo/apps/web/.next 2>/dev/null || true
 fi
 
-# Run migrations (web container; media sets PRISMA_SKIP_MIGRATE=1)
+# Run migrations. Use the workspace-pinned Prisma CLI via `pnpm exec` — NOT
+# `npx prisma`, which downloads the latest major (v7) and rejects the v5-style
+# `datasource { url }` schema (P1012). Mirrors the builder's `prisma generate`.
 # Order matters: db-public first (public schema), db-media second (cross-schema FKs).
 if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
   if [ -f packages/db-public/prisma/schema.prisma ]; then
     echo "running prisma migrate deploy (db-public)…"
-    gosu bebe npx prisma migrate deploy --schema=packages/db-public/prisma/schema.prisma || {
+    gosu bebe pnpm --filter @bebe/db-public exec prisma migrate deploy || {
       echo "db-public migration failed"
       exit 1
     }
   fi
   if [ -f packages/db-media/prisma/schema.prisma ]; then
     echo "running prisma migrate deploy (db-media)…"
-    gosu bebe npx prisma migrate deploy --schema=packages/db-media/prisma/schema.prisma || {
+    gosu bebe pnpm --filter @bebe/db-media exec prisma migrate deploy || {
       echo "db-media migration failed"
       exit 1
     }

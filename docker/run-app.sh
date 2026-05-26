@@ -8,7 +8,9 @@ set -uo pipefail
 MEDIA_PORT="${MEDIA_PORT:-3001}"
 
 echo "[run-app] starting media on :${MEDIA_PORT}"
-node --loader tsx/esm apps/media/src/main.ts &
+# pnpm --filter 로 apps/media 컨텍스트에서 start 실행 → tsx/소스가 그 곳에서 resolve.
+# (루트에서 `node --loader tsx/esm` 하면 tsx 가 apps/media 의존성이라 안 잡힘.)
+pnpm --filter @bebe/media start &
 MEDIA_PID=$!
 
 # web 의 /media 프록시가 첫 요청에서 502 나지 않도록 media health 대기.
