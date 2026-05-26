@@ -26,7 +26,7 @@ export function BottomNav() {
               href={href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'group flex flex-col items-center justify-center gap-1 transition-colors ease-ios',
+                'group flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors ease-ios focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-point-500/50',
                 active ? 'text-point-500' : 'text-base-400',
               )}
             >

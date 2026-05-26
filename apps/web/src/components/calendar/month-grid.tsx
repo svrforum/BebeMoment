@@ -104,7 +104,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
             <button
               type="button"
               onClick={jumpToday}
-              className="rounded-full px-3 py-1.5 text-[12px] font-medium text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+              className="focus-ring rounded-full px-3 py-1.5 text-[12px] font-medium text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
             >
               오늘
             </button>
@@ -113,7 +113,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
             type="button"
             onClick={prev}
             aria-label="이전 달"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -121,7 +121,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
             type="button"
             onClick={next}
             aria-label="다음 달"
-            className="flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronRight className="h-5 w-5" />
           </button>

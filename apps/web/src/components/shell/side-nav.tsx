@@ -65,7 +65,7 @@ export function SideNav({ familyName }: Props) {
               key={href}
               href={href}
               className={cn(
-                'group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-all ease-ios',
+                'focus-ring group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-all ease-ios',
                 active
                   ? 'bg-point-500/10 text-point-500'
                   : 'text-base-600 hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100',
@@ -89,7 +89,7 @@ export function SideNav({ familyName }: Props) {
           type="button"
           onClick={cycle}
           title={`테마: ${themeTitle} (클릭으로 전환)`}
-          className="flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium text-base-500 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+          className="focus-ring flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium text-base-500 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
         >
           <ThemeIcon size={16} strokeWidth={1.9} />
           <span className="flex-1 text-left">테마</span>
