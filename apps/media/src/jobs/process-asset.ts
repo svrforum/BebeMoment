@@ -4,6 +4,7 @@ import type { StorageAdapter } from '@bebe/storage'
 import type pino from 'pino'
 import type { ProgressEvent } from '../progress/channel'
 import { convertImageIfNeeded } from './convert'
+import { type EnqueueNotification, enqueueNotification } from './enqueue-notification'
 import { processImage } from './image-pipeline'
 import type { ProcessAssetJob } from './types'
 import { processVideo } from './video-pipeline'
@@ -20,10 +21,12 @@ export type ProcessAssetArgs = {
   storage: StorageAdapter
   publishProgress: (event: ProgressEvent) => Promise<void>
   logger: pino.Logger
+  enqueueNotification?: EnqueueNotification
 }
 
 export async function processAsset(args: ProcessAssetArgs): Promise<void> {
   const { job, prisma, storage, publishProgress, logger } = args
+  const enqueue = args.enqueueNotification ?? enqueueNotification
 
   const asset = await prisma.asset.findFirst({
     where: { id: job.assetId, familyId: job.familyId },
@@ -131,6 +134,13 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       familyId: asset.familyId,
       status: 'ready',
       derivatives,
+    })
+
+    await enqueue({
+      familyId: asset.familyId,
+      actorUserId: asset.uploadedByUserId,
+      type: 'asset.uploaded',
+      payload: { assetId: asset.id },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
