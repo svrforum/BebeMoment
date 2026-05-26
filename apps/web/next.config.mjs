@@ -1,8 +1,15 @@
+import path from 'node:path'
+
+// 모노레포 루트 = 이 설정 파일(apps/web) 기준 ../.. — 호스트(/opt/stacks/bebe-moment)와
+// Docker(/repo) 양쪽에서 올바르게 해석된다. 절대경로 하드코딩은 컨테이너 빌드에서
+// Turbopack "distDirRoot navigates out of projectPath" 로 깨진다.
+const repoRoot = path.join(import.meta.dirname, '..', '..')
+
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
-  outputFileTracingRoot: '/opt/stacks/bebe-moment',
+  outputFileTracingRoot: repoRoot,
   transpilePackages: [
     '@bebe/config',
     '@bebe/core',
