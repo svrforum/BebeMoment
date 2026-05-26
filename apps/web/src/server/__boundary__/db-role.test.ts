@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
@@ -22,8 +23,12 @@ describe('DB role boundary (Phase B M3)', () => {
     u.password = 'tm'
     const urlMedia = u.toString()
 
-    webPrisma = new PrismaPublic({ datasources: { db: { url: urlWeb } } })
-    mediaPrisma = new PrismaMedia({ datasources: { db: { url: urlMedia } } })
+    webPrisma = new PrismaPublic({
+      adapter: new PrismaPg({ connectionString: urlWeb }, { schema: 'public' }),
+    })
+    mediaPrisma = new PrismaMedia({
+      adapter: new PrismaPg({ connectionString: urlMedia }, { schema: 'media' }),
+    })
   }, 240_000)
 
   afterAll(async () => {

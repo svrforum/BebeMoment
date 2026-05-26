@@ -1,8 +1,9 @@
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
-import { PrismaClient } from '../prisma/generated/client'
+import { PrismaClient } from '../prisma/generated/client/client'
 
 const __filename = fileURLToPath(import.meta.url)
 const __dirname = path.dirname(__filename)
@@ -44,7 +45,8 @@ export async function startTestDb(): Promise<TestDb> {
   await runMigrations('@bebe/db-public', url)
   await runMigrations('@bebe/db-media', url)
 
-  const prisma = new PrismaClient({ datasources: { db: { url } } })
+  const adapter = new PrismaPg({ connectionString: url }, { schema: 'media' })
+  const prisma = new PrismaClient({ adapter })
   return {
     prisma,
     url,

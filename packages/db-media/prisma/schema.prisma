@@ -1,14 +1,13 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider        = "prisma-client"
   output          = "./generated/client"
-  // See db-public/prisma/schema.prisma for rationale on the Alpine target.
-  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  // Driver-adapter build — see db-public/prisma/schema.prisma for rationale.
+  moduleFormat    = "esm"
+  runtime         = "nodejs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   schemas  = ["media"]
 }
 

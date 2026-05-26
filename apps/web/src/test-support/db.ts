@@ -1,3 +1,4 @@
+import { PrismaPg } from '@prisma/adapter-pg'
 import { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import { startTestDb as startPublicDb } from '@bebe/db-public/src/test-db'
 
@@ -10,7 +11,8 @@ export type FullTestDb = {
 
 export async function startFullTestDb(): Promise<FullTestDb> {
   const pub = await startPublicDb()
-  const mediaPrisma = new PrismaMedia({ datasources: { db: { url: pub.url } } })
+  const mediaAdapter = new PrismaPg({ connectionString: pub.url }, { schema: 'media' })
+  const mediaPrisma = new PrismaMedia({ adapter: mediaAdapter })
   return {
     url: pub.url,
     prismaPublic: pub.prisma,

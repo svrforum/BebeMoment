@@ -1,16 +1,15 @@
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["multiSchema"]
+  provider        = "prisma-client"
   output          = "./generated/client"
-  // native = host (dev). linux-musl-openssl-3.0.x = Alpine container —
-  // without this the Prisma engine looks for libssl.so.1.1 which Alpine
-  // 3.20+ no longer ships and Prisma fails to load at startup.
-  binaryTargets   = ["native", "linux-musl-openssl-3.0.x"]
+  // Driver-adapter (engineType=client) build — no query-engine binary, so the
+  // Alpine/musl binaryTargets workaround from the v5 days is gone. The pg
+  // adapter (@prisma/adapter-pg) talks to Postgres directly from JS.
+  moduleFormat    = "esm"
+  runtime         = "nodejs"
 }
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
   schemas  = ["public"]
 }
 

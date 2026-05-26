@@ -25,9 +25,9 @@ if [ -d /repo/apps/web/.next ]; then
   chown -R bebe:bebe /repo/apps/web/.next 2>/dev/null || true
 fi
 
-# Run migrations. Use the workspace-pinned Prisma CLI via `pnpm exec` — NOT
-# `npx prisma`, which downloads the latest major (v7) and rejects the v5-style
-# `datasource { url }` schema (P1012). Mirrors the builder's `prisma generate`.
+# Run migrations. Use the workspace-pinned Prisma CLI (v7) via `pnpm exec` so
+# the version matches the schema + prisma.config.ts. `migrate deploy` reads the
+# datasource url from each package's prisma.config.ts (env DATABASE_URL).
 # Order matters: db-public first (public schema), db-media second (cross-schema FKs).
 if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
   if [ -f packages/db-public/prisma/schema.prisma ]; then

@@ -1,29 +1,25 @@
-import { PrismaClient, installTenantMiddleware } from '@bebe/db-media'
+import { type PrismaClient, installTenantMiddleware, prisma as prismaBase } from '@bebe/db-media'
+
+// installTenantMiddleware returns the $extends-wrapped client (Prisma 7).
+// The base client (prismaBase) is already constructed with the pg driver
+// adapter inside @bebe/db-media — apps must NOT new up PrismaClient themselves,
+// since the v7 constructor requires an adapter.
+type TenantClient = PrismaClient
 
 const globalForPrisma = globalThis as unknown as {
-  __bebeMediaSvcPrisma?: PrismaClient
+  __bebeMediaSvcPrisma?: TenantClient
 }
 
-function buildPrisma(): PrismaClient {
-  const url = process.env.DATABASE_URL
-  const client = new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'warn', 'error'] : ['warn', 'error'],
-    ...(url ? { datasources: { db: { url } } } : {}),
-  })
-  installTenantMiddleware(client, {
-    mode: process.env.NODE_ENV === 'production' ? 'warn' : 'throw',
-  })
-  return client
-}
-
-function getPrisma(): PrismaClient {
+function getPrisma(): TenantClient {
   if (!globalForPrisma.__bebeMediaSvcPrisma) {
-    globalForPrisma.__bebeMediaSvcPrisma = buildPrisma()
+    globalForPrisma.__bebeMediaSvcPrisma = installTenantMiddleware(prismaBase, {
+      mode: process.env.NODE_ENV === 'production' ? 'warn' : 'throw',
+    })
   }
   return globalForPrisma.__bebeMediaSvcPrisma
 }
 
-export const prisma: PrismaClient = new Proxy({} as PrismaClient, {
+export const prisma: TenantClient = new Proxy({} as TenantClient, {
   get(_target, prop) {
     const inner = getPrisma() as unknown as Record<string | symbol, unknown>
     const value = inner[prop]
