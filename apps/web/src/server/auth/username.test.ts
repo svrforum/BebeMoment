@@ -39,10 +39,7 @@ describe('isUsernameTaken', () => {
 
   it('false when no user, true after one exists (case-insensitive)', async () => {
     expect(await isUsernameTaken('minjun', db.prismaPublic)).toBe(false)
-    await signup(
-      { username: 'minjun', password: 'password123', displayName: 'M' },
-      db.prismaPublic,
-    )
+    await signup({ username: 'minjun', password: 'password123', displayName: 'M' }, db.prismaPublic)
     expect(await isUsernameTaken('MINJUN', db.prismaPublic)).toBe(true)
   })
 })
