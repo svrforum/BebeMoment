@@ -8,16 +8,18 @@ import { getMediaClient } from '@/lib/media-client'
 import { groupAssetsByBucket } from '@/server/asset/group-by-bucket'
 import { getContext } from '@/server/context'
 import { listTimeline } from '@/server/timeline/merged-list'
+import Link from 'next/link'
 
 export default async function TimelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string | string[] }>
+  searchParams: Promise<{ tag?: string | string[]; date?: string }>
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
-  const { tag } = await searchParams
+  const { tag, date } = await searchParams
   const tagSlugs = Array.isArray(tag) ? tag : tag ? [tag] : []
+  const dateFilter = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null
 
   const viewerRole = ctx.membership?.role ?? 'family'
   const [baby, { items }] = await Promise.all([
@@ -31,6 +33,7 @@ export default async function TimelinePage({
         limit: 100,
         viewerRole,
         ...(tagSlugs.length > 0 ? { tagSlugs } : {}),
+        ...(dateFilter ? { date: dateFilter } : {}),
       },
       prismaPublic,
       prismaMedia,
@@ -56,6 +59,47 @@ export default async function TimelinePage({
     }),
     birthDate,
   )
+
+  // 날짜 필터 모드(캘린더에서 진입): 그 날의 사진만 보여주고, 컴포저·태그·일기
+  // 섹션은 숨긴다. 상단에 날짜 배너 + 전체 보기로 돌아가는 링크.
+  if (dateFilter) {
+    const label = new Date(`${dateFilter}T00:00:00.000Z`).toLocaleDateString('ko-KR', {
+      year: 'numeric',
+      month: 'long',
+      day: 'numeric',
+      weekday: 'short',
+      timeZone: 'UTC',
+    })
+    const photoCount = assetItems.length
+    return (
+      <>
+        <AppHeader title="캘린더" wide />
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-2">
+          <div className="flex items-center justify-between rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3 dark:border-base-800/70 dark:bg-base-900">
+            <div className="flex items-baseline gap-2">
+              <span className="text-[15px] font-semibold text-base-900 dark:text-base-50">
+                {label}
+              </span>
+              <span className="text-[13px] tabular-nums text-base-400">· {photoCount}장</span>
+            </div>
+            <Link
+              href="/timeline"
+              className="rounded-full px-3 py-1.5 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
+            >
+              전체 보기
+            </Link>
+          </div>
+        </div>
+        {photoCount === 0 ? (
+          <div className="mx-auto max-w-3xl px-5 py-16 text-center text-sm text-base-400">
+            이 날짜에 올린 사진이 없어요.
+          </div>
+        ) : (
+          <TimelineGrid initialGroups={groups} />
+        )}
+      </>
+    )
+  }
 
   return (
     <>

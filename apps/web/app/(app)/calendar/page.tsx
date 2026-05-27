@@ -43,8 +43,8 @@ export default async function CalendarPage() {
       <AppHeader title="캘린더" />
       <div className="section-enter">
         <MonthGrid
-          initialYear={now.getFullYear()}
-          initialMonth={now.getMonth()}
+          initialYear={now.getUTCFullYear()}
+          initialMonth={now.getUTCMonth()}
           assets={rawAssets.map((a) => ({
             id: a.id,
             takenAtISO: a.takenAt.toISOString(),

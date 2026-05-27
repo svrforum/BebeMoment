@@ -15,7 +15,7 @@ type Props = {
 
 export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props) {
   const hasAssets = assets.length > 0
-  const dayNum = date.getDate()
+  const dayNum = date.getUTCDate()
   const dateParam = date.toISOString().slice(0, 10)
   const firstUrls = assets[0]?.urls ?? null
   const trio = pickThumbTrio(firstUrls)

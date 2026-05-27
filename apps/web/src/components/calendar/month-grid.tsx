@@ -13,20 +13,23 @@ type Props = {
   assets: Asset[]
 }
 
+// 날짜는 전부 UTC 로 다룬다 — takenAt 은 촬영 벽시계 시각을 UTC 로 저장하므로,
+// UTC 일자로 버킷팅해야 사진이 실제 찍힌 날 셀에 들어가고 타임라인 날짜 필터
+// (?date=YYYY-MM-DD, 역시 UTC 일자)와 정확히 일치한다.
 function daysInMonth(year: number, month: number): Date[] {
-  const first = new Date(year, month, 1)
-  const startWeekday = first.getDay()
+  const first = new Date(Date.UTC(year, month, 1))
+  const startWeekday = first.getUTCDay()
   const days: Date[] = []
   for (let i = 0; i < startWeekday; i++) {
-    days.push(new Date(year, month, 1 - (startWeekday - i)))
+    days.push(new Date(Date.UTC(year, month, 1 - (startWeekday - i))))
   }
-  const lastDay = new Date(year, month + 1, 0).getDate()
+  const lastDay = new Date(Date.UTC(year, month + 1, 0)).getUTCDate()
   for (let d = 1; d <= lastDay; d++) {
-    days.push(new Date(year, month, d))
+    days.push(new Date(Date.UTC(year, month, d)))
   }
   while (days.length % 7 !== 0) {
     const last = days[days.length - 1] as Date
-    days.push(new Date(last.getFullYear(), last.getMonth(), last.getDate() + 1))
+    days.push(new Date(Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), last.getUTCDate() + 1)))
   }
   return days
 }
@@ -42,7 +45,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
     const m = new Map<string, Asset[]>()
     for (const a of assets) {
       const d = new Date(a.takenAtISO)
-      const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+      const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
       const list = m.get(key) ?? []
       list.push(a)
       m.set(key, list)
@@ -54,7 +57,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
     () =>
       assets.filter((a) => {
         const d = new Date(a.takenAtISO)
-        return d.getFullYear() === year && d.getMonth() === month
+        return d.getUTCFullYear() === year && d.getUTCMonth() === month
       }).length,
     [assets, year, month],
   )
@@ -76,15 +79,16 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
     }
   }
   const jumpToday = () => {
-    setYear(today.getFullYear())
-    setMonth(today.getMonth())
+    setYear(today.getUTCFullYear())
+    setMonth(today.getUTCMonth())
   }
 
-  const monthLabel = new Date(year, month, 1).toLocaleDateString('ko-KR', {
+  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
+    timeZone: 'UTC',
   })
-  const isCurrentView = year === today.getFullYear() && month === today.getMonth()
+  const isCurrentView = year === today.getUTCFullYear() && month === today.getUTCMonth()
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-4">
@@ -136,18 +140,18 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
       </div>
       <div className="grid grid-cols-7 gap-1.5">
         {days.map((d) => {
-          const key = `${d.getFullYear()}-${d.getMonth()}-${d.getDate()}`
+          const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
           const dayAssets = byDate.get(key) ?? []
           const isTodayCell =
-            d.getFullYear() === today.getFullYear() &&
-            d.getMonth() === today.getMonth() &&
-            d.getDate() === today.getDate()
+            d.getUTCFullYear() === today.getUTCFullYear() &&
+            d.getUTCMonth() === today.getUTCMonth() &&
+            d.getUTCDate() === today.getUTCDate()
           return (
             <DayCell
               key={d.toISOString()}
               date={d}
               assets={dayAssets.map((a) => ({ id: a.id, urls: a.urls }))}
-              isCurrentMonth={d.getMonth() === month}
+              isCurrentMonth={d.getUTCMonth() === month}
               isToday={isTodayCell}
             />
           )

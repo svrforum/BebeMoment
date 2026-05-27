@@ -43,6 +43,9 @@ export async function listTimeline(
     tagSlug?: string
     /** AND filter: assets matching ALL slugs. */
     tagSlugs?: string[]
+    /** Single-day filter (YYYY-MM-DD, UTC day). takenAt/entryDate 가 저장된
+     *  값(벽시계 시각을 UTC 로 저장)과 같은 UTC 일자로 매칭 → 캘린더 셀과 정합. */
+    date?: string
     /** Viewer's role — drives diary-entry visibility filtering. Defaults
      *  to 'family' which is the most restrictive (won't see guardians-only
      *  entries). Pass 'owner' / 'guardian' to include them. */
@@ -55,6 +58,13 @@ export async function listTimeline(
   const limit = params.limit ?? 50
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
+
+  let dayStart: Date | null = null
+  let dayEnd: Date | null = null
+  if (params.date && /^\d{4}-\d{2}-\d{2}$/.test(params.date)) {
+    dayStart = new Date(`${params.date}T00:00:00.000Z`)
+    dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
+  }
 
   // Resolve the tag filter (single or multi) to an asset_id intersection.
   // Empty resolved set means "matches nothing" — short-circuit.
@@ -100,6 +110,7 @@ export async function listTimeline(
         status: 'ready',
         deletedAt: null,
         ...(tagAssetIds ? { id: { in: tagAssetIds } } : {}),
+        ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
         ...(cursorTs && cur
           ? {
               OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }],
@@ -122,6 +133,7 @@ export async function listTimeline(
             // Family viewer sees only family-visible entries; owner /
             // guardian see everything.
             ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
+            ...(dayStart && dayEnd ? { entryDate: { gte: dayStart, lt: dayEnd } } : {}),
             ...(cursorTs && cur
               ? {
                   OR: [
@@ -183,8 +195,15 @@ export async function listTimeline(
       entry: e,
     })),
   ].sort((a, b) => {
+    // 1차: 표시 시각(takenAt / entryDate) 최신순. entryDate 는 날짜만이라 같은 날
+    // 글이 여러 개면 동률 → 2차로 createdAt(작성 시각) 최신순으로 깨야 "최신 글이
+    // 맨 위"가 보장된다(과거엔 UUID 비교라 작성순과 무관했다).
     const d = b.ts.getTime() - a.ts.getTime()
-    return d !== 0 ? d : b.id.localeCompare(a.id)
+    if (d !== 0) return d
+    const ca = (a.kind === 'asset' ? a.asset.createdAt : a.entry.createdAt).getTime()
+    const cb = (b.kind === 'asset' ? b.asset.createdAt : b.entry.createdAt).getTime()
+    if (cb !== ca) return cb - ca
+    return b.id.localeCompare(a.id)
   })
 
   const page = merged.slice(0, limit)
