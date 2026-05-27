@@ -102,7 +102,10 @@ export function UploadEditor({
   // min-h-0 로 남는 공간만 차지(object-contain)해 버튼을 절대 밀어내지 않는다.
   return createPortal(
     <div
-      className="fixed inset-x-0 top-0 z-[60] flex flex-col bg-black"
+      // pointer-events-auto 필수: 편집기를 연 업로드 시트(vaul)는 modal 이라
+      // body 에 pointer-events:none 를 건다. body 직속으로 포털된 편집기는 그걸
+      // 상속해 버튼이 보여도 클릭이 시트 오버레이로 새어나간다 — 여기서 되살린다.
+      className="fixed inset-x-0 top-0 z-[60] flex flex-col bg-black pointer-events-auto"
       style={{
         height: '100dvh',
         paddingTop: 'env(safe-area-inset-top)',
