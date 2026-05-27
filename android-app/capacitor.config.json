@@ -1,0 +1,12 @@
+{
+  "appId": "im.bebe.app",
+  "appName": "bebe",
+  "webDir": "www",
+  "server": {
+    "androidScheme": "https",
+    "allowNavigation": ["*"]
+  },
+  "android": {
+    "allowMixedContent": false
+  }
+}
