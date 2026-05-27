@@ -2,7 +2,7 @@
 import { AlbumPicker } from '@/components/albums/album-picker'
 import type { AssetTag } from '@/components/tags/tag-editor'
 import type { AssetUrls } from '@bebe/media-client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
 import type { MetadataSection } from './metadata-section'
 import { ViewerActionBar } from './viewer-action-bar'
@@ -62,6 +62,16 @@ export function ViewerShell({
   const [commentCount, setCommentCount] = useState(
     () => initialComments.filter((c) => !c.deletedAt).length,
   )
+
+  // 몰입형 뷰어 — 바디 스크롤 잠금. (app) 레이아웃 main 의 pb-20(하단 네비
+  // 여백)이 상세 화면에선 하단 네비가 숨겨져 빈 80px 스크롤을 만들었다.
+  useEffect(() => {
+    const prev = document.body.style.overflow
+    document.body.style.overflow = 'hidden'
+    return () => {
+      document.body.style.overflow = prev
+    }
+  }, [])
 
   return (
     <div className="relative min-h-screen bg-black md:flex">
