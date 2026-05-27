@@ -63,13 +63,19 @@ export function ViewerShell({
     () => initialComments.filter((c) => !c.deletedAt).length,
   )
 
-  // 몰입형 뷰어 — 바디 스크롤 잠금. (app) 레이아웃 main 의 pb-20(하단 네비
-  // 여백)이 상세 화면에선 하단 네비가 숨겨져 빈 80px 스크롤을 만들었다.
+  // 몰입형 뷰어 — 스크롤 잠금. (app) 레이아웃 main 의 pb-20(하단 네비 여백)이
+  // 상세 화면에선 하단 네비가 숨겨져 빈 80px 스크롤을 만들었다. 뷰포트 스크롤은
+  // <html> 가 주관하므로 documentElement 에 overflow:hidden 을 걸어야 막힌다
+  // (body 만으론 안 됨).
   useEffect(() => {
-    const prev = document.body.style.overflow
+    const html = document.documentElement
+    const prevHtml = html.style.overflow
+    const prevBody = document.body.style.overflow
+    html.style.overflow = 'hidden'
     document.body.style.overflow = 'hidden'
     return () => {
-      document.body.style.overflow = prev
+      html.style.overflow = prevHtml
+      document.body.style.overflow = prevBody
     }
   }, [])
 
