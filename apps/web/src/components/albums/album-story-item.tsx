@@ -1,18 +1,36 @@
 'use client'
-import { DiaryCard } from '@/components/timeline/diary-card'
+import { MOODS, isMood } from '@/components/diary/mood'
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
-import { X } from 'lucide-react'
+import { NotebookPen, X } from 'lucide-react'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 type Entry = JournalEntry & { assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[] }
 
+const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+
+/**
+ * Compact album story row — small thumb + date + one-line snippet + remove.
+ * Stacking full DiaryCards got unreadable once an album had several stories.
+ */
 export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Entry }) {
   const router = useRouter()
   const toast = useToast()
   const [removing, setRemoving] = useState(false)
+
+  const cover = entry.assets.find((a) => a.asset?.urls)?.asset ?? null
+  const trio = cover ? pickThumbTrio(cover.urls) : null
+  const fallback = cover ? pickThumbUrl(cover.urls) : null
+  const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
+  const d = entry.entryDate
+  const dateLabel = `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${DAYS[d.getUTCDay()]})`
+  const snippet = entry.body.trim() || (entry.title ?? '')
+  const photoCount = entry.assets.length
 
   async function remove(e: React.MouseEvent) {
     e.preventDefault()
@@ -30,16 +48,43 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
   }
 
   return (
-    <div className="relative">
-      <DiaryCard entry={entry} />
+    <div className="group relative flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 px-3 py-2.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
+      <Link href={`/diary/${entry.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+        <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
+          {trio || fallback ? (
+            <PictureImage
+              trio={trio}
+              fallbackUrl={fallback}
+              alt=""
+              blurhash={cover ? pickBlurhash(cover.urls) : null}
+              className="h-full w-full"
+              loading="lazy"
+            />
+          ) : (
+            <div className="flex h-full w-full items-center justify-center text-base-400">
+              <NotebookPen size={16} strokeWidth={1.9} />
+            </div>
+          )}
+        </div>
+        <div className="min-w-0 flex-1">
+          <div className="flex items-center gap-1.5 text-[11px] text-base-400">
+            <span>{dateLabel}</span>
+            {mood && <span>{mood.emoji}</span>}
+            {photoCount > 0 && <span className="tabular-nums">· 사진 {photoCount}</span>}
+          </div>
+          <div className="truncate text-[14px] text-base-900 dark:text-base-50">
+            {snippet || '내용 없음'}
+          </div>
+        </div>
+      </Link>
       <button
         type="button"
         onClick={remove}
         disabled={removing}
         aria-label="앨범에서 제거"
-        className="absolute right-2 top-2 z-10 flex h-7 w-7 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-90 disabled:opacity-50"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 hover:text-base-700 active:scale-90 disabled:opacity-50 dark:hover:bg-base-800 dark:hover:text-base-200"
       >
-        <X size={15} strokeWidth={2.4} />
+        <X size={16} strokeWidth={2.2} />
       </button>
     </div>
   )
