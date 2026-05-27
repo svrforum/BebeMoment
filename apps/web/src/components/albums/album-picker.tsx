@@ -90,6 +90,8 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
       // Re-render the page behind the sheet (timeline / detail / album views)
       // so the attachment shows without a manual reload.
       router.refresh()
+      // 추가 후 피커 자동 닫기 — 체크 표시를 잠깐 보여준 뒤 시트 내림.
+      window.setTimeout(() => onOpenChange(false), 500)
     } catch (e) {
       toast({ title: (e as Error).message, variant: 'danger' })
     } finally {

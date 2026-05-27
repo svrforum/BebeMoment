@@ -237,8 +237,8 @@ export function TimelineGrid({ initialGroups }: Props) {
         onOpenChange={setPickerOpen}
         assetIds={Array.from(selected)}
         onAttached={() => {
-          // Keep the picker open for chaining adds (Apple Photos pattern).
-          // Only clear once user explicitly closes by tapping outside.
+          // 추가 후 선택 모드 종료(피커는 스스로 닫힘). 사용자 요청: 추가하면 UI 사라지게.
+          clearSelection()
         }}
       />
 
