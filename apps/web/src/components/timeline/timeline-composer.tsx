@@ -65,6 +65,10 @@ export function TimelineComposer({
   const router = useRouter()
   const toast = useToast()
   const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
+  // 최신 매니저 files 를 ref 로 — submit 의 async 대기 루프가 닫힌(stale)
+  // attachments 대신 실시간 assetId 를 읽을 수 있게.
+  const filesRef = useRef(files)
+  filesRef.current = files
 
   const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
 
@@ -201,18 +205,21 @@ export function TimelineComposer({
     try {
       // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다.
       if (attachments.length > 0) startStagedUploads()
-      // Wait up to 30s for any still-resolving asset ids (preprocessor).
-      // Most photos resolve in ~1s on a fast LAN.
+      const fileIds = attachments.map((a) => a.fileId)
+      // assetId 는 매니저 files 의 meta 로 들어온다. 닫힌 attachments 가 아니라
+      // filesRef(매 렌더 갱신)에서 읽어야 업로드 진행분이 보인다.
+      const resolveIds = () =>
+        fileIds
+          .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
+          .filter((id): id is string => typeof id === 'string')
+
       const deadline = Date.now() + 30_000
-      while (Date.now() < deadline && attachments.some((a) => !a.assetId)) {
+      while (Date.now() < deadline && resolveIds().length < fileIds.length) {
         await new Promise((r) => setTimeout(r, 200))
       }
 
-      const finalAssetIds = attachments
-        .map((a) => a.assetId)
-        .filter((id): id is string => typeof id === 'string')
-
-      if (finalAssetIds.length !== attachments.length) {
+      const finalAssetIds = resolveIds()
+      if (finalAssetIds.length !== fileIds.length) {
         throw new Error('사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.')
       }
 
