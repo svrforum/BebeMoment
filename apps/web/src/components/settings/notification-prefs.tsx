@@ -9,7 +9,7 @@ const CATEGORY_LABELS: { category: NotificationCategory; label: string }[] = [
   { category: 'asset_upload', label: '새 사진/영상' },
   { category: 'comment_mention', label: '댓글·멘션' },
   { category: 'album_add', label: '앨범 추가' },
-  { category: 'diary_growth_milestone', label: '일기·성장·마일스톤' },
+  { category: 'diary_growth_milestone', label: '스토리·성장·마일스톤' },
 ]
 
 type Props = {

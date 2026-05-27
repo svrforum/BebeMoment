@@ -43,7 +43,7 @@ export default async function NewDiaryPage() {
 
   return (
     <>
-      <AppHeader title="일기 쓰기" />
+      <AppHeader title="스토리 쓰기" />
       <div className="mx-auto max-w-sm px-5 py-6">
         <Card>
           <CardBody>

@@ -24,12 +24,12 @@ export default async function DiaryPage() {
   return (
     <>
       <AppHeader
-        title="일기"
+        title="스토리"
         right={
           <Link
             href="/diary/new"
             className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
-            aria-label="일기 쓰기"
+            aria-label="스토리 쓰기"
           >
             <Plus className="h-4 w-4" strokeWidth={2.6} />
             <span>쓰기</span>
@@ -40,14 +40,14 @@ export default async function DiaryPage() {
         {items.length === 0 ? (
           <EmptyState
             icon={BookOpen}
-            title="첫 일기를 시작해볼까요"
+            title="첫 스토리를 시작해볼까요"
             description="오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요"
             action={
               <Link
                 href="/diary/new"
                 className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 hover:bg-base-800 dark:bg-base-50 dark:text-base-900 dark:hover:bg-base-200"
               >
-                일기 쓰기
+                스토리 쓰기
               </Link>
             }
           />

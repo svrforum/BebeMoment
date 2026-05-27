@@ -37,7 +37,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
               가족과 함께.
             </h2>
             <p className="mt-6 max-w-md text-[16px] leading-relaxed text-base-600 dark:text-base-400">
-              사진 · 영상 · 성장 · 마일스톤 · 일기를 한 곳에.
+              사진 · 영상 · 성장 · 마일스톤 · 스토리를 한 곳에.
               <br />
               원본 그대로 안전하게 보관하고, 가족과 실시간으로 나눠요.
             </p>

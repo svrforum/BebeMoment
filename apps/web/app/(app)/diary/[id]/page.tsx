@@ -66,7 +66,7 @@ export default async function DiaryDetailPage({
               취소
             </Link>
             <span className="text-[15px] font-semibold text-base-900 dark:text-base-50">
-              일기 편집
+              스토리 편집
             </span>
             <span className="w-12" aria-hidden />
           </div>
@@ -126,7 +126,7 @@ function DiaryDetailHeader() {
           <ChevronLeft size={20} strokeWidth={2.2} />
         </Link>
         <span className="flex-1 truncate text-[15px] font-semibold text-base-900 dark:text-base-50">
-          일기
+          스토리
         </span>
       </div>
     </header>

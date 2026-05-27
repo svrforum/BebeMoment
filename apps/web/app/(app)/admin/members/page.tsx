@@ -25,8 +25,8 @@ const GROUPS: Group[] = [
   },
   {
     key: 'records',
-    label: '기록 작성 (성장·마일스톤·일기)',
-    description: '성장 기록, 마일스톤, 일기를 작성하고 자신의 기록을 수정·삭제할 수 있어요.',
+    label: '기록 작성 (성장·마일스톤·스토리)',
+    description: '성장 기록, 마일스톤, 스토리를 작성하고 자신의 기록을 수정·삭제할 수 있어요.',
     representative: 'record.create',
     capabilities: ['record.create', 'record.edit.own', 'record.delete.own'],
   },

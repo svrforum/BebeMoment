@@ -35,7 +35,7 @@ export function DiaryDeleteButton({ onDelete }: Props) {
         open={open}
         onOpenChange={setOpen}
         title="정말 삭제할까요?"
-        description="삭제한 일기는 복구할 수 없어요."
+        description="삭제한 스토리는 복구할 수 없어요."
         onConfirm={onDelete}
       />
     </>

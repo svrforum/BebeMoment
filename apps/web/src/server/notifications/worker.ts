@@ -40,8 +40,8 @@ export function buildNotification(job: NotificationJob): {
       }
     case 'diary.created':
       return {
-        title: '새 일기',
-        body: '새 일기가 등록됐어요',
+        title: '새 스토리',
+        body: '새 스토리가 등록됐어요',
         url: `/diary/${job.payload.entryId}`,
       }
     case 'growth.created':

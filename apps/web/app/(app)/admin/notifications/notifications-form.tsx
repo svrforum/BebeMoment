@@ -10,7 +10,7 @@ const CATEGORY_LABELS: Record<NotificationCategory, string> = {
   asset_upload: '새 사진/영상',
   comment_mention: '댓글·멘션',
   album_add: '앨범 추가',
-  diary_growth_milestone: '일기·성장·마일스톤',
+  diary_growth_milestone: '스토리·성장·마일스톤',
 }
 
 type Props = {

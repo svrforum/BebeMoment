@@ -46,7 +46,7 @@ export function DiaryCard({ entry }: Props) {
           {/* Body column */}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-400">
-              <span>일기</span>
+              <span>스토리</span>
               {entry.visibility === 'guardians' && (
                 <span className="inline-flex items-center gap-0.5 rounded-full bg-point-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-point-500">
                   <ShieldCheck size={10} strokeWidth={2.4} />
@@ -108,7 +108,7 @@ export function DiaryCard({ entry }: Props) {
   )
 }
 
-/** 작은 "스토리" 칩 — 오래된 일기를 가로 스크롤 행에 조그맣게. (타임라인: 최근 1개는 큰 카드) */
+/** 작은 "스토리" 칩 — 오래된 스토리를 가로 스크롤 행에 조그맣게. (타임라인: 최근 1개는 큰 카드) */
 export function DiaryStoryChip({ entry }: Props) {
   const thumb = entry.assets[0]?.asset ?? null
   const trio = thumb ? pickThumbTrio(thumb.urls) : null
