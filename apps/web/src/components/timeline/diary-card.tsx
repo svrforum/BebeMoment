@@ -107,3 +107,41 @@ export function DiaryCard({ entry }: Props) {
     </Link>
   )
 }
+
+/** 작은 "스토리" 칩 — 오래된 일기를 가로 스크롤 행에 조그맣게. (타임라인: 최근 1개는 큰 카드) */
+export function DiaryStoryChip({ entry }: Props) {
+  const thumb = entry.assets[0]?.asset ?? null
+  const trio = thumb ? pickThumbTrio(thumb.urls) : null
+  const fallbackUrl = thumb ? pickThumbUrl(thumb.urls) : null
+  const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
+  const d = entry.entryDate
+
+  return (
+    <Link
+      href={`/diary/${entry.id}`}
+      className="flex w-[72px] shrink-0 flex-col items-center gap-1.5 transition-transform ease-ios active:scale-95"
+    >
+      <div className="h-[72px] w-[72px] overflow-hidden rounded-2xl border border-base-200 bg-base-100 dark:border-base-800 dark:bg-base-800">
+        {trio || fallbackUrl ? (
+          <PictureImage
+            trio={trio}
+            fallbackUrl={fallbackUrl}
+            alt=""
+            aspectRatio={1}
+            dominantColor={thumb?.urls?.dominantColor ?? null}
+            blurhash={thumb ? pickBlurhash(thumb.urls) : null}
+            className="h-full w-full"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full w-full items-center justify-center text-[20px]">
+            {mood ? mood.emoji : '📝'}
+          </div>
+        )}
+      </div>
+      <span className="w-full truncate text-center text-[11px] tabular-nums text-base-500">
+        {d.getMonth() + 1}.{d.getDate()}
+      </span>
+    </Link>
+  )
+}

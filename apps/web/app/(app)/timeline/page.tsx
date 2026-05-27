@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { DiaryCard } from '@/components/timeline/diary-card'
+import { DiaryCard, DiaryStoryChip } from '@/components/timeline/diary-card'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { TimelineComposer } from '@/components/timeline/timeline-composer'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
@@ -78,10 +78,21 @@ export default async function TimelinePage({
       )}
       {diaryItems.length > 0 && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
-          {diaryItems.map((it) => {
-            if (it.kind !== 'journal') return null
-            return <DiaryCard key={`j-${it.id}`} entry={it.entry} />
-          })}
+          {/* 최근 일기 1개는 글까지 큰 카드로, 나머지는 가로 스토리 행에 조그맣게. */}
+          {diaryItems[0]?.kind === 'journal' && (
+            <DiaryCard key={`j-${diaryItems[0].id}`} entry={diaryItems[0].entry} />
+          )}
+          {diaryItems.length > 1 && (
+            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
+              {diaryItems
+                .slice(1)
+                .map((it) =>
+                  it.kind === 'journal' ? (
+                    <DiaryStoryChip key={`j-${it.id}`} entry={it.entry} />
+                  ) : null,
+                )}
+            </div>
+          )}
         </div>
       )}
       <TimelineGrid initialGroups={groups} />
