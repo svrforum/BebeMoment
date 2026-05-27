@@ -1,6 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
-import { Info, MoreVertical, X } from 'lucide-react'
+import { MoreVertical, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -8,13 +8,10 @@ export function ViewerTopBar({
   assetId,
   visible,
   onDelete,
-  onInfo,
 }: {
   assetId: string
   visible: boolean
   onDelete?: () => void
-  /** 모바일 전용 — 세부정보 시트 열기 (데스크탑은 사이드 패널 상시 노출) */
-  onInfo?: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
@@ -38,16 +35,6 @@ export function ViewerTopBar({
         <X className="h-6 w-6" />
       </button>
       <div className="flex items-center gap-1">
-        {onInfo && (
-          <button
-            type="button"
-            onClick={onInfo}
-            aria-label="세부정보"
-            className="text-white transition-transform ease-ios active:scale-90 md:hidden"
-          >
-            <Info className="h-6 w-6" />
-          </button>
-        )}
         <div className="relative">
           <button
             type="button"

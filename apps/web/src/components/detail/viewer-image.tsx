@@ -27,11 +27,14 @@ export function ViewerImage({
   const router = useRouter()
   const [scale, setScale] = useState(1)
 
+  // 스와이프 이동은 replace — push 면 이미지마다 히스토리가 쌓여 닫기(X·뒤로·Esc·
+  // 드래그다운=router.back)가 이전 이미지로 가버린다. replace 면 히스토리가
+  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다.
   const goNext = useCallback(() => {
-    if (siblings.nextId) router.push(`/detail/${siblings.nextId}`)
+    if (siblings.nextId) router.replace(`/detail/${siblings.nextId}`)
   }, [router, siblings.nextId])
   const goPrev = useCallback(() => {
-    if (siblings.prevId) router.push(`/detail/${siblings.prevId}`)
+    if (siblings.prevId) router.replace(`/detail/${siblings.prevId}`)
   }, [router, siblings.prevId])
   const goBack = useCallback(() => router.back(), [router])
 

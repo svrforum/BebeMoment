@@ -66,11 +66,7 @@ export function ViewerShell({
     <div className="relative min-h-screen bg-black md:flex">
       {/* Image column: takes full width on mobile, flexes on desktop */}
       <div className="relative flex-1 min-w-0">
-        <ViewerTopBar
-          assetId={current.id}
-          visible={chromeVisible}
-          onInfo={() => setSheetOpen(true)}
-        />
+        <ViewerTopBar assetId={current.id} visible={chromeVisible} />
         <ViewerImage
           current={current}
           siblings={siblings}
