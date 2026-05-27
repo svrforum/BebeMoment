@@ -52,7 +52,7 @@ export function TimelineComposer({
 }: Props) {
   const router = useRouter()
   const toast = useToast()
-  const { files, addFiles } = useUploadManager()
+  const { files, addFiles, startStagedUploads } = useUploadManager()
 
   const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
 
@@ -123,9 +123,13 @@ export function TimelineComposer({
       if (fresh.length > 0) {
         setAttachments((prev) => [...prev, ...fresh])
         setExpanded(true)
+        // 매니저가 autoProceed:false(미리보기 단계용) 라서, 컴포저 첨부는 바로
+        // 업로드를 시작해 assetId 를 해소한다. 안 그러면 submit 이 사진 준비를
+        // 영원히 기다린다(이미지 첨부 안 되는 버그).
+        startStagedUploads()
       }
     },
-    [addFiles],
+    [addFiles, startStagedUploads],
   )
 
   const removeAttachment = useCallback((fileId: string) => {

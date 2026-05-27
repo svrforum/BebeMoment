@@ -1,10 +1,11 @@
 'use client'
+import 'react-image-crop/dist/ReactCrop.css'
 import { cn } from '@/lib/cn'
-import { getCroppedJpeg, type PixelCrop } from '@/lib/crop-image'
+import { getCroppedJpeg, rotateJpeg90 } from '@/lib/crop-image'
 import { reinjectExif } from '@/lib/exif-reinject'
 import { Check, RotateCw, X } from 'lucide-react'
-import { useCallback, useState } from 'react'
-import Cropper, { type Area, type MediaSize } from 'react-easy-crop'
+import { useCallback, useRef, useState } from 'react'
+import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
   const res = await fetch(dataUrl)
@@ -12,11 +13,11 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 }
 
 type AspectMode = 'free' | 'square' | 'landscape' | 'portrait'
-const ASPECT_PRESETS: { mode: AspectMode; label: string }[] = [
-  { mode: 'free', label: '자유' },
-  { mode: 'square', label: '1:1' },
-  { mode: 'landscape', label: '4:3' },
-  { mode: 'portrait', label: '3:4' },
+const ASPECT_PRESETS: { mode: AspectMode; label: string; aspect: number | undefined }[] = [
+  { mode: 'free', label: '자유', aspect: undefined },
+  { mode: 'square', label: '1:1', aspect: 1 },
+  { mode: 'landscape', label: '4:3', aspect: 4 / 3 },
+  { mode: 'portrait', label: '3:4', aspect: 3 / 4 },
 ]
 
 export function UploadEditor({
@@ -30,47 +31,63 @@ export function UploadEditor({
   onApply: (id: string, blob: Blob) => void
   onClose: () => void
 }) {
-  const [crop, setCrop] = useState({ x: 0, y: 0 })
-  const [zoom, setZoom] = useState(1)
-  const [rotation, setRotation] = useState(0)
-  const [pixels, setPixels] = useState<PixelCrop | null>(null)
-  const [busy, setBusy] = useState(false)
+  // 회전은 작업본에 baked — react-image-crop 좌표를 단순하게 유지.
+  const [working, setWorking] = useState(originalDataUrl)
+  const [crop, setCrop] = useState<Crop>()
+  const [completed, setCompleted] = useState<PixelCrop | null>(null)
   const [aspectMode, setAspectMode] = useState<AspectMode>('free')
-  const [naturalAspect, setNaturalAspect] = useState<number | null>(null)
+  const [busy, setBusy] = useState(false)
+  const imgRef = useRef<HTMLImageElement>(null)
 
-  // '자유'는 원본 비율(임의 사각형 크롭은 react-easy-crop 미지원) — 회전 보정해 가로/세로.
-  const freeAspect =
-    naturalAspect == null ? 1 : rotation % 180 === 0 ? naturalAspect : 1 / naturalAspect
-  const aspect =
-    aspectMode === 'square'
-      ? 1
-      : aspectMode === 'landscape'
-        ? 4 / 3
-        : aspectMode === 'portrait'
-          ? 3 / 4
-          : freeAspect
+  const aspect = ASPECT_PRESETS.find((p) => p.mode === aspectMode)?.aspect
 
-  const onCropComplete = useCallback((_area: Area, areaPixels: Area) => {
-    setPixels(areaPixels)
-  }, [])
+  const rotate = useCallback(async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const rotated = await rotateJpeg90(working)
+      setWorking(rotated)
+      setCrop(undefined)
+      setCompleted(null)
+    } finally {
+      setBusy(false)
+    }
+  }, [working, busy])
 
-  const onMediaLoaded = useCallback((media: MediaSize) => {
-    setNaturalAspect(media.naturalWidth / media.naturalHeight)
+  const pickAspect = useCallback((mode: AspectMode) => {
+    setAspectMode(mode)
+    // 비율을 바꾸면 기존 선택을 비워 새 비율로 다시 그리게 한다.
+    setCrop(undefined)
+    setCompleted(null)
   }, [])
 
   const apply = useCallback(async () => {
-    if (!pixels || busy) return
+    if (busy) return
     setBusy(true)
     try {
-      const editedDataUrl = await getCroppedJpeg(originalDataUrl, pixels, rotation)
-      const withExif = reinjectExif(originalDataUrl, editedDataUrl)
+      const img = imgRef.current
+      let edited: string
+      if (img && completed && completed.width > 0 && completed.height > 0) {
+        const scaleX = img.naturalWidth / img.width
+        const scaleY = img.naturalHeight / img.height
+        edited = await getCroppedJpeg(working, {
+          x: completed.x * scaleX,
+          y: completed.y * scaleY,
+          width: completed.width * scaleX,
+          height: completed.height * scaleY,
+        })
+      } else {
+        // 크롭 선택이 없으면 (회전만 했거나 그대로) 작업본을 그대로 사용.
+        edited = working
+      }
+      const withExif = reinjectExif(originalDataUrl, edited)
       const blob = await dataUrlToBlob(withExif)
       onApply(fileId, blob)
       onClose()
     } finally {
       setBusy(false)
     }
-  }, [pixels, rotation, originalDataUrl, fileId, onApply, onClose, busy])
+  }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose])
 
   return (
     <div className="fixed inset-0 z-[60] flex flex-col bg-black">
@@ -84,33 +101,33 @@ export function UploadEditor({
           onClick={apply}
           disabled={busy}
           aria-label="적용"
-          className="p-2 text-point-400"
+          className="p-2 text-point-400 disabled:opacity-50"
         >
           <Check size={22} />
         </button>
       </div>
-      <div className="relative flex-1">
-        <Cropper
-          image={originalDataUrl}
-          crop={crop}
-          zoom={zoom}
-          rotation={rotation}
-          aspect={aspect}
-          onCropChange={setCrop}
-          onZoomChange={setZoom}
-          onRotationChange={setRotation}
-          onCropComplete={onCropComplete}
-          onMediaLoaded={onMediaLoaded}
-          restrictPosition={false}
-        />
+
+      <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
+        <ReactCrop
+          {...(crop ? { crop } : {})}
+          onChange={(c) => setCrop(c)}
+          onComplete={(c) => setCompleted(c)}
+          {...(aspect !== undefined ? { aspect } : {})}
+          keepSelection
+          className="max-h-full"
+        >
+          {/* biome-ignore lint/performance/noImgElement: 편집 캔버스 소스는 로컬 blob dataURL — next/image 부적합 */}
+          {/* biome-ignore lint/a11y/useAltText: 편집용 미리보기 이미지 */}
+          <img ref={imgRef} src={working} alt="" className="max-h-[60vh] max-w-full" />
+        </ReactCrop>
       </div>
-      {/* 비율 프리셋 */}
-      <div className="flex items-center justify-center gap-2 px-4 pt-3">
+
+      <div className="flex items-center justify-center gap-2 px-4 pt-2">
         {ASPECT_PRESETS.map((p) => (
           <button
             key={p.mode}
             type="button"
-            onClick={() => setAspectMode(p.mode)}
+            onClick={() => pickAspect(p.mode)}
             className={cn(
               'rounded-full px-3 py-1.5 text-[13px] font-medium transition',
               aspectMode === p.mode
@@ -122,24 +139,16 @@ export function UploadEditor({
           </button>
         ))}
       </div>
-      <div className="flex items-center gap-4 p-4 text-white">
+
+      <div className="flex items-center justify-center p-4 text-white">
         <button
           type="button"
-          onClick={() => setRotation((r) => (r + 90) % 360)}
-          className="flex items-center gap-1 text-sm"
+          onClick={rotate}
+          disabled={busy}
+          className="flex items-center gap-1.5 rounded-full bg-white/12 px-4 py-2 text-sm hover:bg-white/20 disabled:opacity-50"
         >
           <RotateCw size={18} /> 회전
         </button>
-        <input
-          type="range"
-          min={1}
-          max={3}
-          step={0.01}
-          value={zoom}
-          onChange={(e) => setZoom(Number(e.target.value))}
-          className="flex-1"
-          aria-label="확대"
-        />
       </div>
     </div>
   )

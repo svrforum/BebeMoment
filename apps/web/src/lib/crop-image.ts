@@ -1,39 +1,8 @@
-// react-easy-crop 의 croppedAreaPixels + rotation 을 캔버스로 렌더해 JPEG dataURL 반환.
-// 브라우저 전용(canvas). 회전 baked.
-export type PixelCrop = { x: number; y: number; width: number; height: number }
+// 브라우저 캔버스로 이미지를 잘라/회전해 JPEG dataURL 을 만든다. 회전은 작업본에
+// baked 하고(rotateJpeg90), 크롭은 원본(자연) 픽셀 좌표로 받는다(react-image-crop 의
+// 화면 좌표를 호출부에서 naturalWidth/표시너비 비율로 환산해 넘김).
 
-export async function getCroppedJpeg(
-  imageSrc: string,
-  crop: PixelCrop,
-  rotationDeg: number,
-  quality = 0.92,
-): Promise<string> {
-  const image = await loadImage(imageSrc)
-  const rad = (rotationDeg * Math.PI) / 180
-  // 회전 후 바운딩 박스 기준 안전 캔버스에 원본을 회전 그려서 크롭 영역만 추출
-  const safe = Math.max(image.width, image.height) * 2
-  const tmp = document.createElement('canvas')
-  tmp.width = safe
-  tmp.height = safe
-  const tctx = tmp.getContext('2d')
-  if (!tctx) throw new Error('canvas 2d context 없음')
-  tctx.translate(safe / 2, safe / 2)
-  tctx.rotate(rad)
-  tctx.drawImage(image, -image.width / 2, -image.height / 2)
-  const data = tctx.getImageData(0, 0, safe, safe)
-
-  const out = document.createElement('canvas')
-  out.width = crop.width
-  out.height = crop.height
-  const octx = out.getContext('2d')
-  if (!octx) throw new Error('canvas 2d context 없음')
-  octx.putImageData(
-    data,
-    Math.round(-safe / 2 + image.width / 2 - crop.x),
-    Math.round(-safe / 2 + image.height / 2 - crop.y),
-  )
-  return out.toDataURL('image/jpeg', quality)
-}
+export type PixelRect = { x: number; y: number; width: number; height: number }
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -42,4 +11,34 @@ function loadImage(src: string): Promise<HTMLImageElement> {
     img.onerror = reject
     img.src = src
   })
+}
+
+/** 자연 픽셀 좌표의 사각형을 잘라 JPEG dataURL 로. */
+export async function getCroppedJpeg(
+  imageSrc: string,
+  rect: PixelRect,
+  quality = 0.92,
+): Promise<string> {
+  const image = await loadImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  canvas.width = Math.max(1, Math.round(rect.width))
+  canvas.height = Math.max(1, Math.round(rect.height))
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas 2d context 없음')
+  ctx.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', quality)
+}
+
+/** 이미지를 시계방향 90° 회전한 JPEG dataURL. 회전은 픽셀에 baked. */
+export async function rotateJpeg90(imageSrc: string, quality = 0.92): Promise<string> {
+  const image = await loadImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  canvas.width = image.naturalHeight
+  canvas.height = image.naturalWidth
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas 2d context 없음')
+  ctx.translate(canvas.width / 2, canvas.height / 2)
+  ctx.rotate(Math.PI / 2)
+  ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2)
+  return canvas.toDataURL('image/jpeg', quality)
 }

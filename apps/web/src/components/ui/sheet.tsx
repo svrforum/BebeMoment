@@ -53,7 +53,7 @@ export function Sheet({ open, onOpenChange, title, children, className }: SheetP
   )
 }
 
-function useIsDesktop(): boolean {
+export function useIsDesktop(): boolean {
   const [isDesktop, setIsDesktop] = useState(false)
   useEffect(() => {
     const mq = window.matchMedia('(min-width: 768px)')
