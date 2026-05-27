@@ -18,19 +18,33 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 
 function Thumb({ file }: { file: FileRow }) {
   const [src, setSrc] = useState<string | null>(null)
+  const isImage = file.type?.startsWith('image/') ?? false
+  const isVideo = file.type?.startsWith('video/') ?? false
   useEffect(() => {
     if (!file.data || !(file.data instanceof Blob)) return
-    if (!file.type?.startsWith('image/')) return
+    if (!isImage && !isVideo) return
     const url = URL.createObjectURL(file.data)
     setSrc(url)
     return () => URL.revokeObjectURL(url)
-  }, [file.data, file.type])
+  }, [file.data, isImage, isVideo])
 
+  if (src && isVideo) {
+    // 로컬 영상의 첫 프레임을 썸네일로(업로드 전이라 서버 포스터가 아직 없음).
+    return (
+      <video
+        src={`${src}#t=0.1`}
+        muted
+        playsInline
+        preload="metadata"
+        className="h-full w-full rounded-xl object-cover"
+      />
+    )
+  }
   return src ? (
     <img src={src} alt="" className="h-full w-full rounded-xl object-cover" />
   ) : (
     <div className="flex h-full w-full items-center justify-center rounded-xl bg-base-100 text-[10px] text-base-500 dark:bg-base-800">
-      {file.type?.startsWith('video/') ? 'VIDEO' : 'FILE'}
+      {isVideo ? 'VIDEO' : 'FILE'}
     </div>
   )
 }

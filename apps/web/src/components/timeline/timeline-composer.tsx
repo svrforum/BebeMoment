@@ -123,12 +123,12 @@ export function TimelineComposer({
         const fileId = ids[i]
         const file = picked[i]
         if (!fileId || !file) continue
-        const isImage = file.type.startsWith('image/')
+        const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/')
         fresh.push({
           fileId,
           name: file.name,
           type: file.type,
-          previewUrl: isImage ? URL.createObjectURL(file) : null,
+          previewUrl: isMedia ? URL.createObjectURL(file) : null,
           assetId: null,
           ready: false,
         })
@@ -276,11 +276,19 @@ export function TimelineComposer({
               key={a.fileId}
               className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
             >
-              {a.previewUrl ? (
+              {a.previewUrl && a.type.startsWith('video/') ? (
+                <video
+                  src={`${a.previewUrl}#t=0.1`}
+                  muted
+                  playsInline
+                  preload="metadata"
+                  className="h-full w-full object-cover"
+                />
+              ) : a.previewUrl ? (
                 <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                  {a.type.startsWith('video/') ? 'VIDEO' : 'FILE'}
+                  파일
                 </div>
               )}
               {submitting && !a.assetId && (
