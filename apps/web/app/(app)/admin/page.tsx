@@ -4,7 +4,8 @@ import { ChevronRight } from 'lucide-react'
 import Link from 'next/link'
 
 const sections = [
-  { href: '/admin/general', label: '일반', description: '앱 이름, 기본 언어' },
+  { href: '/admin/general', label: '일반', description: '앱 이름, 기본 테마' },
+  { href: '/admin/features', label: '기능', description: '좋아요·댓글 등 기능별 사용 여부' },
   { href: '/admin/auth', label: '인증', description: '가입 허용, OIDC 프로바이더' },
   {
     href: '/admin/members',

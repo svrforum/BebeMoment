@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useFeatures } from '@/lib/features'
 import { FolderPlus, MessageCircle } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
@@ -29,6 +30,7 @@ export function ViewerActionBar({
   onCommentTap: () => void
   onAlbumTap: () => void
 }) {
+  const features = useFeatures()
   return (
     <div
       className={cn(
@@ -37,23 +39,27 @@ export function ViewerActionBar({
       )}
     >
       <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
-      <button
-        type="button"
-        onClick={onCommentTap}
-        aria-label="댓글"
-        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white"
-      >
-        <MessageCircle size={22} />
-        {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
-      </button>
-      <button
-        type="button"
-        onClick={onAlbumTap}
-        aria-label="앨범에 추가"
-        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
-      >
-        <FolderPlus size={22} />
-      </button>
+      {features.comments && (
+        <button
+          type="button"
+          onClick={onCommentTap}
+          aria-label="댓글"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white"
+        >
+          <MessageCircle size={22} />
+          {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
+        </button>
+      )}
+      {features.albums && (
+        <button
+          type="button"
+          onClick={onAlbumTap}
+          aria-label="앨범에 추가"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+        >
+          <FolderPlus size={22} />
+        </button>
+      )}
       <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
     </div>
   )

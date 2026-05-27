@@ -3,6 +3,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { createComment } from '@/server/comment/create'
 import { listComments } from '@/server/comment/list'
 import { resolveContext } from '@/server/context'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { getPublisher } from '@/server/upload/pubsub'
 import { NextResponse } from 'next/server'
 
@@ -22,6 +23,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isFeatureEnabled('comments', prismaPublic)))
+    return NextResponse.json({ error: '댓글 기능이 꺼져 있어요' }, { status: 403 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,

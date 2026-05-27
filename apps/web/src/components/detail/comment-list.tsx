@@ -1,4 +1,5 @@
 'use client'
+import { useFeature } from '@/lib/features'
 import { useFamilySSE } from '@/lib/sse'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { CommentComposer, type OptimisticDraft } from './comment-composer'
@@ -37,6 +38,7 @@ export function CommentList({
 }) {
   const [comments, setComments] = useState<CommentWithAuthor[]>(initialComments)
   const [optimistic, setOptimistic] = useState<CommentWithAuthor[]>([])
+  const commentsOn = useFeature('comments')
 
   const refetch = useCallback(async () => {
     const res = await fetch(`/api/asset/${assetId}/comments`)
@@ -89,6 +91,10 @@ export function CommentList({
   useEffect(() => {
     onCountChange?.(liveCount)
   }, [liveCount, onCountChange])
+
+  if (!commentsOn) {
+    return fill ? <div className="flex min-h-0 flex-1 flex-col">{header}</div> : <>{header}</>
+  }
 
   const list =
     merged.length === 0 ? (

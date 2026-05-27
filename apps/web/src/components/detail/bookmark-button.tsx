@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Bookmark } from 'lucide-react'
 import { useState } from 'react'
@@ -22,9 +23,12 @@ export function BookmarkButton(props: Props) {
   const [internalBookmarked, setInternalBookmarked] = useState(props.initialBookmarked ?? false)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+  const bookmarksOn = useFeature('bookmarks')
 
   const bookmarked = props.controlled ? props.controlled.bookmarked : internalBookmarked
   const setBookmarked = props.controlled ? props.controlled.setBookmarked : setInternalBookmarked
+
+  if (!bookmarksOn) return null
 
   async function onClick() {
     if (pending) return

@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
@@ -26,11 +27,14 @@ export function LikeButton(props: Props) {
   const [internalCount, setInternalCount] = useState(props.initialCount ?? 0)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+  const likesOn = useFeature('likes')
 
   const liked = props.controlled ? props.controlled.liked : internalLiked
   const count = props.controlled ? props.controlled.count : internalCount
   const setLiked = props.controlled ? props.controlled.setLiked : setInternalLiked
   const setCount = props.controlled ? props.controlled.setCount : setInternalCount
+
+  if (!likesOn) return null
 
   async function onClick() {
     if (pending) return

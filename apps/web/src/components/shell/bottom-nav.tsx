@@ -1,24 +1,31 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useFeatures } from '@/lib/features'
+import type { FeatureFlag } from '@bebe/core'
 import { Calendar, Clock4, FolderOpen, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const items = [
+const items: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
-  { href: '/albums', label: '앨범', icon: FolderOpen },
+  { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
   { href: '/settings', label: '설정', icon: Settings },
-] as const
+]
 
 export function BottomNav() {
   const pathname = usePathname()
+  const features = useFeatures()
   // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
   if (pathname?.startsWith('/detail') === true) return null
+  const visible = items.filter((it) => !it.feature || features[it.feature])
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
-      <div className="mx-auto grid h-16 max-w-3xl grid-cols-4 pb-[env(safe-area-inset-bottom)]">
-        {items.map(({ href, label, icon: Icon }) => {
+      <div
+        className="mx-auto grid h-16 max-w-3xl pb-[env(safe-area-inset-bottom)]"
+        style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
+      >
+        {visible.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname?.startsWith(`${href}/`) === true
           return (
             <Link
