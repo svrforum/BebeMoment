@@ -5,6 +5,7 @@ import { getCroppedJpeg, rotateJpeg90 } from '@/lib/crop-image'
 import { reinjectExif } from '@/lib/exif-reinject'
 import { Check, RotateCw, X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
+import { createPortal } from 'react-dom'
 import ReactCrop, { type Crop, type PixelCrop } from 'react-image-crop'
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
@@ -89,7 +90,14 @@ export function UploadEditor({
     }
   }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose])
 
-  return (
+  // Portal to <body>: the editor is opened from inside the upload sheet (a
+  // vaul drawer), and vaul uses a CSS transform for its drag animation — a
+  // transformed ancestor becomes the containing block for `position: fixed`,
+  // which trapped the editor inside the bottom sheet (cramped, cut off).
+  // Rendering at <body> makes `fixed inset-0` truly full-screen.
+  if (typeof document === 'undefined') return null
+
+  return createPortal(
     <div className="fixed inset-0 z-[60] flex flex-col bg-black">
       <div className="flex items-center justify-between p-4 text-white">
         <button type="button" onClick={onClose} aria-label="취소" className="p-2">
@@ -150,6 +158,7 @@ export function UploadEditor({
           <RotateCw size={18} /> 회전
         </button>
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }
