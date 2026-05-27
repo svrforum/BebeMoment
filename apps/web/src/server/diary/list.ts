@@ -16,9 +16,44 @@ function decodeCursor(s: string): Cursor | null {
   return null
 }
 
+/**
+ * Free-text search filter: a date-like query (YYYY, YYYY-MM, YYYY-MM-DD with
+ * - . or /) filters by entryDate range; anything else matches title/body
+ * (case-insensitive). UTC day boundaries (entryDate = wall-clock-as-UTC).
+ */
+function searchFilter(qRaw: string) {
+  const q = qRaw.trim()
+  if (!q) return {}
+  const m = q.match(/^(\d{4})(?:[-./](\d{1,2}))?(?:[-./](\d{1,2}))?$/)
+  if (m) {
+    const year = Number(m[1])
+    const month = m[2] ? Number(m[2]) - 1 : null
+    const day = m[3] ? Number(m[3]) : null
+    let start: Date
+    let end: Date
+    if (month === null) {
+      start = new Date(Date.UTC(year, 0, 1))
+      end = new Date(Date.UTC(year + 1, 0, 1))
+    } else if (day === null) {
+      start = new Date(Date.UTC(year, month, 1))
+      end = new Date(Date.UTC(year, month + 1, 1))
+    } else {
+      start = new Date(Date.UTC(year, month, day))
+      end = new Date(Date.UTC(year, month, day + 1))
+    }
+    return { entryDate: { gte: start, lt: end } }
+  }
+  return {
+    OR: [
+      { body: { contains: q, mode: 'insensitive' as const } },
+      { title: { contains: q, mode: 'insensitive' as const } },
+    ],
+  }
+}
+
 export async function listDiaryEntries(
   familyId: string,
-  params: { babyId?: string; cursor?: string; limit?: number },
+  params: { babyId?: string; cursor?: string; limit?: number; q?: string },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -35,6 +70,7 @@ export async function listDiaryEntries(
       familyId,
       deletedAt: null,
       ...(params.babyId !== undefined ? { babyId: params.babyId } : {}),
+      ...(params.q ? searchFilter(params.q) : {}),
       ...(cursorTs && cur
         ? {
             OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
