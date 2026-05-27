@@ -31,6 +31,7 @@ type UppyInstance = {
   off: (event: string, cb: (...args: unknown[]) => void) => void
   getFile: (id: string) => unknown
   addPreProcessor: (fn: (ids: string[]) => Promise<void>) => void
+  upload?: () => Promise<unknown>
 }
 
 const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024
@@ -41,6 +42,9 @@ export type UploadManager = {
   addFiles: (list: FileList | File[]) => Promise<string[]>
   removeFile: (id: string) => void
   markAssetDone: (assetId: string) => void
+  startStagedUploads: () => void
+  replaceFileData: (id: string, blob: Blob) => void
+  hasStaged: boolean
   uploadingCount: number
   processingCount: number
   totalActive: number
@@ -102,7 +106,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           maxFileSize: MAX_FILE_SIZE,
           allowedFileTypes: ['image/*', 'video/*'],
         },
-        autoProceed: true,
+        autoProceed: false,
       }).use(Tus, {
         chunkSize: 8 * 1024 * 1024,
         retryDelays: [0, 1000, 3000, 5000],
@@ -265,26 +269,43 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])
 
+  const startStagedUploads = useCallback(() => {
+    uppy?.upload?.()
+  }, [uppy])
+
+  const replaceFileData = useCallback(
+    (id: string, blob: Blob) => {
+      uppy?.setFileState(id, { data: blob, size: blob.size })
+      if (uppy) setFiles(uppy.getFiles() as unknown as FileRow[])
+    },
+    [uppy],
+  )
+
   const value = useMemo<UploadManager>(() => {
     let uploading = 0
     let processing = 0
     for (const f of files) {
+      const started = Boolean(f.progress?.uploadStarted)
       const complete = f.progress?.uploadComplete ?? false
       const id = f.meta?.assetId
-      if (!complete) uploading++
-      else if (id && !doneIds.has(id)) processing++
+      if (started && !complete) uploading++
+      else if (complete && id && !doneIds.has(id)) processing++
     }
+    const hasStaged = files.some((f) => !f.progress?.uploadStarted)
     return {
       files,
       doneIds,
       addFiles,
       removeFile,
       markAssetDone,
+      startStagedUploads,
+      replaceFileData,
+      hasStaged,
       uploadingCount: uploading,
       processingCount: processing,
       totalActive: uploading + processing,
     }
-  }, [files, doneIds, addFiles, removeFile, markAssetDone])
+  }, [files, doneIds, addFiles, removeFile, markAssetDone, startStagedUploads, replaceFileData])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
