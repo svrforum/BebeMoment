@@ -2,8 +2,10 @@
 import {
   currentPushEnabled,
   isIos,
+  isNativeApp,
   isStandalone,
   pushSupported,
+  registerNativePush,
   subscribeToPush,
   unsubscribeFromPush,
 } from '@/lib/push-client'
@@ -12,7 +14,7 @@ import { Bell, Share } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { Toggle } from '../ui/toggle'
 
-type Support = 'loading' | 'supported' | 'ios-install' | 'unsupported'
+type Support = 'loading' | 'supported' | 'native' | 'ios-install' | 'unsupported'
 
 export function PushToggle(): React.JSX.Element {
   const [support, setSupport] = useState<Support>('loading')
@@ -21,6 +23,10 @@ export function PushToggle(): React.JSX.Element {
   const toast = useToast()
 
   useEffect(() => {
+    if (isNativeApp()) {
+      setSupport('native')
+      return
+    }
     if (pushSupported()) {
       setSupport('supported')
       currentPushEnabled().then(setEnabled)
@@ -32,6 +38,24 @@ export function PushToggle(): React.JSX.Element {
     }
     setSupport('unsupported')
   }, [])
+
+  async function onToggleNative(): Promise<void> {
+    if (pending) return
+    setPending(true)
+    try {
+      const ok = await registerNativePush()
+      if (!ok) {
+        toast({ title: '관리자가 앱 푸시(Firebase)를 설정해야 해요', variant: 'danger' })
+        return
+      }
+      setEnabled(true)
+      toast({ title: '이 기기에서 알림을 켰어요', variant: 'success' })
+    } catch {
+      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+    } finally {
+      setPending(false)
+    }
+  }
 
   async function onToggle(): Promise<void> {
     if (pending) return
@@ -88,7 +112,7 @@ export function PushToggle(): React.JSX.Element {
       <Toggle
         checked={enabled}
         disabled={pending}
-        onChange={onToggle}
+        onChange={support === 'native' ? onToggleNative : onToggle}
         aria-label="이 기기에서 알림 받기"
       />
     </div>

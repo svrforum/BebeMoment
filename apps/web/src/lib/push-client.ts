@@ -81,3 +81,55 @@ export async function currentPushEnabled(): Promise<boolean> {
   const subscription = await registration?.pushManager.getSubscription()
   return Boolean(subscription)
 }
+
+// --- Native (Capacitor / Android app) push ---
+// The Capacitor runtime injects window.Capacitor into the WebView, including on
+// the remote server page. We access the bridge globally so apps/web carries no
+// Capacitor dependency.
+type CapacitorBridge = {
+  isNativePlatform?: () => boolean
+  Plugins?: {
+    BebePush?: { initAndGetToken: (cfg: Record<string, string>) => Promise<{ token: string }> }
+  }
+}
+
+function capacitor(): CapacitorBridge | null {
+  if (typeof window === 'undefined') return null
+  return (window as Window & { Capacitor?: CapacitorBridge }).Capacitor ?? null
+}
+
+export function isNativeApp(): boolean {
+  return capacitor()?.isNativePlatform?.() === true
+}
+
+export async function registerNativePush(): Promise<boolean> {
+  const cap = capacitor()
+  const plugin = cap?.Plugins?.BebePush
+  if (!cap?.isNativePlatform?.() || !plugin) return false
+
+  const cfgRes = await fetch('/api/push/fcm-config')
+  if (!cfgRes.ok) return false
+  const cfg = (await cfgRes.json()) as {
+    configured: boolean
+    apiKey?: string
+    appId?: string
+    projectId?: string
+    messagingSenderId?: string
+  }
+  if (!cfg.configured || !cfg.apiKey || !cfg.appId || !cfg.projectId || !cfg.messagingSenderId) {
+    return false
+  }
+
+  const { token } = await plugin.initAndGetToken({
+    apiKey: cfg.apiKey,
+    appId: cfg.appId,
+    projectId: cfg.projectId,
+    messagingSenderId: cfg.messagingSenderId,
+  })
+  const save = await fetch('/api/notifications/register-device', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ token, platform: 'android' }),
+  })
+  return save.ok
+}
