@@ -1,3 +1,4 @@
+import { DiaryAlbumButton } from '@/components/diary/diary-album-button'
 import { DiaryDeleteButton } from '@/components/diary/DiaryDeleteButton'
 import { DiaryDetail } from '@/components/diary/DiaryDetail'
 import { DiaryForm } from '@/components/diary/DiaryForm'
@@ -6,6 +7,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getDiaryEntry } from '@/server/diary/get'
+import { getFeatureFlags } from '@/server/settings/features'
 import { ChevronLeft, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
@@ -89,12 +91,15 @@ export default async function DiaryDetailPage({
     )
   }
 
+  const features = await getFeatureFlags(prismaPublic)
+
   return (
     <>
       <DiaryDetailHeader />
       <div className="mx-auto max-w-2xl px-5 py-4">
         <DiaryDetail entry={entry} />
         <div className="mt-3 flex items-center justify-end gap-1 text-[12px]">
+          {features.albums && <DiaryAlbumButton entryId={id} />}
           <Link
             href={`/diary/${id}?edit=1`}
             className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"

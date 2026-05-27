@@ -2,6 +2,7 @@ import { AlbumBreadcrumbs } from '@/components/albums/album-breadcrumbs'
 import { AlbumCard } from '@/components/albums/album-card'
 import { AlbumCreateButton } from '@/components/albums/album-create-button'
 import { AlbumMenu } from '@/components/albums/album-menu'
+import { AlbumStoryItem } from '@/components/albums/album-story-item'
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -9,6 +10,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { getAlbumWithBreadcrumbs } from '@/server/album/get'
 import { listAlbums } from '@/server/album/list'
 import { listAlbumAssets } from '@/server/album/list-assets'
+import { listAlbumEntries } from '@/server/album/list-entries'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
 import { ImagePlus } from 'lucide-react'
@@ -29,9 +31,15 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   )
   if (!album) notFound()
 
-  const [children, assetsResult] = await Promise.all([
+  const [children, assetsResult, entries] = await Promise.all([
     listAlbums({ familyId: ctx.family.id, parentId: album.id }, prismaPublic),
     listAlbumAssets(
+      { albumId: album.id, familyId: ctx.family.id },
+      prismaPublic,
+      prismaMedia,
+      getMediaClient(),
+    ),
+    listAlbumEntries(
       { albumId: album.id, familyId: ctx.family.id },
       prismaPublic,
       prismaMedia,
@@ -90,7 +98,8 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
       <div className="mx-auto max-w-3xl px-5 py-3">
         <AlbumBreadcrumbs trail={trail} />
         <p className="mt-2 text-[12px] tabular-nums text-base-400">
-          {album.assetCount}장 · {album.childCount}개 하위 앨범
+          {album.assetCount}장{entries.length > 0 && ` · 스토리 ${entries.length}개`} ·{' '}
+          {album.childCount}개 하위 앨범
         </p>
 
         {children.length > 0 && (
@@ -118,6 +127,19 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
                   />
                 )
               })}
+            </div>
+          </section>
+        )}
+
+        {entries.length > 0 && (
+          <section className="mt-6">
+            <h2 className="mb-3 px-1 text-[13px] font-semibold tracking-tight text-base-500">
+              스토리
+            </h2>
+            <div className="space-y-3">
+              {entries.map((e) => (
+                <AlbumStoryItem key={e.id} albumId={album.id} entry={e} />
+              ))}
             </div>
           </section>
         )}

@@ -45,6 +45,7 @@ model User {
   attachedTags          AssetTag[]       @relation("AssetTagAddedBy")
   createdAlbums         Album[]          @relation("AlbumCreatedBy")
   attachedAlbumAssets   AlbumAsset[]     @relation("AlbumAssetAddedBy")
+  attachedAlbumEntries  AlbumJournalEntry[] @relation("AlbumEntryAddedBy")
   pushSubscriptions     PushSubscription[]
   notificationPrefs     NotificationPref[]
 
@@ -169,6 +170,7 @@ model Family {
   assetTags      AssetTag[]
   albums         Album[]
   albumAssets    AlbumAsset[]
+  albumEntries   AlbumJournalEntry[]
 
   @@map("families")
   @@schema("public")
@@ -367,6 +369,7 @@ model JournalEntry {
   baby      Baby?               @relation(fields: [babyId], references: [id], onDelete: SetNull)
   createdBy User                @relation(fields: [createdByUserId], references: [id])
   assets    JournalEntryAsset[]
+  albums    AlbumJournalEntry[]
 
   @@index([familyId, entryDate])
   @@index([familyId, babyId, entryDate])
@@ -509,6 +512,7 @@ model Album {
   children  Album[]      @relation("AlbumTree")
   createdBy User         @relation("AlbumCreatedBy", fields: [createdByUserId], references: [id])
   assets    AlbumAsset[]
+  entries   AlbumJournalEntry[]
 
   @@index([familyId, parentId, deletedAt])
   @@map("albums")
@@ -531,6 +535,26 @@ model AlbumAsset {
   @@index([assetId])
   @@index([familyId, albumId, sortIndex])
   @@map("album_assets")
+  @@schema("public")
+}
+
+model AlbumJournalEntry {
+  albumId        String   @map("album_id") @db.Uuid
+  journalEntryId String   @map("journal_entry_id") @db.Uuid
+  familyId       String   @map("family_id") @db.Uuid
+  addedByUserId  String   @map("added_by_user_id") @db.Uuid
+  addedAt        DateTime @default(now()) @map("added_at")
+  sortIndex      Int      @default(0) @map("sort_index")
+
+  family  Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  album   Album        @relation(fields: [albumId], references: [id], onDelete: Cascade)
+  entry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  addedBy User         @relation("AlbumEntryAddedBy", fields: [addedByUserId], references: [id])
+
+  @@id([albumId, journalEntryId])
+  @@index([journalEntryId])
+  @@index([familyId, albumId, sortIndex])
+  @@map("album_journal_entries")
   @@schema("public")
 }
 

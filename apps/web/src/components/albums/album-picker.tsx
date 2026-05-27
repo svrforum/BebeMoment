@@ -21,16 +21,19 @@ type Props = {
   assetId?: string
   /** Bulk add: tap one album → all assets attached at once. */
   assetIds?: string[]
+  /** Story (diary entry) mode — attaches a journal entry instead of assets. */
+  entryId?: string
   /** Optional close-after-attach hook so the caller can clear selection. */
   onAttached?: (albumId: string) => void
 }
 
 /**
  * Bottom-sheet album picker. Shows a collapsible tree of family albums;
- * tapping any node attaches the target asset(s) to it. Inline "새 앨범"
- * creates a root album and immediately attaches.
+ * tapping any node attaches the target asset(s) — or a story (diary entry)
+ * when `entryId` is given — to it. Inline "새 앨범" creates a root album and
+ * immediately attaches.
  */
-export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached }: Props) {
+export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, onAttached }: Props) {
   const toast = useToast()
   const router = useRouter()
   const [tree, setTree] = useState<AlbumNode[]>([])
@@ -39,6 +42,8 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
   const [recent, setRecent] = useState<Set<string>>(new Set())
 
   const targetIds = assetIds && assetIds.length > 0 ? assetIds : assetId ? [assetId] : []
+  const isEntry = Boolean(entryId)
+  const hasTarget = isEntry ? Boolean(entryId) : targetIds.length > 0
 
   const loadTree = useCallback(async () => {
     try {
@@ -65,13 +70,13 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
   }, [open])
 
   const attach = async (albumId: string) => {
-    if (targetIds.length === 0) return
+    if (!hasTarget) return
     setPending(albumId)
     try {
-      const res = await fetch(`/api/albums/${albumId}/assets`, {
+      const res = await fetch(`/api/albums/${albumId}/${isEntry ? 'entries' : 'assets'}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assetIds: targetIds }),
+        body: JSON.stringify(isEntry ? { entryIds: [entryId] } : { assetIds: targetIds }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -79,7 +84,7 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
       }
       const result = (await res.json()) as { added: number; total: number }
       setRecent((prev) => new Set(prev).add(albumId))
-      if (targetIds.length > 1) {
+      if (!isEntry && targetIds.length > 1) {
         const dup = targetIds.length - result.added
         toast({
           title: `${result.added}장 추가됨`,
@@ -108,8 +113,11 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, onAttached 
     })
   }
 
-  const headerCount =
-    targetIds.length > 1 ? `사진 ${targetIds.length}장 앨범에 추가` : '앨범에 추가'
+  const headerCount = isEntry
+    ? '스토리 앨범에 추가'
+    : targetIds.length > 1
+      ? `사진 ${targetIds.length}장 앨범에 추가`
+      : '앨범에 추가'
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={headerCount}>
