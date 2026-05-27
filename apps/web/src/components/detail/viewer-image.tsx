@@ -3,15 +3,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
-import {
-  type CSSProperties,
-  type ReactNode,
-  type TouchEvent as ReactTouchEvent,
-  useCallback,
-  useEffect,
-  useRef,
-  useState,
-} from 'react'
+import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
 
 type AssetSlim = {
@@ -117,10 +109,14 @@ export function ViewerImage({
   )
 }
 
-// 한 손가락 제스처만 스와이프(prev/next)·드래그다운(close)로 해석한다.
-// 두 손가락(핀치)은 **무시**해서 react-zoom-pan-pinch 가 줌을 가져가게 한다.
-// (framer drag 로 하면 핀치의 첫 손가락을 가로 스와이프로 오인해 옆 사진으로
-//  넘어가는 버그가 있었다 — 멀티터치를 명시적으로 배제하는 게 유일하게 확실하다.)
+// 한 손가락 제스처만 스와이프(prev/next)·드래그다운(close)로 해석하고, 두 손가락
+// (핀치)은 무시해 react-zoom-pan-pinch 가 줌을 가져가게 한다.
+//
+// 핸들러는 **네이티브 capture 리스너**로 단다: rzpp 가 자기 노드에서 touch 이벤트에
+// stopPropagation 을 걸어 React 합성 핸들러(버블/캡처 모두 root 에서 디스패치)가
+// 아예 안 불리는 문제가 있었다(스와이프 이동 안 됨). 조상 노드의 capture 단계는
+// rzpp 보다 먼저 실행되고, 우리는 stopPropagation/preventDefault 를 안 하므로 rzpp
+// 의 줌/팬도 그대로 동작한다.
 const SWIPE_X = 60
 const CLOSE_Y = 110
 const TAP_SLOP = 8
@@ -140,77 +136,88 @@ function SwipeLayer({
   onTap?: (() => void) | undefined
   children: ReactNode
 }) {
-  const start = useRef<{ x: number; y: number } | null>(null)
-  const multiTouch = useRef(false)
-  const moved = useRef(false)
-  // 스와이프/팬 직후 브라우저가 합성 click 을 쏘므로, 그 click 의 onTap 을 가드.
-  const swiped = useRef(false)
+  const ref = useRef<HTMLDivElement>(null)
+  // 최신 enabled/콜백을 ref 로 노출 — 리스너는 mount 때 한 번만 단다.
+  const cfg = useRef({ enabled, onNext, onPrev, onClose, onTap })
+  cfg.current = { enabled, onNext, onPrev, onClose, onTap }
+  // 스와이프 직후 따라올 수 있는 합성 click 의 onTap(크롬 토글) 가드.
+  const suppressTap = useRef(false)
 
-  const onTouchStart = useCallback((e: ReactTouchEvent) => {
-    if (e.touches.length > 1) {
-      multiTouch.current = true
-      start.current = null
-      return
-    }
-    multiTouch.current = false
-    moved.current = false
-    const t = e.touches[0]
-    start.current = t ? { x: t.clientX, y: t.clientY } : null
-  }, [])
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    let start: { x: number; y: number } | null = null
+    let multi = false
+    let moved = false
 
-  const onTouchMove = useCallback((e: ReactTouchEvent) => {
-    if (e.touches.length > 1) {
-      multiTouch.current = true
-      start.current = null
-      return
-    }
-    const s = start.current
-    const t = e.touches[0]
-    if (!s || !t) return
-    if (Math.abs(t.clientX - s.x) > TAP_SLOP || Math.abs(t.clientY - s.y) > TAP_SLOP) {
-      moved.current = true
-    }
-  }, [])
-
-  const onTouchEnd = useCallback(
-    (e: ReactTouchEvent) => {
-      if (multiTouch.current) {
-        // 손가락이 모두 떨어지면 멀티터치 플래그 해제.
-        if (e.touches.length === 0) multiTouch.current = false
-        start.current = null
+    const onStart = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        multi = true
+        start = null
         return
       }
-      const s = start.current
-      start.current = null
+      multi = false
+      moved = false
+      const t = e.touches[0]
+      start = t ? { x: t.clientX, y: t.clientY } : null
+    }
+    const onMove = (e: TouchEvent) => {
+      if (e.touches.length > 1) {
+        multi = true
+        start = null
+        return
+      }
+      const t = e.touches[0]
+      if (!start || !t) return
+      if (Math.abs(t.clientX - start.x) > TAP_SLOP || Math.abs(t.clientY - start.y) > TAP_SLOP) {
+        moved = true
+      }
+    }
+    const onEnd = (e: TouchEvent) => {
+      if (multi) {
+        if (e.touches.length === 0) multi = false
+        start = null
+        return
+      }
+      const s = start
+      start = null
       if (!s) return
-      if (!moved.current) return // 탭 → 합성 click 이 onTap 처리
-      swiped.current = true
+      if (!moved) return // 탭 → 합성 click 이 onTap(크롬 토글) 처리
+      suppressTap.current = true
       window.setTimeout(() => {
-        swiped.current = false
-      }, 0)
-      if (!enabled) return // 줌 상태: 팬은 zoom 라이브러리가 처리
+        suppressTap.current = false
+      }, 350)
+      const c = cfg.current
+      if (!c.enabled) return // 줌 상태: 팬은 rzpp 가 처리
       const ch = e.changedTouches[0]
       if (!ch) return
       const dx = ch.clientX - s.x
       const dy = ch.clientY - s.y
       if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx < -SWIPE_X) onNext()
-        else if (dx > SWIPE_X) onPrev()
+        if (dx < -SWIPE_X) c.onNext()
+        else if (dx > SWIPE_X) c.onPrev()
       } else if (dy > CLOSE_Y) {
-        onClose()
+        c.onClose()
       }
-    },
-    [enabled, onNext, onPrev, onClose],
-  )
+    }
+
+    const opts: AddEventListenerOptions = { capture: true, passive: true }
+    el.addEventListener('touchstart', onStart, opts)
+    el.addEventListener('touchmove', onMove, opts)
+    el.addEventListener('touchend', onEnd, opts)
+    return () => {
+      el.removeEventListener('touchstart', onStart, opts)
+      el.removeEventListener('touchmove', onMove, opts)
+      el.removeEventListener('touchend', onEnd, opts)
+    }
+  }, [])
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: 모바일 탭=크롬 토글 어포던스. 키보드 제어(←/→/Esc)는 ViewerImage 의 전역 keydown 으로 제공.
+    // biome-ignore lint/a11y/useKeyWithClickEvents: 데스크탑 마우스 탭=크롬 토글. 모바일 탭은 위 네이티브 touchend 가 처리. 키보드 제어(←/→/Esc)는 ViewerImage 전역 keydown.
     <div
-      onTouchStart={onTouchStart}
-      onTouchMove={onTouchMove}
-      onTouchEnd={onTouchEnd}
+      ref={ref}
       onClick={() => {
-        if (!swiped.current) onTap?.()
+        if (!suppressTap.current) cfg.current.onTap?.()
       }}
       className="flex min-h-screen w-full items-center justify-center"
     >
