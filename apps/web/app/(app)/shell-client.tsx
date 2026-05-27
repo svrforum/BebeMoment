@@ -31,9 +31,12 @@ function FabTrigger() {
   const onPick = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
       const list = e.target.files
+      // FileList 는 input 에 라이브 바인딩 — value='' 로 비우기 전에 먼저 스냅샷.
+      // (먼저 비우면 list.length 가 0 이 돼 미리보기 시트가 안 열렸다.)
+      const picked = list ? Array.from(list) : []
       e.target.value = ''
-      if (!list || list.length === 0) return
-      const ids = await addFiles(Array.from(list))
+      if (picked.length === 0) return
+      const ids = await addFiles(picked)
       if (ids.length > 0) open() // 미리보기 그리드 표시(스테이징됨, 아직 업로드 전)
     },
     [addFiles, open],
