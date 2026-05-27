@@ -98,8 +98,18 @@ export async function processVideo(
           'veryfast',
           '-crf',
           '23',
+          // 출력 프레임레이트를 30fps CFR 로 고정. 화면 녹화는 timebase 가
+          // 90000 처럼 비정상적으로 큰 VFR 인 경우가 있는데, ffmpeg 5.x 는 출력
+          // fps 미지정 시 이 timebase 를 CFR 프레임레이트로 써서 사실상 무한
+          // 인코딩(수십 MB·끝나지 않음)에 빠진다. -r 30 으로 폭주를 막는다.
+          '-r',
+          '30',
           '-vf',
-          "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease",
+          // force_divisible_by=2 → 출력 width/height 를 짝수로 강제. libx264 +
+          // yuv420p(4:2:0) 는 홀수 치수를 거부하는데, 세로 화면 녹화(예: 1080x2520)
+          // 를 비율 유지로 축소하면 width 가 홀수(462.86…)가 돼 인코더 초기화가
+          // 실패했다("Error while opening encoder … width or height").
+          "scale='min(1920,iw)':'min(1080,ih)':force_original_aspect_ratio=decrease:force_divisible_by=2",
           '-c:a',
           'aac',
           '-b:a',
