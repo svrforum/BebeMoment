@@ -7,6 +7,7 @@ import { useState, useTransition } from 'react'
 import {
   generateVapidKeys,
   regenerateVapidKeys,
+  setFcmClientConfig,
   setFcmEnabled,
   setFcmServiceAccount,
   setPushCategory,
@@ -26,6 +27,7 @@ type Props = {
   vapidPublicPrefix: string | null
   fcmEnabled: boolean
   fcmConfigured: boolean
+  fcmClientConfigured: boolean
 }
 
 export function NotificationsForm({
@@ -34,6 +36,7 @@ export function NotificationsForm({
   vapidPublicPrefix,
   fcmEnabled,
   fcmConfigured,
+  fcmClientConfigured,
 }: Props) {
   const [masterOn, setMasterOn] = useState(master)
   const [cats, setCats] = useState(categories)
@@ -43,8 +46,24 @@ export function NotificationsForm({
   const [fcmOn, setFcmOn] = useState(fcmEnabled)
   const [fcmHasKey, setFcmHasKey] = useState(fcmConfigured)
   const [saJson, setSaJson] = useState('')
+  const [fcmHasClient, setFcmHasClient] = useState(fcmClientConfigured)
+  const [clientJson, setClientJson] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
+
+  function onSaveClientConfig() {
+    setStatus(null)
+    startTransition(async () => {
+      try {
+        await setFcmClientConfig(clientJson)
+        setFcmHasClient(clientJson.trim().length > 0)
+        setClientJson('')
+        setStatus(clientJson.trim() ? '앱 설정을 저장했어요.' : '앱 설정을 삭제했어요.')
+      } catch (e) {
+        setStatus((e as Error).message)
+      }
+    })
+  }
 
   function toggleFcm(next: boolean) {
     setFcmOn(next)
@@ -249,6 +268,31 @@ export function NotificationsForm({
             />
             <Button onClick={onSaveServiceAccount} disabled={pending}>
               {saJson.trim() ? '서비스 계정 저장' : '서비스 계정 삭제'}
+            </Button>
+          </div>
+
+          <div className="space-y-1.5 border-t border-base-100 pt-3 dark:border-base-800">
+            <div className="text-sm font-medium">앱 Firebase 설정 (공개 키)</div>
+            <div className="text-xs text-base-500">
+              안드로이드 앱이 기기 토큰을 발급받을 때 사용하는 공개 설정이에요. (firebaseConfig:
+              apiKey·appId·projectId·messagingSenderId)
+            </div>
+            <div className="text-sm">
+              {fcmHasClient ? (
+                <span className="text-point-500">앱 설정이 등록되어 있어요.</span>
+              ) : (
+                <span className="text-base-500">아직 앱 설정이 없어요.</span>
+              )}
+            </div>
+            <textarea
+              value={clientJson}
+              onChange={(e) => setClientJson(e.target.value)}
+              placeholder='{ "apiKey": ..., "appId": ..., "projectId": ..., "messagingSenderId": ... }'
+              rows={4}
+              className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
+            />
+            <Button onClick={onSaveClientConfig} disabled={pending}>
+              {clientJson.trim() ? '앱 설정 저장' : '앱 설정 삭제'}
             </Button>
           </div>
         </CardBody>

@@ -68,3 +68,25 @@ export async function setFcmServiceAccount(json: string): Promise<void> {
   const enc = await encryptSecret(trimmed, secretKey)
   await setSetting('push.fcm_service_account', enc, userId, prismaPublic)
 }
+
+export async function setFcmClientConfig(json: string): Promise<void> {
+  const userId = await adminUserId()
+  const trimmed = json.trim()
+  if (trimmed === '') {
+    await setSetting('push.fcm_client_config', '', userId, prismaPublic)
+    return
+  }
+  let parsed: Record<string, unknown>
+  try {
+    parsed = JSON.parse(trimmed)
+  } catch {
+    throw new Error('올바른 JSON이 아닙니다.')
+  }
+  const required = ['apiKey', 'appId', 'projectId', 'messagingSenderId'] as const
+  if (required.some((k) => typeof parsed[k] !== 'string' || !parsed[k])) {
+    throw new Error(
+      'Firebase 클라이언트 설정에 apiKey·appId·projectId·messagingSenderId가 필요합니다.',
+    )
+  }
+  await setSetting('push.fcm_client_config', trimmed, userId, prismaPublic)
+}

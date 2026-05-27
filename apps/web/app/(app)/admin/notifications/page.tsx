@@ -13,16 +13,23 @@ function parseBool(value: string | null, fallback: boolean): boolean {
 }
 
 export default async function NotificationsSettingsPage() {
-  const [masterRaw, vapidPublic, fcmEnabledRaw, fcmServiceAccount, ...categoryRaw] =
-    await Promise.all([
-      getSetting('push.enabled', BoolStringSchema, 'true', prismaPublic),
-      getSetting('push.vapid_public', z.string().nullable(), null, prismaPublic),
-      getSetting('push.fcm.enabled', BoolStringSchema, 'false', prismaPublic),
-      getSetting('push.fcm_service_account', z.string().nullable(), null, prismaPublic),
-      ...NOTIFICATION_CATEGORIES.map((cat) =>
-        getSetting(`push.categories.${cat}.enabled`, BoolStringSchema, 'true', prismaPublic),
-      ),
-    ])
+  const [
+    masterRaw,
+    vapidPublic,
+    fcmEnabledRaw,
+    fcmServiceAccount,
+    fcmClientConfig,
+    ...categoryRaw
+  ] = await Promise.all([
+    getSetting('push.enabled', BoolStringSchema, 'true', prismaPublic),
+    getSetting('push.vapid_public', z.string().nullable(), null, prismaPublic),
+    getSetting('push.fcm.enabled', BoolStringSchema, 'false', prismaPublic),
+    getSetting('push.fcm_service_account', z.string().nullable(), null, prismaPublic),
+    getSetting('push.fcm_client_config', z.string().nullable(), null, prismaPublic),
+    ...NOTIFICATION_CATEGORIES.map((cat) =>
+      getSetting(`push.categories.${cat}.enabled`, BoolStringSchema, 'true', prismaPublic),
+    ),
+  ])
 
   const categories = NOTIFICATION_CATEGORIES.map((category, i) => ({
     category,
@@ -41,6 +48,7 @@ export default async function NotificationsSettingsPage() {
           vapidPublicPrefix={vapidPublicPrefix}
           fcmEnabled={parseBool(fcmEnabledRaw, false)}
           fcmConfigured={Boolean(fcmServiceAccount && fcmServiceAccount.length > 0)}
+          fcmClientConfigured={Boolean(fcmClientConfig && fcmClientConfig.length > 0)}
         />
       </div>
     </>
