@@ -97,9 +97,19 @@ export function UploadEditor({
   // Rendering at <body> makes `fixed inset-0` truly full-screen.
   if (typeof document === 'undefined') return null
 
+  // height: 100dvh (동적 뷰포트) + safe-area 인셋 — 모바일 브라우저 주소창/시스템
+  // 내비게이션 바에 상·하단 버튼이 가려지던 문제를 막는다. 이미지는 flex-1
+  // min-h-0 로 남는 공간만 차지(object-contain)해 버튼을 절대 밀어내지 않는다.
   return createPortal(
-    <div className="fixed inset-0 z-[60] flex flex-col bg-black">
-      <div className="flex items-center justify-between p-4 text-white">
+    <div
+      className="fixed inset-x-0 top-0 z-[60] flex flex-col bg-black"
+      style={{
+        height: '100dvh',
+        paddingTop: 'env(safe-area-inset-top)',
+        paddingBottom: 'env(safe-area-inset-bottom)',
+      }}
+    >
+      <div className="flex shrink-0 items-center justify-between p-4 text-white">
         <button type="button" onClick={onClose} aria-label="취소" className="p-2">
           <X size={22} />
         </button>
@@ -115,7 +125,7 @@ export function UploadEditor({
         </button>
       </div>
 
-      <div className="flex flex-1 items-center justify-center overflow-hidden p-2">
+      <div className="flex min-h-0 flex-1 items-center justify-center overflow-hidden p-2">
         <ReactCrop
           {...(crop ? { crop } : {})}
           onChange={(c) => setCrop(c)}
@@ -126,11 +136,11 @@ export function UploadEditor({
         >
           {/* biome-ignore lint/performance/noImgElement: 편집 캔버스 소스는 로컬 blob dataURL — next/image 부적합 */}
           {/* biome-ignore lint/a11y/useAltText: 편집용 미리보기 이미지 */}
-          <img ref={imgRef} src={working} alt="" className="max-h-[60vh] max-w-full" />
+          <img ref={imgRef} src={working} alt="" className="max-h-full max-w-full object-contain" />
         </ReactCrop>
       </div>
 
-      <div className="flex items-center justify-center gap-2 px-4 pt-2">
+      <div className="flex shrink-0 items-center justify-center gap-2 px-4 pt-2">
         {ASPECT_PRESETS.map((p) => (
           <button
             key={p.mode}
@@ -148,7 +158,7 @@ export function UploadEditor({
         ))}
       </div>
 
-      <div className="flex items-center justify-center p-4 text-white">
+      <div className="flex shrink-0 items-center justify-center p-4 text-white">
         <button
           type="button"
           onClick={rotate}
