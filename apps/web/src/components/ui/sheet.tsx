@@ -8,6 +8,13 @@ type SheetProps = {
   title?: string | undefined
   children: ReactNode
   className?: string | undefined
+  /**
+   * Fixed-height column layout: the shell stops wrapping children in its own
+   * scroll container so children can own internal scroll regions (e.g. a
+   * scrollable list + a pinned footer). Used by the comment sheet for an
+   * Instagram-style fixed header / scrolling list / fixed composer.
+   */
+  fill?: boolean | undefined
 }
 
 /**
@@ -27,7 +34,7 @@ const DesktopModal = dynamic(
   { ssr: false },
 )
 
-export function Sheet({ open, onOpenChange, title, children, className }: SheetProps) {
+export function Sheet({ open, onOpenChange, title, children, className, fill }: SheetProps) {
   const isDesktop = useIsDesktop()
 
   // Don't even mount the heavy surface until the user opens the sheet at
@@ -41,13 +48,25 @@ export function Sheet({ open, onOpenChange, title, children, className }: SheetP
 
   if (isDesktop) {
     return (
-      <DesktopModal open={open} onOpenChange={onOpenChange} title={title} className={className}>
+      <DesktopModal
+        open={open}
+        onOpenChange={onOpenChange}
+        title={title}
+        className={className}
+        fill={fill}
+      >
         {children}
       </DesktopModal>
     )
   }
   return (
-    <MobileDrawer open={open} onOpenChange={onOpenChange} title={title} className={className}>
+    <MobileDrawer
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      className={className}
+      fill={fill}
+    >
       {children}
     </MobileDrawer>
   )

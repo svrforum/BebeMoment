@@ -68,57 +68,57 @@ export function ViewerBottomSheet({
     if (open) setDetailsOpen(initialDetailsOpen ?? false)
   }, [open, initialDetailsOpen])
 
-  return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={`댓글 ${commentCount}`}>
-      <div className="flex min-h-0 flex-col">
-        {/* 좋아요/북마크 + 좋아요한 사람: 상단 컴팩트 행 */}
-        <div className="flex flex-col gap-2 border-b border-base-100 pb-3 dark:border-base-800">
-          <div className="flex items-center gap-2">
-            <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
-            <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
-          </div>
-          <LikerAvatars users={likers.users} />
+  // 좋아요/북마크 + 세부정보(접이식) 는 댓글 리스트와 같은 스크롤 영역의 헤더로,
+  // 작성칸은 시트 하단에 고정 (인스타 스타일). 고정 높이 flex 컬럼은 Sheet `fill`.
+  const header = (
+    <div className="pb-2">
+      <div className="flex flex-col gap-2 border-b border-base-100 pb-3 dark:border-base-800">
+        <div className="flex items-center gap-2">
+          <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
+          <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
         </div>
-
-        {/* 세부정보: 한 번 탭으로 펼치는 접이식 영역 (메타데이터·태그) */}
-        <details
-          open={detailsOpen}
-          onToggle={(e) => setDetailsOpen((e.currentTarget as HTMLDetailsElement).open)}
-          className="group border-b border-base-100 py-1 dark:border-base-800"
-        >
-          <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-sm font-medium text-base-700 dark:text-base-300">
-            세부정보
-            <ChevronDown
-              size={16}
-              className="text-base-400 transition-transform group-open:rotate-180"
-            />
-          </summary>
-          <div className="space-y-6 pb-3 pt-1">
-            <MetadataEditor
-              assetId={assetId}
-              initialFilename={initialFilename}
-              initialCaption={initialCaption}
-              initialTakenAtISO={meta.takenAt.toISOString()}
-              initialTakenAtSource={meta.takenAtSource}
-            />
-            <MetadataSection {...meta} />
-            <TagEditor assetId={assetId} initial={initialTags} />
-          </div>
-        </details>
-
-        {/* 댓글: 시트의 주 콘텐츠 + 작성칸 하단 고정 */}
-        <div className="pt-3">
-          <CommentList
-            assetId={assetId}
-            currentUserId={currentUserId}
-            canDeleteAny={canDeleteAny}
-            familyMembers={familyMembers}
-            initialComments={initialComments}
-            onCountChange={onCommentCountChange}
-            stickyComposer
-          />
-        </div>
+        <LikerAvatars users={likers.users} />
       </div>
+
+      <details
+        open={detailsOpen}
+        onToggle={(e) => setDetailsOpen((e.currentTarget as HTMLDetailsElement).open)}
+        className="group border-b border-base-100 py-1 dark:border-base-800"
+      >
+        <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-sm font-medium text-base-700 dark:text-base-300">
+          세부정보
+          <ChevronDown
+            size={16}
+            className="text-base-400 transition-transform group-open:rotate-180"
+          />
+        </summary>
+        <div className="space-y-6 pb-3 pt-1">
+          <MetadataEditor
+            assetId={assetId}
+            initialFilename={initialFilename}
+            initialCaption={initialCaption}
+            initialTakenAtISO={meta.takenAt.toISOString()}
+            initialTakenAtSource={meta.takenAtSource}
+          />
+          <MetadataSection {...meta} />
+          <TagEditor assetId={assetId} initial={initialTags} />
+        </div>
+      </details>
+    </div>
+  )
+
+  return (
+    <Sheet open={open} onOpenChange={onOpenChange} title={`댓글 ${commentCount}`} fill>
+      <CommentList
+        assetId={assetId}
+        currentUserId={currentUserId}
+        canDeleteAny={canDeleteAny}
+        familyMembers={familyMembers}
+        initialComments={initialComments}
+        onCountChange={onCommentCountChange}
+        fill
+        header={header}
+      />
     </Sheet>
   )
 }

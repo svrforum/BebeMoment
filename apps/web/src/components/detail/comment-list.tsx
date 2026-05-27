@@ -1,6 +1,6 @@
 'use client'
 import { useFamilySSE } from '@/lib/sse'
-import { useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { CommentComposer, type OptimisticDraft } from './comment-composer'
 import { CommentItem, type CommentWithAuthor } from './comment-item'
 
@@ -15,7 +15,8 @@ export function CommentList({
   familyMembers,
   initialComments,
   onCountChange,
-  stickyComposer = false,
+  fill = false,
+  header,
 }: {
   assetId: string
   currentUserId: string
@@ -24,7 +25,15 @@ export function CommentList({
   familyMembers: Member[]
   initialComments: CommentWithAuthor[]
   onCountChange?: (count: number) => void
-  stickyComposer?: boolean
+  /**
+   * Instagram-style sheet layout: this component becomes a flex column that
+   * fills its parent — `header` + comments scroll in a single region and the
+   * composer is pinned to the bottom (above the keyboard). Requires a parent
+   * with a bounded height (e.g. Sheet `fill`).
+   */
+  fill?: boolean
+  /** Rendered at the top of the scroll region in `fill` mode (like/save, 세부정보). */
+  header?: ReactNode
 }) {
   const [comments, setComments] = useState<CommentWithAuthor[]>(initialComments)
   const [optimistic, setOptimistic] = useState<CommentWithAuthor[]>([])
@@ -110,13 +119,16 @@ export function CommentList({
     />
   )
 
-  if (stickyComposer) {
-    // 댓글 본문은 위에서 스크롤되고, 작성칸은 시트 하단에 sticky 로 고정돼
-    // 모바일 키보드가 올라와도 항상 보인다.
+  if (fill) {
+    // 시트가 고정 높이 flex 컬럼 → 헤더+댓글은 한 영역에서 스크롤되고,
+    // 작성칸은 하단에 진짜로 고정돼 모바일 키보드 위에 항상 보인다.
     return (
-      <div className="space-y-1">
-        {list}
-        <div className="sticky bottom-0 -mx-5 mt-1 border-t border-base-100 bg-base-0/95 px-5 pb-[env(safe-area-inset-bottom)] pt-3 backdrop-blur-xl dark:border-base-800 dark:bg-base-900/95">
+      <div className="flex min-h-0 flex-1 flex-col">
+        <div className="min-h-0 flex-1 space-y-1 overflow-y-auto px-5 pt-1 pb-2">
+          {header}
+          {list}
+        </div>
+        <div className="shrink-0 border-t border-base-100 bg-base-0 px-5 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 dark:border-base-800 dark:bg-base-900">
           {composer}
         </div>
       </div>
