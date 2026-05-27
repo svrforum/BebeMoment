@@ -48,6 +48,7 @@ model User {
   attachedAlbumEntries  AlbumJournalEntry[] @relation("AlbumEntryAddedBy")
   pushSubscriptions     PushSubscription[]
   notificationPrefs     NotificationPref[]
+  devicePushTokens      DevicePushToken[]
 
   @@map("users")
   @@schema("public")
@@ -586,5 +587,19 @@ model NotificationPref {
 
   @@id([userId, category])
   @@map("notification_prefs")
+  @@schema("public")
+}
+
+model DevicePushToken {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId     String   @map("user_id") @db.Uuid
+  user       User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform   String   @default("android")
+  token      String   @unique
+  createdAt  DateTime @default(now()) @map("created_at")
+  lastSeenAt DateTime @default(now()) @map("last_seen_at")
+
+  @@index([userId])
+  @@map("device_push_tokens")
   @@schema("public")
 }
