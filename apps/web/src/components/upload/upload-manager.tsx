@@ -269,9 +269,17 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])
 
+  // initUppy() (not the `uppy` state) so this works even on the very first
+  // upload of a session: when a caller does `addFiles(...)` then
+  // `startStagedUploads()` in the same handler, `setUppy()` hasn't
+  // re-rendered yet, so the `uppy` state closure is still null. The cached
+  // instance from initUppy()/initLock is the source of truth.
   const startStagedUploads = useCallback(() => {
-    uppy?.upload?.()
-  }, [uppy])
+    void (async () => {
+      const u = uppy ?? (await initUppy())
+      await u.upload?.()
+    })()
+  }, [uppy, initUppy])
 
   const replaceFileData = useCallback(
     (id: string, blob: Blob) => {
