@@ -3,64 +3,142 @@ import { PushToggle } from '@/components/settings/push-toggle'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
-import { Card, CardBody } from '@/components/ui/card'
-import { getAuth } from '@/lib/auth'
-import { prismaPublic } from '@/lib/db-init'
-import { NOTIFICATION_CATEGORIES, type NotificationCategory } from '@bebe/core'
+import { isInstanceAdmin } from '@/lib/admin'
+import { getContext } from '@/server/context'
+import { getFeatureFlags } from '@/server/settings/features'
+import { parseEnv } from '@bebe/config'
+import { type FeatureFlag, NOTIFICATION_CATEGORIES, type NotificationCategory } from '@bebe/core'
+import type { Role } from '@bebe/db-public'
 import {
   Baby,
   Bookmark,
   ChevronRight,
   type LucideIcon,
   NotebookPen,
+  ShieldCheck,
+  SlidersHorizontal,
   Tags,
   Trash2,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
+import { prismaPublic } from '@/lib/db-init'
 
-const MANAGE_ROWS: { href: string; label: string; icon: LucideIcon }[] = [
-  { href: '/babies', label: '아기 관리', icon: Baby },
-  { href: '/family', label: '가족 멤버', icon: Users },
-  { href: '/saved', label: '저장함', icon: Bookmark },
-  { href: '/settings/tags', label: '태그 관리', icon: Tags },
-  { href: '/diary', label: '일기', icon: NotebookPen },
-  { href: '/trash', label: '휴지통', icon: Trash2 },
-]
+type Row = {
+  href: string
+  label: string
+  sublabel?: string
+  icon: LucideIcon
+  feature?: FeatureFlag
+}
+
+const ROLE_LABEL: Record<Role, string> = {
+  owner: '관리자',
+  guardian: '보호자',
+  family: '가족',
+}
+
+function LinkRows({ rows }: { rows: Row[] }) {
+  return (
+    <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-card divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
+      {rows.map(({ href, label, sublabel, icon: Icon }) => (
+        <Link
+          key={href}
+          href={href}
+          className="group flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-point-500/50 active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
+        >
+          <Icon className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
+          <span className="flex-1">
+            <span className="block text-[15px] text-base-900 dark:text-base-50">{label}</span>
+            {sublabel && <span className="block text-[12px] text-base-400">{sublabel}</span>}
+          </span>
+          <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 transition-transform ease-ios group-hover:translate-x-0.5 dark:text-base-600" />
+        </Link>
+      ))}
+    </div>
+  )
+}
+
+function SectionTitle({ children }: { children: React.ReactNode }) {
+  return <h2 className="px-1 text-[13px] font-semibold text-base-500">{children}</h2>
+}
 
 export default async function SettingsPage() {
-  const { session } = await getAuth()
-  if (!session) return null
-  const user = await prismaPublic.user.findUnique({ where: { id: session.userId } })
-  if (!user) return null
+  const ctx = await getContext()
+  if (!ctx.user) return null
+  const user = ctx.user
+  const role = ctx.membership?.role ?? null
+  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const isAdmin = role === 'owner' || isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)
 
-  const prefRows = await prismaPublic.notificationPref.findMany({
-    where: { userId: session.userId },
-  })
+  const [prefRows, features] = await Promise.all([
+    prismaPublic.notificationPref.findMany({ where: { userId: user.id } }),
+    getFeatureFlags(prismaPublic),
+  ])
   const prefMap = new Map(prefRows.map((r) => [r.category, r.enabled]))
   const initialPrefs = Object.fromEntries(
     NOTIFICATION_CATEGORIES.map((c) => [c, prefMap.get(c) ?? true]),
   ) as Record<NotificationCategory, boolean>
 
+  const familyRows: Row[] = [
+    { href: '/family', label: '가족 멤버', sublabel: '구성원·초대', icon: Users },
+    { href: '/babies', label: '아기 관리', icon: Baby },
+  ]
+  const contentRows: Row[] = (
+    [
+      { href: '/saved', label: '저장함', icon: Bookmark, feature: 'bookmarks' },
+      { href: '/diary', label: '일기', icon: NotebookPen, feature: 'diary' },
+      { href: '/settings/tags', label: '태그 관리', icon: Tags, feature: 'tags' },
+      { href: '/trash', label: '휴지통', icon: Trash2 },
+    ] satisfies Row[]
+  ).filter((r) => !r.feature || features[r.feature])
+
   return (
     <>
       <AppHeader title="설정" />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 space-y-6">
-        <Card>
-          <CardBody>
-            <h2 className="font-semibold mb-2">계정</h2>
-            <p className="text-sm">{user.displayName}</p>
-            <p className="text-sm text-base-500">{user.email}</p>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <h2 className="mb-3 font-semibold">테마</h2>
-            <ThemeToggle />
-          </CardBody>
-        </Card>
+        {/* 계정 */}
+        <div className="flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 px-4 py-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
+          {user.avatarPath ? (
+            // biome-ignore lint/performance/noImgElement: 작은 아바타 — unoptimized 정책(§17.3)
+            <img src={user.avatarPath} alt="" className="h-12 w-12 rounded-full object-cover" />
+          ) : (
+            <div className="flex h-12 w-12 items-center justify-center rounded-full bg-point-500/15 text-[18px] font-semibold text-point-500">
+              {user.displayName.charAt(0)}
+            </div>
+          )}
+          <div className="min-w-0 flex-1">
+            <div className="flex items-center gap-1.5">
+              <span className="truncate text-[16px] font-semibold text-base-900 dark:text-base-50">
+                {user.displayName}
+              </span>
+              {role && (
+                <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
+                  {ROLE_LABEL[role]}
+                </span>
+              )}
+            </div>
+            <div className="truncate text-[13px] text-base-400">
+              {user.username ? `@${user.username}` : (user.email ?? '')}
+            </div>
+          </div>
+        </div>
+
+        {/* 가족 */}
         <section className="space-y-2">
-          <h2 className="px-1 text-[13px] font-semibold text-base-500">알림</h2>
+          <SectionTitle>가족</SectionTitle>
+          <LinkRows rows={familyRows} />
+        </section>
+
+        {/* 콘텐츠 */}
+        <section className="space-y-2">
+          <SectionTitle>콘텐츠</SectionTitle>
+          <LinkRows rows={contentRows} />
+        </section>
+
+        {/* 알림 */}
+        <section className="space-y-2">
+          <SectionTitle>알림</SectionTitle>
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <PushToggle />
           </div>
@@ -68,22 +146,38 @@ export default async function SettingsPage() {
             <NotificationPrefs initial={initialPrefs} />
           </div>
         </section>
+
+        {/* 화면 */}
         <section className="space-y-2">
-          <h2 className="px-1 text-[13px] font-semibold text-base-500">관리</h2>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-card divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
-            {MANAGE_ROWS.map(({ href, label, icon: Icon }) => (
-              <Link
-                key={href}
-                href={href}
-                className="group flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-point-500/50 active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
-              >
-                <Icon className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
-                <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">{label}</span>
-                <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 transition-transform ease-ios group-hover:translate-x-0.5 dark:text-base-600" />
-              </Link>
-            ))}
+          <SectionTitle>화면</SectionTitle>
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
+            <ThemeToggle />
           </div>
         </section>
+
+        {/* 관리자 */}
+        {isAdmin && (
+          <section className="space-y-2">
+            <SectionTitle>관리자</SectionTitle>
+            <LinkRows
+              rows={[
+                {
+                  href: '/admin',
+                  label: '인스턴스 관리',
+                  sublabel: '인증·기능·테마·SMTP·스토리지',
+                  icon: SlidersHorizontal,
+                },
+                {
+                  href: '/admin/members',
+                  label: '구성원 권한',
+                  sublabel: '가족 구성원이 할 수 있는 작업',
+                  icon: ShieldCheck,
+                },
+              ]}
+            />
+          </section>
+        )}
+
         <form action="/api/auth/logout" method="post">
           <Button
             type="submit"

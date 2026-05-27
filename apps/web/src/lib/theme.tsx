@@ -12,11 +12,18 @@ type ThemeCtx = {
 
 const Ctx = createContext<ThemeCtx | null>(null)
 
-export function ThemeProvider({ children }: { children: React.ReactNode }) {
-  const [mode, setModeState] = useState<ThemeMode>('auto')
+export function ThemeProvider({
+  children,
+  defaultMode = 'auto',
+}: {
+  children: React.ReactNode
+  /** Instance default set by the admin; user's localStorage choice overrides it. */
+  defaultMode?: ThemeMode
+}) {
+  const [mode, setModeState] = useState<ThemeMode>(defaultMode)
   const [resolved, setResolved] = useState<'light' | 'dark'>('light')
 
-  // Read stored preference on mount
+  // User's stored preference overrides the admin default.
   useEffect(() => {
     const stored =
       typeof window !== 'undefined' ? (localStorage.getItem(STORAGE_KEY) as ThemeMode | null) : null

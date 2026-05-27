@@ -1,6 +1,9 @@
+import { prismaPublic } from '@/lib/db-init'
 import { ThemeProvider } from '@/lib/theme'
-import { themeInitScript } from '@/lib/theme-init-script'
+import { type DefaultTheme, buildThemeInitScript } from '@/lib/theme-init-script'
+import { getSetting } from '@/server/settings/get'
 import type { Metadata, Viewport } from 'next'
+import { z } from 'zod'
 import './globals.css'
 
 export const metadata: Metadata = {
@@ -28,12 +31,27 @@ export const viewport: Viewport = {
   viewportFit: 'cover',
 }
 
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+async function readDefaultTheme(): Promise<DefaultTheme> {
+  try {
+    return await getSetting(
+      'appearance.default_theme',
+      z.enum(['auto', 'light', 'dark']),
+      'auto',
+      prismaPublic,
+    )
+  } catch {
+    // DB unavailable (e.g. build-time static prerender) — fall back to auto.
+    return 'auto'
+  }
+}
+
+export default async function RootLayout({ children }: { children: React.ReactNode }) {
+  const defaultTheme = await readDefaultTheme()
   return (
     <html lang="ko" suppressHydrationWarning>
       <body>
-        <script>{themeInitScript}</script>
-        <ThemeProvider>{children}</ThemeProvider>
+        <script>{buildThemeInitScript(defaultTheme)}</script>
+        <ThemeProvider defaultMode={defaultTheme}>{children}</ThemeProvider>
       </body>
     </html>
   )
