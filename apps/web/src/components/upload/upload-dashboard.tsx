@@ -1,17 +1,22 @@
 'use client'
-import { ImagePlus, X } from 'lucide-react'
+import { ImagePlus, Pencil, X } from 'lucide-react'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { UploadProgressBar } from './UploadProgressBar'
+import { UploadEditor } from './upload-editor'
 import { type FileRow, useUploadManager } from './upload-manager'
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`
-  if (bytes < 1024 * 1024 * 1024) return `${(bytes / (1024 * 1024)).toFixed(1)} MB`
-  return `${(bytes / (1024 * 1024 * 1024)).toFixed(2)} GB`
+const EDITABLE = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.onerror = reject
+    r.readAsDataURL(blob)
+  })
 }
 
-function FileThumb({ file }: { file: FileRow }) {
+function Thumb({ file }: { file: FileRow }) {
   const [src, setSrc] = useState<string | null>(null)
   useEffect(() => {
     if (!file.data || !(file.data instanceof Blob)) return
@@ -21,153 +26,175 @@ function FileThumb({ file }: { file: FileRow }) {
     return () => URL.revokeObjectURL(url)
   }, [file.data, file.type])
 
-  if (src) {
-    return <img src={src} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
-  }
-  return (
-    <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg bg-base-100 text-[10px] text-base-500 dark:bg-base-800">
+  return src ? (
+    <img src={src} alt="" className="h-full w-full rounded-xl object-cover" />
+  ) : (
+    <div className="flex h-full w-full items-center justify-center rounded-xl bg-base-100 text-[10px] text-base-500 dark:bg-base-800">
       {file.type?.startsWith('video/') ? 'VIDEO' : 'FILE'}
     </div>
   )
 }
 
-function FileRowItem({
-  file,
-  onRemove,
-  onAssetDone,
-}: {
-  file: FileRow
-  onRemove: (id: string) => void
-  onAssetDone: (assetId: string) => void
-}) {
-  const uploadComplete = file.progress?.uploadComplete ?? false
-  const percentage = Math.round(file.progress?.percentage ?? 0)
-  const assetId = file.meta?.assetId
-  const uploadToken = file.meta?.uploadToken
-
-  return (
-    <li className="flex items-center gap-3 rounded-xl px-1 py-2">
-      <FileThumb file={file} />
-      <div className="min-w-0 flex-1">
-        <div className="flex items-center justify-between gap-2">
-          <div className="min-w-0">
-            <div className="truncate text-sm font-medium">{file.name}</div>
-            <div className="text-xs text-base-500">{formatSize(file.size ?? 0)}</div>
-          </div>
-          {!uploadComplete && (
-            <button
-              type="button"
-              aria-label="제거"
-              onClick={() => onRemove(file.id)}
-              className="rounded-full p-1 text-base-400 hover:bg-base-100 hover:text-base-700 dark:hover:bg-base-800 dark:hover:text-base-200"
-            >
-              <X size={16} />
-            </button>
-          )}
-        </div>
-        <div className="mt-1.5">
-          {uploadComplete ? (
-            assetId && uploadToken ? (
-              <UploadProgressBar
-                assetId={assetId}
-                uploadToken={uploadToken}
-                onComplete={() => onAssetDone(assetId)}
-              />
-            ) : (
-              <div className="text-xs text-base-500">처리 대기 중…</div>
-            )
-          ) : (
-            <div className="flex items-center gap-2">
-              <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-base-100 dark:bg-base-800">
-                <div
-                  className="h-full bg-point-500 transition-[width] duration-200"
-                  style={{ width: `${percentage}%` }}
-                />
-              </div>
-              <span className="w-10 shrink-0 text-right text-xs tabular-nums text-base-500">
-                {percentage}%
-              </span>
-            </div>
-          )}
-        </div>
-      </div>
-    </li>
-  )
-}
-
-export function UploadDashboard({ onFilesPicked }: { onFilesPicked?: () => void }) {
-  const { files, addFiles, removeFile, markAssetDone } = useUploadManager()
+export function UploadDashboard() {
+  const { files, addFiles, removeFile, markAssetDone, startStagedUploads, replaceFileData } =
+    useUploadManager()
   const [dragOver, setDragOver] = useState(false)
+  const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
-
-  const handleAdd = useCallback(
-    async (list: FileList | File[]) => {
-      const added = await addFiles(list)
-      if (added.length > 0) onFilesPicked?.()
-    },
-    [addFiles, onFilesPicked],
-  )
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) handleAdd(e.target.files)
+      if (e.target.files) addFiles(e.target.files)
       e.target.value = ''
     },
-    [handleAdd],
+    [addFiles],
   )
 
   const onDrop = useCallback(
     (e: DragEvent<HTMLDivElement>) => {
       e.preventDefault()
       setDragOver(false)
-      if (e.dataTransfer?.files) handleAdd(e.dataTransfer.files)
+      if (e.dataTransfer?.files) addFiles(e.dataTransfer.files)
     },
-    [handleAdd],
+    [addFiles],
   )
 
-  const hasFiles = files.length > 0
+  const openEditor = useCallback(async (file: FileRow) => {
+    if (!(file.data instanceof Blob)) return
+    const dataUrl = await blobToDataUrl(file.data)
+    setEditing({ id: file.id, dataUrl })
+  }, [])
+
+  const staged = files.filter((f) => !f.progress?.uploadStarted)
+  const started = files.filter((f) => f.progress?.uploadStarted)
 
   return (
     <div className="flex flex-col gap-3">
-      <div
-        onDragOver={(e) => {
-          e.preventDefault()
-          setDragOver(true)
-        }}
-        onDragLeave={() => setDragOver(false)}
-        onDrop={onDrop}
-        className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
-          dragOver
-            ? 'border-point-500 bg-point-50/40 dark:bg-point-500/10'
-            : 'border-base-200 dark:border-base-800'
-        }`}
-      >
-        <ImagePlus className="mx-auto h-10 w-10 text-base-400" />
-        <p className="mt-3 text-sm font-medium">사진이나 영상을 끌어다 놓거나</p>
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-95 dark:bg-base-50 dark:text-base-900"
+      {files.length === 0 && (
+        <div
+          onDragOver={(e) => {
+            e.preventDefault()
+            setDragOver(true)
+          }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className={`rounded-2xl border-2 border-dashed p-6 text-center transition-colors ${
+            dragOver
+              ? 'border-point-500 bg-point-50/40 dark:bg-point-500/10'
+              : 'border-base-200 dark:border-base-800'
+          }`}
         >
-          파일 선택
-        </button>
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="image/*,video/*"
-          multiple
-          onChange={onPick}
-          className="hidden"
-        />
-        <p className="mt-2 text-xs text-base-500">최대 2GB · 이미지·영상</p>
-      </div>
+          <ImagePlus className="mx-auto h-10 w-10 text-base-400" />
+          <p className="mt-3 text-sm font-medium">사진이나 영상을 끌어다 놓거나</p>
+          <button
+            type="button"
+            onClick={() => fileInputRef.current?.click()}
+            className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-95 dark:bg-base-50 dark:text-base-900"
+          >
+            파일 선택
+          </button>
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*,video/*"
+            multiple
+            onChange={onPick}
+            className="hidden"
+          />
+          <p className="mt-2 text-xs text-base-500">최대 2GB · 이미지·영상</p>
+        </div>
+      )}
 
-      {hasFiles && (
+      {staged.length > 0 && (
+        <>
+          <div className="grid grid-cols-3 gap-2">
+            {staged.map((f) => (
+              <div key={f.id} className="relative aspect-square">
+                <Thumb file={f} />
+                <button
+                  type="button"
+                  aria-label="제거"
+                  onClick={() => removeFile(f.id)}
+                  className="absolute top-1 right-1 rounded-full bg-black/55 p-1 text-white"
+                >
+                  <X size={14} />
+                </button>
+                {f.type && EDITABLE.has(f.type) && (
+                  <button
+                    type="button"
+                    aria-label="편집"
+                    onClick={() => openEditor(f)}
+                    className="absolute right-1 bottom-1 rounded-full bg-black/55 p-1 text-white"
+                  >
+                    <Pencil size={14} />
+                  </button>
+                )}
+              </div>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={startStagedUploads}
+            className="rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95"
+          >
+            {staged.length}개 업로드
+          </button>
+        </>
+      )}
+
+      {started.length > 0 && (
         <ul className="max-h-[360px] divide-y divide-base-100 overflow-y-auto rounded-xl border border-base-200 px-1 dark:divide-base-800 dark:border-base-800">
-          {files.map((f) => (
-            <FileRowItem key={f.id} file={f} onRemove={removeFile} onAssetDone={markAssetDone} />
-          ))}
+          {started.map((f) => {
+            const assetId = f.meta?.assetId
+            const uploadToken = f.meta?.uploadToken
+            const pct = Math.round(f.progress?.percentage ?? 0)
+            const complete = f.progress?.uploadComplete ?? false
+            return (
+              <li key={f.id} className="flex items-center gap-3 px-1 py-2">
+                <div className="h-12 w-12 shrink-0">
+                  <Thumb file={f} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="truncate text-sm font-medium">{f.name}</div>
+                  <div className="mt-1.5">
+                    {complete ? (
+                      assetId && uploadToken ? (
+                        <UploadProgressBar
+                          assetId={assetId}
+                          uploadToken={uploadToken}
+                          onComplete={() => markAssetDone(assetId)}
+                        />
+                      ) : (
+                        <div className="text-xs text-base-500">처리 대기 중…</div>
+                      )
+                    ) : (
+                      <div className="flex items-center gap-2">
+                        <div className="h-1.5 flex-1 overflow-hidden rounded-full bg-base-100 dark:bg-base-800">
+                          <div
+                            className="h-full bg-point-500 transition-[width] duration-200"
+                            style={{ width: `${pct}%` }}
+                          />
+                        </div>
+                        <span className="w-10 shrink-0 text-right text-xs tabular-nums text-base-500">
+                          {pct}%
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </li>
+            )
+          })}
         </ul>
+      )}
+
+      {editing && (
+        <UploadEditor
+          fileId={editing.id}
+          originalDataUrl={editing.dataUrl}
+          onApply={replaceFileData}
+          onClose={() => setEditing(null)}
+        />
       )}
     </div>
   )
