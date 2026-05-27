@@ -7,6 +7,6 @@
     "allowNavigation": ["*"]
   },
   "android": {
-    "allowMixedContent": false
+    "allowMixedContent": true
   }
 }
