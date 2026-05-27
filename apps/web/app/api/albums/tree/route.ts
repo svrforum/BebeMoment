@@ -13,7 +13,7 @@ export async function GET() {
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   try {
-    const tree = await listAlbumTree(ctx.family.id, prismaPublic)
+    const tree = await listAlbumTree(ctx.family.id, ctx.membership?.role ?? 'family', prismaPublic)
     return NextResponse.json({ tree })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

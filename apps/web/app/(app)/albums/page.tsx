@@ -20,7 +20,10 @@ export default async function AlbumsRootPage() {
   const canCreate = ctx.capabilities.includes('album.create')
 
   const [albums, tags] = await Promise.all([
-    listAlbums({ familyId: ctx.family.id, parentId: null }, prismaPublic),
+    listAlbums(
+      { familyId: ctx.family.id, parentId: null, viewerRole: ctx.membership?.role ?? 'family' },
+      prismaPublic,
+    ),
     listTagsWithCounts(ctx.family.id, prismaPublic),
   ])
 
@@ -112,6 +115,7 @@ export default async function AlbumsRootPage() {
                   childCount={a.childCount}
                   assetCount={a.assetCount}
                   preview={preview}
+                  secret={a.secret}
                 />
               )
             })}

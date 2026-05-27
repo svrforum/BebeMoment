@@ -2,7 +2,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
-import { FolderOpen, Image as ImgIcon } from 'lucide-react'
+import { FolderOpen, Image as ImgIcon, Lock } from 'lucide-react'
 import Link from 'next/link'
 
 type Props = {
@@ -12,10 +12,19 @@ type Props = {
   assetCount: number
   /** Optional preview thumbs — up to 4 — used as a 2×2 collage when no cover. */
   preview?: { id: string; urls: AssetUrls | null }[]
+  secret?: boolean
   className?: string
 }
 
-export function AlbumCard({ id, name, childCount, assetCount, preview = [], className }: Props) {
+export function AlbumCard({
+  id,
+  name,
+  childCount,
+  assetCount,
+  preview = [],
+  secret = false,
+  className,
+}: Props) {
   const hasPreview = preview.length > 0
   return (
     <Link
@@ -29,6 +38,11 @@ export function AlbumCard({ id, name, childCount, assetCount, preview = [], clas
           <div className="flex h-full w-full items-center justify-center">
             <FolderOpen className="h-10 w-10 text-base-300 dark:text-base-700" strokeWidth={1.4} />
           </div>
+        )}
+        {secret && (
+          <span className="absolute left-2 top-2 flex h-6 w-6 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm">
+            <Lock size={12} strokeWidth={2.4} />
+          </span>
         )}
       </div>
       <div className="mt-2 px-1">

@@ -20,6 +20,7 @@ const Input = z.object({
     }),
   parentId: z.string().uuid().optional(),
   description: z.string().max(500).optional(),
+  secret: z.boolean().optional(),
 })
 
 export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Promise<Album> {
@@ -35,6 +36,10 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     !resolveCan(membership.role, 'album.create', familyCaps)
   ) {
     throw new ForbiddenError('앨범을 만들 권한이 없어요')
+  }
+  // 비밀 앨범은 부모(owner/guardian)만 만들 수 있다 — family 는 보지도 못하므로.
+  if (input.secret && membership.role === 'family') {
+    throw new ForbiddenError('비밀 앨범은 보호자만 만들 수 있어요')
   }
 
   let parentPath: string | null = null
@@ -67,6 +72,7 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
         ...(input.description ? { description: input.description } : {}),
         path,
         depth: parentDepth + 1,
+        ...(input.secret ? { secret: true } : {}),
         createdByUserId: input.byUserId,
       },
     })

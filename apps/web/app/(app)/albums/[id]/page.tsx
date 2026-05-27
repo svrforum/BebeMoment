@@ -24,15 +24,17 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   if (!ctx.family) return null
 
   const canCreate = ctx.capabilities.includes('album.create')
+  const viewerRole = ctx.membership?.role ?? 'family'
+  const canToggleSecret = viewerRole === 'owner' || viewerRole === 'guardian'
 
   const album = await getAlbumWithBreadcrumbs(
-    { albumId: id, familyId: ctx.family.id },
+    { albumId: id, familyId: ctx.family.id, viewerRole },
     prismaPublic,
   )
   if (!album) notFound()
 
   const [children, assetsResult, entries] = await Promise.all([
-    listAlbums({ familyId: ctx.family.id, parentId: album.id }, prismaPublic),
+    listAlbums({ familyId: ctx.family.id, parentId: album.id, viewerRole }, prismaPublic),
     listAlbumAssets(
       { albumId: album.id, familyId: ctx.family.id },
       prismaPublic,
@@ -91,6 +93,8 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
               currentName={album.name}
               parentId={album.parentId}
               hasChildrenOrPhotos={album.childCount > 0 || album.assetCount > 0}
+              secret={album.secret}
+              canToggleSecret={canToggleSecret}
             />
           </div>
         }
@@ -124,6 +128,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
                     childCount={c.childCount}
                     assetCount={c.assetCount}
                     preview={preview}
+                    secret={c.secret}
                   />
                 )
               })}

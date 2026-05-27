@@ -9,15 +9,45 @@ type Props = {
   currentName: string
   hasChildrenOrPhotos: boolean
   parentId: string | null
+  secret?: boolean
+  canToggleSecret?: boolean
 }
 
-export function AlbumMenu({ albumId, currentName, hasChildrenOrPhotos, parentId }: Props) {
+export function AlbumMenu({
+  albumId,
+  currentName,
+  hasChildrenOrPhotos,
+  parentId,
+  secret = false,
+  canToggleSecret = false,
+}: Props) {
   const router = useRouter()
   const toast = useToast()
   const [open, setOpen] = useState(false)
   const [renameOpen, setRenameOpen] = useState(false)
   const [name, setName] = useState(currentName)
   const [pending, setPending] = useState(false)
+
+  const toggleSecret = async () => {
+    setPending(true)
+    try {
+      const res = await fetch(`/api/albums/${albumId}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ secret: !secret }),
+      })
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}))
+        throw new Error((err as { error?: string }).error ?? '변경 실패')
+      }
+      toast({ title: secret ? '비밀 해제됨' : '비밀 앨범으로 전환됨' })
+      router.refresh()
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'danger' })
+    } finally {
+      setPending(false)
+    }
+  }
 
   const submitRename = async (e: FormEvent) => {
     e.preventDefault()
@@ -93,6 +123,19 @@ export function AlbumMenu({ albumId, currentName, hasChildrenOrPhotos, parentId 
             >
               이름 바꾸기
             </button>
+            {canToggleSecret && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => {
+                  setOpen(false)
+                  toggleSecret()
+                }}
+                className="block w-full px-4 py-2.5 text-left text-[13px] hover:bg-base-100 disabled:opacity-50 dark:hover:bg-base-800"
+              >
+                {secret ? '비밀 해제' : '비밀 앨범으로 전환'}
+              </button>
+            )}
             <button
               type="button"
               onClick={() => {

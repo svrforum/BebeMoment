@@ -54,6 +54,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       description?: string | null
       coverAssetId?: string | null
       parentId?: string | null
+      secret?: boolean
     }
 
     if ('parentId' in body) {
@@ -97,6 +98,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
         ...(body.coverAssetId !== undefined ? { coverAssetId: body.coverAssetId } : {}),
+        ...(body.secret !== undefined ? { secret: body.secret } : {}),
       },
       prismaPublic,
       prismaMedia,

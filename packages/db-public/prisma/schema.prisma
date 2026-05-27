@@ -497,6 +497,8 @@ model Album {
   name            String
   description     String?
   coverAssetId    String?   @map("cover_asset_id") @db.Uuid
+  /// 비밀 앨범 — owner/guardian(부모) 만 보임. family 역할에겐 목록·트리·상세 모두 숨김.
+  secret          Boolean   @default(false) @map("is_secret")
   sortIndex       Int       @default(0) @map("sort_index")
   /// Materialized path: slash-separated album uuids ending with this id.
   /// Maintained in app inside the same transaction as parent_id changes.

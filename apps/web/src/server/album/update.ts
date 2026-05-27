@@ -19,6 +19,7 @@ const Input = z.object({
     .optional(),
   description: z.string().max(500).nullable().optional(),
   coverAssetId: z.string().uuid().nullable().optional(),
+  secret: z.boolean().optional(),
 })
 
 export async function updateAlbum(
@@ -43,6 +44,11 @@ export async function updateAlbum(
     (isOwnAlbum && resolveCan(membership.role, 'album.update.own', familyCaps)) ||
     resolveCan(membership.role, 'album.update.any', familyCaps)
   if (!allowed) throw new ForbiddenError('이 앨범을 편집할 권한이 없어요')
+
+  // 비밀 여부는 부모(owner/guardian)만 바꿀 수 있다.
+  if (input.secret !== undefined && membership.role === 'family') {
+    throw new ForbiddenError('비밀 앨범 설정은 보호자만 바꿀 수 있어요')
+  }
 
   // Cover asset must (a) exist in the same family, (b) be ready, (c) be
   // attached to *this* album. Otherwise a malicious or buggy client could
@@ -79,6 +85,7 @@ export async function updateAlbum(
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),
         ...(input.coverAssetId !== undefined ? { coverAssetId: input.coverAssetId } : {}),
+        ...(input.secret !== undefined ? { secret: input.secret } : {}),
       },
     })
     revalidateAlbumsTag(input.familyId)

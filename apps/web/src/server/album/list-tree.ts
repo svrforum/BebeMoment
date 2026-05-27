@@ -1,4 +1,4 @@
-import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { unstable_cache } from 'next/cache'
 
 export type AlbumTreeNode = {
@@ -7,25 +7,38 @@ export type AlbumTreeNode = {
   parentId: string | null
   depth: number
   path: string
+  secret: boolean
   children: AlbumTreeNode[]
   childCount: number
+}
+
+/** family 역할에겐 비밀 노드(와 그 하위)를 통째로 제거. */
+function pruneSecret(nodes: AlbumTreeNode[]): AlbumTreeNode[] {
+  return nodes
+    .filter((n) => !n.secret)
+    .map((n) => {
+      const children = pruneSecret(n.children)
+      return { ...n, children, childCount: children.length }
+    })
 }
 
 /**
  * Build the entire album tree for one family. Cached per family for 60s
  * with tag `albums:${familyId}` — the album picker reads this on every
- * detail-page open. Mutations (create / move / rename / delete album,
- * asset attach / detach) call `revalidateTag('albums:${familyId}')` to
- * pop the cache.
+ * detail-page open. The cached tree is the *full* tree; secret nodes are
+ * pruned per `viewerRole` after the cache (so the cache stays role-agnostic).
  */
-export function listAlbumTree(
+export async function listAlbumTree(
   familyId: string,
+  viewerRole: Role,
   prismaPublic: PrismaPublic,
 ): Promise<AlbumTreeNode[]> {
-  return unstable_cache(() => listAlbumTreeRaw(familyId, prismaPublic), ['album-tree', familyId], {
-    revalidate: 60,
-    tags: [`albums:${familyId}`],
-  })()
+  const tree = await unstable_cache(
+    () => listAlbumTreeRaw(familyId, prismaPublic),
+    ['album-tree', familyId],
+    { revalidate: 60, tags: [`albums:${familyId}`] },
+  )()
+  return viewerRole === 'family' ? pruneSecret(tree) : tree
 }
 
 async function listAlbumTreeRaw(
@@ -41,6 +54,7 @@ async function listAlbumTreeRaw(
       parentId: true,
       depth: true,
       path: true,
+      secret: true,
     },
   })
 
