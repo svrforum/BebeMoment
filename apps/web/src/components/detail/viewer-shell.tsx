@@ -54,6 +54,7 @@ export function ViewerShell({
   // Chrome toggle is mobile-only; desktop always shows top bar + side panel via CSS.
   const [chromeVisible, setChromeVisible] = useState(true)
   const [sheetOpen, setSheetOpen] = useState(false)
+  const [sheetDetailsOpen, setSheetDetailsOpen] = useState(false)
   const [albumPickerOpen, setAlbumPickerOpen] = useState(false)
   const [liked, setLiked] = useState(initialLiked)
   const [count, setCount] = useState(likers.count)
@@ -66,7 +67,14 @@ export function ViewerShell({
     <div className="relative min-h-screen bg-black md:flex">
       {/* Image column: takes full width on mobile, flexes on desktop */}
       <div className="relative flex-1 min-w-0">
-        <ViewerTopBar assetId={current.id} visible={chromeVisible} />
+        <ViewerTopBar
+          assetId={current.id}
+          visible={chromeVisible}
+          onInfo={() => {
+            setSheetDetailsOpen(true)
+            setSheetOpen(true)
+          }}
+        />
         <ViewerImage
           current={current}
           siblings={siblings}
@@ -86,7 +94,10 @@ export function ViewerShell({
           setBookmarked={setBookmarked}
           commentCount={commentCount}
           visible={chromeVisible}
-          onCommentTap={() => setSheetOpen(true)}
+          onCommentTap={() => {
+            setSheetDetailsOpen(false)
+            setSheetOpen(true)
+          }}
           onAlbumTap={() => setAlbumPickerOpen(true)}
         />
         <ViewerBottomSheet
@@ -110,6 +121,7 @@ export function ViewerShell({
           initialTags={initialTags}
           initialFilename={initialFilename}
           initialCaption={initialCaption}
+          initialDetailsOpen={sheetDetailsOpen}
         />
       </div>
 

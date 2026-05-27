@@ -8,10 +8,13 @@ export function ViewerTopBar({
   assetId,
   visible,
   onDelete,
+  onInfo,
 }: {
   assetId: string
   visible: boolean
   onDelete?: () => void
+  /** ⋮ "정보" — 세부정보(메타·태그) 시트를 펼친 채로 연다. 모바일 전용(데스크탑은 사이드 패널). */
+  onInfo?: () => void
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
@@ -46,6 +49,18 @@ export function ViewerTopBar({
           </button>
           {menuOpen && (
             <div className="absolute right-0 top-full mt-2 w-44 overflow-hidden rounded-xl border border-base-200 bg-base-0 shadow-lg dark:border-base-800 dark:bg-base-900">
+              {onInfo && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    onInfo()
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm hover:bg-base-100 md:hidden dark:hover:bg-base-800"
+                >
+                  정보
+                </button>
+              )}
               <a
                 href={`/api/asset/${assetId}/original`}
                 download

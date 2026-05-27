@@ -2,6 +2,7 @@
 import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { Sheet } from '@/components/ui/sheet'
 import { ChevronDown } from 'lucide-react'
+import { useEffect, useState } from 'react'
 import { BookmarkButton } from './bookmark-button'
 import type { CommentWithAuthor } from './comment-item'
 import { CommentList } from './comment-list'
@@ -36,6 +37,7 @@ export function ViewerBottomSheet({
   initialTags,
   initialFilename,
   initialCaption,
+  initialDetailsOpen,
 }: {
   open: boolean
   onOpenChange: (next: boolean) => void
@@ -57,7 +59,15 @@ export function ViewerBottomSheet({
   initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
+  /** ⋮ "정보"로 열면 세부정보 펼친 채로, 댓글로 열면 접힌 채로. */
+  initialDetailsOpen?: boolean
 }) {
+  // 시트가 열릴 때마다 진입 의도(정보 vs 댓글)에 맞춰 세부정보 펼침 상태 초기화.
+  const [detailsOpen, setDetailsOpen] = useState(false)
+  useEffect(() => {
+    if (open) setDetailsOpen(initialDetailsOpen ?? false)
+  }, [open, initialDetailsOpen])
+
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={`댓글 ${commentCount}`}>
       <div className="flex min-h-0 flex-col">
@@ -71,7 +81,11 @@ export function ViewerBottomSheet({
         </div>
 
         {/* 세부정보: 한 번 탭으로 펼치는 접이식 영역 (메타데이터·태그) */}
-        <details className="group border-b border-base-100 py-1 dark:border-base-800">
+        <details
+          open={detailsOpen}
+          onToggle={(e) => setDetailsOpen((e.currentTarget as HTMLDetailsElement).open)}
+          className="group border-b border-base-100 py-1 dark:border-base-800"
+        >
           <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-sm font-medium text-base-700 dark:text-base-300">
             세부정보
             <ChevronDown
