@@ -47,3 +47,54 @@ it('게이트 통과 시 수신자 구독에 발송, 410 구독 삭제', async (
   expect(send).toHaveBeenCalledTimes(2)
   expect(deleteSub).toHaveBeenCalledWith('dead')
 })
+
+it('FCM 디바이스 토큰에도 발송, expired 토큰 삭제', async () => {
+  const sendFcm = vi.fn(
+    async (token: string): Promise<'ok' | 'expired' | 'error'> =>
+      token === 'gone' ? 'expired' : 'ok',
+  )
+  const deleteDeviceToken = vi.fn()
+  await handleNotificationJob(
+    { familyId: 'f', actorUserId: 'a', type: 'album.asset_added', payload: { albumId: 'al' } },
+    {
+      settingsGet: async () => 'true',
+      loadFamily: async () => ({
+        members: [{ userId: 'b', role: 'family' }],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor: async () => [],
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+      deviceTokensFor: async () => [
+        { token: 'live', userId: 'b' },
+        { token: 'gone', userId: 'b' },
+      ],
+      sendFcm,
+      deleteDeviceToken,
+    },
+  )
+  expect(sendFcm).toHaveBeenCalledTimes(2)
+  expect(deleteDeviceToken).toHaveBeenCalledWith({ userId: 'b', token: 'gone' })
+  expect(deleteDeviceToken).toHaveBeenCalledTimes(1)
+})
+
+it('FCM 미설정(deps 없음)이면 FCM 발송 시도 안 함', async () => {
+  const send = vi.fn()
+  await handleNotificationJob(
+    { familyId: 'f', actorUserId: 'a', type: 'album.asset_added', payload: { albumId: 'al' } },
+    {
+      settingsGet: async () => 'true',
+      loadFamily: async () => ({
+        members: [{ userId: 'b', role: 'family' }],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor: async () => [],
+      send,
+      deleteSub: vi.fn(),
+    },
+  )
+  // No FCM deps provided → no throw, job completes.
+  expect(send).not.toHaveBeenCalled()
+})

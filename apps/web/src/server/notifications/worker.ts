@@ -2,6 +2,7 @@ import { type NotificationJob, categoryForEvent } from '@bebe/core'
 import { resolveRecipients } from './recipients'
 
 type Sub = { endpoint: string; p256dh: string; auth: string }
+type FcmNotification = { title: string; body: string; url: string }
 type Deps = {
   settingsGet: (key: string) => Promise<string | null>
   loadFamily: (familyId: string) => Promise<{
@@ -12,6 +13,10 @@ type Deps = {
   subscriptionsFor: (userIds: string[]) => Promise<(Sub & { userId: string })[]>
   send: (sub: Sub, payload: string) => Promise<void>
   deleteSub: (endpoint: string) => Promise<void>
+  // Optional native (FCM) path — only wired when FCM is configured.
+  deviceTokensFor?: (userIds: string[]) => Promise<{ token: string; userId: string }[]>
+  sendFcm?: (token: string, payload: FcmNotification) => Promise<'ok' | 'expired' | 'error'>
+  deleteDeviceToken?: (input: { userId: string; token: string }) => Promise<void>
 }
 
 export function buildNotification(job: NotificationJob): {
@@ -67,8 +72,9 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
   for (const uid of candidates) if (await deps.prefEnabled(uid, category)) recipients.push(uid)
   if (recipients.length === 0) return
 
+  const notification = buildNotification(job)
   const subs = await deps.subscriptionsFor(recipients)
-  const payload = JSON.stringify(buildNotification(job))
+  const payload = JSON.stringify(notification)
   await Promise.all(
     subs.map(async (s) => {
       try {
@@ -79,4 +85,19 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
       }
     }),
   )
+
+  const { deviceTokensFor, sendFcm, deleteDeviceToken } = deps
+  if (deviceTokensFor && sendFcm && deleteDeviceToken) {
+    const tokens = await deviceTokensFor(recipients)
+    await Promise.all(
+      tokens.map(async (t) => {
+        try {
+          const result = await sendFcm(t.token, notification)
+          if (result === 'expired') await deleteDeviceToken({ userId: t.userId, token: t.token })
+        } catch {
+          // FCM failures must not fail the job — web-push already succeeded.
+        }
+      }),
+    )
+  }
 }
