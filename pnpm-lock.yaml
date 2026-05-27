@@ -181,6 +181,9 @@ importers:
       nodemailer:
         specifier: ^8.0.5
         version: 8.0.5
+      piexifjs:
+        specifier: ^1.0.6
+        version: 1.0.6
       pino:
         specifier: ^10.3.1
         version: 10.3.1
@@ -193,6 +196,9 @@ importers:
       react-dom:
         specifier: 19.2.6
         version: 19.2.6(react@19.2.6)
+      react-easy-crop:
+        specifier: ^5.5.7
+        version: 5.5.7(react-dom@19.2.6(react@19.2.6))(react@19.2.6)
       react-markdown:
         specifier: ^10.1.0
         version: 10.1.0(@types/react@19.2.15)(react@19.2.6)
@@ -236,6 +242,9 @@ importers:
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.0
+      '@types/piexifjs':
+        specifier: ^1.0.0
+        version: 1.0.0
       '@types/react':
         specifier: ^19.2.15
         version: 19.2.15
@@ -2259,6 +2268,9 @@ packages:
   '@types/pg@8.20.0':
     resolution: {integrity: sha512-bEPFOaMAHTEP1EzpvHTbmwR8UsFyHSKsRisLIHVMXnpNefSbGA1bD6CVy+qKjGSqmZqNqBDV2azOBo8TgkcVow==}
 
+  '@types/piexifjs@1.0.0':
+    resolution: {integrity: sha512-PPiGeCkmkZQgYjvqtjD3kp4OkbCox2vEFVuK4DaLVOIazJLAXk+/ujbizkIPH5CN4AnN9Clo5ckzUlaj3+SzCA==}
+
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
     peerDependencies:
@@ -3615,6 +3627,9 @@ packages:
     resolution: {integrity: sha512-6eZs5Ls3WtCisHWp9S2GUy8dqkpGi4BVSz3GaqiE6ezub0512ESztXUwUB6C6IKbQkY2Pnb/mD4WYojCRwcwLA==}
     engines: {node: '>=0.10.0'}
 
+  normalize-wheel@1.0.1:
+    resolution: {integrity: sha512-1OnlAPZ3zgrk8B91HyRj+eVv+kS5u+Z0SCsak6Xil/kmgEia50ga7zfkumayonZrImffAxPU/5WcyGhzetHNPA==}
+
   obliterator@2.0.5:
     resolution: {integrity: sha512-42CPE9AhahZRsMNslczq0ctAEtqk8Eka26QofnqC346BZdHDySk3LWka23LI7ULIw11NmltpiLagIq8gBozxTw==}
 
@@ -3699,6 +3714,9 @@ packages:
   picomatch@4.0.4:
     resolution: {integrity: sha512-QP88BAKvMam/3NxH6vj2o21R6MjxZUAd6nlwAS/pnGvN9IVLocLHxGYIzFhg6fUQ+5th6P4dv4eW9jX3DSIj7A==}
     engines: {node: '>=12'}
+
+  piexifjs@1.0.6:
+    resolution: {integrity: sha512-0wVyH0cKohzBQ5Gi2V1BuxYpxWfxF3cSqfFXfPIpl5tl9XLS5z4ogqhUCD20AbHi0h9aJkqXNJnkVev6gwh2ag==}
 
   pino-abstract-transport@2.0.0:
     resolution: {integrity: sha512-F63x5tizV6WCh4R6RHyi2Ml+M70DNRXt/+HANowMflpgGFMAym/VKm6G7ZOQRjqN7XbGxK1Lg9t6ZrtzOaivMw==}
@@ -3839,6 +3857,12 @@ packages:
     resolution: {integrity: sha512-0prMI+hvBbPjsWnxDLxlCGyM8PN6UuWjEUCYmZhO67xIV9Xasa/r/vDnq+Xyq4Lo27g8QSbO5YzARu0D1Sps3g==}
     peerDependencies:
       react: 19.2.6
+
+  react-easy-crop@5.5.7:
+    resolution: {integrity: sha512-kYo4NtMeXFQB7h1U+h5yhUkE46WQbQdq7if54uDlbMdZHdRgNehfvaFrXnFw5NR1PNoUOJIfTwLnWmEx/MaZnA==}
+    peerDependencies:
+      react: 19.2.6
+      react-dom: 19.2.6
 
   react-is@18.3.1:
     resolution: {integrity: sha512-/LLMVyas0ljjAtoYiPqYiL8VWXzUUdThrmU5+n20DZv+a+ClRoevUzw5JxU+Ieh5/c87ytoTBV9G1FiKfNJdmg==}
@@ -6541,6 +6565,8 @@ snapshots:
       pg-protocol: 1.14.0
       pg-types: 2.2.0
 
+  '@types/piexifjs@1.0.0': {}
+
   '@types/react-dom@19.2.3(@types/react@19.2.15)':
     dependencies:
       '@types/react': 19.2.15
@@ -8003,6 +8029,8 @@ snapshots:
 
   normalize-path@3.0.0: {}
 
+  normalize-wheel@1.0.1: {}
+
   obliterator@2.0.5: {}
 
   obug@2.1.1: {}
@@ -8084,6 +8112,8 @@ snapshots:
   picocolors@1.1.1: {}
 
   picomatch@4.0.4: {}
+
+  piexifjs@1.0.6: {}
 
   pino-abstract-transport@2.0.0:
     dependencies:
@@ -8251,6 +8281,13 @@ snapshots:
     dependencies:
       react: 19.2.6
       scheduler: 0.27.0
+
+  react-easy-crop@5.5.7(react-dom@19.2.6(react@19.2.6))(react@19.2.6):
+    dependencies:
+      normalize-wheel: 1.0.1
+      react: 19.2.6
+      react-dom: 19.2.6(react@19.2.6)
+      tslib: 2.8.1
 
   react-is@18.3.1: {}
 
