@@ -1,5 +1,5 @@
 'use client'
-import { ImagePlus, Pencil, X } from 'lucide-react'
+import { ImagePlus, Pencil, Plus, X } from 'lucide-react'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
@@ -70,6 +70,15 @@ export function UploadDashboard() {
 
   return (
     <div className="flex flex-col gap-3">
+      {/* 항상 존재하는 파일 입력 — 드롭존 '파일 선택' 과 스테이징 '+' 타일 공용. */}
+      <input
+        ref={fileInputRef}
+        type="file"
+        accept="image/*,video/*"
+        multiple
+        onChange={onPick}
+        className="hidden"
+      />
       {files.length === 0 && (
         <div
           onDragOver={(e) => {
@@ -93,14 +102,6 @@ export function UploadDashboard() {
           >
             파일 선택
           </button>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*,video/*"
-            multiple
-            onChange={onPick}
-            className="hidden"
-          />
           <p className="mt-2 text-xs text-base-500">최대 2GB · 이미지·영상</p>
         </div>
       )}
@@ -131,6 +132,16 @@ export function UploadDashboard() {
                 )}
               </div>
             ))}
+            {/* 추가 선택 타일 */}
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              aria-label="사진·영상 추가"
+              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-base-200 text-base-400 transition hover:border-point-400 hover:text-point-500 dark:border-base-700"
+            >
+              <Plus size={22} strokeWidth={2} />
+              <span className="text-[11px] font-medium">추가</span>
+            </button>
           </div>
           <button
             type="button"

@@ -1,9 +1,21 @@
 'use client'
+import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useToast } from '@/lib/toast'
-import { ChevronDown, Globe, ImagePlus, Loader2, ShieldCheck, X } from 'lucide-react'
+import { ChevronDown, Globe, ImagePlus, Loader2, Pencil, ShieldCheck, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+const EDITABLE = new Set(['image/jpeg', 'image/png', 'image/webp'])
+
+function blobToDataUrl(blob: Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const r = new FileReader()
+    r.onload = () => resolve(r.result as string)
+    r.onerror = reject
+    r.readAsDataURL(blob)
+  })
+}
 
 type Props = {
   userDisplayName: string
@@ -52,7 +64,7 @@ export function TimelineComposer({
 }: Props) {
   const router = useRouter()
   const toast = useToast()
-  const { files, addFiles, startStagedUploads } = useUploadManager()
+  const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
 
   const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
 
@@ -62,6 +74,7 @@ export function TimelineComposer({
   const [expanded, setExpanded] = useState(false)
   const [visibility, setVisibility] = useState<Visibility>('family')
   const [visMenuOpen, setVisMenuOpen] = useState(false)
+  const [editing, setEditing] = useState<{ fileId: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
 
@@ -121,15 +134,14 @@ export function TimelineComposer({
         })
       }
       if (fresh.length > 0) {
+        // 업로드는 미루고 스테이징만 — 사용자가 올리기 전에 편집(크롭/회전)할 수
+        // 있게. 실제 업로드는 submit 에서 startStagedUploads() 로 시작한다(파일
+        // 업로드 시트와 동일 로직).
         setAttachments((prev) => [...prev, ...fresh])
         setExpanded(true)
-        // 매니저가 autoProceed:false(미리보기 단계용) 라서, 컴포저 첨부는 바로
-        // 업로드를 시작해 assetId 를 해소한다. 안 그러면 submit 이 사진 준비를
-        // 영원히 기다린다(이미지 첨부 안 되는 버그).
-        startStagedUploads()
       }
     },
-    [addFiles, startStagedUploads],
+    [addFiles],
   )
 
   const removeAttachment = useCallback((fileId: string) => {
@@ -139,6 +151,31 @@ export function TimelineComposer({
       return prev.filter((a) => a.fileId !== fileId)
     })
   }, [])
+
+  const openEditor = useCallback(
+    async (fileId: string) => {
+      const f = files.find((x) => x.id === fileId)
+      if (!f || !(f.data instanceof Blob)) return
+      const dataUrl = await blobToDataUrl(f.data)
+      setEditing({ fileId, dataUrl })
+    },
+    [files],
+  )
+
+  const applyEdit = useCallback(
+    (fileId: string, blob: Blob) => {
+      replaceFileData(fileId, blob)
+      const nextUrl = URL.createObjectURL(blob)
+      setAttachments((prev) =>
+        prev.map((a) => {
+          if (a.fileId !== fileId) return a
+          if (a.previewUrl) URL.revokeObjectURL(a.previewUrl)
+          return { ...a, previewUrl: nextUrl }
+        }),
+      )
+    },
+    [replaceFileData],
+  )
 
   const reset = useCallback(() => {
     setAttachments((prev) => {
@@ -162,6 +199,8 @@ export function TimelineComposer({
     if (submitting) return
     setSubmitting(true)
     try {
+      // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다.
+      if (attachments.length > 0) startStagedUploads()
       // Wait up to 30s for any still-resolving asset ids (preprocessor).
       // Most photos resolve in ~1s on a fast LAN.
       const deadline = Date.now() + 30_000
@@ -200,7 +239,7 @@ export function TimelineComposer({
     } finally {
       setSubmitting(false)
     }
-  }, [body, attachments, babyId, visibility, reset, router, toast, submitting])
+  }, [body, attachments, babyId, visibility, reset, router, toast, submitting, startStagedUploads])
 
   const initial = userDisplayName.charAt(0)
 
@@ -244,7 +283,7 @@ export function TimelineComposer({
                   {a.type.startsWith('video/') ? 'VIDEO' : 'FILE'}
                 </div>
               )}
-              {!a.assetId && (
+              {submitting && !a.assetId && (
                 <div className="absolute inset-0 flex items-center justify-center bg-black/30">
                   <Loader2 className="h-4 w-4 animate-spin text-white" />
                 </div>
@@ -253,13 +292,32 @@ export function TimelineComposer({
                 type="button"
                 onClick={() => removeAttachment(a.fileId)}
                 aria-label="제거"
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white opacity-0 transition-opacity group-hover:opacity-100"
+                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
               >
                 <X size={12} strokeWidth={2.6} />
               </button>
+              {!submitting && EDITABLE.has(a.type) && (
+                <button
+                  type="button"
+                  onClick={() => openEditor(a.fileId)}
+                  aria-label="편집"
+                  className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                >
+                  <Pencil size={11} strokeWidth={2.4} />
+                </button>
+              )}
             </div>
           ))}
         </div>
+      )}
+
+      {editing && (
+        <UploadEditor
+          fileId={editing.fileId}
+          originalDataUrl={editing.dataUrl}
+          onApply={applyEdit}
+          onClose={() => setEditing(null)}
+        />
       )}
 
       {expanded && (
@@ -338,7 +396,7 @@ export function TimelineComposer({
                 )}
               </div>
             )}
-            {!allHaveAssetIds && (
+            {submitting && !allHaveAssetIds && (
               <span className="ml-1 text-[12px] text-base-500">사진 준비 중…</span>
             )}
           </div>
