@@ -29,13 +29,26 @@
     return u.replace(/\/+$/, '')
   }
 
+  // Health check from the app's https://localhost page is cross-origin, so a
+  // normal fetch would be blocked by CORS even when the server is reachable
+  // (a browser visit is a top-level navigation, not CORS-gated). Use no-cors:
+  // the request still goes out, and if it *resolves* (opaque response) the
+  // server answered → reachable. Only a network error rejects.
   function reachable(url) {
-    return fetch(url + '/api/health', { method: 'GET' })
-      .then(function (res) {
-        return res.ok
+    var ctrl = new AbortController()
+    var timer = setTimeout(function () {
+      ctrl.abort()
+    }, 6000)
+    return fetch(url + '/api/health', { method: 'GET', mode: 'no-cors', signal: ctrl.signal })
+      .then(function () {
+        return true
       })
       .catch(function () {
         return false
+      })
+      .then(function (ok) {
+        clearTimeout(timer)
+        return ok
       })
   }
 
@@ -58,7 +71,13 @@
     while (app.firstChild) app.removeChild(app.firstChild)
   }
 
-  function renderForm(error, prefill) {
+  var PRIMARY_BTN =
+    'margin-top:16px;width:100%;padding:15px;border:0;border-radius:999px;background:#111;color:#fff;font-size:16px;font-weight:600'
+  var GHOST_BTN =
+    'margin-top:10px;width:100%;padding:13px;border:1px solid #3f3f46;border-radius:999px;background:transparent;color:inherit;font-size:15px;font-weight:500'
+
+  // forceUrl: when set, shows a "connect anyway" button (for false-negative checks).
+  function renderForm(error, prefill, forceUrl) {
     clear()
     var input = el('input', {
       id: 'url',
@@ -72,43 +91,53 @@
       style:
         'width:100%;padding:14px 16px;border:1px solid #d4d4d8;border-radius:14px;font-size:16px;background:transparent;color:inherit',
     })
-    var button = el(
-      'button',
-      {
-        style:
-          'margin-top:16px;width:100%;padding:15px;border:0;border-radius:999px;background:#111;color:#fff;font-size:16px;font-weight:600',
-        onclick: function () {
-          submit(input.value)
-        },
+    var connectBtn = el('button', {
+      style: PRIMARY_BTN,
+      textContent: '연결',
+      onclick: function () {
+        submit(input.value)
       },
-      [document.createTextNode('연결')],
-    )
+    })
     app.append(
-      el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 6px' }, [
-        document.createTextNode('서버 연결'),
-      ]),
-      el('p', { style: 'color:#71717a;margin:0 0 24px;font-size:15px' }, [
-        document.createTextNode('가족 서버 주소를 입력하세요'),
-      ]),
+      el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 6px', textContent: '서버 연결' }),
+      el('p', {
+        style: 'color:#71717a;margin:0 0 24px;font-size:15px',
+        textContent: '가족 서버 주소를 입력하세요',
+      }),
     )
     if (error) {
+      app.append(el('p', { style: 'color:#ef4444;margin:0 0 12px;font-size:14px', textContent: error }))
+    }
+    app.append(input, connectBtn)
+    if (forceUrl) {
       app.append(
-        el('p', { style: 'color:#ef4444;margin:0 0 12px;font-size:14px' }, [
-          document.createTextNode(error),
-        ]),
+        el('button', {
+          style: GHOST_BTN,
+          textContent: '그래도 연결',
+          onclick: function () {
+            navigateTo(forceUrl)
+          },
+        }),
       )
     }
-    app.append(input, button)
     input.focus()
   }
 
   function renderConnecting(label) {
     clear()
     app.append(
-      el('p', { style: 'color:#71717a;font-size:15px;text-align:center;margin-top:40px' }, [
-        document.createTextNode(label || '연결 중…'),
-      ]),
+      el('p', {
+        style: 'color:#71717a;font-size:15px;text-align:center;margin-top:40px',
+        textContent: label || '연결 중…',
+      }),
     )
+  }
+
+  function navigateTo(url) {
+    renderConnecting('연결 중…')
+    setServerUrl(url).then(function () {
+      window.location.href = url
+    })
   }
 
   function submit(raw) {
@@ -116,10 +145,8 @@
     if (!url) return renderForm('주소를 입력해주세요.', raw)
     renderConnecting('서버 확인 중…')
     reachable(url).then(function (ok) {
-      if (!ok) return renderForm('서버에 연결할 수 없어요. 주소를 확인해주세요.', raw)
-      setServerUrl(url).then(function () {
-        window.location.href = url
-      })
+      if (ok) return navigateTo(url)
+      renderForm('서버 확인에 실패했어요. 주소가 맞다면 "그래도 연결"을 눌러보세요.', raw, url)
     })
   }
 
@@ -128,8 +155,8 @@
     getServerUrl().then(function (saved) {
       if (!saved) return renderForm()
       reachable(saved).then(function (ok) {
-        if (ok) window.location.href = saved
-        else renderForm('이전 서버에 연결할 수 없어요.', saved)
+        if (ok) navigateTo(saved)
+        else renderForm('이전 서버 확인에 실패했어요.', saved, saved)
       })
     })
   }
