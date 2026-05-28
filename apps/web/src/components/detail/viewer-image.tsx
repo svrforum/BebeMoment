@@ -300,12 +300,13 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
 
   if (isVideo) {
     // current 슬롯이면 실제 <video controls> 재생, 옆 슬롯이면 poster 만.
-    // current 영상에는 `swiper-no-swiping` 클래스를 붙여 Swiper 의 드래그가
-    // 영상 안에서 발사되지 않도록 — seek bar / 재생 컨트롤이 정상 동작.
-    // 다음/이전 영상으로 넘기려면 영상 바깥의 검은 여백을 드래그.
+    // `swiper-no-swiping` 은 안 붙임 — 붙이면 영상이 화면 대부분을 차지해서 스와이프할
+    // 빈 공간이 없어진다(사용자 피드백). 대신 Swiper 가 영상 위에서도 드래그를 잡음.
+    // 트레이드오프: 영상 컨트롤이 떠 있을 때 seek bar 를 드래그하면 스와이프로 처리될
+    // 수 있음 — 탭으로 시크 위치를 정하는 게 모바일 기본 사용 패턴이라 큰 문제 없음.
     if (isCurrent) {
       return (
-        <div className="swiper-no-swiping flex h-full w-full items-center justify-center">
+        <div className="flex h-full w-full items-center justify-center">
           <VideoWithFallback src={slim.videoSrc ?? ''} poster={slim.posterUrl} />
         </div>
       )
