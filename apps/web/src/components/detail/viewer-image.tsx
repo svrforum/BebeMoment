@@ -17,10 +17,14 @@ type AssetSlim = {
 export function ViewerImage({
   current,
   siblings,
+  chromeVisible,
   onToggleChrome,
 }: {
   current: AssetSlim
   siblings: { prevId: string | undefined; nextId: string | undefined }
+  /** When true, the image area shrinks to fit between the top bar + (mobile)
+   *  action bar so chrome doesn't sit on top of the photo. */
+  chromeVisible: boolean
   onToggleChrome?: () => void
 }) {
   const router = useRouter()
@@ -65,7 +69,14 @@ export function ViewerImage({
 
   if (isVideo) {
     return (
-      <SwipeLayer enabled onNext={goNext} onPrev={goPrev} onClose={goBack} onTap={onToggleChrome}>
+      <SwipeLayer
+        enabled
+        onNext={goNext}
+        onPrev={goPrev}
+        onClose={goBack}
+        onTap={onToggleChrome}
+        chromeVisible={chromeVisible}
+      >
         <VideoWithFallback src={current.videoSrc ?? ''} poster={current.posterUrl} />
       </SwipeLayer>
     )
@@ -78,6 +89,7 @@ export function ViewerImage({
       onPrev={goPrev}
       onClose={goBack}
       onTap={onToggleChrome}
+      chromeVisible={chromeVisible}
     >
       <TransformWrapper
         minScale={1}
@@ -100,7 +112,7 @@ export function ViewerImage({
             loading="eager"
             fetchPriority="high"
             objectFit="contain"
-            className="max-h-screen max-w-full"
+            className="max-h-full max-w-full"
             style={{ viewTransitionName: `asset-${current.id}` } as CSSProperties}
           />
         </TransformComponent>
@@ -127,6 +139,7 @@ function SwipeLayer({
   onPrev,
   onClose,
   onTap,
+  chromeVisible,
   children,
 }: {
   enabled: boolean
@@ -134,6 +147,7 @@ function SwipeLayer({
   onPrev: () => void
   onClose: () => void
   onTap?: (() => void) | undefined
+  chromeVisible: boolean
   children: ReactNode
 }) {
   const ref = useRef<HTMLDivElement>(null)
@@ -219,7 +233,15 @@ function SwipeLayer({
       onClick={() => {
         if (!suppressTap.current) cfg.current.onTap?.()
       }}
-      className="flex min-h-screen w-full items-center justify-center"
+      // h-screen + dynamic top/bottom padding so the photo fits BETWEEN the
+      // top bar and (mobile) action bar when chrome is showing — no overlap.
+      // Tap to hide chrome → padding collapses smoothly → image expands.
+      // Desktop has no bottom action bar, so pb collapses there (md:pb-0).
+      className={`flex h-screen w-full items-center justify-center transition-[padding] duration-200 ease-out ${
+        chromeVisible
+          ? 'pt-[calc(env(safe-area-inset-top)+56px)] pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-0'
+          : 'pt-0 pb-0'
+      }`}
     >
       {children}
     </div>
@@ -245,7 +267,7 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
       controls
       playsInline
       onError={() => setFailed(true)}
-      className="max-h-screen max-w-full"
+      className="max-h-full max-w-full"
     >
       <track kind="captions" />
     </video>

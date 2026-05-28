@@ -118,6 +118,7 @@ export function ViewerShell({
         <ViewerImage
           current={current}
           siblings={siblings}
+          chromeVisible={chromeVisible}
           onToggleChrome={() => setChromeVisible((v) => !v)}
         />
       </div>
