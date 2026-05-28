@@ -50,6 +50,26 @@ export async function onUploadFinishMedia(args: {
     throw new Error(`asset ${token.assetId} not found for family ${token.familyId}`)
   }
 
+  // Enforce per-token size limit (web stamps maxBytes when minting the JWT).
+  // Reject oversize uploads before moving bytes or enqueuing processing.
+  if (token.maxBytes > 0 && (upload.size ?? 0) > token.maxBytes) {
+    const message = `upload exceeds maxBytes (${upload.size ?? 0} > ${token.maxBytes})`
+    await prisma.asset.update({
+      where: { id: token.assetId, familyId: token.familyId },
+      data: { status: 'failed', processingError: message },
+    })
+    logger.warn(
+      {
+        assetId: token.assetId,
+        familyId: token.familyId,
+        size: upload.size,
+        maxBytes: token.maxBytes,
+      },
+      'tus upload rejected: maxBytes exceeded',
+    )
+    throw new Error(message)
+  }
+
   await moveTusToFinal({ assetId: token.assetId, finalKey: asset.originalKey })
 
   await prisma.asset.update({
@@ -60,12 +80,19 @@ export async function onUploadFinishMedia(args: {
     },
   })
 
-  await queue.add('process-asset', {
-    type: 'process-asset',
-    familyId: token.familyId,
-    assetId: token.assetId,
-    convertToCompatible: token.convertToCompatible,
-  })
+  await queue.add(
+    'process-asset',
+    {
+      type: 'process-asset',
+      familyId: token.familyId,
+      assetId: token.assetId,
+      convertToCompatible: token.convertToCompatible,
+    },
+    {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 5_000 },
+    },
+  )
 
   logger.info(
     { assetId: token.assetId, familyId: token.familyId, size: upload.size, key: asset.originalKey },

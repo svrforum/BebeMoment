@@ -21,13 +21,40 @@ export async function startWorker(): Promise<void> {
       if (job.data.type !== 'process-asset') {
         throw new Error(`Unknown job type: ${(job.data as { type: string }).type}`)
       }
-      await processAsset({
-        job: job.data,
-        prisma,
-        storage,
-        publishProgress: (event) => progress.publish(event),
-        logger,
-      })
+      try {
+        await processAsset({
+          job: job.data,
+          prisma,
+          storage,
+          publishProgress: (event) => progress.publish(event),
+          logger,
+        })
+      } catch (err) {
+        // process-asset marks the asset `failed` on every throw and bails on
+        // re-entry when status !== 'processing'. If retries remain, flip the
+        // status back to `processing` so the next attempt isn't pre-empted by
+        // that guard. Only the FINAL attempt leaves the asset as `failed`.
+        const attempts = job.opts.attempts ?? 1
+        const attemptsMade = job.attemptsMade + 1
+        if (attemptsMade < attempts) {
+          await prisma.asset
+            .updateMany({
+              where: {
+                id: job.data.assetId,
+                familyId: job.data.familyId,
+                status: 'failed',
+              },
+              data: { status: 'processing', processingError: null },
+            })
+            .catch((resetErr) => {
+              logger.error(
+                { id: job.id, error: (resetErr as Error).message },
+                'failed to reset asset status for retry',
+              )
+            })
+        }
+        throw err
+      }
     },
     {
       connection,
