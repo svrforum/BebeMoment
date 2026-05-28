@@ -18,7 +18,8 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url)
     const parentId = url.searchParams.get('parentId')
-    const albums = await listAlbums({ familyId: ctx.family.id, parentId }, prismaPublic)
+    const viewerRole = ctx.membership?.role ?? 'family'
+    const albums = await listAlbums({ familyId: ctx.family.id, parentId, viewerRole }, prismaPublic)
     return NextResponse.json({ albums })
   } catch (e) {
     {

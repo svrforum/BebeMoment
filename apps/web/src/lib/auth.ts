@@ -7,6 +7,7 @@ export { auth }
 export type AuthUser = {
   id: string
   email: string | null
+  emailVerified: boolean
   displayName: string
   locale: string
 }
@@ -34,6 +35,7 @@ export const getAuth = cache(async (): Promise<AuthResult> => {
     user: {
       id: user.id,
       email: user.email ?? null,
+      emailVerified: (user as { emailVerified?: boolean }).emailVerified ?? false,
       displayName: user.name,
       locale: (user as { locale?: string }).locale ?? 'ko',
     },

@@ -16,7 +16,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const { id } = await params
-  const entry = await getDiaryEntry(id, ctx.family.id, prismaPublic, prismaMedia, getMediaClient())
+  const entry = await getDiaryEntry(
+    id,
+    ctx.family.id,
+    prismaPublic,
+    prismaMedia,
+    getMediaClient(),
+    ctx.membership?.role ?? 'family',
+  )
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
   return NextResponse.json(entry)
 }

@@ -29,7 +29,14 @@ export default async function DiaryDetailPage({
   if (!ctx.family) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
-  const entry = await getDiaryEntry(id, ctx.family.id, prismaPublic, prismaMedia, getMediaClient())
+  const entry = await getDiaryEntry(
+    id,
+    ctx.family.id,
+    prismaPublic,
+    prismaMedia,
+    getMediaClient(),
+    ctx.membership?.role ?? 'family',
+  )
   if (!entry) notFound()
 
   if (sp.edit === '1') {

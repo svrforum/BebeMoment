@@ -42,7 +42,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
       getMediaClient(),
     ),
     listAlbumEntries(
-      { albumId: album.id, familyId: ctx.family.id },
+      { albumId: album.id, familyId: ctx.family.id, viewerRole },
       prismaPublic,
       prismaMedia,
       getMediaClient(),

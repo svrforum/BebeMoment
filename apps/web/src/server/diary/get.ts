@@ -14,6 +14,7 @@ export async function getDiaryEntry(
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
+  viewerRole: 'owner' | 'guardian' | 'family' = 'owner',
 ): Promise<
   | (JournalEntry & {
       assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[]
@@ -22,7 +23,13 @@ export async function getDiaryEntry(
   | null
 > {
   const entry = await prismaPublic.journalEntry.findFirst({
-    where: { id, familyId, deletedAt: null },
+    where: {
+      id,
+      familyId,
+      deletedAt: null,
+      // guardians-only entries are hidden from the `family` role (returns null → 404)
+      ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
+    },
     include: { assets: true, baby: true },
   })
   if (!entry) return null

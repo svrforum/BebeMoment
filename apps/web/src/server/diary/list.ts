@@ -53,7 +53,13 @@ function searchFilter(qRaw: string) {
 
 export async function listDiaryEntries(
   familyId: string,
-  params: { babyId?: string; cursor?: string; limit?: number; q?: string },
+  params: {
+    babyId?: string
+    cursor?: string
+    limit?: number
+    q?: string
+    viewerRole?: 'owner' | 'guardian' | 'family'
+  },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -69,6 +75,8 @@ export async function listDiaryEntries(
     where: {
       familyId,
       deletedAt: null,
+      // guardians-only entries are hidden from the `family` role
+      ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
       ...(params.babyId !== undefined ? { babyId: params.babyId } : {}),
       ...(params.q ? searchFilter(params.q) : {}),
       ...(cursorTs && cur

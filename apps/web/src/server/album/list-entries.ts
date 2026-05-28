@@ -15,7 +15,12 @@ const DEFAULT_LIMIT = 200
  * album's link order.
  */
 export async function listAlbumEntries(
-  args: { albumId: string; familyId: string; limit?: number },
+  args: {
+    albumId: string
+    familyId: string
+    limit?: number
+    viewerRole?: 'owner' | 'guardian' | 'family'
+  },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -32,6 +37,8 @@ export async function listAlbumEntries(
       id: { in: links.map((l) => l.journalEntryId) },
       familyId: args.familyId,
       deletedAt: null,
+      // guardians-only entries hidden from the `family` role
+      ...(args.viewerRole === 'family' ? { visibility: 'family' } : {}),
     },
     include: { assets: true },
   })

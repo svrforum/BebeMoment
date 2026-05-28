@@ -20,7 +20,12 @@ export async function GET(req: Request) {
   const limit = Number(url.searchParams.get('limit') ?? '20')
   const page = await listDiaryEntries(
     ctx.family.id,
-    { ...(babyId ? { babyId } : {}), ...(cursor ? { cursor } : {}), limit },
+    {
+      ...(babyId ? { babyId } : {}),
+      ...(cursor ? { cursor } : {}),
+      limit,
+      viewerRole: ctx.membership?.role ?? 'family',
+    },
     prismaPublic,
     prismaMedia,
     getMediaClient(),

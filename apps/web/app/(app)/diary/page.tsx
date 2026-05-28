@@ -40,7 +40,7 @@ export default async function DiaryPage({
 
   const { items } = await listDiaryEntries(
     ctx.family.id,
-    { limit: 50, ...(query ? { q: query } : {}) },
+    { limit: 50, viewerRole: ctx.membership?.role ?? 'family', ...(query ? { q: query } : {}) },
     prismaPublic,
     prismaMedia,
     getMediaClient(),

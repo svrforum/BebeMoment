@@ -3,7 +3,7 @@ import { PushToggle } from '@/components/settings/push-toggle'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
-import { isInstanceAdmin } from '@/lib/admin'
+import { isInstanceAdminUser } from '@/lib/admin'
 import { getContext } from '@/server/context'
 import { getFeatureFlags } from '@/server/settings/features'
 import { parseEnv } from '@bebe/config'
@@ -69,7 +69,12 @@ export default async function SettingsPage() {
   const user = ctx.user
   const role = ctx.membership?.role ?? null
   const env = parseEnv(process.env as Record<string, string | undefined>)
-  const isAdmin = role === 'owner' || isInstanceAdmin(user.email, env.ADMIN_USER_EMAILS)
+  const isAdmin =
+    role === 'owner' ||
+    isInstanceAdminUser(
+      { email: user.email, emailVerified: user.emailVerified },
+      env.ADMIN_USER_EMAILS,
+    )
 
   const [prefRows, features] = await Promise.all([
     prismaPublic.notificationPref.findMany({ where: { userId: user.id } }),

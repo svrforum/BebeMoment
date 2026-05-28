@@ -25,7 +25,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   try {
     const { id } = await params
     const album = await getAlbumWithBreadcrumbs(
-      { albumId: id, familyId: r.ctx.family!.id },
+      { albumId: id, familyId: r.ctx.family!.id, viewerRole: r.ctx.membership?.role ?? 'family' },
       prismaPublic,
     )
     if (!album) return NextResponse.json({ error: 'not found' }, { status: 404 })
