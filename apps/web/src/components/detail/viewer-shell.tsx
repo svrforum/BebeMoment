@@ -103,7 +103,11 @@ export function ViewerShell({
   }, [])
 
   return (
-    <div className="relative min-h-screen bg-black md:flex">
+    // fixed inset-0 so the viewer covers the (app) layout's bottom nav + the
+    // md:pl-60 sidenav padding. Without this the photo sat INSIDE the app
+    // shell — bottom nav showed under the action bar and the timeline content
+    // leaked through. View transitions still play correctly on a fixed root.
+    <div className="fixed inset-0 z-50 bg-black overflow-hidden md:flex">
       {/* Image column: takes full width on mobile, flexes on desktop */}
       <div className="relative flex-1 min-w-0">
         <ViewerTopBar
