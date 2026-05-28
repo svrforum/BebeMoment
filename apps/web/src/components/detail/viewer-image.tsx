@@ -8,6 +8,7 @@ import { Zoom } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import 'swiper/css/zoom'
+import type { NavigateTo } from './viewer-shell'
 
 type AssetSlim = {
   id: string
@@ -19,10 +20,9 @@ type AssetSlim = {
 
 // Swiper.js + Zoom module 으로 iOS Photos 식 카루셀. Swiper 가 velocity·momentum·
 // rubber-band·pinch 를 다 가져가고, 우리는 (1) 세로 swipe-down 닫기, (2) 탭 토글
-// 크로미, (3) RSC URL 동기화만 담당. 세 슬롯(prev/current/next)을 한 번에 마운트
-// 하고 가운데(현재)를 active 로 두어 좌/우 어디로 밀어도 즉시 따라옴 → 스냅 종료
-// 시 router.replace 로 URL 만 동기화. 다음 RSC 가 도착하면 새 prev/current/next
-// 가 들어오고 `key={current.id}` 로 Swiper 가 재초기화되어 자연스럽게 중앙 정렬.
+// 크로미, (3) navigateTo 콜백으로 ViewerShell state 갱신만 담당. Swiper 는 마운트된
+// 채로 슬라이드 데이터(slim 배열) 만 교체된다 — 페이지 unmount/remount 가 없어
+// 깜빡임이 사라진다.
 const CLOSE_Y = 110
 const TAP_SLOP = 8
 const TAP_SUPPRESS_MS = 300
@@ -30,6 +30,7 @@ const TAP_SUPPRESS_MS = 300
 export function ViewerImage({
   current,
   siblings,
+  navigateTo,
   chromeVisible,
   onToggleChrome,
 }: {
@@ -40,6 +41,7 @@ export function ViewerImage({
     prev: AssetSlim | null
     next: AssetSlim | null
   }
+  navigateTo: NavigateTo
   /** When true, the image area shrinks to fit between the top bar + (mobile)
    *  action bar so chrome doesn't sit on top of the photo. */
   chromeVisible: boolean
@@ -47,15 +49,12 @@ export function ViewerImage({
 }) {
   const router = useRouter()
 
-  // 스와이프 이동은 replace — push 면 이미지마다 히스토리가 쌓여 닫기(X·뒤로·Esc·
-  // 드래그다운=router.back)가 이전 이미지로 가버린다. replace 면 히스토리가
-  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다.
   const goNext = useCallback(() => {
-    if (siblings.nextId) router.replace(`/detail/${siblings.nextId}`)
-  }, [router, siblings.nextId])
+    if (siblings.nextId) navigateTo(siblings.nextId, 'next')
+  }, [navigateTo, siblings.nextId])
   const goPrev = useCallback(() => {
-    if (siblings.prevId) router.replace(`/detail/${siblings.prevId}`)
-  }, [router, siblings.prevId])
+    if (siblings.prevId) navigateTo(siblings.prevId, 'prev')
+  }, [navigateTo, siblings.prevId])
   const goBack = useCallback(() => router.back(), [router])
 
   useEffect(() => {
@@ -67,14 +66,6 @@ export function ViewerImage({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [goPrev, goNext, router])
-
-  // RSC 프리페치 — 이전/다음 사진 페이지를 미리 받아두면 router.replace 가 캐시에서
-  // 즉시 커밋된다. 페이지 unmount→remount 자체는 일어나지만, 데이터 로딩 대기가 없으니
-  // Suspense 폴백(빈 loading.tsx) 이 트리거되지 않아 화면 단절이 최소화된다.
-  useEffect(() => {
-    if (siblings.nextId) router.prefetch(`/detail/${siblings.nextId}`)
-    if (siblings.prevId) router.prefetch(`/detail/${siblings.prevId}`)
-  }, [router, siblings.nextId, siblings.prevId])
 
   const trio = pickDisplayTrio(current.urls)
   const fallbackUrl = pickDisplayUrl(current.urls)
@@ -141,6 +132,10 @@ function SwiperViewport({
 }) {
   // 슬라이드 배열 + initialSlide 계산. prev 가 있으면 [prev,current,next] 의 1,
   // 없으면 [current,next] 의 0. next 가 없어도 마찬가지로 prev 가 있으면 1.
+  // 키는 슬롯 역할('prev'/'current'/'next')로 — id 로 키하면 사진 전환 시 DOM 이
+  // 재셔플되어 Swiper 가 의도와 다른 슬라이드로 움직인다. 슬롯 키면 슬라이드 노드는
+  // 그대로 두고 안의 SlideContent 만 새 slim 으로 리렌더 → 부드러운 슬라이드 + slideTo(0)
+  // 침묵 재중앙화가 동작.
   const slides: Array<{ slim: AssetSlim; role: 'prev' | 'current' | 'next' }> = []
   if (prev) slides.push({ slim: prev, role: 'prev' })
   slides.push({ slim: current, role: 'current' })
@@ -153,10 +148,8 @@ function SwiperViewport({
   // 줌 여부: pinch 또는 double-tap 으로 줌인되면 세로 swipe-down 닫기를 죽인다.
   const [zoomed, setZoomed] = useState(false)
 
-  // Swiper 인스턴스 — RSC 가 다음 페이지를 보내면 새 prev/current/next 가 슬라이드로
-  // 들어오는데, 그때 activeIndex 가 이전 swipe 종료 시점의 값을 유지하고 있어 한
-  // 슬롯 어긋남 → 깜빡임 발생. current.id 가 변하면 silently (애니메이션 없이) 새
-  // currentIndex 로 슬라이드해서 깜빡임 제거.
+  // Swiper 인스턴스 — current.id 가 변하면 silently (애니메이션 없이) 새 currentIndex 로
+  // 슬라이드해서 중앙 정렬. ViewerShell 의 state 갱신이 트리거.
   // biome-ignore lint/suspicious/noExplicitAny: swiper instance type complex; use minimal surface
   const swiperRef = useRef<any>(null)
   // biome-ignore lint/correctness/useExhaustiveDependencies: current.id 변경이 트리거. 다른 deps 는 의도적으로 제외(stale 캡쳐 위험 없음).
@@ -289,7 +282,7 @@ function SwiperViewport({
       >
         {slides.map(({ slim, role }) => (
           <SwiperSlide
-            key={slim.id}
+            key={role}
             zoom
             style={{
               display: 'flex',
@@ -328,10 +321,9 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
   }
 
   // current 만 view-transition-name 부여 — 타임라인 썸네일(같은 asset-{id})에서
-  // 풀스크린 이미지로 매칭돼 자라는 iOS Photos 식 morph. 형제 이동은 id 가 달라
-  // 매칭 없음 → 기본 UA crossfade. (Swiper 내부 DOM 이 슬라이드를 transform 으로
-  // 움직여 view-transition-name 매칭은 슬라이드 진입/이탈 시 제한적일 수 있음 —
-  // 다만 타임라인 → 디테일 초진입에는 영향 없음.)
+  // 풀스크린 이미지로 매칭돼 자라는 iOS Photos 식 morph. 클라이언트 사이드 nav 는
+  // URL 을 history.replaceState 로만 바꿔 RSC 가 안 돌므로 view transition 은 첫 진입에만
+  // 동작 — 의도된 거동(스와이프 자체는 Swiper transform 으로 부드럽게 처리됨).
   const style: CSSProperties | undefined = isCurrent
     ? ({ viewTransitionName: `asset-${slim.id}` } as CSSProperties)
     : undefined

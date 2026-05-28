@@ -1,8 +1,7 @@
 import { ViewerShell } from '@/components/detail/viewer-shell'
-import { pickVideoPosterUrl, pickVideoUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { getAssetForFamily } from '@/server/asset/get'
+import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
@@ -18,68 +17,41 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   if (!ctx.family || !ctx.user) return null
 
   const media = getMediaClient()
-  const asset = await getAssetForFamily(
+  // loadViewerBundle = current asset + adjacent prev/next slims (shared with
+  // /api/asset/[id]/viewer-bundle so client-side swipe gets identical shape).
+  const bundle = await loadViewerBundle(
     { assetId: id, familyId: ctx.family.id },
     prismaMedia,
     media,
   )
+  if (!bundle) notFound()
+
+  // For metadata / babies we still need the full asset row — fetch directly.
+  const asset = await prismaMedia.asset.findFirst({
+    where: { id, familyId: ctx.family.id, deletedAt: null },
+  })
   if (!asset) notFound()
 
-  const videoSrc = asset.kind === 'video' ? pickVideoUrl(asset.urls) : null
-  const posterUrl = pickVideoPosterUrl(asset.urls) ?? undefined
-
-  const [
-    prevAsset,
-    nextAsset,
-    likers,
-    commentsRaw,
-    myLike,
-    myBookmark,
-    assetBabyLinks,
-    members,
-    initialTags,
-  ] = await Promise.all([
-    prismaMedia.asset.findFirst({
-      where: {
-        familyId: ctx.family.id,
-        deletedAt: null,
-        status: 'ready',
-        OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
-      },
-      orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
-      // Carousel swipe needs enough metadata to build an AssetSlim — id alone
-      // would force a fetch on each navigation. Keep the select tight so we
-      // don't pull caption/exifRaw blobs we won't use.
-      select: { id: true, kind: true },
-    }),
-    prismaMedia.asset.findFirst({
-      where: {
-        familyId: ctx.family.id,
-        deletedAt: null,
-        status: 'ready',
-        OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
-      },
-      orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-      select: { id: true, kind: true },
-    }),
-    likersForAsset(ctx.family.id, asset.id, prismaPublic),
-    listComments(ctx.family.id, asset.id, prismaPublic),
-    prismaPublic.assetLike.findFirst({
-      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-    }),
-    prismaPublic.assetBookmark.findFirst({
-      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-    }),
-    prismaMedia.assetBaby.findMany({
-      where: { assetId: asset.id },
-      select: { babyId: true },
-    }),
-    prismaPublic.membership.findMany({
-      where: { familyId: ctx.family.id, deletedAt: null },
-      include: { user: { select: { id: true, displayName: true } } },
-    }),
-    listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
-  ])
+  const [likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members, initialTags] =
+    await Promise.all([
+      likersForAsset(ctx.family.id, asset.id, prismaPublic),
+      listComments(ctx.family.id, asset.id, prismaPublic),
+      prismaPublic.assetLike.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+      }),
+      prismaPublic.assetBookmark.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+      }),
+      prismaMedia.assetBaby.findMany({
+        where: { assetId: asset.id },
+        select: { babyId: true },
+      }),
+      prismaPublic.membership.findMany({
+        where: { familyId: ctx.family.id, deletedAt: null },
+        include: { user: { select: { id: true, displayName: true } } },
+      }),
+      listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
+    ])
 
   const babyIds = assetBabyLinks.map((link) => link.babyId)
   const babyRows = babyIds.length
@@ -91,33 +63,6 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
 
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
   const babies = babyRows.map((b) => ({ id: b.id, name: b.name }))
-
-  // Carousel adjacent slots: batch-sign prev/next URLs so they can pre-render
-  // edging in during the finger swipe (no flash on snap). Both `findFirst`s
-  // already filter `status: 'ready'`, so URLs are safe to request.
-  const adjIds = [prevAsset?.id, nextAsset?.id].filter((x): x is string => Boolean(x))
-  const adjUrls = adjIds.length ? await media.getAssetUrlsBatch(ctx.family.id, adjIds) : {}
-  const buildSlim = (
-    a: { id: string; kind: 'image' | 'video' } | null,
-  ): {
-    id: string
-    kind: 'image' | 'video'
-    urls: import('@bebe/media-client').AssetUrls | null
-    videoSrc: string | null
-    posterUrl: string | undefined
-  } | null => {
-    if (!a) return null
-    const u = adjUrls[a.id] ?? null
-    return {
-      id: a.id,
-      kind: a.kind,
-      urls: u,
-      videoSrc: a.kind === 'video' ? pickVideoUrl(u) : null,
-      posterUrl: pickVideoPosterUrl(u) ?? undefined,
-    }
-  }
-  const prevSlim = buildSlim(prevAsset ?? null)
-  const nextSlim = buildSlim(nextAsset ?? null)
 
   // Use effective capabilities (built by resolveContext via family-capabilities
   // settings). `asset.delete.own` is a grantable family capability, so static
@@ -138,12 +83,12 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
 
   return (
     <ViewerShell
-      current={{ id: asset.id, kind: asset.kind, urls: asset.urls, videoSrc, posterUrl }}
-      siblings={{
-        prevId: prevAsset?.id,
-        nextId: nextAsset?.id,
-        prev: prevSlim,
-        next: nextSlim,
+      initialCurrent={bundle.current}
+      initialSiblings={{
+        prevId: bundle.prevId,
+        nextId: bundle.nextId,
+        prev: bundle.prev,
+        next: bundle.next,
       }}
       currentUserId={ctx.user.id}
       canDeleteAny={canDeleteAny}

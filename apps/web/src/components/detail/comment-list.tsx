@@ -85,6 +85,13 @@ export function CommentList({
     ),
   )
 
+  // 클라이언트 사이드 사진 전환 후엔 props.initialComments 가 직전 자산의 데이터 (stale).
+  // chrome 이 assetId 키로 remount 되므로 여기서 한 번 refetch 해 신선한 댓글로 교체.
+  // 첫 마운트(SSR initial) 도 한 번 추가 호출이 발생하지만 비용은 작고 일관성이 더 중요.
+  useEffect(() => {
+    refetch()
+  }, [refetch])
+
   const merged = [...comments, ...optimistic]
   const liveCount = merged.filter((c) => !c.deletedAt).length
 

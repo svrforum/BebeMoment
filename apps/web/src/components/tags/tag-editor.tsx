@@ -28,6 +28,24 @@ export function TagEditor({ assetId, initial }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const popoverRef = useRef<HTMLDivElement>(null)
 
+  // 클라이언트 사이드 사진 전환 후엔 props.initial 이 직전 자산의 태그 (stale).
+  // 부모가 assetId 키로 remount 해주므로 마운트 시 한 번 fetch 해서 신선한 태그로 교체.
+  useEffect(() => {
+    let alive = true
+    fetch(`/api/asset/${assetId}/tags`)
+      .then((r) => (r.ok ? r.json() : Promise.reject(r)))
+      .then((data) => {
+        if (!alive) return
+        setTags(data.tags as AssetTag[])
+      })
+      .catch(() => {
+        // best-effort: keep initial tags
+      })
+    return () => {
+      alive = false
+    }
+  }, [assetId])
+
   // Fetch family tags whenever popover opens — keeps autocomplete fresh.
   useEffect(() => {
     if (!open) return
