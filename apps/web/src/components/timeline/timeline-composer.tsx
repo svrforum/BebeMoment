@@ -2,7 +2,16 @@
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useToast } from '@/lib/toast'
-import { ChevronDown, Globe, ImagePlus, Loader2, Pencil, ShieldCheck, X } from 'lucide-react'
+import {
+  ChevronDown,
+  Globe,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  PencilLine,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -81,6 +90,25 @@ export function TimelineComposer({
   const [editing, setEditing] = useState<{ fileId: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
+  const containerRef = useRef<HTMLDivElement>(null)
+
+  // `/diary/new` 가 `/timeline#composer` 로 리다이렉트됨 — 해시가 있으면 컴포저를
+  // 펼치고 화면에 스크롤한 뒤 textarea 에 포커스한다.
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    if (window.location.hash !== '#composer') return
+    setExpanded(true)
+    requestAnimationFrame(() => {
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      textareaRef.current?.focus()
+    })
+  }, [])
+
+  // 펼쳐진 직후엔 textarea 포커스를 잡아 바로 타이핑 가능. (해시 진입 케이스는
+  // 위 효과가 별도로 처리하므로 의존성에 expanded 만 둔다.)
+  useEffect(() => {
+    if (expanded) textareaRef.current?.focus()
+  }, [expanded])
 
   // Sync asset-id + ready state from the upload manager into our own
   // attachment objects. Keeps progress info alive after the manager
@@ -192,6 +220,12 @@ export function TimelineComposer({
     setExpanded(false)
   }, [])
 
+  // 본문/첨부는 보존한 채 펼침만 닫는다. 다시 펼치면 그대로 이어쓰기 가능.
+  const collapse = useCallback(() => {
+    setVisMenuOpen(false)
+    setExpanded(false)
+  }, [])
+
   const allHaveAssetIds = useMemo(
     () => attachments.length === 0 || attachments.every((a) => !!a.assetId),
     [attachments],
@@ -249,31 +283,67 @@ export function TimelineComposer({
   }, [body, attachments, babyId, visibility, reset, router, toast, submitting, startStagedUploads])
 
   const initial = userDisplayName.charAt(0)
+  const hasDraft = body.length > 0 || attachments.length > 0
+
+  if (!expanded) {
+    return (
+      <div ref={containerRef} id="composer">
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          aria-label="오늘 이야기 쓰기"
+          aria-expanded={false}
+          className="group flex w-full items-center gap-3 rounded-full border border-base-200/60 bg-base-0 px-3 py-2 text-left transition-colors ease-ios hover:bg-base-100/60 active:scale-[0.995] dark:border-base-800/60 dark:bg-base-900 dark:hover:bg-base-800/40"
+        >
+          <PillAvatar avatarPath={userAvatarPath} initial={initial} />
+          <span className="min-w-0 flex-1 truncate text-[14px] text-base-500 dark:text-base-400">
+            {hasDraft ? body.trim() || `사진 ${attachments.length}장 첨부됨` : '오늘 이야기 쓰기'}
+          </span>
+          <PencilLine
+            size={16}
+            strokeWidth={2}
+            className="shrink-0 text-base-400 transition-colors group-hover:text-point-500"
+          />
+        </button>
+      </div>
+    )
+  }
 
   return (
-    <div className="rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
+    <div
+      ref={containerRef}
+      id="composer"
+      className="rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
+    >
       <div className="flex items-start gap-3">
         <Avatar avatarPath={userAvatarPath} initial={initial} />
-        <div className="flex-1">
+        <div className="min-w-0 flex-1">
           <textarea
             ref={textareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            onFocus={() => setExpanded(true)}
             placeholder="오늘 어떤 이야기가 있었어요?"
-            rows={expanded ? 3 : 1}
+            rows={3}
             maxLength={20000}
             className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-base-400"
             onKeyDown={(e) => {
               if (e.key === 'Enter' && (e.metaKey || e.ctrlKey)) {
                 e.preventDefault()
                 submit()
-              } else if (e.key === 'Escape') {
-                reset()
+              } else if (e.key === 'Escape' && !hasDraft) {
+                collapse()
               }
             }}
           />
         </div>
+        <button
+          type="button"
+          onClick={collapse}
+          aria-label="접기"
+          className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition-colors hover:bg-base-100 hover:text-base-600 dark:hover:bg-base-800 dark:hover:text-base-300"
+        >
+          <X size={16} strokeWidth={2.2} />
+        </button>
       </div>
 
       {attachments.length > 0 && (
@@ -335,107 +405,103 @@ export function TimelineComposer({
         />
       )}
 
-      {expanded && (
-        <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
-          <div className="flex items-center gap-1">
-            {canUpload && (
-              <>
-                <button
-                  type="button"
-                  onClick={() => fileInputRef.current?.click()}
-                  aria-label="사진 첨부"
-                  className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
-                >
-                  <ImagePlus size={18} strokeWidth={2} />
-                </button>
-                <input
-                  ref={fileInputRef}
-                  type="file"
-                  accept="image/*,video/*"
-                  multiple
-                  onChange={onPick}
-                  className="hidden"
-                />
-              </>
-            )}
-            {canPostGuardian && (
-              <div className="relative">
-                <button
-                  type="button"
-                  onClick={() => setVisMenuOpen((v) => !v)}
-                  className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-base-600 transition-colors hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
-                  aria-label="공개 범위"
-                  aria-expanded={visMenuOpen}
-                >
-                  {visibility === 'family' ? (
-                    <Globe size={13} strokeWidth={2.2} />
-                  ) : (
-                    <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" />
-                  )}
-                  <span>{visibility === 'family' ? '전체 공개' : '보호자만'}</span>
-                  <ChevronDown size={12} strokeWidth={2.2} />
-                </button>
-                {visMenuOpen && (
-                  <>
-                    <button
-                      type="button"
-                      aria-label="닫기"
-                      onClick={() => setVisMenuOpen(false)}
-                      className="fixed inset-0 z-30 cursor-default bg-transparent"
-                    />
-                    <div className="absolute left-0 bottom-full z-40 mb-2 w-56 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-elevated dark:border-base-800/70 dark:bg-base-900">
-                      <VisibilityOption
-                        active={visibility === 'family'}
-                        icon={<Globe size={14} strokeWidth={2.2} />}
-                        title="전체 공개"
-                        subtitle="가족 모두가 볼 수 있어요"
-                        onClick={() => {
-                          setVisibility('family')
-                          setVisMenuOpen(false)
-                        }}
-                      />
-                      <VisibilityOption
-                        active={visibility === 'guardians'}
-                        icon={
-                          <ShieldCheck size={14} strokeWidth={2.2} className="text-point-500" />
-                        }
-                        title="보호자만"
-                        subtitle="owner / guardian 역할에게만 보여요"
-                        onClick={() => {
-                          setVisibility('guardians')
-                          setVisMenuOpen(false)
-                        }}
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-            )}
-            {submitting && !allHaveAssetIds && (
-              <span className="ml-1 text-[12px] text-base-500">사진 준비 중…</span>
-            )}
-          </div>
-          <div className="flex items-center gap-2">
-            {(body.length > 0 || attachments.length > 0) && (
+      <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
+        <div className="flex items-center gap-1">
+          {canUpload && (
+            <>
               <button
                 type="button"
-                onClick={reset}
-                className="rounded-full px-3 py-1.5 text-[13px] font-medium text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
+                onClick={() => fileInputRef.current?.click()}
+                aria-label="사진 첨부"
+                className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
               >
-                취소
+                <ImagePlus size={18} strokeWidth={2} />
               </button>
-            )}
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={onPick}
+                className="hidden"
+              />
+            </>
+          )}
+          {canPostGuardian && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setVisMenuOpen((v) => !v)}
+                className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-base-600 transition-colors hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
+                aria-label="공개 범위"
+                aria-expanded={visMenuOpen}
+              >
+                {visibility === 'family' ? (
+                  <Globe size={13} strokeWidth={2.2} />
+                ) : (
+                  <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" />
+                )}
+                <span>{visibility === 'family' ? '전체 공개' : '보호자만'}</span>
+                <ChevronDown size={12} strokeWidth={2.2} />
+              </button>
+              {visMenuOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label="닫기"
+                    onClick={() => setVisMenuOpen(false)}
+                    className="fixed inset-0 z-30 cursor-default bg-transparent"
+                  />
+                  <div className="absolute left-0 bottom-full z-40 mb-2 w-56 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-elevated dark:border-base-800/70 dark:bg-base-900">
+                    <VisibilityOption
+                      active={visibility === 'family'}
+                      icon={<Globe size={14} strokeWidth={2.2} />}
+                      title="전체 공개"
+                      subtitle="가족 모두가 볼 수 있어요"
+                      onClick={() => {
+                        setVisibility('family')
+                        setVisMenuOpen(false)
+                      }}
+                    />
+                    <VisibilityOption
+                      active={visibility === 'guardians'}
+                      icon={<ShieldCheck size={14} strokeWidth={2.2} className="text-point-500" />}
+                      title="보호자만"
+                      subtitle="owner / guardian 역할에게만 보여요"
+                      onClick={() => {
+                        setVisibility('guardians')
+                        setVisMenuOpen(false)
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+          {submitting && !allHaveAssetIds && (
+            <span className="ml-1 text-[12px] text-base-500">사진 준비 중…</span>
+          )}
+        </div>
+        <div className="flex items-center gap-2">
+          {hasDraft && (
             <button
               type="button"
-              onClick={submit}
-              disabled={submitting || (body.trim().length === 0 && attachments.length === 0)}
-              className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
+              onClick={reset}
+              className="rounded-full px-3 py-1.5 text-[13px] font-medium text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
             >
-              {submitting ? '올리는 중…' : '올리기'}
+              취소
             </button>
-          </div>
+          )}
+          <button
+            type="button"
+            onClick={submit}
+            disabled={submitting || (body.trim().length === 0 && attachments.length === 0)}
+            className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
+          >
+            {submitting ? '올리는 중…' : '올리기'}
+          </button>
         </div>
-      )}
+      </div>
     </div>
   )
 }
@@ -478,6 +544,17 @@ function Avatar({ avatarPath, initial }: { avatarPath: string | null; initial: s
   }
   return (
     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[14px] font-semibold text-point-500">
+      {initial}
+    </div>
+  )
+}
+
+function PillAvatar({ avatarPath, initial }: { avatarPath: string | null; initial: string }) {
+  if (avatarPath) {
+    return <img src={avatarPath} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
+  }
+  return (
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[12px] font-semibold text-point-500">
       {initial}
     </div>
   )
