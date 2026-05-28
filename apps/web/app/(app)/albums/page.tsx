@@ -9,7 +9,7 @@ import { listAlbums } from '@/server/album/list'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
-import { FolderPlus, Search } from 'lucide-react'
+import { FolderHeart, FolderPlus, Search } from 'lucide-react'
 
 const PREVIEW_PER_ALBUM = 4
 
@@ -70,12 +70,18 @@ export default async function AlbumsRootPage({
         {albums.length === 0 ? (
           query ? (
             <EmptyState icon={Search} title="검색 결과가 없어요" description={`"${query}"`} />
-          ) : (
+          ) : canCreate ? (
             <EmptyState
               icon={FolderPlus}
               title="첫 앨범을 만들어보세요"
               description={'"2026 → 여행" 처럼 폴더로 묶어서 정리할 수 있어요'}
-              {...(canCreate ? { action: <AlbumCreateButton /> } : {})}
+              action={<AlbumCreateButton />}
+            />
+          ) : (
+            <EmptyState
+              icon={FolderHeart}
+              title="아직 앨범이 없어요"
+              description="관리자가 사진을 모아 앨범으로 만들면 여기에 보여요"
             />
           )
         ) : (

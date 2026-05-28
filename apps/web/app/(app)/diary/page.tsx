@@ -7,7 +7,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
 import { listDiaryEntries } from '@/server/diary/list'
-import { BookOpen, Plus, Search } from 'lucide-react'
+import { BookOpen, Plus, Search, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -54,6 +54,7 @@ export default async function DiaryPage({
     getMediaClient(),
   )
   const groups = groupByMonth(items)
+  const canRecord = ctx.capabilities.includes('record.create')
   const emptyDescription = [query ? `"${query}"` : null, dateFilter ?? null]
     .filter(Boolean)
     .join(' · ')
@@ -63,14 +64,16 @@ export default async function DiaryPage({
       <AppHeader
         title="스토리"
         right={
-          <Link
-            href="/diary/new"
-            className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
-            aria-label="스토리 쓰기"
-          >
-            <Plus className="h-4 w-4" strokeWidth={2.6} />
-            <span>쓰기</span>
-          </Link>
+          canRecord ? (
+            <Link
+              href="/diary/new"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
+              aria-label="스토리 쓰기"
+            >
+              <Plus className="h-4 w-4" strokeWidth={2.6} />
+              <span>쓰기</span>
+            </Link>
+          ) : null
         }
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
@@ -84,7 +87,7 @@ export default async function DiaryPage({
         {items.length === 0 ? (
           query || dateFilter ? (
             <EmptyState icon={Search} title="검색 결과가 없어요" description={emptyDescription} />
-          ) : (
+          ) : canRecord ? (
             <EmptyState
               icon={BookOpen}
               title="첫 스토리를 시작해볼까요"
@@ -95,6 +98,20 @@ export default async function DiaryPage({
                   className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 hover:bg-base-800 dark:bg-base-50 dark:text-base-900 dark:hover:bg-base-200"
                 >
                   스토리 쓰기
+                </Link>
+              }
+            />
+          ) : (
+            <EmptyState
+              icon={Sparkles}
+              title="아직 올라온 스토리가 없어요"
+              description="곧 새로운 이야기가 올라올 거예요"
+              action={
+                <Link
+                  href="/settings#notifications"
+                  className="mt-2 text-sm font-medium text-point-600 transition hover:text-point-700 dark:text-point-400 dark:hover:text-point-300"
+                >
+                  알림 켜기
                 </Link>
               }
             />

@@ -7,9 +7,11 @@ import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
+import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
 import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { listTimeline } from '@/server/timeline/merged-list'
+import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default async function TimelinePage({
@@ -71,42 +73,55 @@ export default async function TimelinePage({
     label: g.dateLabel,
     ageLabel: g.bucketLabel,
     dDay: g.babyDays !== null ? formatDDay(g.babyDays) : null,
-    assets: g.assets,
+    assets: g.assets.map((a) => ({
+      id: a.id,
+      status: a.status,
+      kind: a.kind,
+      urls: a.urls,
+      ts: a.ts,
+    })),
   }))
 
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
-  // 컴포저·태그 섹션은 숨기고, 상단에 날짜 배너 + 전체 보기로 돌아가는 링크.
+  // 컴포저·태그 섹션은 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
   if (dateFilter) {
-    const label = new Date(`${dateFilter}T00:00:00.000Z`).toLocaleDateString('ko-KR', {
-      year: 'numeric',
-      month: 'long',
-      day: 'numeric',
-      weekday: 'short',
-      timeZone: 'UTC',
-    })
+    const dateObj = new Date(`${dateFilter}T00:00:00.000Z`)
+    const WEEKDAYS_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
+    const headerTitle = `${dateObj.getUTCMonth() + 1}월 ${dateObj.getUTCDate()}일`
+    const weekdayLabel = WEEKDAYS_KO[dateObj.getUTCDay()] ?? ''
     const photoCount = assetItems.length
-    const isEmpty = photoCount === 0 && diaryItems.length === 0
+    const diaryCount = diaryItems.length
+    const countParts = [
+      photoCount > 0 ? `사진 ${photoCount}` : null,
+      diaryCount > 0 ? `스토리 ${diaryCount}` : null,
+    ].filter((s): s is string => Boolean(s))
+    const subtitle = [weekdayLabel, ...countParts].filter(Boolean).join(' · ')
+    const isEmpty = photoCount === 0 && diaryCount === 0
     return (
       <>
-        <AppHeader title="캘린더" wide />
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-2">
-          <div className="flex items-center justify-between rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3 dark:border-base-800/70 dark:bg-base-900">
-            <div className="flex items-baseline gap-2">
-              <span className="text-[15px] font-semibold text-base-900 dark:text-base-50">
-                {label}
-              </span>
-              <span className="text-[13px] tabular-nums text-base-400">
-                ·{diaryItems.length > 0 ? ` 스토리 ${diaryItems.length}` : ''} 사진 {photoCount}
-              </span>
-            </div>
+        <AppHeader
+          title={headerTitle}
+          subtitle={subtitle}
+          left={
+            <Link
+              href="/calendar"
+              className="-ml-1.5 flex h-9 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
+              aria-label="캘린더로 돌아가기"
+            >
+              <ArrowLeft className="h-4 w-4" strokeWidth={2.4} />
+              <span>캘린더로</span>
+            </Link>
+          }
+          right={
             <Link
               href="/timeline"
-              className="rounded-full px-3 py-1.5 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
+              className="flex h-9 items-center rounded-full px-3 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
             >
               전체 보기
             </Link>
-          </div>
-        </div>
+          }
+          wide
+        />
         {diaryItems.length > 0 && (
           <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
             {diaryItems.map((it) =>
@@ -126,6 +141,18 @@ export default async function TimelinePage({
   }
 
   const features = await getFeatureFlags(prismaPublic)
+
+  // "여기까지 봤어요" 디바이더 기준점. ctx.membership.lastSeenAt 의 OLD 값을
+  // 캡쳐한 뒤 touchLastSeen 으로 NOW() 를 찍는다 — 다음 방문 때부터 갱신된
+  // 시각이 기준이 된다. 캘린더(date filter)에서는 호출 안 함.
+  const prevLastSeenAt = ctx.membership?.lastSeenAt ?? null
+  if (ctx.membership) {
+    await touchLastSeen(
+      { id: ctx.membership.id, familyId: ctx.membership.familyId, userId: ctx.membership.userId },
+      prismaPublic,
+    )
+  }
+  const canUpload = ctx.capabilities.includes('asset.upload')
 
   return (
     <>
@@ -175,7 +202,7 @@ export default async function TimelinePage({
           )}
         </div>
       )}
-      <TimelineGrid initialGroups={groups} />
+      <TimelineGrid initialGroups={groups} lastSeenAt={prevLastSeenAt} canUpload={canUpload} />
     </>
   )
 }
