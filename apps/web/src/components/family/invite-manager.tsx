@@ -2,7 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Label } from '@/components/ui/input'
-import { Check, Copy } from 'lucide-react'
+import { Check, Copy, QrCode, Share2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 type Invite = {
@@ -25,6 +25,9 @@ export function InviteManager() {
   const [copied, setCopied] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  const [canShare, setCanShare] = useState(false)
+  const [showQr, setShowQr] = useState(false)
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null)
 
   async function load() {
     const res = await fetch('/api/invite/list')
@@ -34,7 +37,36 @@ export function InviteManager() {
   // biome-ignore lint/correctness/useExhaustiveDependencies: run once on mount
   useEffect(() => {
     load()
+    // navigator.share 는 모바일 Safari/Chrome/Android Chrome 에서만 존재.
+    // 데스크탑/일부 브라우저는 hide.
+    setCanShare(typeof navigator !== 'undefined' && typeof navigator.share === 'function')
   }, [])
+
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  const lastLink = lastToken ? `${origin}/invite/${lastToken}` : null
+
+  // QR 토글 시 lazy-load (qrcode ~50KB) — 첫 토글에서만 캐시.
+  useEffect(() => {
+    if (!showQr || !lastLink || qrDataUrl) return
+    let cancelled = false
+    ;(async () => {
+      try {
+        const QRCode = (await import('qrcode')).default
+        const dataUrl = await QRCode.toDataURL(lastLink, {
+          width: 480, // 200×200 표시, retina 위해 2.4×
+          margin: 1,
+          errorCorrectionLevel: 'M',
+        })
+        if (!cancelled) setQrDataUrl(dataUrl)
+      } catch {
+        // QR 생성 실패 — 토글만 닫음
+        if (!cancelled) setShowQr(false)
+      }
+    })()
+    return () => {
+      cancelled = true
+    }
+  }, [showQr, lastLink, qrDataUrl])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -54,6 +86,8 @@ export function InviteManager() {
     const data = await res.json()
     setLastToken(data.token)
     setCopied(false)
+    setShowQr(false)
+    setQrDataUrl(null)
     load()
   }
 
@@ -61,9 +95,6 @@ export function InviteManager() {
     await fetch(`/api/invite/${id}/revoke`, { method: 'POST' })
     load()
   }
-
-  const origin = typeof window !== 'undefined' ? window.location.origin : ''
-  const lastLink = lastToken ? `${origin}/invite/${lastToken}` : null
 
   async function copyLink() {
     if (!lastLink) return
@@ -73,6 +104,19 @@ export function InviteManager() {
       setTimeout(() => setCopied(false), 1500)
     } catch {
       // clipboard 차단 환경 — 사용자가 직접 복사
+    }
+  }
+
+  async function shareLink() {
+    if (!lastLink) return
+    try {
+      await navigator.share({
+        url: lastLink,
+        title: '가족 앨범 초대',
+        text: '가족 앨범에 함께해요',
+      })
+    } catch {
+      // 사용자가 share UI 취소 — 무시
     }
   }
 
@@ -104,8 +148,11 @@ export function InviteManager() {
 
       {lastLink && (
         <Card className="border-point-500/30 bg-point-500/5 dark:bg-point-500/10">
-          <CardBody className="space-y-2">
-            <p className="text-sm font-medium">초대 링크가 생성됐어요. 복사해 전달하세요.</p>
+          <CardBody className="space-y-3">
+            <p className="text-sm font-medium">
+              초대 링크가 생성됐어요. 복사하거나 공유해 전달하세요.
+            </p>
+
             <div className="flex items-center gap-2">
               <code className="min-w-0 flex-1 truncate rounded-lg bg-base-0 px-2.5 py-2 text-xs dark:bg-base-950">
                 {lastLink}
@@ -119,6 +166,54 @@ export function InviteManager() {
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>
             </div>
+
+            <div className="flex flex-wrap gap-2">
+              {canShare && (
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="sm"
+                  onClick={shareLink}
+                  className="flex-1 min-w-[120px]"
+                >
+                  <Share2 size={14} />
+                  공유
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setShowQr((v) => !v)}
+                aria-pressed={showQr}
+                className="flex-1 min-w-[120px]"
+              >
+                <QrCode size={14} />
+                {showQr ? 'QR 숨기기' : 'QR 코드'}
+              </Button>
+            </div>
+
+            {showQr && (
+              <div className="flex flex-col items-center gap-3 rounded-2xl bg-base-0 p-5 dark:bg-base-950">
+                <div className="flex h-[200px] w-[200px] items-center justify-center overflow-hidden rounded-xl bg-white">
+                  {qrDataUrl ? (
+                    <img
+                      src={qrDataUrl}
+                      alt="초대 링크 QR 코드"
+                      width={200}
+                      height={200}
+                      className="h-[200px] w-[200px]"
+                    />
+                  ) : (
+                    <div className="h-5 w-5 animate-spin rounded-full border-2 border-base-200 border-t-base-500" />
+                  )}
+                </div>
+                <p className="break-all text-center text-[11px] text-base-500">{lastLink}</p>
+                <p className="text-center text-[12px] text-base-400">
+                  할머니·할아버지 폰 카메라로 비춰 주세요
+                </p>
+              </div>
+            )}
           </CardBody>
         </Card>
       )}
