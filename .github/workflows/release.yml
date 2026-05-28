@@ -37,6 +37,8 @@ jobs:
           node-version: '20'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bebe/db-public exec prisma generate
+      - run: pnpm --filter @bebe/db-media  exec prisma generate
       - run: pnpm --filter @bebe/db-public exec prisma migrate deploy
       - run: pnpm --filter @bebe/db-media  exec prisma migrate deploy
       - run: pnpm lint
