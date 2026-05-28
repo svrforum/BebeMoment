@@ -76,7 +76,15 @@ export function groupAssetsByDay(assets: DayAssetLike[], birthDate: Date | null)
       current = {
         dateKey: key,
         dateLabel: utcDayLabel(a.ts),
-        bucketLabel: birthDate ? bucketLabel(birthDate, a.ts) : null,
+        // For pre-birth dates bucketLabel returns "D-N" — same as the D-day
+        // chip — so suppress it then to avoid showing the same string twice
+        // in the bucket header. Post-birth labels ("생후 N일" / "100일" /
+        // "N주년") are meaningfully different and stay.
+        bucketLabel: (() => {
+          if (!birthDate) return null
+          const days = babyDaysDiff(birthDate, a.ts)
+          return days < 0 ? null : bucketLabel(birthDate, a.ts)
+        })(),
         babyDays: birthDate ? babyDaysDiff(birthDate, a.ts) : null,
         assets: [],
       }
