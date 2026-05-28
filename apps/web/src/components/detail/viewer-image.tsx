@@ -105,7 +105,16 @@ export function ViewerImage({
       >
         <TransformComponent
           wrapperStyle={{ width: '100%', height: '100%' }}
-          contentStyle={{ width: '100%', height: '100%' }}
+          // Flex-center the image inside so it stays centered when the parent
+          // shrinks (chrome-visible padding) — default content alignment was
+          // top-left, which made the photo left-justify as the area shrank.
+          contentStyle={{
+            width: '100%',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+          }}
         >
           <PictureImage
             trio={trio}
