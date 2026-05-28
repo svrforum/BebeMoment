@@ -145,6 +145,21 @@ function SwiperViewport({
   // 줌 여부: pinch 또는 double-tap 으로 줌인되면 세로 swipe-down 닫기를 죽인다.
   const [zoomed, setZoomed] = useState(false)
 
+  // Swiper 인스턴스 — RSC 가 다음 페이지를 보내면 새 prev/current/next 가 슬라이드로
+  // 들어오는데, 그때 activeIndex 가 이전 swipe 종료 시점의 값을 유지하고 있어 한
+  // 슬롯 어긋남 → 깜빡임 발생. current.id 가 변하면 silently (애니메이션 없이) 새
+  // currentIndex 로 슬라이드해서 깜빡임 제거.
+  // biome-ignore lint/suspicious/noExplicitAny: swiper instance type complex; use minimal surface
+  const swiperRef = useRef<any>(null)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: current.id 변경이 트리거. 다른 deps 는 의도적으로 제외(stale 캡쳐 위험 없음).
+  useEffect(() => {
+    const s = swiperRef.current
+    if (s && s.activeIndex !== currentIndex) {
+      // duration 0 + no event emit — 새 슬라이드 마운트 직후 침묵 동기화.
+      s.slideTo(currentIndex, 0, false)
+    }
+  }, [current.id])
+
   // 탭 vs 스와이프 구분: 스와이프 후 합성 click 으로 onTap 이 호출돼 크로미가
   // 깜빡이는 걸 막기 위한 가드. Swiper 슬라이드 변경/줌 변경 직후 잠시 무시.
   const suppressTap = useRef(false)
@@ -247,9 +262,6 @@ function SwiperViewport({
       }`}
     >
       <Swiper
-        // current.id 가 바뀌면(다음 RSC 도착) Swiper 를 재초기화 — 새 prev/current/next
-        // 가 자연스럽게 중앙 정렬되어 시각적 점프 없음.
-        key={current.id}
         modules={[Zoom]}
         initialSlide={initialSlide}
         slidesPerView={1}
@@ -259,6 +271,9 @@ function SwiperViewport({
         resistanceRatio={0.5}
         threshold={5}
         zoom={{ maxRatio: 4, minRatio: 1, toggle: true }}
+        onSwiper={(s) => {
+          swiperRef.current = s
+        }}
         onSlideChange={handleSlideChange}
         onZoomChange={(_s, scale) => setZoomed(scale > 1.01)}
         className="h-full w-full"
