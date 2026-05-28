@@ -200,8 +200,9 @@ function CarouselViewport({
     const el = trackRef.current
     if (!el) return
     el.style.transition = withTransition ? `transform ${SNAP_MS}ms ${SNAP_EASING}` : 'none'
-    // 트랙은 -100% (= 한 슬롯 왼쪽으로 밀림 = 현재가 0 위치) 에서 시작해 dx 가 더해진다.
-    el.style.transform = `translate3d(calc(-100% + ${dx}px), 0, 0)`
+    // 트랙은 300% width — `-100%/3` 가 정확히 1 슬롯(= 1 뷰포트) 좌측 이동.
+    // 잘못된 `-100%` 는 트랙 전체 폭(=3 뷰포트) 만큼 밀어 화면 밖으로 사라지게 한다.
+    el.style.transform = `translate3d(calc(-100% / 3 + ${dx}px), 0, 0)`
   }, [])
 
   // current.id 가 바뀌면(스냅 후 router.replace 의 다음 페이지 RSC 가 도착) 트랙을
@@ -358,10 +359,11 @@ function CarouselViewport({
     }
   }, [setTrackTransform])
 
-  // 트랙 초기 transform: -100% (slot 0 = prev 가 화면 왼쪽 밖, current 가 화면 안,
-  // next 가 화면 오른쪽 밖).
+  // 트랙 초기 transform: -100%/3 (slot 0 = prev 가 화면 왼쪽 밖, current 가 화면 안,
+  // next 가 화면 오른쪽 밖). 트랙 폭이 300% 이므로 `-100%/3` 가 정확히 한 슬롯
+  // (= 1 뷰포트) 만큼 좌측 이동.
   const initialTrackStyle: CSSProperties = {
-    transform: 'translate3d(-100%, 0, 0)',
+    transform: 'translate3d(calc(-100% / 3), 0, 0)',
     touchAction: 'pan-y',
     userSelect: 'none',
     WebkitUserSelect: 'none',
