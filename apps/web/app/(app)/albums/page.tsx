@@ -9,9 +9,7 @@ import { listAlbums } from '@/server/album/list'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
-import { listTagsWithCounts } from '@/server/tag/list'
-import { Bookmark, FolderPlus, Search, Tag as TagIcon } from 'lucide-react'
-import Link from 'next/link'
+import { FolderPlus, Search } from 'lucide-react'
 
 const PREVIEW_PER_ALBUM = 4
 
@@ -28,12 +26,9 @@ export default async function AlbumsRootPage({
   const { q } = await searchParams
   const query = typeof q === 'string' && q.trim() ? q.trim() : undefined
 
-  const [albums, tags] = await Promise.all([
-    query
-      ? searchAlbums({ familyId: ctx.family.id, q: query, viewerRole }, prismaPublic)
-      : listAlbums({ familyId: ctx.family.id, parentId: null, viewerRole }, prismaPublic),
-    listTagsWithCounts(ctx.family.id, prismaPublic),
-  ])
+  const albums = query
+    ? await searchAlbums({ familyId: ctx.family.id, q: query, viewerRole }, prismaPublic)
+    : await listAlbums({ familyId: ctx.family.id, parentId: null, viewerRole }, prismaPublic)
 
   // Up to N most-recent attachments per album in a single window-function
   // query — replaces the "fetch all rows, slice in JS" pattern which
@@ -72,38 +67,6 @@ export default async function AlbumsRootPage({
           <SearchBox placeholder="앨범 이름 검색" />
         </div>
 
-        {/* 스마트 컬렉션: 검색 중엔 숨김 */}
-        {!query && (
-          <div className="mb-6 space-y-3">
-            <Link
-              href="/saved"
-              className="flex items-center gap-3 rounded-2xl border border-base-200 bg-base-0 px-4 py-3 transition active:scale-[0.99] dark:border-base-800 dark:bg-base-900"
-            >
-              <span className="flex h-10 w-10 items-center justify-center rounded-xl bg-point-500/12 text-point-500">
-                <Bookmark size={18} />
-              </span>
-              <div className="min-w-0">
-                <div className="text-sm font-semibold text-base-900 dark:text-base-50">저장됨</div>
-                <div className="text-xs text-base-500">내가 북마크한 사진</div>
-              </div>
-            </Link>
-            {tags.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {tags.map((t) => (
-                  <Link
-                    key={t.id}
-                    href={`/timeline?tag=${t.slug}`}
-                    className="inline-flex items-center gap-1.5 rounded-full border border-base-200 px-3 py-1.5 text-[13px] text-base-700 transition hover:bg-base-100 dark:border-base-800 dark:text-base-300 dark:hover:bg-base-800"
-                  >
-                    <TagIcon size={12} className="text-base-400" />
-                    {t.name}
-                    <span className="tabular-nums text-base-400">{t.assetCount}</span>
-                  </Link>
-                ))}
-              </div>
-            )}
-          </div>
-        )}
         {albums.length === 0 ? (
           query ? (
             <EmptyState icon={Search} title="검색 결과가 없어요" description={`"${query}"`} />
