@@ -4,7 +4,7 @@ on:
     tags: ['v*']
   workflow_dispatch:
 permissions:
-  contents: read
+  contents: write
   packages: write
 jobs:
   verify:
@@ -74,3 +74,65 @@ jobs:
           cache-to: type=gha,scope=app,mode=max
           provenance: true
           sbom: true
+
+  android:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '17'
+      - name: App version from tag
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          printf 'versionName=%s\nversionCode=%s\n' "$VERSION" "${GITHUB_RUN_NUMBER}" \
+            > android-app/android/version.properties
+          cat android-app/android/version.properties
+      - name: Write signing config from secrets
+        env:
+          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          KS_PATH="$GITHUB_WORKSPACE/android-app/android/bebe-release.jks"
+          printf '%s' "$KS_B64" | base64 -d > "$KS_PATH"
+          {
+            echo "storeFile=$KS_PATH"
+            echo "storePassword=$KS_PASS"
+            echo "keyAlias=bebe"
+            echo "keyPassword=$KS_PASS"
+          } > android-app/android/keystore.properties
+      - name: Build signed release APK
+        working-directory: android-app
+        run: |
+          npm ci
+          npx cap sync android
+          cd android
+          ./gradlew assembleRelease --no-daemon
+      - name: Stage APK
+        run: |
+          mkdir -p dist
+          cp android-app/android/app/build/outputs/apk/release/app-release.apk \
+            "dist/bebe-${GITHUB_REF_NAME}.apk"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bebe-apk
+          path: dist/*.apk
+
+  release:
+    needs: [build, android]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          name: bebe-apk
+          path: dist
+      - uses: softprops/action-gh-release@v2
+        with:
+          name: ${{ github.ref_name }}
+          generate_release_notes: true
+          files: dist/*.apk
