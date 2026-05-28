@@ -22,7 +22,28 @@ const TENANT_SCOPED_MODELS = new Set([
   // like Session — queried by userId, no familyId filter required.
 ])
 
-const RELEVANT_OPERATIONS = new Set([
+// Models that carry a direct `familyId` column. Inserts on these MUST include
+// it in the create payload. Family itself is its own anchor (no column),
+// MilestoneAsset/JournalEntryAsset are transitive join tables scoped through
+// the parent row's familyId — they have no direct column either.
+const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
+  'Membership',
+  'Invite',
+  'Baby',
+  'GrowthRecord',
+  'Milestone',
+  'JournalEntry',
+  'AssetLike',
+  'AssetBookmark',
+  'AssetComment',
+  'Tag',
+  'AssetTag',
+  'Album',
+  'AlbumAsset',
+  'AlbumJournalEntry',
+])
+
+const READ_LIKE_OPERATIONS = new Set([
   'findMany',
   'findUnique',
   'findUniqueOrThrow',
@@ -37,6 +58,8 @@ const RELEVANT_OPERATIONS = new Set([
   'deleteMany',
   'upsert',
 ])
+
+const CREATE_OPERATIONS = new Set(['create', 'createMany'])
 
 type Mode = 'throw' | 'warn'
 type Options = { mode?: Mode }
@@ -67,9 +90,50 @@ function hasKeyTopLevel(where: Record<string, unknown>, key: string): boolean {
   return false
 }
 
+function dataHasFamilyId(data: unknown): boolean {
+  if (!data || typeof data !== 'object') return false
+  const obj = data as Record<string, unknown>
+  if ('familyId' in obj || 'family_id' in obj) return true
+  // Nested connect via relation: { family: { connect: { id: ... } } }
+  const fam = obj.family
+  if (fam && typeof fam === 'object') {
+    const connect = (fam as Record<string, unknown>).connect
+    if (connect && typeof connect === 'object') {
+      const c = connect as Record<string, unknown>
+      if ('id' in c || 'slug' in c) return true
+    }
+    if ((fam as Record<string, unknown>).connectOrCreate) return true
+  }
+  return false
+}
+
+function reportMissing(model: string, operation: string, mode: Mode): void {
+  const msg = `[tenant-middleware:public] ${model}.${operation} called without familyId filter`
+  if (mode === 'throw') throw new Error(msg)
+  // TODO: route through pino to honor §17#7 secret-masking. Adding pino here
+  // would introduce a new cross-package dependency for db-public — left as a
+  // follow-up. The middleware never logs payload values, only the model name
+  // and operation, so there is no secret-leak path through this warn.
+  console.warn(msg)
+}
+
 function enforce(model: string | undefined, operation: string, args: unknown, mode: Mode): void {
   if (!model || !TENANT_SCOPED_MODELS.has(model)) return
-  if (!RELEVANT_OPERATIONS.has(operation)) return
+
+  if (CREATE_OPERATIONS.has(operation)) {
+    if (!MODELS_WITH_FAMILY_ID_COLUMN.has(model)) return
+    const data = (args as { data?: unknown })?.data
+    if (Array.isArray(data)) {
+      // createMany: every row must include familyId
+      const ok = data.every((row) => dataHasFamilyId(row))
+      if (!ok) reportMissing(model, operation, mode)
+      return
+    }
+    if (!dataHasFamilyId(data)) reportMissing(model, operation, mode)
+    return
+  }
+
+  if (!READ_LIKE_OPERATIONS.has(operation)) return
 
   const where = (args as { where?: Record<string, unknown> })?.where ?? {}
   const hasFilter =
@@ -81,9 +145,16 @@ function enforce(model: string | undefined, operation: string, args: unknown, mo
       (hasKeyTopLevel(where, 'userId') || hasKeyTopLevel(where, 'user_id')))
 
   if (!hasFilter) {
-    const msg = `[tenant-middleware:public] ${model}.${operation} called without familyId filter`
-    if (mode === 'throw') throw new Error(msg)
-    console.warn(msg)
+    reportMissing(model, operation, mode)
+  }
+
+  // upsert additionally carries a create branch; if the where matched, the
+  // create payload still needs a familyId on models that have the column.
+  if (operation === 'upsert' && MODELS_WITH_FAMILY_ID_COLUMN.has(model)) {
+    const createPayload = (args as { create?: unknown })?.create
+    if (!dataHasFamilyId(createPayload)) {
+      reportMissing(model, `${operation}.create`, mode)
+    }
   }
 }
 

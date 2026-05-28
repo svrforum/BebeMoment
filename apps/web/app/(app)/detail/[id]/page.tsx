@@ -7,7 +7,6 @@ import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
-import { can } from '@bebe/core'
 import { notFound } from 'next/navigation'
 
 export default async function DetailPage({ params }: { params: Promise<{ id: string }> }) {
@@ -88,11 +87,15 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
   const babies = babyRows.map((b) => ({ id: b.id, name: b.name }))
 
-  const role = ctx.membership?.role ?? 'family'
-  const canDeleteAny = can(role, 'social.comment.delete.any')
+  // Use effective capabilities (built by resolveContext via family-capabilities
+  // settings). `asset.delete.own` is a grantable family capability, so static
+  // `can(role, …)` would hide the delete button from a family member the admin
+  // has granted that capability to.
+  const caps = ctx.capabilities
+  const canDeleteAny = caps.includes('social.comment.delete.any')
   const canDelete =
-    can(role, 'asset.delete.any') ||
-    (asset.uploadedByUserId === ctx.user.id && can(role, 'asset.delete.own'))
+    caps.includes('asset.delete.any') ||
+    (asset.uploadedByUserId === ctx.user.id && caps.includes('asset.delete.own'))
 
   const initialComments = commentsRaw.map((c) => ({
     ...c,
