@@ -43,15 +43,53 @@ export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
 ```
 
 The **debug** APK is signed with the debug key — fine for sideloading/testing.
-For distribution build a **release** APK with your own keystore:
+
+## Release build & distribution
+
+The release build is signed with a real keystore. Gradle reads the keystore path
++ passwords from `android/keystore.properties` (gitignored); if that file is
+absent, the release build is left unsigned (debug builds are unaffected).
 
 ```bash
-keytool -genkey -v -keystore bebe-release.jks -keyalg RSA -keysize 2048 \
-  -validity 10000 -alias bebe          # keep this file OUT of the repo
-# add a signingConfigs.release reading keystore path/passwords from
-# ~/.gradle/gradle.properties, then:
-./gradlew assembleRelease
+cd android-app && npx cap sync android
+cd android
+export ANDROID_HOME=~/android-sdk
+export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+./gradlew assembleRelease     # -> app/build/outputs/apk/release/app-release.apk
+
+# verify it is release-signed (not the Android debug key)
+$ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs \
+  app/build/outputs/apk/release/app-release.apk
 ```
+
+One-time keystore setup (already done on this server at `~/keystores/bebe-release.jks`):
+
+```bash
+keytool -genkeypair -v -keystore ~/keystores/bebe-release.jks \
+  -alias bebe -keyalg RSA -keysize 2048 -validity 10000
+# then create android/keystore.properties (gitignored):
+#   storeFile=/abs/path/bebe-release.jks
+#   storePassword=...
+#   keyAlias=bebe
+#   keyPassword=...
+```
+
+**Versioning:** bump `versionCode` (integer, must increase) + `versionName` in
+`android/version.properties`, then rebuild.
+
+### Distribution options
+- **Sideload (self-hosters, default):** share `app-release.apk`; users enable
+  "Install unknown apps" for their browser/file manager and tap the APK. Because
+  it is release-signed with a stable key, later versions install over it (no
+  uninstall needed) as long as the keystore is unchanged.
+- **Google Play (optional):** build an AAB instead — `./gradlew bundleRelease`
+  (`app/build/outputs/bundle/release/app-release.aab`) — and upload to an
+  internal-testing track. Play requires a privacy policy + content rating.
+
+### Re-keying warning
+Keep `~/keystores/bebe-release.jks` + its password backed up. A different key = a
+different app identity: sideload users must uninstall first, and Play uploads are
+rejected.
 
 ## Enabling push (admin, one-time)
 
