@@ -3,7 +3,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
-import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { Zoom } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
@@ -80,23 +80,10 @@ export function ViewerImage({
     )
   }
 
-  // 영상은 카루셀 안에 두지 않는다 — <video controls> 의 제스처(핀치 줌·시크 바)와
-  // Swiper 의 슬라이드 드래그가 충돌. 기존 SwipeLayer(고정 임계치) 유지.
-  if (isVideo) {
-    return (
-      <SwipeLayer
-        enabled
-        onNext={goNext}
-        onPrev={goPrev}
-        onClose={goBack}
-        onTap={onToggleChrome}
-        chromeVisible={chromeVisible}
-      >
-        <VideoWithFallback src={current.videoSrc ?? ''} poster={current.posterUrl} />
-      </SwipeLayer>
-    )
-  }
-
+  // 영상도 SwiperViewport 가 처리 — 사진↔영상 전환에서 컴포넌트 swap 이 일어나면
+  // 깜빡임이 생긴다. 영상은 SlideContent 안에서 current 슬롯일 때만 <video controls>
+  // 로 렌더, 옆 슬롯은 poster 만 (Swiper 가 양쪽을 캐러셀로 다룸). seek bar 와의
+  // 충돌은 `swiper-no-swiping` 클래스로 해결 (Swiper 기본 selector).
   return (
     <SwiperViewport
       current={current}
@@ -311,10 +298,18 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
   const blurhash = pickBlurhash(slim.urls)
   const isVideo = slim.kind === 'video'
 
-  // 영상 슬롯은 포스터만 보여줌(prev/next 위치). 실제 재생은 navigate 후 ViewerImage
-  // 의 video 분기에서. current 가 video 면 ViewerImage 의 영상 분기로 일찍 빠져서
-  // 여기 안 옴.
   if (isVideo) {
+    // current 슬롯이면 실제 <video controls> 재생, 옆 슬롯이면 poster 만.
+    // current 영상에는 `swiper-no-swiping` 클래스를 붙여 Swiper 의 드래그가
+    // 영상 안에서 발사되지 않도록 — seek bar / 재생 컨트롤이 정상 동작.
+    // 다음/이전 영상으로 넘기려면 영상 바깥의 검은 여백을 드래그.
+    if (isCurrent) {
+      return (
+        <div className="swiper-no-swiping flex h-full w-full items-center justify-center">
+          <VideoWithFallback src={slim.videoSrc ?? ''} poster={slim.posterUrl} />
+        </div>
+      )
+    }
     if (!slim.posterUrl) return <div className="h-full w-full" />
     return (
       // biome-ignore lint/performance/noImgElement: 미디어 서버의 signed URL — next/image 부적합
@@ -349,122 +344,6 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
       className="max-h-full max-w-full"
       {...(style ? { style } : {})}
     />
-  )
-}
-
-// 영상용 단순 SwipeLayer — 영상은 <video controls> 의 제스처와 Swiper 가 충돌해
-// 카루셀 밖에 둠. 기존 detect-then-navigate 거동 그대로.
-const SWIPE_X = 60
-const TAP_SLOP_V = 8
-
-function SwipeLayer({
-  enabled,
-  onNext,
-  onPrev,
-  onClose,
-  onTap,
-  chromeVisible,
-  children,
-}: {
-  enabled: boolean
-  onNext: () => void
-  onPrev: () => void
-  onClose: () => void
-  onTap?: (() => void) | undefined
-  chromeVisible: boolean
-  children: ReactNode
-}) {
-  const ref = useRef<HTMLDivElement>(null)
-  const cfg = useRef({ enabled, onNext, onPrev, onClose, onTap })
-  cfg.current = { enabled, onNext, onPrev, onClose, onTap }
-  const suppressTap = useRef(false)
-
-  useEffect(() => {
-    const el = ref.current
-    if (!el) return
-    let start: { x: number; y: number } | null = null
-    let multi = false
-    let moved = false
-
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        multi = true
-        start = null
-        return
-      }
-      multi = false
-      moved = false
-      const t = e.touches[0]
-      start = t ? { x: t.clientX, y: t.clientY } : null
-    }
-    const onMove = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        multi = true
-        start = null
-        return
-      }
-      const t = e.touches[0]
-      if (!start || !t) return
-      if (
-        Math.abs(t.clientX - start.x) > TAP_SLOP_V ||
-        Math.abs(t.clientY - start.y) > TAP_SLOP_V
-      ) {
-        moved = true
-      }
-    }
-    const onEnd = (e: TouchEvent) => {
-      if (multi) {
-        if (e.touches.length === 0) multi = false
-        start = null
-        return
-      }
-      const s = start
-      start = null
-      if (!s) return
-      if (!moved) return
-      suppressTap.current = true
-      window.setTimeout(() => {
-        suppressTap.current = false
-      }, 350)
-      const c = cfg.current
-      if (!c.enabled) return
-      const ch = e.changedTouches[0]
-      if (!ch) return
-      const dx = ch.clientX - s.x
-      const dy = ch.clientY - s.y
-      if (Math.abs(dx) > Math.abs(dy)) {
-        if (dx < -SWIPE_X) c.onNext()
-        else if (dx > SWIPE_X) c.onPrev()
-      } else if (dy > CLOSE_Y) {
-        c.onClose()
-      }
-    }
-
-    const opts: AddEventListenerOptions = { capture: true, passive: true }
-    el.addEventListener('touchstart', onStart, opts)
-    el.addEventListener('touchmove', onMove, opts)
-    el.addEventListener('touchend', onEnd, opts)
-    return () => {
-      el.removeEventListener('touchstart', onStart, opts)
-      el.removeEventListener('touchmove', onMove, opts)
-      el.removeEventListener('touchend', onEnd, opts)
-    }
-  }, [])
-
-  return (
-    <div
-      ref={ref}
-      onClick={() => {
-        if (!suppressTap.current) cfg.current.onTap?.()
-      }}
-      className={`flex h-screen w-full items-center justify-center transition-[padding] duration-200 ease-out ${
-        chromeVisible
-          ? 'pt-[calc(env(safe-area-inset-top)+56px)] pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-0'
-          : 'pt-0 pb-0'
-      }`}
-    >
-      {children}
-    </div>
   )
 }
 
