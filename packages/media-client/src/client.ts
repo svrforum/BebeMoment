@@ -27,7 +27,11 @@ export type MediaClientConfig = {
 export interface MediaClient {
   initAsset(input: InitAssetRequest): Promise<InitAssetResponse>
   getAssetUrls(assetId: string, familyId: string): Promise<AssetUrls>
-  getAssetUrlsBatch(familyId: string, assetIds: string[]): Promise<Record<string, AssetUrls>>
+  getAssetUrlsBatch(
+    familyId: string,
+    assetIds: string[],
+    opts?: { includeDeleted?: boolean },
+  ): Promise<Record<string, AssetUrls>>
   setBabyTags(assetId: string, input: SetBabyTagsRequest): Promise<void>
   updateAssetMetadata(
     assetId: string,
@@ -118,10 +122,14 @@ export class HttpMediaClient implements MediaClient {
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
+    opts?: { includeDeleted?: boolean },
   ): Promise<Record<string, AssetUrls>> {
     return this.request(
       '/media/v1/assets/urls:batch',
-      { method: 'POST', body: JSON.stringify({ familyId, assetIds }) },
+      {
+        method: 'POST',
+        body: JSON.stringify({ familyId, assetIds, includeDeleted: opts?.includeDeleted }),
+      },
       (b) => batchUrlsResponse.parse(b).urls,
     )
   }

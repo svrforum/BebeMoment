@@ -8,7 +8,7 @@ import { assertServiceToken } from '../middleware/service-token'
 export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {
   app.post('/media/v1/assets/urls:batch', async (req, reply) => {
     assertServiceToken(req.headers.authorization)
-    const { familyId, assetIds } = batchUrlsRequest.parse(req.body)
+    const { familyId, assetIds, includeDeleted } = batchUrlsRequest.parse(req.body)
 
     if (assetIds.length === 0) {
       const empty = batchUrlsResponse.parse({ v: 1, urls: {} })
@@ -17,7 +17,7 @@ export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {
     }
 
     const assets = await prisma.asset.findMany({
-      where: { id: { in: assetIds }, familyId, deletedAt: null },
+      where: { id: { in: assetIds }, familyId, ...(includeDeleted ? {} : { deletedAt: null }) },
     })
 
     // Resolve every asset's URLs in parallel — the inner resolveAssetUrls

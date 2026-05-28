@@ -16,7 +16,7 @@ export default async function TrashPage() {
 
   const readyIds = deleted.filter((a) => a.status === 'ready').map((a) => a.id)
   const urlsMap = readyIds.length
-    ? await getMediaClient().getAssetUrlsBatch(ctx.family.id, readyIds)
+    ? await getMediaClient().getAssetUrlsBatch(ctx.family.id, readyIds, { includeDeleted: true })
     : {}
 
   return (

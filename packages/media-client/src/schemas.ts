@@ -59,6 +59,8 @@ export type GetAssetUrlsResponse = z.infer<typeof getAssetUrlsResponse>
 export const batchUrlsRequest = z.object({
   familyId: z.string().uuid(),
   assetIds: z.array(z.string().uuid()).max(200),
+  // Trash view needs URLs for soft-deleted assets; default keeps them excluded.
+  includeDeleted: z.boolean().optional(),
 })
 export type BatchUrlsRequest = z.infer<typeof batchUrlsRequest>
 

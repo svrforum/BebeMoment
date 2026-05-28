@@ -89,6 +89,7 @@ export class FakeMediaClient implements MediaClient {
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
+    _opts?: { includeDeleted?: boolean },
   ): Promise<Record<string, AssetUrls>> {
     this.maybeThrow()
     this.calls.getAssetUrlsBatch.push({ familyId, assetIds })
