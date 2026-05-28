@@ -19,10 +19,13 @@ export default async function TrashPage() {
     ? await getMediaClient().getAssetUrlsBatch(ctx.family.id, readyIds, { includeDeleted: true })
     : {}
 
+  const canPurge = ctx.capabilities.includes('asset.delete.any')
+
   return (
     <>
       <AppHeader title="휴지통" />
       <TrashList
+        canPurge={canPurge}
         assets={deleted.map((a) => ({
           id: a.id,
           originalFilename: a.originalFilename,

@@ -16,6 +16,7 @@ type Calls = {
   getAssetUrlsBatch: { familyId: string; assetIds: string[] }[]
   setBabyTags: { assetId: string; input: SetBabyTagsRequest }[]
   deleteAsset: { assetId: string; familyId: string }[]
+  purgeAsset: { assetId: string; familyId: string }[]
   retryAsset: { assetId: string; familyId: string }[]
 }
 
@@ -41,6 +42,7 @@ export class FakeMediaClient implements MediaClient {
     getAssetUrlsBatch: [],
     setBabyTags: [],
     deleteAsset: [],
+    purgeAsset: [],
     retryAsset: [],
   }
 
@@ -120,6 +122,11 @@ export class FakeMediaClient implements MediaClient {
   async deleteAsset(assetId: string, familyId: string): Promise<void> {
     this.maybeThrow()
     this.calls.deleteAsset.push({ assetId, familyId })
+  }
+
+  async purgeAsset(assetId: string, familyId: string): Promise<void> {
+    this.maybeThrow()
+    this.calls.purgeAsset.push({ assetId, familyId })
   }
 
   async retryAsset(assetId: string, familyId: string): Promise<void> {

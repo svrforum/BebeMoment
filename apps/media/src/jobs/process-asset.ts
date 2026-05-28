@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
@@ -13,6 +14,28 @@ async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = []
   for await (const c of stream) chunks.push(c as Buffer)
   return Buffer.concat(chunks)
+}
+
+// Stream-hash so multi-hundred-MB videos don't get buffered into memory
+// (Synology ARM NAS RAM is tight). Image branch separately collects bytes
+// for EXIF parsing — two reads on image is acceptable; one read for video
+// avoids OOM.
+async function streamSha256(stream: NodeJS.ReadableStream): Promise<string> {
+  const hash = createHash('sha256')
+  for await (const c of stream) hash.update(c as Buffer)
+  return hash.digest('hex')
+}
+
+// Duck-typed: `instanceof PrismaClientKnownRequestError` is unreliable across
+// the db-media package boundary (proxy in `packages/db-media/src/index.ts`),
+// and Prisma docs explicitly support reading `.code` directly.
+function isUniqueViolation(err: unknown): boolean {
+  return (
+    typeof err === 'object' &&
+    err !== null &&
+    'code' in err &&
+    (err as { code?: unknown }).code === 'P2002'
+  )
 }
 
 export type ProcessAssetArgs = {
@@ -43,6 +66,55 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
   }
 
   try {
+    // SHA256 dedup. initAsset wrote a random placeholder to satisfy
+    // @@unique([familyId, sha256]); replace with the real digest now. On
+    // P2002 a same-family duplicate already exists → delete the freshly
+    // uploaded bytes and mark this asset failed without proceeding to
+    // derivative generation.
+    if (asset.kind === 'image' || asset.kind === 'video') {
+      const sha256 = await streamSha256(await storage.read(asset.originalKey))
+      try {
+        await prisma.asset.update({
+          where: { id: asset.id, familyId: asset.familyId },
+          data: { sha256 },
+        })
+      } catch (err) {
+        if (!isUniqueViolation(err)) throw err
+        const existing = await prisma.asset.findFirst({
+          where: {
+            familyId: asset.familyId,
+            sha256,
+            deletedAt: null,
+            status: 'ready',
+            NOT: { id: asset.id },
+          },
+          select: { id: true },
+        })
+        logger.info(
+          { assetId: asset.id, duplicateOf: existing?.id ?? null, familyId: asset.familyId },
+          'duplicate upload detected — discarding bytes',
+        )
+        try {
+          await storage.delete(asset.originalKey)
+        } catch (delErr) {
+          logger.warn({ assetId: asset.id, err: delErr }, 'failed to delete duplicate upload bytes')
+        }
+        const reason = '같은 사진이 이미 있어요 (중복)'
+        await prisma.asset.update({
+          where: { id: asset.id, familyId: asset.familyId },
+          data: { status: 'failed', processingError: reason },
+        })
+        await publishProgress({
+          type: 'status',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          status: 'failed',
+          reason,
+        })
+        return
+      }
+    }
+
     let exifResult: Awaited<ReturnType<typeof parseExif>> = {}
     if (asset.kind === 'image') {
       exifResult = await parseExif(await collect(await storage.read(asset.originalKey)))

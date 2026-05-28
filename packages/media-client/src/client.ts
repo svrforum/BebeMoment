@@ -38,6 +38,7 @@ export interface MediaClient {
     input: UpdateAssetMetadataRequest,
   ): Promise<UpdateAssetMetadataResponse>
   deleteAsset(assetId: string, familyId: string): Promise<void>
+  purgeAsset(assetId: string, familyId: string): Promise<void>
   retryAsset(assetId: string, familyId: string): Promise<void>
   health(): Promise<HealthResponse>
 }
@@ -157,6 +158,16 @@ export class HttpMediaClient implements MediaClient {
     await this.request(
       `/media/v1/assets/${assetId}?familyId=${familyId}`,
       { method: 'DELETE' },
+      () => undefined,
+    )
+  }
+
+  async purgeAsset(assetId: string, familyId: string): Promise<void> {
+    // Google-style action: literal `:purge` suffix on the id segment, no
+    // url-encoding — colons are valid in path segments per RFC 3986.
+    await this.request(
+      `/media/v1/assets/${assetId}:purge?familyId=${familyId}`,
+      { method: 'POST' },
       () => undefined,
     )
   }
