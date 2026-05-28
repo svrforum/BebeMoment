@@ -63,7 +63,11 @@ export function ViewerInfoPanel({
         </h2>
       </div>
       <div className="flex flex-col gap-5 px-5 py-5">
+        {/* MetadataEditor 는 initial* 를 useState 시드로만 쓰고 prop 변경에 동기화하지
+            않는다 → 패널 자체가 더 이상 remount 되지 않으므로 assetId 키로 이 컴포넌트만
+            remount 해 새 사진의 메타데이터로 fresh 마운트. */}
         <MetadataEditor
+          key={assetId}
           assetId={assetId}
           initialFilename={initialFilename}
           initialCaption={initialCaption}

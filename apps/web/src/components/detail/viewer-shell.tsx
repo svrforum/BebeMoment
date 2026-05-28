@@ -47,6 +47,7 @@ export function ViewerShell({
   initialTags,
   initialFilename,
   initialCaption,
+  compressEnabled,
 }: {
   initialCurrent: AssetSlim
   initialSiblings: Siblings
@@ -62,6 +63,7 @@ export function ViewerShell({
   initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
+  compressEnabled: boolean
 }) {
   // 핵심: current/siblings 는 STATE. SSR 페이지가 마운트되면 props 가 seed 로 들어오고,
   // 그 뒤 사용자가 스와이프하면 fetch('/api/asset/.../viewer-bundle') 결과로 state 만
@@ -236,13 +238,16 @@ export function ViewerShell({
     }
   }, [])
 
-  // chrome 서브트리는 currentSlim.id 로 re-key — 안에서 likes/bookmarks/comments 를
-  // 자체적으로 fetch 하므로 새 사진마다 깔끔히 마운트되며 초기 props 가 다시 적용된다.
-  // 단, 첫 진입의 initialLiked/initialBookmarked/initialComments 는 SSR 페이지의 그것이라
-  // 다음 사진 navigate 후엔 stale — chrome 내부 컴포넌트가 마운트 시 useEffect 로
-  // 자기 자산 데이터를 다시 fetch 하므로 잠시 잘못된 상태가 보일 수 있다 (수용 가능 —
-  // 사진 자체는 끊김 없음).
-  const chromeKey = currentSlim.id
+  // chrome 서브트리는 re-key 하지 않는다 — 화면에 항상 보이는 상단바·하단바·우측
+  // 패널이 사진 전환마다 unmount/remount 하면 그 자체가 "깜빡임"이 된다.
+  // ViewerTopBar/ActionBar/InfoPanel 은 모두 prop-driven (liked·count·bookmarked·
+  // commentCount·meta 가 state) 이므로 props 만 갱신해도 충분하다. CommentList /
+  // TagEditor 는 자체적으로 `[assetId]` useEffect 로 fresh fetch 한다. 시드 state 를
+  // 가진 MetadataEditor 만 안쪽에서 `key={assetId}` 로 remount 시킨다.
+  //
+  // 단 ViewerBottomSheet 는 닫혀있을 때 보이지 않아 remount 가 시각적 깜빡임이 아니므로
+  // 안의 MetadataEditor seed 까지 통째로 refresh 되도록 keyed remount 유지.
+  const sheetKey = currentSlim.id
 
   return (
     // fixed inset-0 so the viewer covers the (app) layout's bottom nav + the
@@ -253,9 +258,9 @@ export function ViewerShell({
       {/* Image column: takes full width on mobile, flexes on desktop */}
       <div className="relative flex-1 min-w-0">
         <ViewerTopBar
-          key={`top-${chromeKey}`}
           assetId={currentSlim.id}
           visible={chromeVisible}
+          compressEnabled={compressEnabled}
           onInfo={() => {
             setSheetDetailsOpen(true)
             setSheetOpen(true)
@@ -274,7 +279,6 @@ export function ViewerShell({
       {/* Mobile-only action bar + bottom sheet */}
       <div className="md:hidden">
         <ViewerActionBar
-          key={`actbar-${chromeKey}`}
           assetId={currentSlim.id}
           liked={liked}
           setLiked={setLiked}
@@ -291,7 +295,7 @@ export function ViewerShell({
           onAlbumTap={() => setAlbumPickerOpen(true)}
         />
         <ViewerBottomSheet
-          key={`sheet-${chromeKey}`}
+          key={`sheet-${sheetKey}`}
           open={sheetOpen}
           onOpenChange={setSheetOpen}
           assetId={currentSlim.id}
@@ -319,7 +323,6 @@ export function ViewerShell({
       {/* Desktop-only info panel: always visible */}
       <aside className="hidden w-[360px] shrink-0 overflow-y-auto border-l border-base-200 bg-base-0 md:block dark:border-base-800 dark:bg-base-900">
         <ViewerInfoPanel
-          key={`panel-${chromeKey}`}
           assetId={currentSlim.id}
           currentUserId={currentUserId}
           canDeleteAny={canDeleteAny}

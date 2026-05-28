@@ -5,6 +5,7 @@ import {
   type InitAssetRequest,
   type InitAssetResponse,
   type MediaClient,
+  type MintDownloadRequest,
   type SetBabyTagsRequest,
   type UpdateAssetMetadataRequest,
   type UpdateAssetMetadataResponse,
@@ -171,6 +172,10 @@ class CachingMediaClient implements MediaClient {
 
   retryAsset(assetId: string, familyId: string): Promise<void> {
     return this.inner.retryAsset(assetId, familyId)
+  }
+
+  mintDownloadUrl(input: MintDownloadRequest): Promise<string> {
+    return this.inner.mintDownloadUrl(input)
   }
 
   health(): Promise<HealthResponse> {

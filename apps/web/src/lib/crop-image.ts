@@ -1,8 +1,15 @@
-// 브라우저 캔버스로 이미지를 잘라/회전해 JPEG dataURL 을 만든다. 회전은 작업본에
-// baked 하고(rotateJpeg90), 크롭은 원본(자연) 픽셀 좌표로 받는다(react-image-crop 의
-// 화면 좌표를 호출부에서 naturalWidth/표시너비 비율로 환산해 넘김).
+// 브라우저 캔버스로 이미지를 잘라/회전/필터 적용해 JPEG dataURL 을 만든다. 회전은
+// 작업본에 baked 하고(rotateJpeg90), 크롭은 원본(자연) 픽셀 좌표로 받는다
+// (react-image-crop 의 화면 좌표를 호출부에서 naturalWidth/표시너비 비율로 환산해 넘김).
+// 필터(밝기 등)는 옵션으로 받아 ctx.filter 로 그릴 때 baked.
 
 export type PixelRect = { x: number; y: number; width: number; height: number }
+
+export type ProcessOptions = {
+  quality?: number
+  /** CSS filter 문자열 (예: 'brightness(1.2)'). undefined 면 적용 안 함. */
+  filter?: string
+}
 
 function loadImage(src: string): Promise<HTMLImageElement> {
   return new Promise((resolve, reject) => {
@@ -13,19 +20,38 @@ function loadImage(src: string): Promise<HTMLImageElement> {
   })
 }
 
-/** 자연 픽셀 좌표의 사각형을 잘라 JPEG dataURL 로. */
+/** 자연 픽셀 좌표의 사각형을 잘라 JPEG dataURL 로. filter 가 있으면 함께 baked. */
 export async function getCroppedJpeg(
   imageSrc: string,
   rect: PixelRect,
-  quality = 0.92,
+  options: ProcessOptions = {},
 ): Promise<string> {
+  const { quality = 0.92, filter } = options
   const image = await loadImage(imageSrc)
   const canvas = document.createElement('canvas')
   canvas.width = Math.max(1, Math.round(rect.width))
   canvas.height = Math.max(1, Math.round(rect.height))
   const ctx = canvas.getContext('2d')
   if (!ctx) throw new Error('canvas 2d context 없음')
+  if (filter) ctx.filter = filter
   ctx.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, canvas.width, canvas.height)
+  return canvas.toDataURL('image/jpeg', quality)
+}
+
+/** 크롭 없이 이미지 전체에 필터만 적용해 JPEG dataURL. */
+export async function applyFilterJpeg(
+  imageSrc: string,
+  filter: string,
+  quality = 0.92,
+): Promise<string> {
+  const image = await loadImage(imageSrc)
+  const canvas = document.createElement('canvas')
+  canvas.width = image.naturalWidth
+  canvas.height = image.naturalHeight
+  const ctx = canvas.getContext('2d')
+  if (!ctx) throw new Error('canvas 2d context 없음')
+  ctx.filter = filter
+  ctx.drawImage(image, 0, 0)
   return canvas.toDataURL('image/jpeg', quality)
 }
 

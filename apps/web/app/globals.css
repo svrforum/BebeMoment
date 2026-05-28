@@ -13,10 +13,14 @@
 
 @theme {
   --color-base-0: #ffffff;
-  --color-base-50: #fafafa;
-  --color-base-100: #f4f4f5;
-  --color-base-200: #e4e4e7;
-  --color-base-300: #d4d4d8;
+  /* base-50 = 페이지 배경. base-0(흰 카드) 와 충분히 분리되도록 한 단 더 어둡게
+     (`#fafafa` → `#f3f3f7`) — iOS systemGroupedBackground 와 비슷한 톤. */
+  --color-base-50: #f3f3f7;
+  /* base-100 = 호버/스켈레톤. 살짝 진하게 해 hover affordance 가 또렷. */
+  --color-base-100: #ebebef;
+  /* base-200 = 1차 보더 / divider. 흰 카드 위에서 또렷이 보이게 한 단계 진하게. */
+  --color-base-200: #d8d8de;
+  --color-base-300: #c6c6cc;
   --color-base-400: #a1a1aa;
   --color-base-500: #71717a;
   --color-base-600: #52525b;
@@ -227,6 +231,81 @@
       0 1px 0 color-mix(in srgb, #000 30%, transparent),
       0 20px 40px -24px color-mix(in srgb, #000 60%, transparent);
   }
+  /* 다이어리 캐러셀(.diary-carousel) 의 swiper 페이지네이션 — 흰 점, 활성 시 또렷.
+     인스타 포스트 캐러셀과 비슷한 절제된 도트. Swiper 기본 파란 점을 덮어쓴다. */
+  .diary-carousel .swiper-pagination {
+    bottom: 8px !important;
+  }
+  .diary-carousel .swiper-pagination-bullet {
+    background: #ffffff;
+    opacity: 0.55;
+    width: 6px;
+    height: 6px;
+    margin: 0 3px !important;
+    transition:
+      opacity 160ms ease,
+      transform 160ms ease;
+  }
+  .diary-carousel .swiper-pagination-bullet-active {
+    opacity: 1;
+    transform: scale(1.15);
+  }
+
+  /* 사진 편집기의 슬라이더(밝기 등) — 검은 배경 위에서 트랙·썸이 확실히 보이도록.
+     기본 input[range] 는 OS 색을 따라가서 다크 배경에서 거의 안 보임.
+     높이 36px 의 hit-target 안에 4px 트랙과 22px 썸 (모바일 손가락 친화). */
+  .editor-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 36px;
+    background: transparent;
+    cursor: pointer;
+    touch-action: pan-y;
+  }
+  .editor-slider::-webkit-slider-runnable-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .editor-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    height: 22px;
+    width: 22px;
+    margin-top: -9px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 0;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  .editor-slider::-moz-range-track {
+    height: 4px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.25);
+  }
+  .editor-slider::-moz-range-thumb {
+    height: 22px;
+    width: 22px;
+    border: 0;
+    border-radius: 999px;
+    background: #ffffff;
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.35);
+  }
+  .editor-slider:focus {
+    outline: none;
+  }
+  .editor-slider:focus-visible::-webkit-slider-thumb {
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.35),
+      0 0 0 4px color-mix(in srgb, var(--color-point-500) 50%, transparent);
+  }
+  .editor-slider:focus-visible::-moz-range-thumb {
+    box-shadow:
+      0 1px 4px rgba(0, 0, 0, 0.35),
+      0 0 0 4px color-mix(in srgb, var(--color-point-500) 50%, transparent);
+  }
+
   /* Halo behind empty-state / hero icons — a faint point-tinted radial
      glow + ring so the icon feels intentional, not a bare grey blob. */
   .icon-halo {

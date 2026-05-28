@@ -6,6 +6,7 @@ import type {
   InitAssetRequest,
   InitAssetResponse,
   MediaErrorCode,
+  MintDownloadRequest,
   SetBabyTagsRequest,
 } from './schemas'
 import { assetUrls as assetUrlsSchema } from './schemas'
@@ -18,6 +19,7 @@ type Calls = {
   deleteAsset: { assetId: string; familyId: string }[]
   purgeAsset: { assetId: string; familyId: string }[]
   retryAsset: { assetId: string; familyId: string }[]
+  mintDownloadUrl: MintDownloadRequest[]
 }
 
 function emptyUrls(): AssetUrls {
@@ -44,6 +46,7 @@ export class FakeMediaClient implements MediaClient {
     deleteAsset: [],
     purgeAsset: [],
     retryAsset: [],
+    mintDownloadUrl: [],
   }
 
   private urlsByAsset = new Map<string, AssetUrls>()
@@ -132,6 +135,12 @@ export class FakeMediaClient implements MediaClient {
   async retryAsset(assetId: string, familyId: string): Promise<void> {
     this.maybeThrow()
     this.calls.retryAsset.push({ assetId, familyId })
+  }
+
+  async mintDownloadUrl(input: MintDownloadRequest): Promise<string> {
+    this.maybeThrow()
+    this.calls.mintDownloadUrl.push(input)
+    return `https://fake.local/download/${input.assetId}/${input.quality}`
   }
 
   async health(): Promise<HealthResponse> {

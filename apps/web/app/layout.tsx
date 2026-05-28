@@ -36,12 +36,12 @@ async function readDefaultTheme(): Promise<DefaultTheme> {
     return await getSetting(
       'appearance.default_theme',
       z.enum(['auto', 'light', 'dark']),
-      'auto',
+      'light',
       prismaPublic,
     )
   } catch {
-    // DB unavailable (e.g. build-time static prerender) — fall back to auto.
-    return 'auto'
+    // DB unavailable (e.g. build-time static prerender) — light mode default.
+    return 'light'
   }
 }
 

@@ -5,8 +5,10 @@ import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
+import { getSetting } from '@/server/settings/get'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
 import { notFound } from 'next/navigation'
+import { z } from 'zod'
 
 export default async function DetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -32,26 +34,35 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   })
   if (!asset) notFound()
 
-  const [likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members, initialTags] =
-    await Promise.all([
-      likersForAsset(ctx.family.id, asset.id, prismaPublic),
-      listComments(ctx.family.id, asset.id, prismaPublic),
-      prismaPublic.assetLike.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.assetBookmark.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaMedia.assetBaby.findMany({
-        where: { assetId: asset.id },
-        select: { babyId: true },
-      }),
-      prismaPublic.membership.findMany({
-        where: { familyId: ctx.family.id, deletedAt: null },
-        include: { user: { select: { id: true, displayName: true } } },
-      }),
-      listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
-    ])
+  const [
+    likers,
+    commentsRaw,
+    myLike,
+    myBookmark,
+    assetBabyLinks,
+    members,
+    initialTags,
+    compressEnabled,
+  ] = await Promise.all([
+    likersForAsset(ctx.family.id, asset.id, prismaPublic),
+    listComments(ctx.family.id, asset.id, prismaPublic),
+    prismaPublic.assetLike.findFirst({
+      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+    }),
+    prismaPublic.assetBookmark.findFirst({
+      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+    }),
+    prismaMedia.assetBaby.findMany({
+      where: { assetId: asset.id },
+      select: { babyId: true },
+    }),
+    prismaPublic.membership.findMany({
+      where: { familyId: ctx.family.id, deletedAt: null },
+      include: { user: { select: { id: true, displayName: true } } },
+    }),
+    listTagsForAsset({ assetId: asset.id, familyId: ctx.family.id }, prismaPublic),
+    getSetting('download.compress.enabled', z.boolean(), true, prismaPublic),
+  ])
 
   const babyIds = assetBabyLinks.map((link) => link.babyId)
   const babyRows = babyIds.length
@@ -115,6 +126,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       initialTags={initialTags}
       initialFilename={asset.originalFilename}
       initialCaption={asset.caption}
+      compressEnabled={compressEnabled}
     />
   )
 }

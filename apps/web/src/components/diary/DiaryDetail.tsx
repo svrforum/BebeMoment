@@ -1,10 +1,15 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, JournalEntry, JournalEntryAsset } from '@bebe/db-public'
-import { NotebookPen, ShieldCheck } from 'lucide-react'
+import { ShieldCheck } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import { useState } from 'react'
+import { Pagination } from 'swiper/modules'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import 'swiper/css'
+import 'swiper/css/pagination'
 import { MOODS, isMood } from './mood'
 
 // react-markdown + rehype-sanitize together are ~80KB and only mount when
@@ -20,116 +25,113 @@ const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
 export function DiaryDetail({ entry }: { entry: Entry }) {
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
-  const sortedAssets = [...entry.assets].sort((a, b) => a.order - b.order)
-  const trimmed = entry.body.trim()
-  // "Short" entries (haiku-style one-liners) get a centered quote layout
-  // instead of a left-aligned article — they look lonely otherwise.
-  const isShort = trimmed.length <= 80 && !trimmed.includes('\n')
-
-  // Mood-less entries get a subtle neutral wash so the hero never looks
-  // empty. Same shape as mood tints.
-  const heroTint =
-    mood?.tint ??
-    'from-base-100 via-base-50 to-base-0 dark:from-base-800/60 dark:via-base-800/20 dark:to-transparent'
-
+  const sortedAssets = [...entry.assets]
+    .sort((a, b) => a.order - b.order)
+    .filter((a) => a.asset !== null)
   const d = entry.entryDate
-  const day = DAYS[d.getDay()]
+  const day = DAYS[d.getDay()] ?? ''
+  const trimmed = entry.body.trim()
+  const [activeIdx, setActiveIdx] = useState(0)
+
+  // 인스타식 아바타 — 아기 이름의 첫 글자를 point 컬러 그라데이션 원에. 아기가 없으면
+  // bullet 점. 추후 아기 프로필 사진이 생기면 여기서 보여줄 수 있음.
+  const initial = entry.baby?.name?.charAt(0) ?? '·'
+  const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 
   return (
-    <article className="overflow-hidden rounded-3xl border border-base-200/70 bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900">
-      {/* Hero — soft gradient by mood, big date, mood emoji */}
-      <header className={`relative bg-gradient-to-b ${heroTint} px-6 pt-7 pb-6`}>
-        <div aria-hidden className="absolute right-5 top-5 leading-none">
-          {mood ? (
-            <span className="text-[44px] drop-shadow-sm">{mood.emoji}</span>
-          ) : (
-            <NotebookPen
-              className="h-9 w-9 text-base-400/70 dark:text-base-500/70"
-              strokeWidth={1.6}
-            />
-          )}
+    <article className="overflow-hidden rounded-3xl border border-base-200 bg-base-0 shadow-card dark:border-base-800 dark:bg-base-900">
+      {/* 헤더 — 아바타 · 이름 · 날짜 · 공개범위 칩. 인스타 포스트 상단과 동일한 운율. */}
+      <header className="flex items-center gap-3 px-4 py-3">
+        <div
+          aria-hidden
+          className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-point-500/25 to-point-600/10 text-[15px] font-bold tracking-tight text-point-600 dark:from-point-500/30 dark:to-point-600/15 dark:text-point-300"
+        >
+          {initial}
         </div>
-        <div className="flex items-baseline gap-2 text-base-700 dark:text-base-200">
-          <span className="text-[44px] font-bold leading-none tabular-nums tracking-tight text-base-900 dark:text-base-50">
-            {d.getDate()}
+        <div className="min-w-0 flex-1">
+          <div className="truncate text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+            {entry.baby?.name ?? '스토리'}
+          </div>
+          <div className="text-[12px] tabular-nums text-base-500 dark:text-base-400">
+            {dateLabel} · {day}요일
+          </div>
+        </div>
+        {entry.visibility === 'guardians' && (
+          <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-point-500/15 px-2 py-1 text-[11px] font-semibold text-point-600 dark:text-point-400">
+            <ShieldCheck size={11} strokeWidth={2.4} />
+            보호자만
           </span>
-          <span className="text-[15px] font-medium text-base-600 dark:text-base-300">
-            {d.getMonth() + 1}월 · {day}요일
-          </span>
-        </div>
-        <div className="mt-1 text-[12px] font-medium tabular-nums uppercase tracking-wider text-base-500">
-          {d.getFullYear()}
-        </div>
-
-        <div className="mt-4 flex flex-wrap items-center gap-1.5">
-          {entry.baby && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-base-0/70 px-2.5 py-1 text-[12px] font-medium text-base-800 backdrop-blur-sm dark:bg-base-900/60 dark:text-base-200">
-              <span aria-hidden className="h-1.5 w-1.5 rounded-full bg-point-500" />
-              {entry.baby.name}
-            </span>
-          )}
-          {entry.visibility === 'guardians' && (
-            <span className="inline-flex items-center gap-1 rounded-full bg-point-500/15 px-2 py-1 text-[11px] font-semibold text-point-600 dark:text-point-400">
-              <ShieldCheck size={11} strokeWidth={2.4} />
-              보호자만
-            </span>
-          )}
-          {mood && (
-            <span
-              className={`inline-flex items-center rounded-full px-2.5 py-1 text-[11px] font-semibold ${mood.chip}`}
-            >
-              {mood.label}
-            </span>
-          )}
-        </div>
+        )}
       </header>
 
-      {/* Body */}
-      <div className={isShort ? 'px-6 py-10 text-center' : 'px-6 py-7'}>
-        {entry.title && (
-          <h1
-            className={
-              isShort
-                ? 'mb-5 text-[22px] font-semibold tracking-tight text-base-900 dark:text-base-50'
-                : 'mb-4 text-[26px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50'
-            }
+      {/* 사진 캐러셀 — 인스타식 정사각 1장씩, 여러 장이면 스와이프 + 페이지네이션 점 +
+          오른쪽 상단 "1/3" 카운터. 한 장만 있으면 카운터·점 없이 단일 슬라이드. */}
+      {sortedAssets.length > 0 && (
+        <div className="relative bg-base-100 dark:bg-base-950">
+          <Swiper
+            modules={[Pagination]}
+            pagination={sortedAssets.length > 1 ? { clickable: true } : false}
+            spaceBetween={0}
+            slidesPerView={1}
+            onSlideChange={(s) => setActiveIdx(s.activeIndex)}
+            className="diary-carousel aspect-square w-full"
           >
+            {sortedAssets.map((link) => {
+              const trio = pickDisplayTrio(link.asset?.urls ?? null)
+              const fallbackUrl = pickDisplayUrl(link.asset?.urls ?? null)
+              if (!trio && !fallbackUrl) return null
+              return (
+                <SwiperSlide
+                  key={link.assetId}
+                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                >
+                  <PictureImage
+                    trio={trio}
+                    fallbackUrl={fallbackUrl}
+                    alt=""
+                    dominantColor={link.asset?.urls?.dominantColor ?? null}
+                    blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                    className="aspect-square w-full"
+                    objectFit="cover"
+                    loading="eager"
+                  />
+                </SwiperSlide>
+              )
+            })}
+          </Swiper>
+          {sortedAssets.length > 1 && (
+            <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+              {activeIdx + 1}/{sortedAssets.length}
+            </span>
+          )}
+        </div>
+      )}
+
+      {/* 캡션 — 무드 칩 → 제목(있다면) → 본문. 인스타 캡션처럼 좌측 정렬, 적당히 빽빽한 줄 간격. */}
+      <div className="px-4 pt-3 pb-5">
+        {mood && (
+          <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+            <span
+              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${mood.chip}`}
+            >
+              <span className="text-[13px] leading-none">{mood.emoji}</span>
+              {mood.label}
+            </span>
+          </div>
+        )}
+
+        {entry.title && (
+          <h1 className="mb-1.5 text-[17px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
             {entry.title}
           </h1>
         )}
-        {isShort ? (
-          <p className="text-[20px] font-medium leading-relaxed text-base-800 dark:text-base-100">
-            {trimmed}
-          </p>
-        ) : (
-          <div className="prose prose-base max-w-none text-[16px] leading-[1.75] text-base-800 dark:text-base-200">
+
+        {trimmed.length > 0 && (
+          <div className="prose prose-base max-w-none text-[15px] leading-[1.65] text-base-800 dark:text-base-200">
             <MarkdownBody body={entry.body} />
           </div>
         )}
       </div>
-
-      {/* Asset grid */}
-      {sortedAssets.length > 0 && (
-        <div className="grid grid-cols-3 gap-1 border-t border-base-100 dark:border-base-800/70">
-          {sortedAssets.map((link) => {
-            if (!link.asset) return null
-            const trio = pickThumbTrio(link.asset.urls)
-            const fallbackUrl = pickThumbUrl(link.asset.urls)
-            if (!trio && !fallbackUrl) return null
-            return (
-              <PictureImage
-                key={link.assetId}
-                trio={trio}
-                fallbackUrl={fallbackUrl}
-                alt=""
-                dominantColor={link.asset.urls?.dominantColor ?? null}
-                className="aspect-square w-full object-cover"
-                loading="lazy"
-              />
-            )
-          })}
-        </div>
-      )}
     </article>
   )
 }

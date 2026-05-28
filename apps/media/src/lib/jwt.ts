@@ -99,3 +99,59 @@ export async function verifyFileServeToken(token: string): Promise<FileServeToke
   }
   return payload as unknown as FileServeTokenPayload
 }
+
+// ─── Download Token ──────────────────────────────────────────
+// 사용자 다운로드용 — original / hd / sd 품질을 토큰에 박아 두어
+// 다운로드 라우트가 DB 조회 없이 즉시 응답할 수 있게 한다.
+
+export type DownloadTokenPayload = {
+  iss: 'media'
+  aud: 'media'
+  scope: 'download'
+  v: 1
+  familyId: string
+  assetId: string
+  originalKey: string
+  hdImageKey?: string
+  kind: 'image' | 'video'
+  quality: 'original' | 'hd' | 'sd'
+  filename: string
+  mimeType: string
+}
+
+const DOWNLOAD_TTL_SEC = 10 * 60
+
+export type SignDownloadArgs = Omit<DownloadTokenPayload, 'iss' | 'aud' | 'scope' | 'v'>
+
+export async function signDownloadToken(args: SignDownloadArgs): Promise<string> {
+  const payload: DownloadTokenPayload = {
+    iss: 'media',
+    aud: 'media',
+    scope: 'download',
+    v: 1,
+    familyId: args.familyId,
+    assetId: args.assetId,
+    originalKey: args.originalKey,
+    ...(args.hdImageKey !== undefined ? { hdImageKey: args.hdImageKey } : {}),
+    kind: args.kind,
+    quality: args.quality,
+    filename: args.filename,
+    mimeType: args.mimeType,
+  }
+  return await new SignJWT(payload as unknown as Record<string, unknown>)
+    .setProtectedHeader({ alg: 'HS256' })
+    .setIssuedAt()
+    .setExpirationTime(`${DOWNLOAD_TTL_SEC}s`)
+    .sign(getSecret())
+}
+
+export async function verifyDownloadToken(token: string): Promise<DownloadTokenPayload> {
+  const { payload } = await jwtVerify(token, getSecret(), {
+    audience: 'media',
+    issuer: 'media',
+  })
+  if (payload.scope !== 'download' || payload.v !== 1) {
+    throw new Error('invalid download token shape')
+  }
+  return payload as unknown as DownloadTokenPayload
+}

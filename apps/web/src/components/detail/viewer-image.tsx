@@ -130,17 +130,18 @@ function SwiperViewport({
   onClose: () => void
   onTap: (() => void) | undefined
 }) {
-  // 슬라이드 배열 + initialSlide 계산. prev 가 있으면 [prev,current,next] 의 1,
-  // 없으면 [current,next] 의 0. next 가 없어도 마찬가지로 prev 가 있으면 1.
+  // 슬라이드 배열 + initialSlide 계산. 타임라인 = 최신이 위 → 카루셀에서
+  // "다음으로 넘기는 방향(왼쪽 스와이프)" = 더 newer. 그래서 slot 0 = next(older),
+  // slot 2 = prev(newer) 로 정렬한다 (Instagram/Kakao 등 한국 사용자가 익숙한 방향).
   // 키는 슬롯 역할('prev'/'current'/'next')로 — id 로 키하면 사진 전환 시 DOM 이
   // 재셔플되어 Swiper 가 의도와 다른 슬라이드로 움직인다. 슬롯 키면 슬라이드 노드는
-  // 그대로 두고 안의 SlideContent 만 새 slim 으로 리렌더 → 부드러운 슬라이드 + slideTo(0)
+  // 그대로 두고 안의 SlideContent 만 새 slim 으로 리렌더 → 부드러운 슬라이드 + slideTo
   // 침묵 재중앙화가 동작.
   const slides: Array<{ slim: AssetSlim; role: 'prev' | 'current' | 'next' }> = []
-  if (prev) slides.push({ slim: prev, role: 'prev' })
-  slides.push({ slim: current, role: 'current' })
   if (next) slides.push({ slim: next, role: 'next' })
-  const initialSlide = prev ? 1 : 0
+  slides.push({ slim: current, role: 'current' })
+  if (prev) slides.push({ slim: prev, role: 'prev' })
+  const initialSlide = next ? 1 : 0
   const currentIndex = initialSlide
   const hasPrev = !!prev
   const hasNext = !!next
@@ -176,8 +177,9 @@ function SwiperViewport({
       const idx = swiper.activeIndex
       if (idx === currentIndex) return
       armSuppressTap()
-      if (idx < currentIndex && hasPrev) onPrev()
-      else if (idx > currentIndex && hasNext) onNext()
+      // slot 0 = next (older), slot 2 = prev (newer) — 왼쪽 스와이프(idx 증가) = newer.
+      if (idx > currentIndex && hasPrev) onPrev()
+      else if (idx < currentIndex && hasNext) onNext()
     },
     [currentIndex, hasPrev, hasNext, onPrev, onNext, armSuppressTap],
   )
@@ -275,7 +277,11 @@ function SwiperViewport({
         onSwiper={(s) => {
           swiperRef.current = s
         }}
-        onSlideChange={handleSlideChange}
+        // 슬라이드 애니메이션이 완전히 끝난 다음에 navigate — onSlideChange (mid-transition)
+        // 으로 받으면 setCurrentSlim → useEffect → slideTo(1,0) 가 진행 중인 transform 을
+        // 끊어 "한방에 휙" 점프하는 느낌이 난다. transitionEnd 면 사용자가 새 슬라이드를
+        // 다 본 뒤 재중앙화가 일어나 슬롯이 같은 이미지로 정렬돼 시각적으로 무손실.
+        onSlideChangeTransitionEnd={handleSlideChange}
         onZoomChange={(_s, scale) => setZoomed(scale > 1.01)}
         className="h-full w-full"
         style={{ height: '100%', width: '100%' }}
@@ -311,6 +317,7 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
   if (isVideo) {
     if (!slim.posterUrl) return <div className="h-full w-full" />
     return (
+      // biome-ignore lint/performance/noImgElement: 미디어 서버의 signed URL — next/image 부적합
       <img
         src={slim.posterUrl}
         alt=""

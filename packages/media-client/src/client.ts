@@ -4,6 +4,7 @@ import {
   type InitAssetRequest,
   type InitAssetResponse,
   type MediaErrorCode,
+  type MintDownloadRequest,
   type SetBabyTagsRequest,
   type UpdateAssetMetadataRequest,
   type UpdateAssetMetadataResponse,
@@ -13,6 +14,7 @@ import {
   getAssetUrlsResponse,
   healthResponse,
   initAssetResponse,
+  mintDownloadResponse,
   updateAssetMetadataResponse,
 } from './schemas'
 
@@ -40,6 +42,7 @@ export interface MediaClient {
   deleteAsset(assetId: string, familyId: string): Promise<void>
   purgeAsset(assetId: string, familyId: string): Promise<void>
   retryAsset(assetId: string, familyId: string): Promise<void>
+  mintDownloadUrl(input: MintDownloadRequest): Promise<string>
   health(): Promise<HealthResponse>
 }
 
@@ -177,6 +180,14 @@ export class HttpMediaClient implements MediaClient {
       `/media/v1/assets/${assetId}/retry`,
       { method: 'POST', body: JSON.stringify({ familyId }) },
       () => undefined,
+    )
+  }
+
+  async mintDownloadUrl(input: MintDownloadRequest): Promise<string> {
+    return this.request(
+      '/media/v1/download/mint',
+      { method: 'POST', body: JSON.stringify(input) },
+      (b) => mintDownloadResponse.parse(b).url,
     )
   }
 

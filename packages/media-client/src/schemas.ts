@@ -100,6 +100,20 @@ export const updateAssetMetadataResponse = z.object({
 })
 export type UpdateAssetMetadataResponse = z.infer<typeof updateAssetMetadataResponse>
 
+// ─── Download mint ───────────────────────────────────────────────
+export const mintDownloadRequest = z.object({
+  familyId: z.string().uuid(),
+  assetId: z.string().uuid(),
+  quality: z.enum(['original', 'hd', 'sd']),
+})
+export type MintDownloadRequest = z.infer<typeof mintDownloadRequest>
+
+export const mintDownloadResponse = z.object({
+  v: z.literal(VERSION),
+  url: z.string().min(1),
+})
+export type MintDownloadResponse = z.infer<typeof mintDownloadResponse>
+
 // ─── Errors ──────────────────────────────────────────────────────
 export const mediaErrorCodes = [
   'UNAUTHORIZED',

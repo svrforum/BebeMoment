@@ -7,6 +7,8 @@ import { assetsPurgeRoute } from './http/routes/assets-purge'
 import { assetsUpdateRoute } from './http/routes/assets-update'
 import { assetsUrlsRoute } from './http/routes/assets-urls'
 import { assetsUrlsBatchRoute } from './http/routes/assets-urls-batch'
+import { downloadRoute } from './http/routes/download'
+import { downloadMintRoute } from './http/routes/download-mint'
 import { filesRoute } from './http/routes/files'
 import { healthRoute } from './http/routes/health'
 import { sseProgressRoute } from './http/routes/sse-progress'
@@ -31,6 +33,8 @@ export function buildApp(): FastifyInstance {
   app.register(assetsUrlsBatchRoute)
   app.register(assetsPurgeRoute)
   app.register(filesRoute)
+  app.register(downloadMintRoute)
+  app.register(downloadRoute)
   app.register(tusRoute)
   app.register(sseProgressRoute)
 

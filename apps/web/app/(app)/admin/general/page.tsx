@@ -15,6 +15,7 @@ const THEME_OPTIONS: { value: ThemeChoice; label: string }[] = [
 export default function GeneralSettingsPage() {
   const [appName, setAppName] = useState('')
   const [defaultTheme, setDefaultTheme] = useState<ThemeChoice>('auto')
+  const [compressEnabled, setCompressEnabled] = useState(true)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
 
@@ -25,6 +26,9 @@ export default function GeneralSettingsPage() {
         setAppName(d.general?.app_name ?? 'bebe-moment')
         const t = d.appearance?.default_theme
         if (t === 'auto' || t === 'light' || t === 'dark') setDefaultTheme(t)
+        if (typeof d.download?.compress?.enabled === 'boolean') {
+          setCompressEnabled(d.download.compress.enabled)
+        }
       })
   }, [])
 
@@ -40,6 +44,7 @@ export default function GeneralSettingsPage() {
     const results = await Promise.all([
       post('general.app_name', appName),
       post('appearance.default_theme', defaultTheme),
+      post('download.compress.enabled', compressEnabled),
     ])
     setSaving(false)
     setStatus(results.every((r) => r.ok) ? '저장됨' : '실패')
@@ -73,6 +78,24 @@ export default function GeneralSettingsPage() {
                 새 사용자에게 적용되는 기본값이에요. 사용자가 설정에서 직접 바꾸면 그 선택이
                 우선해요.
               </p>
+            </div>
+            <div>
+              <label className="flex items-start gap-3" htmlFor="compressEnabled">
+                <input
+                  id="compressEnabled"
+                  type="checkbox"
+                  checked={compressEnabled}
+                  onChange={(e) => setCompressEnabled(e.target.checked)}
+                  className="mt-1 h-4 w-4 accent-primary"
+                />
+                <span>
+                  <span className="block text-sm font-medium">압축 다운로드 옵션 노출</span>
+                  <span className="mt-0.5 block text-xs text-base-500">
+                    사진/영상 상세에서 고화질(1080p)·저용량(720p) 다운로드 메뉴를 보여줘요. 꺼두면
+                    원본 다운로드만 표시돼요.
+                  </span>
+                </span>
+              </label>
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
             <Button onClick={save} disabled={saving}>

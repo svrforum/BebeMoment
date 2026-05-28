@@ -14,7 +14,7 @@ const Ctx = createContext<ThemeCtx | null>(null)
 
 export function ThemeProvider({
   children,
-  defaultMode = 'auto',
+  defaultMode = 'light',
 }: {
   children: React.ReactNode
   /** Instance default set by the admin; user's localStorage choice overrides it. */

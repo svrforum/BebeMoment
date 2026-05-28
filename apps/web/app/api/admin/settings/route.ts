@@ -34,6 +34,7 @@ export async function GET() {
     uploadConvert,
     permissionsFamily,
     defaultTheme,
+    downloadCompress,
     features,
   ] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
@@ -42,6 +43,7 @@ export async function GET() {
     getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),
     getSetting('permissions.family', AnySchema, [], prismaPublic),
     getSetting('appearance.default_theme', AnySchema, 'auto', prismaPublic),
+    getSetting('download.compress.enabled', AnySchema, true, prismaPublic),
     getFeatureFlags(prismaPublic),
   ])
   return NextResponse.json({
@@ -51,6 +53,7 @@ export async function GET() {
     upload: { convert_to_compatible: uploadConvert },
     permissions: { family: permissionsFamily },
     appearance: { default_theme: defaultTheme },
+    download: { compress: { enabled: downloadCompress } },
     features,
   })
 }
