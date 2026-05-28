@@ -30,36 +30,20 @@ export function ViewerImage({
   const router = useRouter()
   const [scale, setScale] = useState(1)
 
-  // 방향 힌트를 documentElement 에 찍어두고 router.replace 를 부르면
-  // @view-transition: navigation:auto 가 시작된다. globals.css 의
-  // html[data-swipe-dir='next'|'prev'] 룰이 viewer-asset 의 ::view-transition-old/new
-  // 키프레임을 방향별로 갈아 끼워 iOS Photos 식 슬라이드가 된다.
-  // 전환 시작 후엔 속성을 비워서 다른(스와이프와 무관한) 네비게이션이 슬라이드를
-  // 상속하지 않게 한다.
-  const navigateWithDir = useCallback(
-    (id: string, dir: 'next' | 'prev') => {
-      const html = document.documentElement
-      html.setAttribute('data-swipe-dir', dir)
-      router.replace(`/detail/${id}`)
-      // 짧은 타임아웃 — startViewTransition 이 스냅샷을 잡은 직후 비워도 애니메이션은 계속.
-      window.setTimeout(() => {
-        if (html.getAttribute('data-swipe-dir') === dir) {
-          html.removeAttribute('data-swipe-dir')
-        }
-      }, 400)
-    },
-    [router],
-  )
-
   // 스와이프 이동은 replace — push 면 이미지마다 히스토리가 쌓여 닫기(X·뒤로·Esc·
   // 드래그다운=router.back)가 이전 이미지로 가버린다. replace 면 히스토리가
-  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다.
+  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다. View Transition
+  // 은 per-id view-transition-name (asset-{id}) 으로 처리 — 타임라인 썸네일에서
+  // 디테일로 갈 때 같은 id 가 매칭돼 사진이 풀스크린으로 자라는 iOS Photos 식
+  // 전환이 나온다. 디테일↔디테일 형제 이동은 id 가 달라 매칭 없음 → 기본 UA
+  // 크로스페이드(짧고 깔끔). 임의 키프레임 슬라이드는 timeline→detail 경로에서
+  // 절반-갈라진 듯한 인상을 줘서 제거.
   const goNext = useCallback(() => {
-    if (siblings.nextId) navigateWithDir(siblings.nextId, 'next')
-  }, [navigateWithDir, siblings.nextId])
+    if (siblings.nextId) router.replace(`/detail/${siblings.nextId}`)
+  }, [router, siblings.nextId])
   const goPrev = useCallback(() => {
-    if (siblings.prevId) navigateWithDir(siblings.prevId, 'prev')
-  }, [navigateWithDir, siblings.prevId])
+    if (siblings.prevId) router.replace(`/detail/${siblings.prevId}`)
+  }, [router, siblings.prevId])
   const goBack = useCallback(() => router.back(), [router])
 
   useEffect(() => {
@@ -134,11 +118,10 @@ export function ViewerImage({
             fetchPriority="high"
             objectFit="contain"
             className="max-h-full max-w-full"
-            // 스와이프 슬라이드는 in-viewer 네비에서 항상 같은 이름의 element 가
-            // 매칭돼야 매끄럽다 → per-id 가 아니라 안정된 `viewer-asset` 으로 고정.
-            // 그 결과 timeline → detail 의 thumbnail morph 는 default crossfade 가
-            // 된다(트레이드오프). 대신 뷰어 안에서의 좌우 슬라이드가 일관된다.
-            style={{ viewTransitionName: 'viewer-asset' } as CSSProperties}
+            // per-id name → 타임라인 썸네일(같은 asset-{id})에서 풀스크린 이미지로
+            // 매칭돼 자라는 iOS Photos 식 morph. 디테일↔디테일 형제 이동은 id 가
+            // 다르므로 매칭 없음 → 기본 UA crossfade(짧고 깔끔).
+            style={{ viewTransitionName: `asset-${current.id}` } as CSSProperties}
           />
         </TransformComponent>
       </TransformWrapper>
