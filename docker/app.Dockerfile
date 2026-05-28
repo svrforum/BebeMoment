@@ -22,7 +22,11 @@ COPY packages/media-client/package.json packages/media-client/
 COPY packages/queue/package.json packages/queue/
 COPY packages/storage/package.json packages/storage/
 
-RUN pnpm install --frozen-lockfile --ignore-scripts
+# BuildKit cache mount — pnpm store 를 빌드 간 재사용. lock 변경 없으면 install 거의 즉시.
+# id 는 platform 무관 (단일 amd64 빌드). target 은 pnpm 의 글로벌 store 경로.
+RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
+    pnpm config set store-dir /root/.local/share/pnpm/store && \
+    pnpm install --frozen-lockfile --ignore-scripts
 
 COPY . .
 
@@ -35,7 +39,9 @@ ENV NEXT_TELEMETRY_DISABLED=1
 # media 는 같은 컨테이너 localhost:3001 이므로 기본값이 곧 맞다.
 ARG MEDIA_INTERNAL_URL=http://localhost:3001
 ENV MEDIA_INTERNAL_URL=$MEDIA_INTERNAL_URL
-RUN pnpm --filter @bebe/web build
+# Next 의 incremental 빌드 캐시(.next/cache) 를 빌드 간 보존 → 변경된 페이지만 컴파일.
+RUN --mount=type=cache,id=next-build,target=/repo/apps/web/.next/cache \
+    pnpm --filter @bebe/web build
 
 # -------- runner --------
 FROM node:20-bookworm-slim AS runner
