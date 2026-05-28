@@ -8,3 +8,8 @@ android/.idea/
 android/app/release/
 *.apk
 *.aab
+# release signing — never commit
+keystore.properties
+android/keystore.properties
+*.jks
+*.keystore
