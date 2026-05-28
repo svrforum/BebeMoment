@@ -68,6 +68,14 @@ export function ViewerImage({
     return () => window.removeEventListener('keydown', onKey)
   }, [goPrev, goNext, router])
 
+  // RSC 프리페치 — 이전/다음 사진 페이지를 미리 받아두면 router.replace 가 캐시에서
+  // 즉시 커밋된다. 페이지 unmount→remount 자체는 일어나지만, 데이터 로딩 대기가 없으니
+  // Suspense 폴백(빈 loading.tsx) 이 트리거되지 않아 화면 단절이 최소화된다.
+  useEffect(() => {
+    if (siblings.nextId) router.prefetch(`/detail/${siblings.nextId}`)
+    if (siblings.prevId) router.prefetch(`/detail/${siblings.prevId}`)
+  }, [router, siblings.nextId, siblings.prevId])
+
   const trio = pickDisplayTrio(current.urls)
   const fallbackUrl = pickDisplayUrl(current.urls)
   const isVideo = current.kind === 'video'
