@@ -91,6 +91,31 @@ describe('listTimeline', () => {
     expect(dates).toEqual(['2026-04-15', '2026-04-12', '2026-04-10'])
   })
 
+  it('sort=uploaded orders by createdAt regardless of takenAt', async () => {
+    const { user, family } = await setup()
+    // Create assets out-of-order: the oldest takenAt is uploaded last.
+    const a1 = await makeAsset(family.id, user.id, new Date('2026-04-15'), 'old-first')
+    const a2 = await makeAsset(family.id, user.id, new Date('2026-04-10'), 'new-second')
+    const a3 = await makeAsset(family.id, user.id, new Date('2026-04-20'), 'mid-third')
+    const taken = await listTimeline(
+      family.id,
+      { limit: 10, sort: 'taken' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(taken.items.map((i) => i.id)).toEqual([a3.id, a1.id, a2.id])
+    const uploaded = await listTimeline(
+      family.id,
+      { limit: 10, sort: 'uploaded' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    // createdAt order = insertion order, so newest-uploaded first = a3, a2, a1.
+    expect(uploaded.items.map((i) => i.id)).toEqual([a3.id, a2.id, a1.id])
+  })
+
   it('supports cursor-based pagination', async () => {
     const { user, family } = await setup()
     for (let i = 0; i < 5; i++) {

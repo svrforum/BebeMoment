@@ -20,7 +20,14 @@ type AssetRow = {
   urls: AssetUrls | null
 }
 
-type BucketGroup = { label: string; assets: AssetRow[] }
+type BucketGroup = {
+  label: string
+  /** Optional age-bucket secondary line (e.g. "생후 47일"). */
+  ageLabel?: string | null
+  /** Optional D-day chip (e.g. "D+97" / "D-Day"). */
+  dDay?: string | null
+  assets: AssetRow[]
+}
 
 type Props = {
   initialGroups: BucketGroup[]
@@ -212,6 +219,8 @@ export function TimelineGrid({ initialGroups }: Props) {
           <BucketSection
             key={g.label}
             label={g.label}
+            ageLabel={g.ageLabel ?? null}
+            dDay={g.dDay ?? null}
             assets={g.assets}
             index={i}
             selectionMode={selectionMode}

@@ -14,7 +14,16 @@ export type TimelineItem =
       }
     }
 
-type Cursor = { ts: string; id: string; kind: 'asset' | 'journal' }
+export type TimelineSort = 'taken' | 'uploaded'
+
+type Cursor = {
+  ts: string
+  id: string
+  kind: 'asset' | 'journal'
+  /** Which timestamp field the cursor is relative to. Omitted = 'taken'
+   *  (back-compat with cursors minted before the sort toggle existed). */
+  sort?: TimelineSort
+}
 
 function encodeCursor(c: Cursor): string {
   return Buffer.from(JSON.stringify(c)).toString('base64url')
@@ -50,14 +59,24 @@ export async function listTimeline(
      *  to 'family' which is the most restrictive (won't see guardians-only
      *  entries). Pass 'owner' / 'guardian' to include them. */
     viewerRole?: 'owner' | 'guardian' | 'family'
+    /** Sort order. 'taken' (default) = by `takenAt` / `entryDate` desc —
+     *  groups reflect when the moment happened. 'uploaded' = by
+     *  `createdAt` desc — groups reflect when the item was added to the
+     *  app. Cursor is mode-aware. */
+    sort?: TimelineSort
   },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<{ items: TimelineItem[]; nextCursor: string | null }> {
   const limit = params.limit ?? 50
+  const sort: TimelineSort = params.sort ?? 'taken'
   const cur = params.cursor ? decodeCursor(params.cursor) : null
-  const cursorTs = cur ? new Date(cur.ts) : null
+  // Cursors are mode-tagged. If the request mode differs from the cursor's
+  // mode (e.g. user flipped the toggle mid-scroll), the cursor is stale —
+  // start a fresh page instead of mixing axes.
+  const cursorValid = cur ? (cur.sort ?? 'taken') === sort : false
+  const cursorTs = cur && cursorValid ? new Date(cur.ts) : null
 
   let dayStart: Date | null = null
   let dayEnd: Date | null = null
@@ -103,6 +122,9 @@ export async function listTimeline(
     }
   }
 
+  // The "?date=" calendar filter always pins to the wall-clock day the
+  // moment was experienced (takenAt / entryDate), regardless of sort mode.
+  // The sort toggle only changes ordering — not which day a moment "is".
   const [assets, entries] = await Promise.all([
     prismaMedia.asset.findMany({
       where: {
@@ -112,12 +134,19 @@ export async function listTimeline(
         ...(tagAssetIds ? { id: { in: tagAssetIds } } : {}),
         ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
         ...(cursorTs && cur
-          ? {
-              OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }],
-            }
+          ? sort === 'uploaded'
+            ? {
+                OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }],
+              }
+            : {
+                OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }],
+              }
           : {}),
       },
-      orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
+      orderBy:
+        sort === 'uploaded'
+          ? [{ createdAt: 'desc' }, { id: 'desc' }]
+          : [{ takenAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
     // When filtering by tag, hide diary entries — they're not tagged.
@@ -135,16 +164,26 @@ export async function listTimeline(
             ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
             ...(dayStart && dayEnd ? { entryDate: { gte: dayStart, lt: dayEnd } } : {}),
             ...(cursorTs && cur
-              ? {
-                  OR: [
-                    { entryDate: { lt: cursorTs } },
-                    { entryDate: cursorTs, id: { lt: cur.id } },
-                  ],
-                }
+              ? sort === 'uploaded'
+                ? {
+                    OR: [
+                      { createdAt: { lt: cursorTs } },
+                      { createdAt: cursorTs, id: { lt: cur.id } },
+                    ],
+                  }
+                : {
+                    OR: [
+                      { entryDate: { lt: cursorTs } },
+                      { entryDate: cursorTs, id: { lt: cur.id } },
+                    ],
+                  }
               : {}),
           },
           include: { assets: true },
-          orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
+          orderBy:
+            sort === 'uploaded'
+              ? [{ createdAt: 'desc' }, { id: 'desc' }]
+              : [{ entryDate: 'desc' }, { id: 'desc' }],
           take: limit + 1,
         }),
   ])
@@ -181,23 +220,27 @@ export async function listTimeline(
     }),
   }))
 
+  // `ts` is the sort axis — also what the UI groups by (per-UTC-day
+  // header). In 'uploaded' mode that's createdAt; in 'taken' it's
+  // takenAt / entryDate.
   const merged: TimelineItem[] = [
     ...assetsWithUrls.map<TimelineItem>((a) => ({
       kind: 'asset',
-      ts: a.takenAt,
+      ts: sort === 'uploaded' ? a.createdAt : a.takenAt,
       id: a.id,
       asset: a,
     })),
     ...joinedEntries.map<TimelineItem>((e) => ({
       kind: 'journal',
-      ts: e.entryDate,
+      ts: sort === 'uploaded' ? e.createdAt : e.entryDate,
       id: e.id,
       entry: e,
     })),
   ].sort((a, b) => {
-    // 1차: 표시 시각(takenAt / entryDate) 최신순. entryDate 는 날짜만이라 같은 날
-    // 글이 여러 개면 동률 → 2차로 createdAt(작성 시각) 최신순으로 깨야 "최신 글이
-    // 맨 위"가 보장된다(과거엔 UUID 비교라 작성순과 무관했다).
+    // 1차: 표시 시각(takenAt / entryDate 또는 createdAt) 최신순. entryDate 는
+    // 날짜만이라 같은 날 글이 여러 개면 동률 → 2차로 createdAt(작성 시각)
+    // 최신순으로 깨야 "최신 글이 맨 위"가 보장된다(과거엔 UUID 비교라 작성순과
+    // 무관했다). 'uploaded' 모드에선 ts==createdAt 이라 2차는 보통 동률 회피용.
     const d = b.ts.getTime() - a.ts.getTime()
     if (d !== 0) return d
     const ca = (a.kind === 'asset' ? a.asset.createdAt : a.entry.createdAt).getTime()
@@ -211,7 +254,7 @@ export async function listTimeline(
   const last = page[page.length - 1]
   const nextCursor =
     hasMore && last
-      ? encodeCursor({ ts: last.ts.toISOString(), id: last.id, kind: last.kind })
+      ? encodeCursor({ ts: last.ts.toISOString(), id: last.id, kind: last.kind, sort })
       : null
 
   return { items: page, nextCursor }
