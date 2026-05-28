@@ -257,8 +257,89 @@
   navigation: auto;
 }
 
-::view-transition-old(asset-image),
-::view-transition-new(asset-image) {
-  animation-duration: 300ms;
-  animation-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+/* Detail viewer swipe — iOS Photos 식 좌우 슬라이드.
+   - viewer-image.tsx 가 PictureImage 에 view-transition-name: viewer-asset 을 부여하고
+     스와이프/키보드 네비 직전에 html[data-swipe-dir=next|prev] 를 찍는다.
+   - 매칭된 element 의 ::view-transition-old/new 가 방향별 키프레임을 받아
+     translateX 100%/-100% 사이를 흐른다(opacity 1 유지 — 페이드 아님).
+   - 기본(:not([data-swipe-dir])) 은 짧은 crossfade — 첫 진입(timeline → detail)
+     이나 swipe 외 네비(예: thumbnail morph)에 자연스럽다. */
+::view-transition-old(viewer-asset),
+::view-transition-new(viewer-asset) {
+  animation-duration: 280ms;
+  animation-timing-function: cubic-bezier(0.32, 0.72, 0, 1);
+  animation-fill-mode: both;
+  /* 슬라이드 중에는 mix-blend 가 페이드를 만들지 않게. */
+  mix-blend-mode: normal;
+}
+
+@keyframes viewer-slide-old-to-left {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+}
+@keyframes viewer-slide-new-from-right {
+  from {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+@keyframes viewer-slide-old-to-right {
+  from {
+    transform: translateX(0);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(100%);
+    opacity: 1;
+  }
+}
+@keyframes viewer-slide-new-from-left {
+  from {
+    transform: translateX(-100%);
+    opacity: 1;
+  }
+  to {
+    transform: translateX(0);
+    opacity: 1;
+  }
+}
+
+html[data-swipe-dir="next"]::view-transition-old(viewer-asset) {
+  animation-name: viewer-slide-old-to-left;
+}
+html[data-swipe-dir="next"]::view-transition-new(viewer-asset) {
+  animation-name: viewer-slide-new-from-right;
+}
+html[data-swipe-dir="prev"]::view-transition-old(viewer-asset) {
+  animation-name: viewer-slide-old-to-right;
+}
+html[data-swipe-dir="prev"]::view-transition-new(viewer-asset) {
+  animation-name: viewer-slide-new-from-left;
+}
+
+/* 접근성 — 감속 모션 환경에서는 짧은 페이드로 떨어뜨린다. */
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(viewer-asset),
+  ::view-transition-new(viewer-asset) {
+    animation-duration: 120ms;
+    animation-timing-function: linear;
+  }
+  html[data-swipe-dir="next"]::view-transition-old(viewer-asset),
+  html[data-swipe-dir="prev"]::view-transition-old(viewer-asset) {
+    animation-name: none;
+  }
+  html[data-swipe-dir="next"]::view-transition-new(viewer-asset),
+  html[data-swipe-dir="prev"]::view-transition-new(viewer-asset) {
+    animation-name: none;
+  }
 }
