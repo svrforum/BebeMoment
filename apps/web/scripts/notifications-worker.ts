@@ -38,9 +38,12 @@ type FcmDeps = {
   deleteDeviceToken: (input: { userId: string; token: string }) => Promise<void>
 }
 
-// OAuth access token is cached across jobs (~50min TTL); re-minted on expiry or
-// when the service account's client_email changes.
+// OAuth access token is cached across jobs (TTL from OAuth `expires_in` minus a
+// 300s safety margin); re-minted on expiry or when the service account's
+// client_email changes. `pendingToken` dedupes the cold-start stampede when
+// many sendFcm calls fire concurrently with no live cache.
 let fcmTokenCache: { token: string; exp: number; clientEmail: string } | null = null
+let pendingToken: Promise<string> | null = null
 
 async function buildFcmDeps(): Promise<FcmDeps | null> {
   if ((await settingsGet('push.fcm.enabled')) !== 'true') return null
@@ -66,9 +69,22 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
     ) {
       return fcmTokenCache.token
     }
-    const token = await getFcmAccessToken(account)
-    fcmTokenCache = { token, exp: now + 50 * 60 * 1000, clientEmail: account.clientEmail }
-    return token
+    if (pendingToken) return pendingToken
+    pendingToken = (async () => {
+      try {
+        const { token, expiresIn } = await getFcmAccessToken(account)
+        const ttlMs = Math.max(expiresIn - 300, 60) * 1000
+        fcmTokenCache = {
+          token,
+          exp: Date.now() + ttlMs,
+          clientEmail: account.clientEmail,
+        }
+        return token
+      } finally {
+        pendingToken = null
+      }
+    })()
+    return pendingToken
   }
 
   return {
@@ -104,11 +120,15 @@ async function main(): Promise<void> {
             visibility,
           }
         },
-        prefEnabled: async (userId, category) => {
-          const pref = await prismaPublic.notificationPref.findUnique({
-            where: { userId_category: { userId, category } },
+        prefsEnabledFor: async (userIds, category) => {
+          if (userIds.length === 0) return new Set<string>()
+          const rows = await prismaPublic.notificationPref.findMany({
+            where: { userId: { in: userIds }, category },
+            select: { userId: true, enabled: true },
           })
-          return pref?.enabled ?? true
+          const explicit = new Map(rows.map((r) => [r.userId, r.enabled]))
+          // Default enabled=true when no row exists for the user.
+          return new Set(userIds.filter((uid) => explicit.get(uid) ?? true))
         },
         subscriptionsFor: async (userIds) =>
           prismaPublic.pushSubscription.findMany({ where: { userId: { in: userIds } } }),

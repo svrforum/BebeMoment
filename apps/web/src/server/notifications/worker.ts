@@ -9,7 +9,10 @@ type Deps = {
     members: { userId: string; role: 'owner' | 'guardian' | 'family' }[]
     visibility: 'family' | 'guardians'
   }>
-  prefEnabled: (userId: string, category: string) => Promise<boolean>
+  prefEnabled?: (userId: string, category: string) => Promise<boolean>
+  // Batched per-user pref lookup. One findMany per job instead of N queries.
+  // When provided, takes precedence over prefEnabled.
+  prefsEnabledFor?: (userIds: string[], category: string) => Promise<Set<string>>
   subscriptionsFor: (userIds: string[]) => Promise<(Sub & { userId: string })[]>
   send: (sub: Sub, payload: string) => Promise<void>
   deleteSub: (endpoint: string) => Promise<void>
@@ -34,7 +37,7 @@ export function buildNotification(job: NotificationJob): {
     case 'comment.created':
       return {
         title: '새 댓글',
-        body: '내 사진에 댓글이 달렸어요',
+        body: '사진에 새 댓글이 달렸어요',
         url: `/detail/${job.payload.assetId}`,
       }
     case 'album.asset_added':
@@ -68,8 +71,19 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
     category,
     visibility,
   })
-  const recipients: string[] = []
-  for (const uid of candidates) if (await deps.prefEnabled(uid, category)) recipients.push(uid)
+  let recipients: string[] = []
+  if (deps.prefsEnabledFor) {
+    if (candidates.length > 0) {
+      const allowed = await deps.prefsEnabledFor(candidates, category)
+      recipients = candidates.filter((uid) => allowed.has(uid))
+    }
+  } else if (deps.prefEnabled) {
+    const prefEnabled = deps.prefEnabled
+    for (const uid of candidates) if (await prefEnabled(uid, category)) recipients.push(uid)
+  } else {
+    // No pref dep wired — default enabled.
+    recipients = candidates
+  }
   if (recipients.length === 0) return
 
   const notification = buildNotification(job)

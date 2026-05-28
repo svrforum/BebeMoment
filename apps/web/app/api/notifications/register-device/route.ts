@@ -5,12 +5,12 @@ import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const registerSchema = z.object({
-  token: z.string().min(1, '토큰이 필요합니다'),
+  token: z.string().min(1, '토큰이 필요합니다').max(4096, '토큰이 너무 깁니다'),
   platform: z.enum(['android', 'ios']).default('android'),
 })
 
 const unregisterSchema = z.object({
-  token: z.string().min(1, '토큰이 필요합니다'),
+  token: z.string().min(1, '토큰이 필요합니다').max(4096, '토큰이 너무 깁니다'),
 })
 
 export async function POST(req: Request) {
