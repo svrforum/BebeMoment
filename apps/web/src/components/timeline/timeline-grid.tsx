@@ -18,6 +18,8 @@ type AssetRow = {
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
   urls: AssetUrls | null
+  /** ts 는 디바이더(여기까지 봤어요) 경계 계산에 쓰인다 — 없어도 그리드는 동작. */
+  ts?: Date
 }
 
 type BucketGroup = {
@@ -31,9 +33,13 @@ type BucketGroup = {
 
 type Props = {
   initialGroups: BucketGroup[]
+  /** 이전 방문 시각 (membership.lastSeenAt 의 OLD 값). null = 첫 방문 → 디바이더 없음. */
+  lastSeenAt?: Date | null
+  /** 업로드 권한자만 빈 상태에 + 버튼 안내. 보기 전용은 다른 카피. */
+  canUpload?: boolean
 }
 
-export function TimelineGrid({ initialGroups }: Props) {
+export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = true }: Props) {
   const router = useRouter()
   const toast = useToast()
 
@@ -203,6 +209,15 @@ export function TimelineGrid({ initialGroups }: Props) {
   // 빈 상태 early-return 은 반드시 모든 훅 호출 뒤에 둔다. 위쪽에 두면 사진이
   // 0→1 로 바뀌는 순간(신규 가족 첫 업로드) 훅 개수가 달라져 React #310 크래시.
   if (initialGroups.length === 0) {
+    if (!canUpload) {
+      return (
+        <EmptyState
+          icon={ImagePlus}
+          title="아직 올라온 사진이 없어요"
+          description="곧 새로운 사진이 올라올 거예요"
+        />
+      )
+    }
     return (
       <EmptyState
         icon={ImagePlus}
@@ -212,23 +227,46 @@ export function TimelineGrid({ initialGroups }: Props) {
     )
   }
 
+  // "여기까지 봤어요" 디바이더 위치 계산 — 그룹들은 ts desc 로 정렬돼 있고,
+  // 같은 그룹 안의 자산도 ts desc. 즉 "최신 → 오래된" 순. lastSeenAt 이하인
+  // 최초 그룹 인덱스를 찾아 그 앞에 디바이더를 끼운다.
+  //   - lastSeenAt === null → 첫 방문, 디바이더 없음
+  //   - 모든 그룹이 새로움 (boundary === -1) → 디바이더 없음
+  //   - boundary === 0 → 모든 그룹이 봤음, 디바이더 없음(새 게 없음)
+  const lastSeenMs = lastSeenAt ? lastSeenAt.getTime() : null
+  const boundaryIndex =
+    lastSeenMs === null
+      ? -1
+      : initialGroups.findIndex((g) =>
+          g.assets.some((a) => (a.ts ? a.ts.getTime() <= lastSeenMs : false)),
+        )
+  const showDivider = boundaryIndex > 0
+
   return (
     <>
       <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
         {initialGroups.map((g, i) => (
-          <BucketSection
-            key={g.label}
-            label={g.label}
-            ageLabel={g.ageLabel ?? null}
-            dDay={g.dDay ?? null}
-            assets={g.assets}
-            index={i}
-            selectionMode={selectionMode}
-            selected={selected}
-            onLongPress={onLongPress}
-            onTap={onTap}
-            onContextMenu={onContextMenu}
-          />
+          <div key={g.label}>
+            {showDivider && i === boundaryIndex && (
+              <div className="my-6 flex items-center gap-3 px-1">
+                <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
+                <span className="text-[12px] font-medium text-base-400">여기까지 봤어요</span>
+                <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
+              </div>
+            )}
+            <BucketSection
+              label={g.label}
+              ageLabel={g.ageLabel ?? null}
+              dDay={g.dDay ?? null}
+              assets={g.assets}
+              index={i}
+              selectionMode={selectionMode}
+              selected={selected}
+              onLongPress={onLongPress}
+              onTap={onTap}
+              onContextMenu={onContextMenu}
+            />
+          </div>
         ))}
       </div>
 

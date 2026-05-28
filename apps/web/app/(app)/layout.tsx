@@ -1,7 +1,7 @@
 import { BottomNav } from '@/components/shell/bottom-nav'
 import { SideNav } from '@/components/shell/side-nav'
 import { FeaturesProvider } from '@/lib/features'
-import { prismaPublic } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import { getFeatureFlags } from '@/server/settings/features'
 import { redirect } from 'next/navigation'
@@ -21,12 +21,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 
   const features = await getFeatureFlags(prismaPublic)
 
+  // Unread = ready assets in the current family newer than this member's
+  // lastSeenAt. Capped to 100 (badge shows "99+"). First-visit (no
+  // lastSeenAt) intentionally yields 0 — we don't badge "everything is
+  // new" on the very first session.
+  const lastSeen = ctx.membership?.lastSeenAt ?? null
+  const unreadTimeline = lastSeen
+    ? await prismaMedia.asset.count({
+        where: {
+          familyId: ctx.family.id,
+          deletedAt: null,
+          status: 'ready',
+          createdAt: { gt: lastSeen },
+        },
+      })
+    : 0
+
   return (
     <FeaturesProvider value={features}>
       <AppShellClient capabilities={ctx.capabilities}>
         <SideNav familyName={ctx.family.name} />
         <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
-        <BottomNav />
+        <BottomNav unreadCounts={{ '/timeline': unreadTimeline }} />
       </AppShellClient>
     </FeaturesProvider>
   )

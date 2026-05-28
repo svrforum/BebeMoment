@@ -5,6 +5,7 @@ import type { FeatureFlag } from '@bebe/core'
 import { Calendar, Clock4, FolderOpen, NotebookPen, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { UnreadBadge } from './unread-badge'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
 // 자동 조정(아래 visible + gridTemplateColumns). 설정은 /family 페이지 하단의
@@ -17,7 +18,12 @@ const items: { href: string; label: string; icon: typeof Clock4; feature?: Featu
   { href: '/family', label: '가족', icon: Users },
 ]
 
-export function BottomNav() {
+type Props = {
+  /** Optional per-route unread counts. Currently only '/timeline' is used. */
+  unreadCounts?: Record<string, number>
+}
+
+export function BottomNav({ unreadCounts }: Props = {}) {
   const pathname = usePathname()
   const features = useFeatures()
   // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
@@ -31,6 +37,7 @@ export function BottomNav() {
       >
         {visible.map(({ href, label, icon: Icon }) => {
           const active = pathname === href || pathname?.startsWith(`${href}/`) === true
+          const unread = unreadCounts?.[href] ?? 0
           return (
             <Link
               key={href}
@@ -43,7 +50,7 @@ export function BottomNav() {
             >
               <span
                 className={cn(
-                  'flex h-7 w-12 items-center justify-center rounded-full transition-all ease-ios',
+                  'relative flex h-7 w-12 items-center justify-center rounded-full transition-all ease-ios',
                   active ? 'bg-point-500/12 scale-100' : 'bg-transparent scale-95',
                 )}
               >
@@ -54,6 +61,7 @@ export function BottomNav() {
                   )}
                   strokeWidth={active ? 2.4 : 1.9}
                 />
+                {unread > 0 && <UnreadBadge count={unread} />}
               </span>
               <span
                 className={cn(

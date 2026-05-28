@@ -178,14 +178,15 @@ model Family {
 }
 
 model Membership {
-  id        String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  familyId  String    @map("family_id") @db.Uuid
-  userId    String    @map("user_id") @db.Uuid
-  role      Role
-  joinedAt  DateTime  @default(now()) @map("joined_at")
-  createdAt DateTime  @default(now()) @map("created_at")
-  updatedAt DateTime  @updatedAt @map("updated_at")
-  deletedAt DateTime? @map("deleted_at")
+  id         String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId   String    @map("family_id") @db.Uuid
+  userId     String    @map("user_id") @db.Uuid
+  role       Role
+  joinedAt   DateTime  @default(now()) @map("joined_at")
+  createdAt  DateTime  @default(now()) @map("created_at")
+  updatedAt  DateTime  @updatedAt @map("updated_at")
+  deletedAt  DateTime? @map("deleted_at")
+  lastSeenAt DateTime? @map("last_seen_at")
 
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
