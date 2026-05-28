@@ -4,7 +4,10 @@ import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
-import { TransformComponent, TransformWrapper } from 'react-zoom-pan-pinch'
+import { Zoom } from 'swiper/modules'
+import { Swiper, SwiperSlide } from 'swiper/react'
+import 'swiper/css'
+import 'swiper/css/zoom'
 
 type AssetSlim = {
   id: string
@@ -14,21 +17,15 @@ type AssetSlim = {
   posterUrl: string | undefined
 }
 
-// iOS Photos 식 핑거 트랙 카루셀. 세 슬롯(prev/current/next)이 한 트랙에 놓이고,
-// touchmove 가 트랙을 dx 만큼 translate3d. release 시 임계치를 넘으면 그 방향으로
-// 스냅 → router.replace. 줌(>1) 일 때 가로 스와이프는 죽고 rzpp 가 팬을 가져감.
-//
-// 임계치·이징 (iOS Photos 비슷한 느낌):
-//   THRESHOLD_RATIO = 0.25  (뷰포트 25% 이상 끌면 그 방향으로 commit)
-//   SNAP_MS         = 280   (스냅 시간, cubic-bezier(0.32, 0.72, 0, 1))
-//   CLOSE_Y         = 110   (단일터치 + |dy|>|dx| 일 때 닫기 임계치)
-//   RUBBER          = 0.35  (가장자리(prev/next 없음) 러버밴드 감쇠)
-const THRESHOLD_RATIO = 0.25
-const SNAP_MS = 280
-const SNAP_EASING = 'cubic-bezier(0.32, 0.72, 0, 1)'
+// Swiper.js + Zoom module 으로 iOS Photos 식 카루셀. Swiper 가 velocity·momentum·
+// rubber-band·pinch 를 다 가져가고, 우리는 (1) 세로 swipe-down 닫기, (2) 탭 토글
+// 크로미, (3) RSC URL 동기화만 담당. 세 슬롯(prev/current/next)을 한 번에 마운트
+// 하고 가운데(현재)를 active 로 두어 좌/우 어디로 밀어도 즉시 따라옴 → 스냅 종료
+// 시 router.replace 로 URL 만 동기화. 다음 RSC 가 도착하면 새 prev/current/next
+// 가 들어오고 `key={current.id}` 로 Swiper 가 재초기화되어 자연스럽게 중앙 정렬.
 const CLOSE_Y = 110
-const RUBBER = 0.35
 const TAP_SLOP = 8
+const TAP_SUPPRESS_MS = 300
 
 export function ViewerImage({
   current,
@@ -49,16 +46,10 @@ export function ViewerImage({
   onToggleChrome?: () => void
 }) {
   const router = useRouter()
-  const [scale, setScale] = useState(1)
 
   // 스와이프 이동은 replace — push 면 이미지마다 히스토리가 쌓여 닫기(X·뒤로·Esc·
   // 드래그다운=router.back)가 이전 이미지로 가버린다. replace 면 히스토리가
-  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다. View Transition
-  // 은 per-id view-transition-name (asset-{id}) 으로 처리 — 타임라인 썸네일에서
-  // 디테일로 갈 때 같은 id 가 매칭돼 사진이 풀스크린으로 자라는 iOS Photos 식
-  // 전환이 나온다. 디테일↔디테일 형제 이동은 id 가 달라 매칭 없음 → 기본 UA
-  // 크로스페이드(짧고 깔끔). 한 손가락 핑거트랙 스와이프는 트랙 자체가 따라오면서
-  // 보여주므로 페이지 전환 시 시각적 점프가 거의 없다.
+  // [그리드, 현재이미지] 로 유지돼 닫기가 그리드로 정확히 나간다.
   const goNext = useCallback(() => {
     if (siblings.nextId) router.replace(`/detail/${siblings.nextId}`)
   }, [router, siblings.nextId])
@@ -82,9 +73,6 @@ export function ViewerImage({
   const isVideo = current.kind === 'video'
   const noMedia = isVideo ? current.videoSrc === null : trio === null && fallbackUrl === null
 
-  // 줌 ≤ 1 (사실상 1) 일 때만 가로 스와이프 활성. 줌인이면 rzpp 가 팬을 가져감.
-  const swipeEnabled = scale <= 1.01
-
   if (noMedia) {
     return (
       <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
@@ -94,7 +82,7 @@ export function ViewerImage({
   }
 
   // 영상은 카루셀 안에 두지 않는다 — <video controls> 의 제스처(핀치 줌·시크 바)와
-  // 트랙 드래그가 충돌. 단순 SwipeLayer(고정 임계치) 유지.
+  // Swiper 의 슬라이드 드래그가 충돌. 기존 SwipeLayer(고정 임계치) 유지.
   if (isVideo) {
     return (
       <SwipeLayer
@@ -111,402 +99,238 @@ export function ViewerImage({
   }
 
   return (
-    <CarouselViewport
+    <SwiperViewport
       current={current}
       prev={siblings.prev}
       next={siblings.next}
       chromeVisible={chromeVisible}
-      swipeEnabled={swipeEnabled}
       onNext={goNext}
       onPrev={goPrev}
       onClose={goBack}
       onTap={onToggleChrome}
-      onScaleChange={setScale}
     />
   )
 }
 
-function CarouselViewport({
+function SwiperViewport({
   current,
   prev,
   next,
   chromeVisible,
-  swipeEnabled,
   onNext,
   onPrev,
   onClose,
   onTap,
-  onScaleChange,
 }: {
   current: AssetSlim
   prev: AssetSlim | null
   next: AssetSlim | null
   chromeVisible: boolean
-  swipeEnabled: boolean
   onNext: () => void
   onPrev: () => void
   onClose: () => void
   onTap: (() => void) | undefined
-  onScaleChange: (s: number) => void
 }) {
-  const trackRef = useRef<HTMLDivElement>(null)
-  const viewportRef = useRef<HTMLDivElement>(null)
-  // 드래그 상태: ref 로 보관 — setState 로 매 프레임 리렌더하면 사진/줌 노드가
-  // 재마운트되어 핀치/줌이 깨진다. 실제 위치는 직접 style.transform 으로 적용.
-  const drag = useRef<{
+  // 슬라이드 배열 + initialSlide 계산. prev 가 있으면 [prev,current,next] 의 1,
+  // 없으면 [current,next] 의 0. next 가 없어도 마찬가지로 prev 가 있으면 1.
+  const slides: Array<{ slim: AssetSlim; role: 'prev' | 'current' | 'next' }> = []
+  if (prev) slides.push({ slim: prev, role: 'prev' })
+  slides.push({ slim: current, role: 'current' })
+  if (next) slides.push({ slim: next, role: 'next' })
+  const initialSlide = prev ? 1 : 0
+  const currentIndex = initialSlide
+  const hasPrev = !!prev
+  const hasNext = !!next
+
+  // 줌 여부: pinch 또는 double-tap 으로 줌인되면 세로 swipe-down 닫기를 죽인다.
+  const [zoomed, setZoomed] = useState(false)
+
+  // 탭 vs 스와이프 구분: 스와이프 후 합성 click 으로 onTap 이 호출돼 크로미가
+  // 깜빡이는 걸 막기 위한 가드. Swiper 슬라이드 변경/줌 변경 직후 잠시 무시.
+  const suppressTap = useRef(false)
+  const armSuppressTap = useCallback(() => {
+    suppressTap.current = true
+    window.setTimeout(() => {
+      suppressTap.current = false
+    }, TAP_SUPPRESS_MS)
+  }, [])
+
+  const handleSlideChange = useCallback(
+    (swiper: { activeIndex: number }) => {
+      const idx = swiper.activeIndex
+      if (idx === currentIndex) return
+      armSuppressTap()
+      if (idx < currentIndex && hasPrev) onPrev()
+      else if (idx > currentIndex && hasNext) onNext()
+    },
+    [currentIndex, hasPrev, hasNext, onPrev, onNext, armSuppressTap],
+  )
+
+  // 세로 swipe-down 닫기 — Swiper 가 가져가지 않는 vertical 단일터치만 추적.
+  // 가로/핀치/줌 상태에선 즉시 포기.
+  const dragRef = useRef<{
     startX: number
     startY: number
     dx: number
     dy: number
     active: boolean
-    multi: boolean
     moved: boolean
-    axis: 'none' | 'h' | 'v'
-    viewportWidth: number
-  }>({
-    startX: 0,
-    startY: 0,
-    dx: 0,
-    dy: 0,
-    active: false,
-    multi: false,
-    moved: false,
-    axis: 'none',
-    viewportWidth: 0,
-  })
-  // 스와이프 직후 합성 click(onTap=크롬 토글) 가드.
-  const suppressTap = useRef(false)
-  // 핸들러는 mount 1회. 콜백·enabled 는 ref 로 매번 갱신.
-  const cfg = useRef({
-    swipeEnabled,
-    onNext,
-    onPrev,
-    onClose,
-    onTap,
-    hasPrev: !!prev,
-    hasNext: !!next,
-  })
-  cfg.current = {
-    swipeEnabled,
-    onNext,
-    onPrev,
-    onClose,
-    onTap,
-    hasPrev: !!prev,
-    hasNext: !!next,
-  }
+    multi: boolean
+  } | null>(null)
 
-  const setTrackTransform = useCallback((dx: number, withTransition: boolean) => {
-    const el = trackRef.current
-    if (!el) return
-    el.style.transition = withTransition ? `transform ${SNAP_MS}ms ${SNAP_EASING}` : 'none'
-    // 트랙은 300% width — `-100%/3` 가 정확히 1 슬롯(= 1 뷰포트) 좌측 이동.
-    // 잘못된 `-100%` 는 트랙 전체 폭(=3 뷰포트) 만큼 밀어 화면 밖으로 사라지게 한다.
-    el.style.transform = `translate3d(calc(-100% / 3 + ${dx}px), 0, 0)`
+  const onTouchStart = useCallback((e: React.TouchEvent) => {
+    if (e.touches.length > 1) {
+      dragRef.current = null
+      return
+    }
+    const t = e.touches[0]
+    if (!t) return
+    dragRef.current = {
+      startX: t.clientX,
+      startY: t.clientY,
+      dx: 0,
+      dy: 0,
+      active: true,
+      moved: false,
+      multi: false,
+    }
   }, [])
 
-  // current.id 가 바뀌면(스냅 후 router.replace 의 다음 페이지 RSC 가 도착) 트랙을
-  // 즉시 중앙(dx=0)으로 리셋. 새 페이지의 prev/current/next 가 자연스러운 0 위치에
-  // 정렬됨 → 시각적 점프 없음. biome 은 setTrackTransform 의 안정성을 보고 current.id
-  // 가 "불필요" 하다고 보지만 실제로 우리는 id 변경을 트리거로 쓴다.
-  // biome-ignore lint/correctness/useExhaustiveDependencies: current.id 변경이 이 이펙트의 트리거. setTrackTransform 은 stable.
-  useEffect(() => {
-    setTrackTransform(0, false)
-    drag.current.dx = 0
-    drag.current.dy = 0
-    drag.current.axis = 'none'
-    drag.current.active = false
-  }, [current.id, setTrackTransform])
-
-  useEffect(() => {
-    const el = viewportRef.current
-    if (!el) return
-
-    const onStart = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        drag.current.multi = true
-        drag.current.active = false
-        drag.current.axis = 'none'
-        // 핀치 시작 시 진행 중이던 가로 드래그 즉시 원위치(이펙트 없이).
-        setTrackTransform(0, false)
-        drag.current.dx = 0
-        drag.current.dy = 0
-        return
-      }
-      drag.current.multi = false
-      const t = e.touches[0]
-      if (!t) return
-      drag.current.startX = t.clientX
-      drag.current.startY = t.clientY
-      drag.current.dx = 0
-      drag.current.dy = 0
-      drag.current.axis = 'none'
-      drag.current.moved = false
-      drag.current.active = true
-      drag.current.viewportWidth = el.clientWidth
+  const onTouchMove = useCallback((e: React.TouchEvent) => {
+    const d = dragRef.current
+    if (!d) return
+    if (e.touches.length > 1) {
+      d.multi = true
+      d.active = false
+      return
     }
-
-    const onMove = (e: TouchEvent) => {
-      if (e.touches.length > 1) {
-        if (drag.current.active) {
-          setTrackTransform(0, false)
-          drag.current.active = false
-        }
-        drag.current.multi = true
-        return
-      }
-      if (!drag.current.active) return
-      const t = e.touches[0]
-      if (!t) return
-      const dx = t.clientX - drag.current.startX
-      const dy = t.clientY - drag.current.startY
-      if (drag.current.axis === 'none' && (Math.abs(dx) > TAP_SLOP || Math.abs(dy) > TAP_SLOP)) {
-        drag.current.moved = true
-        drag.current.axis = Math.abs(dx) > Math.abs(dy) ? 'h' : 'v'
-      }
-      drag.current.dx = dx
-      drag.current.dy = dy
-      // 줌 상태면 가로 트랙 이동 정지(rzpp 가 팬). 다만 세로 닫기 제스처는 줌 ≤1
-      // 일 때만 의미 있어서 그쪽도 트랙은 안 움직임.
-      if (!cfg.current.swipeEnabled) return
-      if (drag.current.axis !== 'h') return
-      // 가장자리 러버밴드: prev 없는 상태에서 오른쪽으로 끌거나, next 없는 상태에서
-      // 왼쪽으로 끌면 1차 감쇠. (iOS Photos 와 동일 — 끌리긴 끌리지만 잘 안 따라옴.)
-      let applied = dx
-      if (dx > 0 && !cfg.current.hasPrev) applied = dx * RUBBER
-      else if (dx < 0 && !cfg.current.hasNext) applied = dx * RUBBER
-      setTrackTransform(applied, false)
+    const t = e.touches[0]
+    if (!t) return
+    d.dx = t.clientX - d.startX
+    d.dy = t.clientY - d.startY
+    if (!d.moved && (Math.abs(d.dx) > TAP_SLOP || Math.abs(d.dy) > TAP_SLOP)) {
+      d.moved = true
     }
+  }, [])
 
-    const onEnd = (e: TouchEvent) => {
-      const wasMulti = drag.current.multi
-      if (wasMulti) {
-        if (e.touches.length === 0) drag.current.multi = false
-        // 핀치 종료 — rzpp 에 맡김.
-        return
-      }
-      if (!drag.current.active) return
-      drag.current.active = false
-      // 탭(움직임 없음): 합성 click 이 onTap 처리.
-      if (!drag.current.moved) return
-      // 스와이프 직후 따라오는 합성 click 은 무시(크롬이 깜빡임).
-      suppressTap.current = true
-      window.setTimeout(() => {
-        suppressTap.current = false
-      }, 350)
-
-      const c = cfg.current
-      const { axis, dx, dy, viewportWidth } = drag.current
-
-      // 줌 상태에서는 가로 스와이프 무시(rzpp 가 다 가져감).
-      if (!c.swipeEnabled) {
-        setTrackTransform(0, false)
-        return
-      }
-
-      // 세로(아래로) 닫기 — 단일터치 + dy > 110 + |dy|>|dx|.
-      if (axis === 'v') {
-        if (dy > CLOSE_Y) {
-          c.onClose()
-          return
-        }
-        setTrackTransform(0, true)
-        return
-      }
-
-      // 가로 — 25% 임계치.
-      if (axis === 'h') {
-        const threshold = viewportWidth * THRESHOLD_RATIO
-        if (dx <= -threshold && c.hasNext) {
-          // next 로 스냅. 트랙을 한 슬롯 더(=-1슬롯) 왼쪽으로 슬라이드 → next 가 0 으로.
-          // 트랙 transform 식: translate3d(calc(-100% + dx), 0, 0).
-          // -1슬롯 위치 = translate3d(-200%, 0, 0) = dx = -viewportWidth.
-          setTrackTransform(-viewportWidth, true)
-          // 스냅 종료에 맞춰 router.replace. 새 페이지 RSC 가 도착하면 current.id 가
-          // 바뀌고 위의 useEffect 가 트랙을 0 으로 리셋 — 시각적 점프 없음.
-          c.onNext()
-          return
-        }
-        if (dx >= threshold && c.hasPrev) {
-          setTrackTransform(viewportWidth, true)
-          c.onPrev()
-          return
-        }
-        // 임계 미만 → 중앙으로 스프링 백.
-        setTrackTransform(0, true)
-        return
-      }
-
-      // axis === 'none' (살짝만 움직임) → 그냥 리셋.
-      setTrackTransform(0, true)
+  const onTouchEnd = useCallback(() => {
+    const d = dragRef.current
+    dragRef.current = null
+    if (!d?.active || !d.moved || d.multi) return
+    armSuppressTap()
+    // 줌 상태에서는 닫기 제스처 무시(Swiper Zoom 의 팬과 충돌).
+    if (zoomed) return
+    // 세로(아래) 닫기 — |dy| > |dx| && dy > CLOSE_Y. 가로 우세면 Swiper 가 처리.
+    if (Math.abs(d.dy) > Math.abs(d.dx) && d.dy > CLOSE_Y) {
+      onClose()
     }
-
-    // §17 #19 vaul 안에서 transform 컨테이닝 이슈는 여기 직접 영향 없음(detail
-    // 페이지는 vaul 시트 안에 살지 않는다) — 단, rzpp 가 자기 노드에서 touch 이벤트
-    // 에 stopPropagation 을 걸어 React 합성 핸들러가 안 불리는 케이스가 있어
-    // **capture 단계 네이티브 리스너** 로 단다. 우리는 stopPropagation/preventDefault
-    // 를 하지 않으므로 rzpp 의 줌/팬도 그대로 동작.
-    const opts: AddEventListenerOptions = { capture: true, passive: true }
-    el.addEventListener('touchstart', onStart, opts)
-    el.addEventListener('touchmove', onMove, opts)
-    el.addEventListener('touchend', onEnd, opts)
-    el.addEventListener('touchcancel', onEnd, opts)
-    return () => {
-      el.removeEventListener('touchstart', onStart, opts)
-      el.removeEventListener('touchmove', onMove, opts)
-      el.removeEventListener('touchend', onEnd, opts)
-      el.removeEventListener('touchcancel', onEnd, opts)
-    }
-  }, [setTrackTransform])
-
-  // 트랙 초기 transform: -100%/3 (slot 0 = prev 가 화면 왼쪽 밖, current 가 화면 안,
-  // next 가 화면 오른쪽 밖). 트랙 폭이 300% 이므로 `-100%/3` 가 정확히 한 슬롯
-  // (= 1 뷰포트) 만큼 좌측 이동.
-  const initialTrackStyle: CSSProperties = {
-    transform: 'translate3d(calc(-100% / 3), 0, 0)',
-    touchAction: 'pan-y',
-    userSelect: 'none',
-    WebkitUserSelect: 'none',
-    overscrollBehavior: 'contain',
-  }
+  }, [zoomed, onClose, armSuppressTap])
 
   return (
     <div
-      ref={viewportRef}
       onClick={() => {
-        if (!suppressTap.current) cfg.current.onTap?.()
+        if (!suppressTap.current) onTap?.()
       }}
-      // h-screen + dynamic top/bottom padding so the photo fits BETWEEN the
-      // top bar and (mobile) action bar when chrome is showing — no overlap.
-      // Tap to hide chrome → padding collapses smoothly → image expands.
-      // Desktop has no bottom action bar, so pb collapses there (md:pb-0).
+      onTouchStart={onTouchStart}
+      onTouchMove={onTouchMove}
+      onTouchEnd={onTouchEnd}
+      onTouchCancel={() => {
+        dragRef.current = null
+      }}
+      // h-screen + dynamic top/bottom padding so the photo fits BETWEEN the top
+      // bar and (mobile) action bar when chrome is showing. Desktop has no
+      // bottom action bar (md:pb-0).
       className={`relative h-screen w-full overflow-hidden transition-[padding] duration-200 ease-out ${
         chromeVisible
           ? 'pt-[calc(env(safe-area-inset-top)+56px)] pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-0'
           : 'pt-0 pb-0'
       }`}
     >
-      {/* 카루셀 트랙 — width: 300%, 세 슬롯이 각각 33.33% (=1 viewport). */}
-      <div
-        ref={trackRef}
-        className="flex h-full w-[300%] will-change-transform"
-        style={initialTrackStyle}
+      <Swiper
+        // current.id 가 바뀌면(다음 RSC 도착) Swiper 를 재초기화 — 새 prev/current/next
+        // 가 자연스럽게 중앙 정렬되어 시각적 점프 없음.
+        key={current.id}
+        modules={[Zoom]}
+        initialSlide={initialSlide}
+        slidesPerView={1}
+        spaceBetween={0}
+        speed={300}
+        resistance={true}
+        resistanceRatio={0.5}
+        threshold={5}
+        zoom={{ maxRatio: 4, minRatio: 1, toggle: true }}
+        onSlideChange={handleSlideChange}
+        onZoomChange={(_s, scale) => setZoomed(scale > 1.01)}
+        className="h-full w-full"
+        style={{ height: '100%', width: '100%' }}
       >
-        <CarouselSlot slim={prev} slot="prev" />
-        <CarouselSlot slim={current} slot="current" onScaleChange={onScaleChange} />
-        <CarouselSlot slim={next} slot="next" />
-      </div>
+        {slides.map(({ slim, role }) => (
+          <SwiperSlide
+            key={slim.id}
+            zoom
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+            }}
+          >
+            <SlideContent slim={slim} isCurrent={role === 'current'} />
+          </SwiperSlide>
+        ))}
+      </Swiper>
     </div>
   )
 }
 
-function CarouselSlot({
-  slim,
-  slot,
-  onScaleChange,
-}: {
-  slim: AssetSlim | null
-  slot: 'prev' | 'current' | 'next'
-  onScaleChange?: (s: number) => void
-}) {
-  // 각 슬롯은 정확히 33.33% (= 1 viewport 너비) 차지.
-  const slotClass = 'flex h-full w-1/3 shrink-0 items-center justify-center'
-
-  if (!slim) {
-    // 가장자리(없는 슬롯) — 검은 빈 영역. 러버밴드 드래그 시 살짝 보임.
-    return <div className={slotClass} />
-  }
-
+function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean }) {
   const trio = pickDisplayTrio(slim.urls)
   const fallbackUrl = pickDisplayUrl(slim.urls)
   const blurhash = pickBlurhash(slim.urls)
   const isVideo = slim.kind === 'video'
 
-  // 영상 슬롯은 포스터만 보여줌(prev/next 위치) — 실 재생은 navigate 후 ViewerImage
-  // 의 video 분기에서. slot='current' 에서 video 가 들어오는 경우는 ViewerImage 의
-  // 영상 분기로 일찍 빠져서 여기 안 옴.
+  // 영상 슬롯은 포스터만 보여줌(prev/next 위치). 실제 재생은 navigate 후 ViewerImage
+  // 의 video 분기에서. current 가 video 면 ViewerImage 의 영상 분기로 일찍 빠져서
+  // 여기 안 옴.
   if (isVideo) {
-    if (!slim.posterUrl) return <div className={slotClass} />
+    if (!slim.posterUrl) return <div className="h-full w-full" />
     return (
-      <div className={slotClass}>
-        <img
-          src={slim.posterUrl}
-          alt=""
-          className="max-h-full max-w-full"
-          style={{ objectFit: 'contain' }}
-        />
-      </div>
+      <img
+        src={slim.posterUrl}
+        alt=""
+        className="max-h-full max-w-full"
+        style={{ objectFit: 'contain' }}
+      />
     )
   }
 
-  // prev / next 는 미리 깔린 placeholder + 이미지(eager). loading=eager 로 두면
-  // 시트가 열리는 그 순간 픽셀이 이미 거기 있어서 swipe 가 매끄러움.
-  if (slot !== 'current') {
-    return (
-      <div className={slotClass}>
-        <PictureImage
-          trio={trio}
-          fallbackUrl={fallbackUrl}
-          alt=""
-          dominantColor={slim.urls?.dominantColor ?? null}
-          blurhash={blurhash}
-          aspectRatio={slim.urls?.aspectRatio ?? null}
-          loading="eager"
-          fetchPriority="low"
-          objectFit="contain"
-          className="max-h-full max-w-full"
-        />
-      </div>
-    )
-  }
+  // current 만 view-transition-name 부여 — 타임라인 썸네일(같은 asset-{id})에서
+  // 풀스크린 이미지로 매칭돼 자라는 iOS Photos 식 morph. 형제 이동은 id 가 달라
+  // 매칭 없음 → 기본 UA crossfade. (Swiper 내부 DOM 이 슬라이드를 transform 으로
+  // 움직여 view-transition-name 매칭은 슬라이드 진입/이탈 시 제한적일 수 있음 —
+  // 다만 타임라인 → 디테일 초진입에는 영향 없음.)
+  const style: CSSProperties | undefined = isCurrent
+    ? ({ viewTransitionName: `asset-${slim.id}` } as CSSProperties)
+    : undefined
 
-  // current 슬롯 — TransformWrapper 로 줌/핀치/팬. view-transition-name 도 여기.
   return (
-    <div className={slotClass}>
-      <TransformWrapper
-        minScale={1}
-        maxScale={4}
-        doubleClick={{ mode: 'zoomIn', step: 1.5 }}
-        wheel={{ step: 0.2 }}
-        onTransform={(_ref, state) => onScaleChange?.(state.scale)}
-      >
-        <TransformComponent
-          wrapperStyle={{ width: '100%', height: '100%' }}
-          // Flex-center the image inside so it stays centered when the parent
-          // shrinks (chrome-visible padding) — default content alignment was
-          // top-left, which made the photo left-justify as the area shrank.
-          contentStyle={{
-            width: '100%',
-            height: '100%',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-          }}
-        >
-          <PictureImage
-            trio={trio}
-            fallbackUrl={fallbackUrl}
-            alt=""
-            dominantColor={slim.urls?.dominantColor ?? null}
-            blurhash={blurhash}
-            aspectRatio={slim.urls?.aspectRatio ?? null}
-            loading="eager"
-            fetchPriority="high"
-            objectFit="contain"
-            className="max-h-full max-w-full"
-            // per-id name → 타임라인 썸네일(같은 asset-{id})에서 풀스크린 이미지로
-            // 매칭돼 자라는 iOS Photos 식 morph. 디테일↔디테일 형제 이동은 id 가
-            // 다르므로 매칭 없음 → 기본 UA crossfade. (핑거 트랙 스와이프 자체는
-            // CSS transform 으로 이미 매끄러우므로 view transition 없이도 OK.)
-            style={{ viewTransitionName: `asset-${slim.id}` } as CSSProperties}
-          />
-        </TransformComponent>
-      </TransformWrapper>
-    </div>
+    <PictureImage
+      trio={trio}
+      fallbackUrl={fallbackUrl}
+      alt=""
+      dominantColor={slim.urls?.dominantColor ?? null}
+      blurhash={blurhash}
+      aspectRatio={slim.urls?.aspectRatio ?? null}
+      loading="eager"
+      fetchPriority={isCurrent ? 'high' : 'low'}
+      objectFit="contain"
+      className="max-h-full max-w-full"
+      {...(style ? { style } : {})}
+    />
   )
 }
 
-// 영상용 단순 SwipeLayer — 영상은 <video controls> 의 제스처와 핑거트랙이 충돌해
+// 영상용 단순 SwipeLayer — 영상은 <video controls> 의 제스처와 Swiper 가 충돌해
 // 카루셀 밖에 둠. 기존 detect-then-navigate 거동 그대로.
 const SWIPE_X = 60
 const TAP_SLOP_V = 8

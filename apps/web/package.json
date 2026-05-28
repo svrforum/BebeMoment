@@ -50,6 +50,7 @@
     "recharts": "^3.8.1",
     "rehype-sanitize": "^6.0.0",
     "serwist": "^9.5.7",
+    "swiper": "^12.2.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4",
     "vaul": "^1.1.2",
