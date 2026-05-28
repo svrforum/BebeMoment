@@ -1,6 +1,7 @@
 package im.bebe.app;
 
 import android.Manifest;
+import android.app.DownloadManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -8,6 +9,12 @@ import android.content.pm.PackageManager;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
+import android.webkit.CookieManager;
+import android.webkit.DownloadListener;
+import android.webkit.URLUtil;
+import android.webkit.WebView;
+import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
@@ -22,6 +29,65 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
+        setupDownloadListener();
+    }
+
+    /**
+     * Capacitor WebView 는 기본적으로 `<a download>` / Content-Disposition: attachment
+     * 응답을 무시한다 (브라우저가 아니라 앱이라서) — DownloadListener 를 직접 붙여
+     * Android DownloadManager 로 넘긴다. 세션 쿠키도 CookieManager 에서 가져와
+     * Cookie 헤더로 전달해야 인증된 미디어 다운로드가 동작.
+     */
+    private void setupDownloadListener() {
+        if (getBridge() == null) return;
+        final WebView wv = getBridge().getWebView();
+        if (wv == null) return;
+        wv.setDownloadListener(new DownloadListener() {
+            @Override
+            public void onDownloadStart(
+                String url,
+                String userAgent,
+                String contentDisposition,
+                String mimeType,
+                long contentLength
+            ) {
+                enqueueDownload(url, userAgent, contentDisposition, mimeType);
+            }
+        });
+    }
+
+    private void enqueueDownload(
+        String url,
+        String userAgent,
+        String contentDisposition,
+        String mimeType
+    ) {
+        try {
+            final String filename = URLUtil.guessFileName(url, contentDisposition, mimeType);
+            final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+            // 같은 WebView 가 세션 쿠키를 들고 있으니 그대로 헤더에 실어 보내야
+            // 인증이 필요한 /api/asset/.../download 같은 사설 경로도 통과한다.
+            final String cookies = CookieManager.getInstance().getCookie(url);
+            if (cookies != null) req.addRequestHeader("Cookie", cookies);
+            if (userAgent != null) req.addRequestHeader("User-Agent", userAgent);
+            req.setNotificationVisibility(
+                DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
+            );
+            req.setDestinationInExternalPublicDir(Environment.DIRECTORY_DOWNLOADS, filename);
+            if (mimeType != null) req.setMimeType(mimeType);
+            req.allowScanningByMediaScanner();
+
+            final DownloadManager dm =
+                (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+            if (dm == null) {
+                Toast.makeText(MainActivity.this, "다운로드를 시작할 수 없어요", Toast.LENGTH_SHORT).show();
+                return;
+            }
+            dm.enqueue(req);
+            Toast.makeText(MainActivity.this, "다운로드를 시작했어요", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(MainActivity.this, "다운로드 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     @Override

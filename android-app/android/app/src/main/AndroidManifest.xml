@@ -48,4 +48,12 @@
 
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!--
+      DownloadManager 가 Android 9 이하에서 외부 저장소 Downloads 폴더에 파일을
+      저장하려면 WRITE_EXTERNAL_STORAGE 가 필요. Android 10+ 부터는 scoped storage
+      덕에 권한 없이 동작 → maxSdkVersion=28 로 새 기기에서는 요청 안 함.
+    -->
+    <uses-permission
+        android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
 </manifest>
