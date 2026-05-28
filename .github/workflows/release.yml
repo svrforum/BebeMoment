@@ -85,14 +85,24 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: '20'
+          cache: npm
+          cache-dependency-path: android-app/package-lock.json
       - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
+      - uses: gradle/actions/setup-gradle@v4
       - name: App version from tag
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
-          printf 'versionName=%s\nversionCode=%s\n' "$VERSION" "${GITHUB_RUN_NUMBER}" \
+          # Derive a monotonic versionCode from the semver tag (vMAJOR.MINOR.PATCH).
+          # Format: MAJOR*10000 + MINOR*100 + PATCH. Pre-release suffixes are
+          # stripped (e.g. v1.2.3-rc.1 → 1.2.3 → 10203).
+          CORE="${VERSION%%-*}"
+          IFS='.' read -r MAJOR MINOR PATCH <<<"$CORE"
+          : "${MAJOR:=0}"; : "${MINOR:=0}"; : "${PATCH:=0}"
+          VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
+          printf 'versionName=%s\nversionCode=%s\n' "$VERSION" "$VERSION_CODE" \
             > android-app/android/version.properties
           cat android-app/android/version.properties
       - name: Write signing config from secrets
@@ -100,14 +110,20 @@ jobs:
           KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
         run: |
-          KS_PATH="$GITHUB_WORKSPACE/android-app/android/bebe-release.jks"
+          KS_PATH="$RUNNER_TEMP/bebe-release.jks"
           printf '%s' "$KS_B64" | base64 -d > "$KS_PATH"
           {
             echo "storeFile=$KS_PATH"
             echo "storePassword=$KS_PASS"
             echo "keyAlias=bebe"
             echo "keyPassword=$KS_PASS"
-          } > android-app/android/keystore.properties
+          } > "$RUNNER_TEMP/keystore.properties"
+          # Symlink the properties file to where build.gradle expects it
+          # (rootProject.file('keystore.properties') = android-app/android/).
+          # Using a symlink (not a copy) means cleanup of the temp file
+          # invalidates this reference too.
+          ln -sf "$RUNNER_TEMP/keystore.properties" \
+            "$GITHUB_WORKSPACE/android-app/android/keystore.properties"
       - name: Build signed release APK
         working-directory: android-app
         run: |
@@ -120,13 +136,18 @@ jobs:
           mkdir -p dist
           cp android-app/android/app/build/outputs/apk/release/app-release.apk \
             "dist/bebe-${GITHUB_REF_NAME}.apk"
+      - name: Clean up signing secrets
+        if: always()
+        run: |
+          rm -f "$RUNNER_TEMP/bebe-release.jks" "$RUNNER_TEMP/keystore.properties"
+          rm -f "$GITHUB_WORKSPACE/android-app/android/keystore.properties"
       - uses: actions/upload-artifact@v4
         with:
           name: bebe-apk
           path: dist/*.apk
 
   release:
-    needs: [android]
+    needs: [build, android]
     runs-on: ubuntu-latest
     steps:
       - uses: actions/download-artifact@v4
