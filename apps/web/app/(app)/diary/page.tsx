@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { DiaryDateFilter } from '@/components/diary/diary-date-filter'
 import { DiaryCard } from '@/components/timeline/diary-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SearchBox } from '@/components/ui/search-box'
@@ -31,21 +32,31 @@ function groupByMonth(items: Entry[]): { label: string; entries: Entry[] }[] {
 export default async function DiaryPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>
+  searchParams: Promise<{ q?: string; date?: string }>
 }) {
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
-  const { q } = await searchParams
+  const { q, date } = await searchParams
   const query = typeof q === 'string' && q.trim() ? q.trim() : undefined
+  const dateFilter =
+    typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date.trim()) ? date.trim() : undefined
 
   const { items } = await listDiaryEntries(
     ctx.family.id,
-    { limit: 50, viewerRole: ctx.membership?.role ?? 'family', ...(query ? { q: query } : {}) },
+    {
+      limit: 50,
+      viewerRole: ctx.membership?.role ?? 'family',
+      ...(query ? { q: query } : {}),
+      ...(dateFilter ? { date: dateFilter } : {}),
+    },
     prismaPublic,
     prismaMedia,
     getMediaClient(),
   )
   const groups = groupByMonth(items)
+  const emptyDescription = [query ? `"${query}"` : null, dateFilter ?? null]
+    .filter(Boolean)
+    .join(' · ')
 
   return (
     <>
@@ -63,13 +74,16 @@ export default async function DiaryPage({
         }
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
-        <div className="mb-4">
-          <SearchBox placeholder="날짜·내용으로 검색 (예: 2026-05, 첫걸음)" />
+        <div className="mb-4 flex items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <SearchBox placeholder="스토리 검색 (제목·내용)" />
+          </div>
+          <DiaryDateFilter />
         </div>
 
         {items.length === 0 ? (
-          query ? (
-            <EmptyState icon={Search} title="검색 결과가 없어요" description={`"${query}"`} />
+          query || dateFilter ? (
+            <EmptyState icon={Search} title="검색 결과가 없어요" description={emptyDescription} />
           ) : (
             <EmptyState
               icon={BookOpen}

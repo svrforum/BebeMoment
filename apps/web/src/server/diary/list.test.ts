@@ -124,6 +124,140 @@ describe('listDiaryEntries', () => {
     expect(items[0]?.body).toBe('for-b1')
   })
 
+  it('filters by text (q) across title and body', async () => {
+    const { user, family, baby } = await setup()
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        title: '첫걸음',
+        body: 'A',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-02',
+        body: '첫걸음을 떼었다',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-03',
+        body: '아무 말',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const { items } = await listDiaryEntries(
+      family.id,
+      { q: '첫걸음' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(items).toHaveLength(2)
+    // Pure text query — date-shaped strings no longer leak into entryDate.
+    const { items: noisy } = await listDiaryEntries(
+      family.id,
+      { q: '2026-04-01' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(noisy).toHaveLength(0)
+  })
+
+  it('filters by date (UTC day) via explicit date param', async () => {
+    const { user, family, baby } = await setup()
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: 'on-1',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-02',
+        body: 'on-2',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const { items } = await listDiaryEntries(
+      family.id,
+      { date: '2026-04-01' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(items.map((e) => e.body)).toEqual(['on-1'])
+  })
+
+  it('combines q and date as AND', async () => {
+    const { user, family, baby } = await setup()
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '첫걸음',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-02',
+        body: '첫걸음',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createDiaryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: 'other',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const { items } = await listDiaryEntries(
+      family.id,
+      { q: '첫걸음', date: '2026-04-01' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(items.map((e) => e.body)).toEqual(['첫걸음'])
+  })
+
   it('paginates via cursor', async () => {
     const { user, family, baby } = await setup()
     for (let i = 0; i < 5; i += 1) {

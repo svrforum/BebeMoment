@@ -18,12 +18,16 @@ export async function GET(req: Request) {
   const url = new URL(req.url)
   const babyId = url.searchParams.get('babyId') ?? undefined
   const cursor = url.searchParams.get('cursor') ?? undefined
+  const q = url.searchParams.get('q')?.trim() || undefined
+  const date = url.searchParams.get('date')?.trim() || undefined
   const limit = Number(url.searchParams.get('limit') ?? '20')
   const page = await listDiaryEntries(
     ctx.family.id,
     {
       ...(babyId ? { babyId } : {}),
       ...(cursor ? { cursor } : {}),
+      ...(q ? { q } : {}),
+      ...(date ? { date } : {}),
       limit,
       viewerRole: ctx.membership?.role ?? 'family',
     },

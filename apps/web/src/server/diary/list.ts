@@ -16,39 +16,32 @@ function decodeCursor(s: string): Cursor | null {
   return null
 }
 
-/**
- * Free-text search filter: a date-like query (YYYY, YYYY-MM, YYYY-MM-DD with
- * - . or /) filters by entryDate range; anything else matches title/body
- * (case-insensitive). UTC day boundaries (entryDate = wall-clock-as-UTC).
- */
-function searchFilter(qRaw: string) {
+/** Free-text filter — case-insensitive ILIKE across title and body. */
+function textFilter(qRaw: string) {
   const q = qRaw.trim()
   if (!q) return {}
-  const m = q.match(/^(\d{4})(?:[-./](\d{1,2}))?(?:[-./](\d{1,2}))?$/)
-  if (m) {
-    const year = Number(m[1])
-    const month = m[2] ? Number(m[2]) - 1 : null
-    const day = m[3] ? Number(m[3]) : null
-    let start: Date
-    let end: Date
-    if (month === null) {
-      start = new Date(Date.UTC(year, 0, 1))
-      end = new Date(Date.UTC(year + 1, 0, 1))
-    } else if (day === null) {
-      start = new Date(Date.UTC(year, month, 1))
-      end = new Date(Date.UTC(year, month + 1, 1))
-    } else {
-      start = new Date(Date.UTC(year, month, day))
-      end = new Date(Date.UTC(year, month, day + 1))
-    }
-    return { entryDate: { gte: start, lt: end } }
-  }
   return {
     OR: [
       { body: { contains: q, mode: 'insensitive' as const } },
       { title: { contains: q, mode: 'insensitive' as const } },
     ],
   }
+}
+
+/**
+ * Date filter — narrows entryDate to a single UTC day (entryDate is stored as
+ * wall-clock-as-UTC; see CLAUDE.md §17). Accepts `YYYY-MM-DD`.
+ */
+function dateFilter(dateRaw: string) {
+  const m = dateRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
+  if (!m) return {}
+  const year = Number(m[1])
+  const month = Number(m[2]) - 1
+  const day = Number(m[3])
+  const start = new Date(Date.UTC(year, month, day))
+  const end = new Date(Date.UTC(year, month, day + 1))
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return {}
+  return { entryDate: { gte: start, lt: end } }
 }
 
 export async function listDiaryEntries(
@@ -58,6 +51,7 @@ export async function listDiaryEntries(
     cursor?: string
     limit?: number
     q?: string
+    date?: string
     viewerRole?: 'owner' | 'guardian' | 'family'
   },
   prismaPublic: PrismaPublic,
@@ -78,7 +72,8 @@ export async function listDiaryEntries(
       // guardians-only entries are hidden from the `family` role
       ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
       ...(params.babyId !== undefined ? { babyId: params.babyId } : {}),
-      ...(params.q ? searchFilter(params.q) : {}),
+      ...(params.q ? textFilter(params.q) : {}),
+      ...(params.date ? dateFilter(params.date) : {}),
       ...(cursorTs && cur
         ? {
             OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
