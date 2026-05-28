@@ -6,6 +6,7 @@ import { moveAlbum } from '@/server/album/move'
 import { updateAlbum } from '@/server/album/update'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { NextResponse } from 'next/server'
 
 async function getCtx() {
@@ -47,6 +48,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if (!(await isFeatureEnabled('albums', prismaPublic)))
+    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
   try {
     const { id } = await params
     const body = (await req.json()) as {
@@ -115,6 +118,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
   if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if (!(await isFeatureEnabled('albums', prismaPublic)))
+    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
   try {
     const { id } = await params
     const url = new URL(req.url)

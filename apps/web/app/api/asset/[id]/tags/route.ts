@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { attachTagsToAsset } from '@/server/tag/attach'
 import { createOrGetTag } from '@/server/tag/create'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
@@ -37,6 +38,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isFeatureEnabled('tags', prismaPublic)))
+    return NextResponse.json({ error: '태그 기능이 꺼져 있어요' }, { status: 403 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,

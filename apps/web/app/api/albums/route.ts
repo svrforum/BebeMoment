@@ -4,6 +4,7 @@ import { createAlbum } from '@/server/album/create'
 import { listAlbums } from '@/server/album/list'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
@@ -32,6 +33,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isFeatureEnabled('albums', prismaPublic)))
+    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,

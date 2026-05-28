@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { toHttpError } from '@/server/error'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { createOrGetTag } from '@/server/tag/create'
 import { listTagsWithCounts } from '@/server/tag/list'
 import { NextResponse } from 'next/server'
@@ -28,6 +29,8 @@ export async function GET() {
 export async function POST(req: Request) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isFeatureEnabled('tags', prismaPublic)))
+    return NextResponse.json({ error: '태그 기능이 꺼져 있어요' }, { status: 403 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,

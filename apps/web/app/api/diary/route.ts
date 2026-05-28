@@ -4,6 +4,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { createDiaryEntry } from '@/server/diary/create'
 import { listDiaryEntries } from '@/server/diary/list'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
@@ -36,6 +37,8 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!(await isFeatureEnabled('diary', prismaPublic)))
+    return NextResponse.json({ error: '스토리 기능이 꺼져 있어요' }, { status: 403 })
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
