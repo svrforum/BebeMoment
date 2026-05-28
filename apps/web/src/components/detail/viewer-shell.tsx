@@ -41,7 +41,12 @@ export function ViewerShell({
   initialCaption,
 }: {
   current: AssetSlim
-  siblings: { prevId: string | undefined; nextId: string | undefined }
+  siblings: {
+    prevId: string | undefined
+    nextId: string | undefined
+    prev: AssetSlim | null
+    next: AssetSlim | null
+  }
   currentUserId: string
   canDeleteAny: boolean
   canDelete: boolean

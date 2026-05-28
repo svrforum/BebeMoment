@@ -47,6 +47,10 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
         OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
       },
       orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
+      // Carousel swipe needs enough metadata to build an AssetSlim — id alone
+      // would force a fetch on each navigation. Keep the select tight so we
+      // don't pull caption/exifRaw blobs we won't use.
+      select: { id: true, kind: true },
     }),
     prismaMedia.asset.findFirst({
       where: {
@@ -56,6 +60,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
         OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
       },
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
+      select: { id: true, kind: true },
     }),
     likersForAsset(ctx.family.id, asset.id, prismaPublic),
     listComments(ctx.family.id, asset.id, prismaPublic),
@@ -87,6 +92,33 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
   const babies = babyRows.map((b) => ({ id: b.id, name: b.name }))
 
+  // Carousel adjacent slots: batch-sign prev/next URLs so they can pre-render
+  // edging in during the finger swipe (no flash on snap). Both `findFirst`s
+  // already filter `status: 'ready'`, so URLs are safe to request.
+  const adjIds = [prevAsset?.id, nextAsset?.id].filter((x): x is string => Boolean(x))
+  const adjUrls = adjIds.length ? await media.getAssetUrlsBatch(ctx.family.id, adjIds) : {}
+  const buildSlim = (
+    a: { id: string; kind: 'image' | 'video' } | null,
+  ): {
+    id: string
+    kind: 'image' | 'video'
+    urls: import('@bebe/media-client').AssetUrls | null
+    videoSrc: string | null
+    posterUrl: string | undefined
+  } | null => {
+    if (!a) return null
+    const u = adjUrls[a.id] ?? null
+    return {
+      id: a.id,
+      kind: a.kind,
+      urls: u,
+      videoSrc: a.kind === 'video' ? pickVideoUrl(u) : null,
+      posterUrl: pickVideoPosterUrl(u) ?? undefined,
+    }
+  }
+  const prevSlim = buildSlim(prevAsset ?? null)
+  const nextSlim = buildSlim(nextAsset ?? null)
+
   // Use effective capabilities (built by resolveContext via family-capabilities
   // settings). `asset.delete.own` is a grantable family capability, so static
   // `can(role, …)` would hide the delete button from a family member the admin
@@ -107,7 +139,12 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   return (
     <ViewerShell
       current={{ id: asset.id, kind: asset.kind, urls: asset.urls, videoSrc, posterUrl }}
-      siblings={{ prevId: prevAsset?.id, nextId: nextAsset?.id }}
+      siblings={{
+        prevId: prevAsset?.id,
+        nextId: nextAsset?.id,
+        prev: prevSlim,
+        next: nextSlim,
+      }}
       currentUserId={ctx.user.id}
       canDeleteAny={canDeleteAny}
       canDelete={canDelete}
