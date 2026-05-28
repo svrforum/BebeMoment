@@ -90,6 +90,9 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
 
   const role = ctx.membership?.role ?? 'family'
   const canDeleteAny = can(role, 'social.comment.delete.any')
+  const canDelete =
+    can(role, 'asset.delete.any') ||
+    (asset.uploadedByUserId === ctx.user.id && can(role, 'asset.delete.own'))
 
   const initialComments = commentsRaw.map((c) => ({
     ...c,
@@ -104,6 +107,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       siblings={{ prevId: prevAsset?.id, nextId: nextAsset?.id }}
       currentUserId={ctx.user.id}
       canDeleteAny={canDeleteAny}
+      canDelete={canDelete}
       familyMembers={familyMembers}
       meta={{
         takenAt: asset.takenAt,

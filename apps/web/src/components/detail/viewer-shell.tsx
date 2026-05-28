@@ -1,7 +1,9 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
 import type { AssetTag } from '@/components/tags/tag-editor'
+import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
+import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
 import type { MetadataSection } from './metadata-section'
@@ -27,6 +29,7 @@ export function ViewerShell({
   siblings,
   currentUserId,
   canDeleteAny,
+  canDelete,
   familyMembers,
   meta,
   likers,
@@ -41,6 +44,7 @@ export function ViewerShell({
   siblings: { prevId: string | undefined; nextId: string | undefined }
   currentUserId: string
   canDeleteAny: boolean
+  canDelete: boolean
   familyMembers: Member[]
   meta: MetaProps
   likers: { count: number; users: User[] }
@@ -62,6 +66,25 @@ export function ViewerShell({
   const [commentCount, setCommentCount] = useState(
     () => initialComments.filter((c) => !c.deletedAt).length,
   )
+  const [deleting, setDeleting] = useState(false)
+  const router = useRouter()
+  const toast = useToast()
+
+  async function handleDelete(): Promise<void> {
+    if (deleting) return
+    if (!window.confirm('이 사진을 휴지통으로 옮길까요? 휴지통에서 다시 복원할 수 있어요.')) return
+    setDeleting(true)
+    try {
+      const res = await fetch(`/api/asset/${current.id}/delete`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      toast({ title: '휴지통으로 옮겼어요', variant: 'success' })
+      router.push('/timeline')
+      router.refresh()
+    } catch {
+      toast({ title: '삭제하지 못했어요. 잠시 후 다시 시도해주세요', variant: 'danger' })
+      setDeleting(false)
+    }
+  }
 
   // 몰입형 뷰어 — 스크롤 잠금. (app) 레이아웃 main 의 pb-20(하단 네비 여백)이
   // 상세 화면에선 하단 네비가 숨겨져 빈 80px 스크롤을 만들었다. 뷰포트 스크롤은
@@ -90,6 +113,7 @@ export function ViewerShell({
             setSheetDetailsOpen(true)
             setSheetOpen(true)
           }}
+          {...(canDelete ? { onDelete: handleDelete } : {})}
         />
         <ViewerImage
           current={current}
