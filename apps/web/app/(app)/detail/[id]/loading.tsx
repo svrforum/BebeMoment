@@ -1,21 +1,9 @@
+// Empty Suspense fallback so swipe-nav between sibling /detail pages doesn't
+// flash a skeleton. The Swiper carousel inside the viewer already shows the
+// neighbor photo as the user swipes, and the previous page's image stays
+// rendered until the new RSC commits → no "flicker" between detail pages.
+// For a cold-start (timeline → detail) Next still shows the previous page
+// until the new one is ready, which is acceptable here given our short TTFB.
 export default function Loading() {
-  return (
-    <div className="min-h-screen bg-black md:flex">
-      <div className="flex min-h-screen flex-1 items-center justify-center">
-        <div className="h-[60vh] w-[80vw] max-w-[640px] animate-pulse rounded-2xl bg-base-900" />
-      </div>
-      <aside className="hidden w-[360px] shrink-0 space-y-4 overflow-y-auto border-l border-base-800 bg-base-950 p-4 md:block">
-        <div className="h-6 w-32 animate-pulse rounded-lg bg-base-800" />
-        <div className="space-y-2">
-          {[72, 44, 56, 40].map((h) => (
-            <div
-              key={`sk-${h}`}
-              style={{ height: h }}
-              className="animate-pulse rounded-xl bg-base-800"
-            />
-          ))}
-        </div>
-      </aside>
-    </div>
-  )
+  return null
 }
