@@ -15,7 +15,6 @@ import {
   ChevronRight,
   type LucideIcon,
   NotebookPen,
-  ShieldCheck,
   SlidersHorizontal,
   Tags,
   Trash2,
@@ -171,12 +170,6 @@ export default async function SettingsPage() {
                   label: '인스턴스 관리',
                   sublabel: '인증·기능·테마·SMTP·스토리지',
                   icon: SlidersHorizontal,
-                },
-                {
-                  href: '/admin/members',
-                  label: '구성원 권한',
-                  sublabel: '가족 구성원이 할 수 있는 작업',
-                  icon: ShieldCheck,
                 },
               ]}
             />

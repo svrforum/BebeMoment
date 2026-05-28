@@ -2,18 +2,19 @@
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
-import { Calendar, Clock4, FolderOpen, NotebookPen, Settings } from 'lucide-react'
+import { Calendar, Clock4, FolderOpen, NotebookPen, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
-// 자동 조정(아래 visible + gridTemplateColumns).
+// 자동 조정(아래 visible + gridTemplateColumns). 설정은 /family 페이지 하단의
+// 행으로 이동했다.
 const items: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/diary', label: '스토리', icon: NotebookPen, feature: 'diary' },
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
-  { href: '/settings', label: '설정', icon: Settings },
+  { href: '/family', label: '가족', icon: Users },
 ]
 
 export function BottomNav() {
