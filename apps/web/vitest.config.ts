@@ -15,9 +15,9 @@ export default defineConfig({
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 120_000,
-    // 각 fork 는 자체 testcontainers postgres 를 띄움 (완전 격리). 1 → 4 로 늘려
-    // 245 테스트의 container 스핀업·실행을 병렬화 — wall time 약 4배 단축.
-    // ubuntu-latest 러너 (4 vCPU / 7GB RAM) 에서 postgres 컨테이너 4개 충분.
+    // globalSetup 이 메인 프로세스에서 컨테이너 1개를 띄우고 BEBE_TEST_PG_URL env 로
+    // 모든 worker fork 에 상속시킴 → 파일마다 컨테이너 spin-up 사라짐 (test-db.ts 참조).
+    globalSetup: ['./test-global-setup.ts'],
     pool: 'forks',
     maxWorkers: 4,
   },
