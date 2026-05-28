@@ -6,8 +6,15 @@ import type { FastifyPluginAsync } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
 import { assertServiceToken } from '../middleware/service-token'
 
-// quality 별 다운로드 파일명/mime 을 결정. 비디오 트랜스코드 산출물은 mp4,
-// 이미지 라이브 리사이즈 산출물은 jpeg.
+// quality 별 다운로드 파일명/mime 을 결정. 사용자는 원본 파일명 그대로 받기를
+// 원하므로 `_1080`/`_720p` 접미사는 안 붙인다. 단 출력 포맷이 원본과 다르면
+// (HEIC→JPEG / MOV→MP4 등) 확장자만 적절히 교체 — 같은 확장자면 그대로 둔다.
+function replaceExt(filename: string, newExt: string): string {
+  const dot = filename.lastIndexOf('.')
+  const stem = dot > 0 ? filename.slice(0, dot) : filename
+  return `${stem}${newExt}`
+}
+
 function deriveFilename(
   original: string,
   kind: 'image' | 'video',
@@ -16,15 +23,10 @@ function deriveFilename(
   if (quality === 'original') {
     return { filename: original, mimeType: '' }
   }
-  // 확장자를 떼고 quality 접미사 + 새 확장자로 교체.
-  const dot = original.lastIndexOf('.')
-  const stem = dot > 0 ? original.slice(0, dot) : original
   if (kind === 'video') {
-    const suffix = quality === 'hd' ? '_1080p' : '_720p'
-    return { filename: `${stem}${suffix}.mp4`, mimeType: 'video/mp4' }
+    return { filename: replaceExt(original, '.mp4'), mimeType: 'video/mp4' }
   }
-  const suffix = quality === 'hd' ? '_1080' : '_720'
-  return { filename: `${stem}${suffix}.jpg`, mimeType: 'image/jpeg' }
+  return { filename: replaceExt(original, '.jpg'), mimeType: 'image/jpeg' }
 }
 
 export const downloadMintRoute: FastifyPluginAsync = async (app) => {
