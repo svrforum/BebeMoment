@@ -11,6 +11,8 @@
       "!**/build",
       "!**/generated",
       "!**/next-env.d.ts",
+      // android-app is a separate Capacitor sub-project (vanilla JS, npm, outside the pnpm workspace)
+      "!**/android-app",
       "!**/*.md",
       "!**/data",
       "!**/pg",

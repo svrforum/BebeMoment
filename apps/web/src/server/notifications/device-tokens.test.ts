@@ -27,7 +27,10 @@ async function makeUser(email: string) {
 describe('registerDeviceToken', () => {
   it('creates a row', async () => {
     const u = await makeUser('a@b.com')
-    await registerDeviceToken({ userId: u.id, token: 'tok-1', platform: 'android' }, db.prismaPublic)
+    await registerDeviceToken(
+      { userId: u.id, token: 'tok-1', platform: 'android' },
+      db.prismaPublic,
+    )
     const rows = await listDeviceTokensForUsers([u.id], db.prismaPublic)
     expect(rows).toHaveLength(1)
     expect(rows[0]?.token).toBe('tok-1')
@@ -54,7 +57,10 @@ describe('registerDeviceToken', () => {
 describe('deleteDeviceToken', () => {
   it('deletes a token scoped to user', async () => {
     const u = await makeUser('a@b.com')
-    await registerDeviceToken({ userId: u.id, token: 'tok-2', platform: 'android' }, db.prismaPublic)
+    await registerDeviceToken(
+      { userId: u.id, token: 'tok-2', platform: 'android' },
+      db.prismaPublic,
+    )
     await deleteDeviceToken({ userId: u.id, token: 'tok-2' }, db.prismaPublic)
     expect(await listDeviceTokensForUsers([u.id], db.prismaPublic)).toHaveLength(0)
   })
@@ -62,7 +68,10 @@ describe('deleteDeviceToken', () => {
   it('does not delete another user’s token', async () => {
     const u1 = await makeUser('a@b.com')
     const u2 = await makeUser('c@d.com')
-    await registerDeviceToken({ userId: u1.id, token: 'tok-3', platform: 'android' }, db.prismaPublic)
+    await registerDeviceToken(
+      { userId: u1.id, token: 'tok-3', platform: 'android' },
+      db.prismaPublic,
+    )
     await deleteDeviceToken({ userId: u2.id, token: 'tok-3' }, db.prismaPublic)
     expect(await listDeviceTokensForUsers([u1.id], db.prismaPublic)).toHaveLength(1)
   })
