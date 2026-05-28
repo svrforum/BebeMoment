@@ -36,7 +36,7 @@ export function ToastEmitterProvider({ children }: { children: ReactNode }) {
     setItems((prev) => [...prev, item])
     setTimeout(() => {
       setItems((prev) => prev.filter((x) => x.id !== id))
-    }, 4000)
+    }, 2200)
   }, [])
 
   const value = useMemo(() => push, [push])
