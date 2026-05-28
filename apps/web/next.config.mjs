@@ -17,7 +17,14 @@ const nextConfig = {
     '@bebe/db-media',
     '@bebe/storage',
   ],
-  experimental: { serverActions: { bodySizeLimit: '10mb' } },
+  experimental: {
+    serverActions: { bodySizeLimit: '10mb' },
+    // Tree-shake barrel imports of icon/util libraries so only the actually
+    // referenced exports land in client bundles. lucide-react ships ~1000
+    // icons via a barrel (`export * from ...`); without this, even importing
+    // 5 icons can drag in the full set into a route's client bundle.
+    optimizePackageImports: ['lucide-react'],
+  },
   images: { unoptimized: true },
   // When the deployment doesn't run Caddy (e.g. local Docker container
   // pointing at host networking), proxy `/media/*` straight through to

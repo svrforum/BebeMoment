@@ -52,6 +52,6 @@ export async function searchAlbums(
     path: a.path,
     childCount: childByParent.get(a.id) ?? 0,
     assetCount: assetByAlbum.get(a.id) ?? 0,
-    createdAt: a.createdAt,
+    createdAt: a.createdAt.getTime(),
   }))
 }
