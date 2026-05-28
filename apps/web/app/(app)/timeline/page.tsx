@@ -2,6 +2,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { DiaryCard, DiaryStoryChip } from '@/components/timeline/diary-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { TimelineComposer } from '@/components/timeline/timeline-composer'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -156,6 +157,7 @@ export default async function TimelinePage({
 
   return (
     <>
+      <PullToRefresh />
       {baby ? (
         <AppHeader title={ctx.family.name} subtitle={baby.name} wide />
       ) : (
