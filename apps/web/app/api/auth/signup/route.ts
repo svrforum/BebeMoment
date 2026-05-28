@@ -1,6 +1,6 @@
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
-import { setCurrentFamilyOnLatestSession } from '@/lib/session-cookie'
+import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
 import { signup } from '@/server/auth/signup'
 import { NextResponse } from 'next/server'
@@ -41,8 +41,8 @@ export async function POST(req: Request) {
       prismaPublic,
     )
 
-    await createSessionAndSetCookie(user.id, null)
-    await setCurrentFamilyOnLatestSession(user.id, prismaPublic)
+    const currentFamilyId = await resolveCurrentFamilyForUser(user.id, prismaPublic)
+    await createSessionAndSetCookie(user.id, currentFamilyId)
 
     return NextResponse.json({ userId: user.id })
   } catch (e) {

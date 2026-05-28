@@ -1,30 +1,22 @@
 import type { PrismaClient } from '@bebe/db-public'
 
 /**
- * After Better Auth creates a session (signInEmail / signUpEmail), stamp the
- * user's first family onto it. Better Auth sessions start with
- * currentFamilyId = null; the app's multi-tenancy reads session.currentFamilyId,
- * so we set it on the newest session row. Cookie cache is off, so the next
- * getSession reads this fresh from the DB.
+ * Resolve the user's "current" family id for a fresh login/signup. We pick the
+ * oldest membership (joinedAt asc) — typically the only one for the single-family
+ * model. Returns null when the user has no membership yet (pre-onboarding).
+ *
+ * Callers pass the result into `createSessionAndSetCookie(userId, currentFamilyId)`
+ * which stamps it on the exact session row it creates by id. We deliberately
+ * do NOT post-hoc query `session.findFirst({ orderBy: createdAt desc })` —
+ * under concurrent logins that races and could stamp somebody else's session.
  */
-export async function setCurrentFamilyOnLatestSession(
+export async function resolveCurrentFamilyForUser(
   userId: string,
   prisma: PrismaClient,
-): Promise<void> {
+): Promise<string | null> {
   const membership = await prisma.membership.findFirst({
     where: { userId, deletedAt: null },
     orderBy: { joinedAt: 'asc' },
   })
-  if (!membership) return
-
-  const latest = await prisma.session.findFirst({
-    where: { userId },
-    orderBy: { createdAt: 'desc' },
-  })
-  if (!latest) return
-
-  await prisma.session.update({
-    where: { id: latest.id },
-    data: { currentFamilyId: membership.familyId },
-  })
+  return membership?.familyId ?? null
 }

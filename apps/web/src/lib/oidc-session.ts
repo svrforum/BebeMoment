@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth-config'
+import { prismaPublic } from '@/lib/db-init'
 import { cookies } from 'next/headers'
 
 /**
@@ -16,6 +17,11 @@ import { cookies } from 'next/headers'
  * browser therefore receives a single-encoded cookie, matching what getSession
  * expects. oidc-session.test.ts simulates the browser-sent (single-encoded)
  * cookie via encodeURIComponent and feeds it to getSession.
+ *
+ * Callers MUST resolve `currentFamilyId` themselves (membership lookup) and
+ * pass it in. The function stamps it on the EXACT session row it just created
+ * (by id) — never via `findFirst({ orderBy: createdAt desc })`, which under
+ * concurrent logins could hit somebody else's session.
  */
 export async function createSessionAndSetCookie(
   userId: string,
@@ -26,6 +32,16 @@ export async function createSessionAndSetCookie(
   const session = await ctx.internalAdapter.createSession(userId, false, {
     ...(currentFamilyId ? { currentFamilyId } : {}),
   })
+
+  // additionalFields.currentFamilyId 의 `input: false` 때문에 internalAdapter 가
+  // 3rd-arg 의 currentFamilyId 를 drop 할 수 있어, 방금 만든 세션 id 로 한 번 더
+  // 박는다 (timestamp 정렬 findFirst 대체 — 동시 로그인 race-safe).
+  if (currentFamilyId) {
+    await prismaPublic.session.update({
+      where: { id: session.id },
+      data: { currentFamilyId },
+    })
+  }
 
   const cookieValue = await signCookieValue(session.token, ctx.secret)
   const { name, attributes } = ctx.authCookies.sessionToken

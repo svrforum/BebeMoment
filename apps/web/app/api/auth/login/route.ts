@@ -1,6 +1,6 @@
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
-import { setCurrentFamilyOnLatestSession } from '@/lib/session-cookie'
+import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { authenticate } from '@/server/auth/authenticate'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
@@ -17,8 +17,8 @@ export async function POST(req: Request) {
     if (!user) {
       return NextResponse.json({ error: '아이디 또는 비밀번호가 올바르지 않아요' }, { status: 400 })
     }
-    await createSessionAndSetCookie(user.id, null)
-    await setCurrentFamilyOnLatestSession(user.id, prismaPublic)
+    const currentFamilyId = await resolveCurrentFamilyForUser(user.id, prismaPublic)
+    await createSessionAndSetCookie(user.id, currentFamilyId)
     return NextResponse.json({ userId: user.id })
   } catch (e) {
     if (e instanceof ZodError) {

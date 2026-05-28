@@ -36,27 +36,34 @@ export async function signup(raw: unknown, prisma: PrismaClient): Promise<Signup
     }
   }
 
-  if (input.email) {
-    if (await prisma.user.findUnique({ where: { email: input.email } })) {
+  const email = input.email ? input.email.toLowerCase() : null
+  if (email) {
+    if (await prisma.user.findUnique({ where: { email } })) {
       throw new Error('이미 가입된 이메일이에요')
     }
   }
 
-  const user = await prisma.user.create({
-    data: {
-      username,
-      email: input.email ?? null,
-      displayName: input.displayName,
-      passwordHash,
-      accounts: {
-        create: { accountId: '', providerId: 'credential', password: passwordHash },
+  // 한 트랜잭션 안에서 user + credential account 를 생성한다. account.accountId 는
+  // 처음부터 user.id 로 박는다 — 과거 placeholder('') 후 updateMany 패턴은
+  // accounts(provider_id, account_id) 유니크 제약 때문에 동시 가입 시 충돌했다.
+  const user = await prisma.$transaction(async (tx) => {
+    const created = await tx.user.create({
+      data: {
+        username,
+        email,
+        displayName: input.displayName,
+        passwordHash,
       },
-    },
-  })
-
-  await prisma.account.updateMany({
-    where: { userId: user.id, providerId: 'credential' },
-    data: { accountId: user.id },
+    })
+    await tx.account.create({
+      data: {
+        userId: created.id,
+        accountId: created.id,
+        providerId: 'credential',
+        password: passwordHash,
+      },
+    })
+    return created
   })
 
   return { user }

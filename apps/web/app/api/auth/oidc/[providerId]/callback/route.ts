@@ -15,25 +15,34 @@ import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
+function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
+  store.delete('oidc_state')
+  store.delete('oidc_nonce')
+  store.delete('oidc_invite')
+}
+
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
   const url = new URL(req.url)
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
+  const cookieStore = await cookies()
   if (!code || !state) {
+    clearOidcCookies(cookieStore)
     return NextResponse.redirect(new URL('/login?error=oidc', req.url))
   }
 
   const { providerId } = await params
   const env = parseEnv(process.env as Record<string, string | undefined>)
-  const cookieStore = await cookies()
   const expectedState = cookieStore.get('oidc_state')?.value
   const expectedNonce = cookieStore.get('oidc_nonce')?.value
   if (state !== expectedState) {
+    clearOidcCookies(cookieStore)
     return NextResponse.redirect(new URL('/login?error=state', req.url))
   }
 
   const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider || !provider.enabled) {
+    clearOidcCookies(cookieStore)
     return NextResponse.redirect(new URL('/login?error=provider', req.url))
   }
 
@@ -82,9 +91,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       if (!open) {
         const ok = inviteToken ? await validateInviteForSignup(inviteToken, prismaPublic) : false
         if (!ok) {
-          cookieStore.delete('oidc_state')
-          cookieStore.delete('oidc_nonce')
-          cookieStore.delete('oidc_invite')
+          clearOidcCookies(cookieStore)
           return NextResponse.redirect(new URL('/login?error=invite_required', req.url))
         }
       }
@@ -117,13 +124,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
 
     await createSessionAndSetCookie(user.id, currentFamilyId)
 
-    cookieStore.delete('oidc_state')
-    cookieStore.delete('oidc_nonce')
-    cookieStore.delete('oidc_invite')
+    clearOidcCookies(cookieStore)
 
     return NextResponse.redirect(new URL('/', req.url))
   } catch (e) {
     console.error('OIDC callback error:', e)
+    clearOidcCookies(cookieStore)
     return NextResponse.redirect(new URL('/login?error=oidc_exchange', req.url))
   }
 }
