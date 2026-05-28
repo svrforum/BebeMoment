@@ -65,7 +65,10 @@
         // aria-label on blurhash/placeholder spans/divs). They also cascade into each other, so off.
         "noStaticElementInteractions": "off",
         "useAriaPropsSupportedByRole": "off",
-        "useSemanticElements": "off"
+        "useSemanticElements": "off",
+        // click-to-dismiss backdrop overlays use div onClick; the modals keep a
+        // keyboard-accessible close (X) button, so this rule is noise here.
+        "useKeyWithClickEvents": "off"
       },
       "style": {
         "noNonNullAssertion": "warn",
