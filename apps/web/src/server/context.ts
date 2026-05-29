@@ -47,7 +47,12 @@ export async function resolveContext(session: SessionRef, prisma: PrismaClient):
     include: { family: true },
   })
 
-  if (!membership || membership.deletedAt || membership.family.deletedAt) {
+  if (
+    !membership ||
+    membership.deletedAt ||
+    membership.suspendedAt ||
+    membership.family.deletedAt
+  ) {
     return { user, family: null, membership: null, capabilities: [] }
   }
 

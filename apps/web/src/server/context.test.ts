@@ -101,3 +101,40 @@ describe('resolveContext', () => {
     expect(ctx.membership).toBeNull()
   })
 })
+
+describe('resolveContext — 정지 가드', () => {
+  it('정지된 멤버는 family 가 null 이다', async () => {
+    const { user: owner } = await signup(
+      { username: 'owner', password: 'password123', displayName: '아빠' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: '우리집', userId: owner.id }, db.prismaPublic)
+    const { user: member } = await signup(
+      { username: 'member', password: 'password123', displayName: '할머니' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: member.id, role: 'family', suspendedAt: new Date() },
+    })
+    const ctx = await resolveContext(
+      { userId: member.id, currentFamilyId: family.id },
+      db.prismaPublic,
+    )
+    expect(ctx.user?.id).toBe(member.id)
+    expect(ctx.family).toBeNull()
+    expect(ctx.membership).toBeNull()
+  })
+
+  it('정상 멤버는 family 가 채워진다', async () => {
+    const { user: owner } = await signup(
+      { username: 'owner', password: 'password123', displayName: '아빠' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: '우리집', userId: owner.id }, db.prismaPublic)
+    const ctx = await resolveContext(
+      { userId: owner.id, currentFamilyId: family.id },
+      db.prismaPublic,
+    )
+    expect(ctx.family?.id).toBe(family.id)
+  })
+})
