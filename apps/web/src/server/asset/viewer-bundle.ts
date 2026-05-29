@@ -5,6 +5,7 @@ import { getAssetForFamily } from './get'
 
 export type AssetSlim = {
   id: string
+  publicNo: number
   kind: 'image' | 'video'
   urls: AssetUrls | null
   videoSrc: string | null
@@ -32,7 +33,22 @@ export async function loadViewerBundle(
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<ViewerBundle | null> {
-  const asset = await getAssetForFamily(args, prismaMedia, media)
+  // assetId may be the sequential publicNo (page URL) or the UUID (API route).
+  let uuid = args.assetId
+  if (/^\d+$/.test(args.assetId)) {
+    const resolved = await prismaMedia.asset.findFirst({
+      where: { publicNo: Number(args.assetId), familyId: args.familyId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!resolved) return null
+    uuid = resolved.id
+  }
+
+  const asset = await getAssetForFamily(
+    { assetId: uuid, familyId: args.familyId },
+    prismaMedia,
+    media,
+  )
   if (!asset) return null
 
   const [prevAsset, nextAsset] = await Promise.all([
@@ -45,7 +61,7 @@ export async function loadViewerBundle(
         OR: [{ takenAt: { lt: asset.takenAt } }, { takenAt: asset.takenAt, id: { lt: asset.id } }],
       },
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-      select: { id: true, kind: true },
+      select: { id: true, publicNo: true, kind: true },
     }),
     prismaMedia.asset.findFirst({
       where: {
@@ -56,7 +72,7 @@ export async function loadViewerBundle(
         OR: [{ takenAt: { gt: asset.takenAt } }, { takenAt: asset.takenAt, id: { gt: asset.id } }],
       },
       orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
-      select: { id: true, kind: true },
+      select: { id: true, publicNo: true, kind: true },
     }),
   ])
 
@@ -64,11 +80,14 @@ export async function loadViewerBundle(
   const adjIds = [prevAsset?.id, nextAsset?.id].filter((x): x is string => Boolean(x))
   const adjUrls = adjIds.length ? await media.getAssetUrlsBatch(args.familyId, adjIds) : {}
 
-  function buildSlim(a: { id: string; kind: 'image' | 'video' } | null): AssetSlim | null {
+  function buildSlim(
+    a: { id: string; publicNo: number; kind: 'image' | 'video' } | null,
+  ): AssetSlim | null {
     if (!a) return null
     const u = adjUrls[a.id] ?? null
     return {
       id: a.id,
+      publicNo: a.publicNo,
       kind: a.kind,
       urls: u,
       videoSrc: a.kind === 'video' ? pickVideoUrl(u) : null,
@@ -78,6 +97,7 @@ export async function loadViewerBundle(
 
   const current: AssetSlim = {
     id: asset.id,
+    publicNo: asset.publicNo,
     kind: asset.kind,
     urls: asset.urls,
     videoSrc: asset.kind === 'video' ? pickVideoUrl(asset.urls) : null,

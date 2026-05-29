@@ -154,8 +154,8 @@ ALTER TABLE ONLY public.asset_comments
 ALTER TABLE ONLY public.asset_likes
     ADD CONSTRAINT asset_likes_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES media.assets(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
-ALTER TABLE ONLY public.journal_entry_assets
-    ADD CONSTRAINT journal_entry_assets_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES media.assets(id) ON UPDATE CASCADE ON DELETE CASCADE;
+ALTER TABLE ONLY public.story_assets
+    ADD CONSTRAINT story_assets_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES media.assets(id) ON UPDATE CASCADE ON DELETE CASCADE;
 
 ALTER TABLE ONLY public.milestone_assets
     ADD CONSTRAINT milestone_assets_asset_id_fkey FOREIGN KEY (asset_id) REFERENCES media.assets(id) ON UPDATE CASCADE ON DELETE CASCADE;

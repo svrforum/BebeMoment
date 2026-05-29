@@ -1,16 +1,16 @@
 'use client'
-import { MOODS, isMood } from '@/components/diary/mood'
+import { MOODS, isMood } from '@/components/story/mood'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetWithUrls } from '@/server/asset/types'
-import type { JournalEntry, JournalEntryAsset } from '@bebe/db-public'
+import type { Story, StoryAsset } from '@bebe/db-public'
 import { NotebookPen, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
-type Entry = JournalEntry & { assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[] }
+type Entry = Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
@@ -49,7 +49,7 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
 
   return (
     <div className="group relative flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 px-3 py-2.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
-      <Link href={`/diary/${entry.id}`} className="flex min-w-0 flex-1 items-center gap-3">
+      <Link href={`/story/${entry.publicNo}`} className="flex min-w-0 flex-1 items-center gap-3">
         <div className="h-12 w-12 shrink-0 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
           {trio || fallback ? (
             <PictureImage

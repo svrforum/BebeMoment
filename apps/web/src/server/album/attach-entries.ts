@@ -41,7 +41,7 @@ export async function attachEntriesToAlbum(
     throw new Error('No permission')
   }
 
-  const valid = await prismaPublic.journalEntry.findMany({
+  const valid = await prismaPublic.story.findMany({
     where: { id: { in: input.entryIds }, familyId: input.familyId, deletedAt: null },
     select: { id: true },
   })
@@ -51,17 +51,17 @@ export async function attachEntriesToAlbum(
     return { added: 0, total: 0 }
   }
 
-  const result = await prismaPublic.albumJournalEntry.createMany({
-    data: validIds.map((journalEntryId) => ({
+  const result = await prismaPublic.albumStory.createMany({
+    data: validIds.map((storyId) => ({
       albumId: input.albumId,
-      journalEntryId,
+      storyId,
       familyId: input.familyId,
       addedByUserId: input.byUserId,
     })),
     skipDuplicates: true,
   })
 
-  const total = await prismaPublic.albumJournalEntry.count({
+  const total = await prismaPublic.albumStory.count({
     where: { albumId: input.albumId, familyId: input.familyId },
   })
   revalidateAlbumsTag(input.familyId)

@@ -1,16 +1,16 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
 
 export type TimelineItem =
   | { kind: 'asset'; ts: Date; id: string; asset: AssetWithUrls }
   | {
-      kind: 'journal'
+      kind: 'story'
       ts: Date
       id: string
-      entry: JournalEntry & {
-        assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[]
+      entry: Story & {
+        assets: (StoryAsset & { asset: AssetWithUrls | null })[]
       }
     }
 
@@ -19,7 +19,7 @@ export type TimelineSort = 'taken' | 'uploaded'
 type Cursor = {
   ts: string
   id: string
-  kind: 'asset' | 'journal'
+  kind: 'asset' | 'story'
   /** Which timestamp field the cursor is relative to. Omitted = 'taken'
    *  (back-compat with cursors minted before the sort toggle existed). */
   sort?: TimelineSort
@@ -35,7 +35,7 @@ function decodeCursor(s: string): Cursor | null {
     if (
       typeof c?.ts === 'string' &&
       typeof c?.id === 'string' &&
-      (c.kind === 'asset' || c.kind === 'journal')
+      (c.kind === 'asset' || c.kind === 'story')
     ) {
       return c
     }
@@ -152,11 +152,11 @@ export async function listTimeline(
     }),
     // When filtering by tag, hide diary entries — they're not tagged.
     tagAssetIds
-      ? prismaPublic.journalEntry.findMany({
+      ? prismaPublic.story.findMany({
           where: { familyId, id: '00000000-0000-0000-0000-000000000000' },
           include: { assets: true },
         })
-      : prismaPublic.journalEntry.findMany({
+      : prismaPublic.story.findMany({
           where: {
             familyId,
             deletedAt: null,
@@ -232,7 +232,7 @@ export async function listTimeline(
       asset: a,
     })),
     ...joinedEntries.map<TimelineItem>((e) => ({
-      kind: 'journal',
+      kind: 'story',
       ts: sort === 'uploaded' ? e.createdAt : e.entryDate,
       id: e.id,
       entry: e,

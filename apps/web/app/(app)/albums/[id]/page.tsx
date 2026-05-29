@@ -169,6 +169,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
                   <AssetCard
                     key={a.id}
                     id={a.id}
+                    publicNo={a.publicNo}
                     urls={a.urls}
                     status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
                     kind={a.kind as 'image' | 'video'}

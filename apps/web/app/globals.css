@@ -231,12 +231,12 @@
       0 1px 0 color-mix(in srgb, #000 30%, transparent),
       0 20px 40px -24px color-mix(in srgb, #000 60%, transparent);
   }
-  /* 다이어리 캐러셀(.diary-carousel) 의 swiper 페이지네이션 — 흰 점, 활성 시 또렷.
+  /* 다이어리 캐러셀(.story-carousel) 의 swiper 페이지네이션 — 흰 점, 활성 시 또렷.
      인스타 포스트 캐러셀과 비슷한 절제된 도트. Swiper 기본 파란 점을 덮어쓴다. */
-  .diary-carousel .swiper-pagination {
+  .story-carousel .swiper-pagination {
     bottom: 8px !important;
   }
-  .diary-carousel .swiper-pagination-bullet {
+  .story-carousel .swiper-pagination-bullet {
     background: #ffffff;
     opacity: 0.55;
     width: 6px;
@@ -246,7 +246,7 @@
       opacity 160ms ease,
       transform 160ms ease;
   }
-  .diary-carousel .swiper-pagination-bullet-active {
+  .story-carousel .swiper-pagination-bullet-active {
     opacity: 1;
     transform: scale(1.15);
   }

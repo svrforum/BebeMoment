@@ -18,6 +18,7 @@ type User = { id: string; displayName: string; avatarPath: string | null }
 type MetaProps = React.ComponentProps<typeof MetadataSection>
 type AssetSlim = {
   id: string
+  publicNo: number
   kind: 'image' | 'video'
   urls: AssetUrls | null
   videoSrc: string | null
@@ -125,9 +126,10 @@ export function ViewerShell({
       }
 
       // URL 도 즉시 동기화 — router.replace 는 RSC 를 트리거하므로 절대 쓰면 안 된다.
-      // history.replaceState 로 무음 교체.
-      if (typeof window !== 'undefined') {
-        window.history.replaceState({}, '', `/detail/${assetId}`)
+      // history.replaceState 로 무음 교체. 페이지 URL 은 publicNo 를 쓴다 (fetch 는
+      // 아래에서 UUID assetId 로). optimistic 슬림이 있으면 즉시, 없으면 fetch 후 갱신.
+      if (typeof window !== 'undefined' && optimisticMatched && optimisticSlim) {
+        window.history.replaceState({}, '', `/detail/${optimisticSlim.publicNo}`)
       }
 
       // 권위 있는 새 번들 받아오기 — current 의 fresh signed URL + 새 prev/next +
@@ -174,6 +176,9 @@ export function ViewerShell({
         // 만약 만료되면 다음 swipe 시 재발급.)
         if (!optimisticMatched) {
           setCurrentSlim(next.current)
+          if (typeof window !== 'undefined') {
+            window.history.replaceState({}, '', `/detail/${next.current.publicNo}`)
+          }
         }
         setSiblings({
           prevId: next.prevId,
@@ -288,6 +293,7 @@ export function ViewerShell({
       <div className="md:hidden">
         <ViewerActionBar
           assetId={currentSlim.id}
+          publicNo={currentSlim.publicNo}
           liked={liked}
           setLiked={setLiked}
           count={count}

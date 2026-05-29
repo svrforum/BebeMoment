@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { DiaryCard, DiaryStoryChip } from '@/components/timeline/diary-card'
+import { StoryCard, StoryChip } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -52,7 +52,7 @@ export default async function TimelinePage({
   const birthDate: Date | null = baby?.birthDate ?? null
 
   const assetItems = items.filter((it) => it.kind === 'asset')
-  const diaryItems = items.filter((it) => it.kind === 'journal')
+  const storyItems = items.filter((it) => it.kind === 'story')
 
   // 그룹의 ts (날짜 헤더 기준) 는 sort 모드를 따라간다. taken=촬영일,
   // uploaded=업로드 시각 (createdAt). 날짜 헤더가 사용자가 토글한 축과
@@ -63,6 +63,7 @@ export default async function TimelinePage({
       if (!a) throw new Error('unreachable')
       return {
         id: a.id,
+        publicNo: a.publicNo,
         ts: sortMode === 'uploaded' ? a.createdAt : a.takenAt,
         status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
         kind: a.kind as 'image' | 'video',
@@ -76,6 +77,7 @@ export default async function TimelinePage({
     dDay: g.babyDays !== null ? formatDDay(g.babyDays) : null,
     assets: g.assets.map((a) => ({
       id: a.id,
+      publicNo: a.publicNo,
       status: a.status,
       kind: a.kind,
       urls: a.urls,
@@ -91,13 +93,13 @@ export default async function TimelinePage({
     const headerTitle = `${dateObj.getUTCMonth() + 1}월 ${dateObj.getUTCDate()}일`
     const weekdayLabel = WEEKDAYS_KO[dateObj.getUTCDay()] ?? ''
     const photoCount = assetItems.length
-    const diaryCount = diaryItems.length
+    const storyCount = storyItems.length
     const countParts = [
       photoCount > 0 ? `사진 ${photoCount}` : null,
-      diaryCount > 0 ? `스토리 ${diaryCount}` : null,
+      storyCount > 0 ? `스토리 ${storyCount}` : null,
     ].filter((s): s is string => Boolean(s))
     const subtitle = [weekdayLabel, ...countParts].filter(Boolean).join(' · ')
-    const isEmpty = photoCount === 0 && diaryCount === 0
+    const isEmpty = photoCount === 0 && storyCount === 0
     return (
       <>
         <AppHeader
@@ -123,10 +125,10 @@ export default async function TimelinePage({
           }
           wide
         />
-        {diaryItems.length > 0 && (
+        {storyItems.length > 0 && (
           <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
-            {diaryItems.map((it) =>
-              it.kind === 'journal' ? <DiaryCard key={`j-${it.id}`} entry={it.entry} /> : null,
+            {storyItems.map((it) =>
+              it.kind === 'story' ? <StoryCard key={`j-${it.id}`} entry={it.entry} /> : null,
             )}
           </div>
         )}
@@ -185,20 +187,18 @@ export default async function TimelinePage({
           />
         </div>
       )}
-      {diaryItems.length > 0 && (
+      {storyItems.length > 0 && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
           {/* 최근 일기 1개는 글까지 큰 카드로, 나머지는 가로 스토리 행에 조그맣게. */}
-          {diaryItems[0]?.kind === 'journal' && (
-            <DiaryCard key={`j-${diaryItems[0].id}`} entry={diaryItems[0].entry} />
+          {storyItems[0]?.kind === 'story' && (
+            <StoryCard key={`j-${storyItems[0].id}`} entry={storyItems[0].entry} />
           )}
-          {diaryItems.length > 1 && (
+          {storyItems.length > 1 && (
             <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-              {diaryItems
+              {storyItems
                 .slice(1)
                 .map((it) =>
-                  it.kind === 'journal' ? (
-                    <DiaryStoryChip key={`j-${it.id}`} entry={it.entry} />
-                  ) : null,
+                  it.kind === 'story' ? <StoryChip key={`j-${it.id}`} entry={it.entry} /> : null,
                 )}
             </div>
           )}

@@ -8,6 +8,7 @@ import { ShareLinkButton } from './share-link-button'
 
 export function ViewerActionBar({
   assetId,
+  publicNo,
   liked,
   setLiked,
   count,
@@ -20,6 +21,7 @@ export function ViewerActionBar({
   onAlbumTap,
 }: {
   assetId: string
+  publicNo: number
   liked: boolean
   setLiked: (next: boolean) => void
   count: number
@@ -62,7 +64,7 @@ export function ViewerActionBar({
         </button>
       )}
       <ShareLinkButton
-        path={`/detail/${assetId}`}
+        path={`/detail/${publicNo}`}
         iconSize={22}
         className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
       />

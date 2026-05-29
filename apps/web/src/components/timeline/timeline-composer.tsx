@@ -56,7 +56,7 @@ type Attachment = {
  *   1) diary entry (body + entryDate = today)
  *   2) attached photos as regular media uploads (visible in the timeline
  *      grid like any other upload)
- *   3) the journal entry references those uploads via JournalEntryAsset,
+ *   3) the journal entry references those uploads via StoryAsset,
  *      so the entry's card shows the photos as thumbs.
  *
  * Photos go through the shared upload manager so the floating progress
@@ -92,7 +92,7 @@ export function TimelineComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // `/diary/new` 가 `/timeline#composer` 로 리다이렉트됨 — 해시가 있으면 컴포저를
+  // `/story/new` 가 `/timeline#composer` 로 리다이렉트됨 — 해시가 있으면 컴포저를
   // 펼치고 화면에 스크롤한 뒤 textarea 에 포커스한다.
   useEffect(() => {
     if (typeof window === 'undefined') return
@@ -258,7 +258,7 @@ export function TimelineComposer({
       }
 
       const today = new Date().toISOString().slice(0, 10)
-      const res = await fetch('/api/diary', {
+      const res = await fetch('/api/story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

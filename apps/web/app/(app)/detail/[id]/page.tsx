@@ -29,8 +29,9 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   if (!bundle) notFound()
 
   // For metadata / babies we still need the full asset row — fetch directly.
+  // `id` may be the publicNo (page URL); bundle.current.id is the resolved UUID.
   const asset = await prismaMedia.asset.findFirst({
-    where: { id, familyId: ctx.family.id, deletedAt: null },
+    where: { id: bundle.current.id, familyId: ctx.family.id, deletedAt: null },
   })
   if (!asset) notFound()
 

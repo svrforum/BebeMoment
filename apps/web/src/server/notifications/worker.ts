@@ -50,7 +50,7 @@ export function buildNotification(job: NotificationJob): {
       return {
         title: '새 스토리',
         body: '새 스토리가 등록됐어요',
-        url: `/diary/${job.payload.entryId}`,
+        url: `/story/${job.payload.entryId}`,
       }
     case 'growth.created':
       return { title: '성장 기록', body: '새 성장 기록이 등록됐어요', url: '/timeline' }

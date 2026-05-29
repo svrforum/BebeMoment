@@ -91,7 +91,7 @@ export default async function SettingsPage() {
   const contentRows: Row[] = (
     [
       { href: '/saved', label: '저장함', icon: Bookmark, feature: 'bookmarks' },
-      { href: '/diary', label: '스토리', icon: NotebookPen, feature: 'diary' },
+      { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
       { href: '/settings/tags', label: '태그 관리', icon: Tags, feature: 'tags' },
       { href: '/trash', label: '휴지통', icon: Trash2 },
     ] satisfies Row[]

@@ -6,7 +6,7 @@ import { revalidateAlbumsTag } from '../cache-tags'
 
 const Input = z.object({
   albumId: z.string().uuid(),
-  journalEntryId: z.string().uuid(),
+  storyId: z.string().uuid(),
   familyId: z.string().uuid(),
   byUserId: z.string().uuid(),
 })
@@ -29,10 +29,10 @@ export async function detachEntryFromAlbum(
     throw new Error('No permission')
   }
 
-  await prismaPublic.albumJournalEntry.deleteMany({
+  await prismaPublic.albumStory.deleteMany({
     where: {
       albumId: input.albumId,
-      journalEntryId: input.journalEntryId,
+      storyId: input.storyId,
       familyId: input.familyId,
     },
   })

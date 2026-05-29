@@ -13,7 +13,7 @@ import { UnreadBadge } from './unread-badge'
 const items: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
-  { href: '/diary', label: '스토리', icon: NotebookPen, feature: 'diary' },
+  { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
   { href: '/family', label: '가족', icon: Users },
 ]

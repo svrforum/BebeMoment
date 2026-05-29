@@ -19,6 +19,7 @@ import type { AssetUrls } from '@bebe/media-client'
  */
 export type DayAssetLike = {
   id: string
+  publicNo: number
   ts: Date
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'

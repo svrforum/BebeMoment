@@ -1,17 +1,17 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { JournalEntry, JournalEntryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
 
-export type AlbumEntry = JournalEntry & {
-  assets: (JournalEntryAsset & { asset: AssetWithUrls | null })[]
+export type AlbumEntry = Story & {
+  assets: (StoryAsset & { asset: AssetWithUrls | null })[]
 }
 
 const DEFAULT_LIMIT = 200
 
 /**
  * List diary entries (stories) attached to an album, hydrated with their
- * photos' signed URLs so the album view can render DiaryCard. Preserves the
+ * photos' signed URLs so the album view can render StoryCard. Preserves the
  * album's link order.
  */
 export async function listAlbumEntries(
@@ -25,16 +25,16 @@ export async function listAlbumEntries(
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<AlbumEntry[]> {
-  const links = await prismaPublic.albumJournalEntry.findMany({
+  const links = await prismaPublic.albumStory.findMany({
     where: { albumId: args.albumId, familyId: args.familyId },
     orderBy: [{ sortIndex: 'asc' }, { addedAt: 'asc' }],
     take: args.limit ?? DEFAULT_LIMIT,
   })
   if (links.length === 0) return []
 
-  const entries = await prismaPublic.journalEntry.findMany({
+  const entries = await prismaPublic.story.findMany({
     where: {
-      id: { in: links.map((l) => l.journalEntryId) },
+      id: { in: links.map((l) => l.storyId) },
       familyId: args.familyId,
       deletedAt: null,
       // guardians-only entries hidden from the `family` role
@@ -53,7 +53,7 @@ export async function listAlbumEntries(
   const readyIds = entryAssets.filter((a) => a.status === 'ready').map((a) => a.id)
   const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(args.familyId, readyIds) : {}
 
-  const order = new Map(links.map((l, i) => [l.journalEntryId, i]))
+  const order = new Map(links.map((l, i) => [l.storyId, i]))
   return entries
     .map<AlbumEntry>((e) => ({
       ...e,

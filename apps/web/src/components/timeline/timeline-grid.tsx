@@ -15,6 +15,7 @@ import { TimelineContextMenu } from './timeline-context-menu'
 
 type AssetRow = {
   id: string
+  publicNo: number
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
   urls: AssetUrls | null
@@ -55,6 +56,11 @@ export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = tru
   // and to clamp range bounds. Stable across re-renders via useMemo.
   const orderedIds = useMemo(
     () => initialGroups.flatMap((g) => g.assets.map((a) => a.id)),
+    [initialGroups],
+  )
+
+  const publicNoById = useMemo(
+    () => new Map(initialGroups.flatMap((g) => g.assets.map((a) => [a.id, a.publicNo] as const))),
     [initialGroups],
   )
 
@@ -299,6 +305,7 @@ export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = tru
 
       <TimelineContextMenu
         assetId={menu?.id ?? null}
+        publicNo={menu ? (publicNoById.get(menu.id) ?? null) : null}
         x={menu?.x ?? 0}
         y={menu?.y ?? 0}
         isSelected={menu ? selected.has(menu.id) : false}

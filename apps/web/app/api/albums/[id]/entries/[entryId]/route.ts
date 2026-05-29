@@ -19,7 +19,7 @@ export async function DELETE(
   try {
     const { id, entryId } = await params
     const result = await detachEntryFromAlbum(
-      { albumId: id, journalEntryId: entryId, familyId: ctx.family.id, byUserId: ctx.user.id },
+      { albumId: id, storyId: entryId, familyId: ctx.family.id, byUserId: ctx.user.id },
       prismaPublic,
     )
     return NextResponse.json(result)

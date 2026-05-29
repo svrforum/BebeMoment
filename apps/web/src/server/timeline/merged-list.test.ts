@@ -3,7 +3,7 @@ import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
-import { createDiaryEntry } from '../diary/create'
+import { createStoryEntry } from '../story/create'
 import { createFamily } from '../family/create'
 import { listTimeline } from './merged-list'
 
@@ -15,8 +15,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
-  await db.prismaPublic.journalEntryAsset.deleteMany()
-  await db.prismaPublic.journalEntry.deleteMany()
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.baby.deleteMany()
@@ -72,7 +72,7 @@ describe('listTimeline', () => {
   it('interleaves assets and diary by descending date', async () => {
     const { user, family } = await setup()
     await makeAsset(family.id, user.id, new Date('2026-04-10'), 'a1')
-    await createDiaryEntry(
+    await createStoryEntry(
       { familyId: family.id, babyId: null, entryDate: '2026-04-12', body: 'b', byUserId: user.id },
       db.prismaPublic,
       db.prismaMedia,
@@ -87,7 +87,7 @@ describe('listTimeline', () => {
     )
     const kinds = items.map((i) => i.kind)
     const dates = items.map((i) => i.ts.toISOString().slice(0, 10))
-    expect(kinds).toEqual(['asset', 'journal', 'asset'])
+    expect(kinds).toEqual(['asset', 'story', 'asset'])
     expect(dates).toEqual(['2026-04-15', '2026-04-12', '2026-04-10'])
   })
 

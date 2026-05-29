@@ -4,7 +4,7 @@ import { Share2 } from 'lucide-react'
 import { useCallback } from 'react'
 
 /**
- * 가족용 링크 복사 버튼. 현재 오리진 + path (예: /detail/<id>, /diary/<id>) 를
+ * 가족용 링크 복사 버튼. 현재 오리진 + path (예: /detail/<id>, /story/<id>) 를
  * 클립보드에 복사한다. 비공개 가족 인스턴스라 링크는 가족(로그인)만 열 수 있다.
  * LAN·HTTP 등 비보안 오리진에서는 navigator.clipboard 가 없을 수 있어 폴백 토스트.
  */

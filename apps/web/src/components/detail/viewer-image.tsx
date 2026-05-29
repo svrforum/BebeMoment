@@ -12,6 +12,7 @@ import type { NavigateTo } from './viewer-shell'
 
 type AssetSlim = {
   id: string
+  publicNo: number
   kind: 'image' | 'video'
   urls: AssetUrls | null
   videoSrc: string | null

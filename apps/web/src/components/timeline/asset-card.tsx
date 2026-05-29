@@ -11,6 +11,7 @@ export type TapModifiers = { ctrl: boolean; shift: boolean }
 
 type Props = {
   id: string
+  publicNo: number
   urls: AssetUrls | null
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
@@ -42,6 +43,7 @@ const LONG_PRESS_MS = 450
 
 export function AssetCard({
   id,
+  publicNo,
   urls,
   status,
   kind,
@@ -182,7 +184,7 @@ export function AssetCard({
 
   return (
     <Link
-      href={`/detail/${id}`}
+      href={`/detail/${publicNo}`}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}
       onTouchStart={startPress}

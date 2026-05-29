@@ -4,6 +4,7 @@ import { AssetCard, type TapModifiers } from './asset-card'
 
 type AssetRow = {
   id: string
+  publicNo: number
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
   urls: AssetUrls | null
@@ -78,6 +79,7 @@ export function BucketSection({
           >
             <AssetCard
               id={a.id}
+              publicNo={a.publicNo}
               urls={a.urls}
               status={a.status}
               kind={a.kind}

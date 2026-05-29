@@ -12,7 +12,7 @@ import { type ChangeEvent, type ReactNode, useCallback, useRef } from 'react'
 
 // FAB shows only on pages where adding content from the library makes sense.
 // Hidden on content creation / edit / detail screens to avoid confusion.
-const FAB_ROUTES = ['/timeline', '/calendar', '/saved', '/diary', '/babies', '/trash']
+const FAB_ROUTES = ['/timeline', '/calendar', '/saved', '/story', '/babies', '/trash']
 
 function FabTrigger() {
   const { open } = useUploadSheet()

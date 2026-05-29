@@ -6,6 +6,8 @@ import { type ReactNode, useEffect, useRef } from 'react'
 type Props = {
   /** Asset id the menu is anchored to. Null = closed. */
   assetId: string | null
+  /** Sequential public number — used for the detail page URL. */
+  publicNo: number | null
   /** Viewport coords where the menu opens. */
   x: number
   y: number
@@ -24,6 +26,7 @@ type Props = {
  */
 export function TimelineContextMenu({
   assetId,
+  publicNo,
   x,
   y,
   isSelected,
@@ -75,7 +78,7 @@ export function TimelineContextMenu({
         icon={<Eye size={16} strokeWidth={2.2} />}
         onClick={() => {
           onClose()
-          router.push(`/detail/${assetId}`)
+          router.push(`/detail/${publicNo ?? assetId}`)
         }}
       >
         상세 보기

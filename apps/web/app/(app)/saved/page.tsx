@@ -1,11 +1,11 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
-import { DiaryCard } from '@/components/timeline/diary-card'
+import { StoryCard } from '@/components/timeline/story-card'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
-import { listMyDiaryBookmarks } from '@/server/diary-bookmark/list-mine'
+import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
 import { Bookmark } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
@@ -14,7 +14,7 @@ export default async function SavedPage() {
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const role = ctx.membership?.role ?? 'family'
 
-  const [photos, diary] = await Promise.all([
+  const [photos, stories] = await Promise.all([
     listMyBookmarks(
       ctx.family.id,
       ctx.user.id,
@@ -23,7 +23,7 @@ export default async function SavedPage() {
       prismaMedia,
       getMediaClient(),
     ),
-    listMyDiaryBookmarks(
+    listMyStoryBookmarks(
       ctx.family.id,
       ctx.user.id,
       role,
@@ -35,8 +35,8 @@ export default async function SavedPage() {
   ])
 
   const hasPhotos = photos.items.length > 0
-  const hasDiary = diary.items.some((b) => b.entry !== null)
-  const empty = !hasPhotos && !hasDiary
+  const hasStory = stories.items.some((b) => b.entry !== null)
+  const empty = !hasPhotos && !hasStory
 
   return (
     <>
@@ -70,6 +70,7 @@ export default async function SavedPage() {
                       <AssetCard
                         key={b.assetId}
                         id={b.assetId}
+                        publicNo={b.asset.publicNo}
                         urls={b.asset.urls}
                         status={b.asset.status}
                         kind={b.asset.kind}
@@ -79,15 +80,15 @@ export default async function SavedPage() {
                 </div>
               </section>
             )}
-            {hasDiary && (
+            {hasStory && (
               <section>
                 <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
                   저장한 스토리
                 </h2>
                 <div className="space-y-3">
-                  {diary.items.map((b) => {
+                  {stories.items.map((b) => {
                     if (!b.entry) return null
-                    return <DiaryCard key={b.entryId} entry={b.entry} />
+                    return <StoryCard key={b.entryId} entry={b.entry} />
                   })}
                 </div>
               </section>
