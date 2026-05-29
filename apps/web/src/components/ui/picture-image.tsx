@@ -18,6 +18,11 @@ export type PictureImageProps = {
   fetchPriority?: 'high' | 'low' | 'auto'
   /** Inner img object-fit. Default 'cover'. Use 'contain' for viewer. */
   objectFit?: 'cover' | 'contain' | 'fill' | 'none' | 'scale-down'
+  /** Blurhash 페이드인(opacity 0→1 240ms). 기본 true. 뷰어처럼 형제 슬라이드가 미리
+   *  디코드돼 있고 슬롯이 비디오↔이미지로 교체되는 곳에선 false 로 꺼서, 새 PictureImage
+   *  가 마운트될 때 페이드가 재생돼 "깜빡임"으로 보이는 걸 막는다. 끄면 dominantColor·
+   *  blurhash 배경이 뒤를 덮은 채 이미지가 즉시 드러난다(페이드 없음). */
+  fade?: boolean
 }
 
 function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null | undefined }) {
@@ -97,6 +102,7 @@ export function PictureImage({
   loading = 'lazy',
   fetchPriority = 'auto',
   objectFit = 'cover',
+  fade = true,
 }: PictureImageProps) {
   const [loaded, setLoaded] = useState(false)
 
@@ -161,8 +167,8 @@ export function PictureImage({
     width: '100%',
     height: '100%',
     objectFit,
-    opacity: blurhash ? (loaded ? 1 : 0) : 1,
-    transition: blurhash ? 'opacity 240ms ease-out' : undefined,
+    opacity: blurhash && fade ? (loaded ? 1 : 0) : 1,
+    transition: blurhash && fade ? 'opacity 240ms ease-out' : undefined,
   }
 
   if (!trio) {

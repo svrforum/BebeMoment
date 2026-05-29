@@ -355,6 +355,9 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
       loading="eager"
       fetchPriority={isCurrent ? 'high' : 'low'}
       objectFit="contain"
+      // 뷰어는 페이드 끔 — 영상→사진처럼 current 슬롯이 비디오에서 새 이미지로 교체될 때
+      // blurhash 페이드인이 재생돼 깜빡이는 걸 막는다(형제 슬라이드가 이미 디코드됨).
+      fade={false}
       className="max-h-full max-w-full"
       {...(style ? { style } : {})}
     />
