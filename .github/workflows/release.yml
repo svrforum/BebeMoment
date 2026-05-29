@@ -43,6 +43,7 @@ jobs:
       - run: pnpm --filter @bebe/db-media  exec prisma migrate deploy
       - run: pnpm lint
       - run: pnpm typecheck
+      - run: pnpm check:lines
       - run: pnpm -r --filter '!@bebe/e2e' test
 
   build:

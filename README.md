@@ -19,7 +19,11 @@
 ```bash
 pnpm install
 docker compose -f docker-compose.dev.yml up -d
-pnpm db:migrate
+# 마이그레이션 적용 — cross-schema FK 때문에 `migrate dev` 가 아니라 deploy 를 쓴다.
+DATABASE_URL=postgres://bebe:bebe@localhost:5432/bebe pnpm --filter @bebe/db-public exec prisma migrate deploy
+DATABASE_URL=postgres://bebe:bebe@localhost:5432/bebe pnpm --filter @bebe/db-media  exec prisma migrate deploy
+# Prisma 클라이언트 생성(생성물은 gitignore — typecheck 전 필수)
+pnpm --filter @bebe/db-public exec prisma generate && pnpm --filter @bebe/db-media exec prisma generate
 pnpm dev
 ```
 
@@ -68,18 +72,29 @@ pnpm lint
 
 ```
 apps/
-  web/          # Next.js 16 앱
+  web/            # Next.js 16 앱 (UI + API + PWA + 알림 워커)
+  media/          # Fastify + BullMQ — tus 업로드 / signed URL / SSE / EXIF·파생물
 packages/
-  db/           # Prisma 스키마 + 클라이언트 + tenant 미들웨어
-  core/         # 도메인 유틸 (나이 버킷, 권한)
-  config/       # zod env 스키마
+  db-public/      # public 스키마 Prisma (user/family/baby/settings/push…) + tenant 미들웨어
+  db-media/       # media 스키마 Prisma (asset…) + 크로스스키마 뷰 + DB 롤 마이그레이션
+  core/           # 도메인 유틸 (나이 버킷, 권한 매트릭스, 큐 상수, 기능 플래그)
+  config/         # zod env 스키마
+  media-client/   # web → media HTTP 클라이언트 + 공유 스키마
+  queue/          # 공유 Redis/BullMQ
+  storage/        # 스토리지 어댑터 (local / S3)
 docs/
-  superpowers/  # 스펙 / 계획
+  superpowers/    # 스펙 / 계획 / 리뷰
+android-app/      # Capacitor 안드로이드 앱 (pnpm 워크스페이스 밖)
 ```
+
+> 배포는 단일 이미지 / 단일 포트(3000)에서 web·media·알림워커 3 프로세스로 실행된다.
 
 ## 페이즈
 
-- [x] Plan 1 — Foundation (인증·가족·초대)
-- [x] Plan 2 — Upload Pipeline (업로드·썸네일·EXIF·영상 프리뷰)
-- [x] Plan 3 — UX & PWA
-- [x] Plan 4 — Admin & Deploy (관리자 설정·OIDC·Docker Compose·Synology·CI)
+전체 페이즈 현황(P1~P6, Phase A~D, PWA+Push, 단일가족, username 인증, 멤버 관리 등 ~18개)은
+**[CLAUDE.md §3](./CLAUDE.md)** 의 페이즈 표를 진실원으로 본다. 핵심 마일스톤만:
+
+- [x] P1~P4 — Foundation / Upload / UX·PWA / Admin·Deploy
+- [x] P5~P6 — 성장·마일스톤·일기 / 상세·소셜(좋아요·댓글·북마크)
+- [x] Phase A~D — DB 경계 분리 / media 서비스 추출 / 조회 경로·파생물 / 태그·앨범·메타데이터
+- [x] 단일 가족 초대제 · username 인증 · 가족 권한 구성 · 설정/관리자 개편 · PWA 푸시(+안드로이드 FCM) · 멤버 관리 Phase 1
