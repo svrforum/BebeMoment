@@ -3,6 +3,7 @@ import { DiaryBookmarkButton } from '@/components/diary/DiaryBookmarkButton'
 import { DiaryDeleteButton } from '@/components/diary/DiaryDeleteButton'
 import { DiaryDetail } from '@/components/diary/DiaryDetail'
 import { DiaryEditForm } from '@/components/diary/DiaryEditForm'
+import { ShareLinkButton } from '@/components/detail/share-link-button'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -89,6 +90,12 @@ export default async function DiaryDetailPage({
             <DiaryBookmarkButton entryId={id} initialBookmarked={bookmark !== null} />
           )}
           {features.albums && <DiaryAlbumButton entryId={id} />}
+          <ShareLinkButton
+            path={`/diary/${id}`}
+            showLabel
+            iconSize={13}
+            className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+          />
           <Link
             href={`/diary/${id}?edit=1`}
             className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"

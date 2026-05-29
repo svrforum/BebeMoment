@@ -4,6 +4,7 @@ import { useFeatures } from '@/lib/features'
 import { FolderPlus, MessageCircle } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
+import { ShareLinkButton } from './share-link-button'
 
 export function ViewerActionBar({
   assetId,
@@ -60,6 +61,11 @@ export function ViewerActionBar({
           <FolderPlus size={22} />
         </button>
       )}
+      <ShareLinkButton
+        path={`/detail/${assetId}`}
+        iconSize={22}
+        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+      />
       <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
     </div>
   )
