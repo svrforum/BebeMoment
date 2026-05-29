@@ -330,14 +330,15 @@
   }
 }
 
-/* Phase C-2: View Transitions for asset → detail page */
-@view-transition {
-  /* biome-ignore lint/correctness/noUnknownProperty: `navigation` is the @view-transition descriptor, not yet recognized by biome */
-  navigation: auto;
-}
+/* Phase C-2: View Transitions for asset ↔ detail page
+   ---
+   `@view-transition { navigation: auto }` 는 cross-document 네비게이션에만 동작한다
+   (브라우저가 새 문서로 떠날 때 자동 crossfade). Next.js App Router 의 timeline ↔
+   detail 이동은 client-side soft nav (replaceState/pushState) 라서 이 룰은 사실상
+   no-op 이었고, 그러면서도 일부 WebView 환경에서 캐러셀 형제 이동 때 미세한
+   crossfade 가 끼어든다는 사용자 보고가 있어 비활성화한다.
 
-/* Detail viewer transition — per-id `asset-{id}` 로 timeline 썸네일과 매칭돼
-   풀스크린으로 grow 하는 iOS Photos 식 morph 가 일어난다. 디테일↔디테일
-   형제 이동은 id 가 달라 매칭되지 않으므로 기본 UA crossfade. 임의 슬라이드
-   키프레임은 timeline → detail 경로에서 화면이 갈라진 듯한 인상을 줘서 사용
-   안 함 (revert from 1a7eb3b). */
+   `view-transition-name: asset-{id}` 매핑(`PictureImage` 의 style 로 부여)은 그대로
+   둔다 — `@view-transition` 룰 없이는 자동 트리거가 안 되므로 무해하고, 추후 명시
+   `document.startViewTransition(() => router.push(...))` 로 timeline 썸네일 → detail
+   morph 를 살리고 싶을 때 그대로 활용 가능. */

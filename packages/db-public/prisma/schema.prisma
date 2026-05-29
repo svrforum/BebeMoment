@@ -40,6 +40,7 @@ model User {
   createdJournalEntries JournalEntry[]
   likes                 AssetLike[]
   bookmarks             AssetBookmark[]
+  journalBookmarks      JournalBookmark[]
   authoredComments      AssetComment[]
   createdTags           Tag[]            @relation("TagCreatedBy")
   attachedTags          AssetTag[]       @relation("AssetTagAddedBy")
@@ -164,10 +165,11 @@ model Family {
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
   journalEntries JournalEntry[]
-  assetLikes     AssetLike[]
-  assetBookmarks AssetBookmark[]
-  assetComments  AssetComment[]
-  tags           Tag[]
+  assetLikes       AssetLike[]
+  assetBookmarks   AssetBookmark[]
+  journalBookmarks JournalBookmark[]
+  assetComments    AssetComment[]
+  tags             Tag[]
   assetTags      AssetTag[]
   albums         Album[]
   albumAssets    AlbumAsset[]
@@ -372,6 +374,7 @@ model JournalEntry {
   createdBy User                @relation(fields: [createdByUserId], references: [id])
   assets    JournalEntryAsset[]
   albums    AlbumJournalEntry[]
+  bookmarks JournalBookmark[]
 
   @@index([familyId, entryDate])
   @@index([familyId, babyId, entryDate])
@@ -426,6 +429,22 @@ model AssetBookmark {
   @@id([assetId, userId])
   @@index([familyId, userId, createdAt])
   @@map("asset_bookmarks")
+  @@schema("public")
+}
+
+model JournalBookmark {
+  entryId   String   @map("entry_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  familyId  String   @map("family_id") @db.Uuid
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  entry  JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+
+  @@id([entryId, userId])
+  @@index([familyId, userId, createdAt])
+  @@map("journal_bookmarks")
   @@schema("public")
 }
 

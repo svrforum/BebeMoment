@@ -1,4 +1,5 @@
 import { DiaryAlbumButton } from '@/components/diary/diary-album-button'
+import { DiaryBookmarkButton } from '@/components/diary/DiaryBookmarkButton'
 import { DiaryDeleteButton } from '@/components/diary/DiaryDeleteButton'
 import { DiaryDetail } from '@/components/diary/DiaryDetail'
 import { DiaryForm } from '@/components/diary/DiaryForm'
@@ -26,7 +27,7 @@ export default async function DiaryDetailPage({
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family) redirect('/onboarding')
+  if (!ctx.family || !ctx.user) redirect('/onboarding')
   const { id } = await params
   const sp = await searchParams
   const entry = await getDiaryEntry(
@@ -99,6 +100,11 @@ export default async function DiaryDetailPage({
   }
 
   const features = await getFeatureFlags(prismaPublic)
+  const bookmark = features.bookmarks
+    ? await prismaPublic.journalBookmark.findFirst({
+        where: { entryId: id, userId: ctx.user.id, familyId: ctx.family.id },
+      })
+    : null
 
   return (
     <>
@@ -106,6 +112,9 @@ export default async function DiaryDetailPage({
       <div className="mx-auto max-w-2xl px-5 py-4">
         <DiaryDetail entry={entry} />
         <div className="mt-3 flex items-center justify-end gap-1 text-[12px]">
+          {features.bookmarks && (
+            <DiaryBookmarkButton entryId={id} initialBookmarked={bookmark !== null} />
+          )}
           {features.albums && <DiaryAlbumButton entryId={id} />}
           <Link
             href={`/diary/${id}?edit=1`}

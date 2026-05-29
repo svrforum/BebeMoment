@@ -4,7 +4,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
-import { useState } from 'react'
+import { type ReactNode, useEffect, useState } from 'react'
 
 export type PickerAsset = { id: string; urls: AssetUrls | null }
 
@@ -13,16 +13,24 @@ export function AssetPickerSheet({
   initialSelected = [],
   onChange,
   triggerLabel,
+  triggerClassName,
+  triggerIcon,
   max = 10,
 }: {
   available: PickerAsset[]
   initialSelected?: string[]
   onChange: (ids: string[]) => void
   triggerLabel: string
+  triggerClassName?: string
+  triggerIcon?: ReactNode
   max?: number
 }) {
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected))
+  // re-seed when parent updates the selection (e.g. removed photos via another path)
+  useEffect(() => {
+    if (!open) setSelected(new Set(initialSelected))
+  }, [initialSelected, open])
 
   function toggle(id: string) {
     const next = new Set(selected)
@@ -38,9 +46,16 @@ export function AssetPickerSheet({
 
   return (
     <>
-      <Button type="button" variant="secondary" className="w-full" onClick={() => setOpen(true)}>
-        {triggerLabel}
-      </Button>
+      {triggerClassName ? (
+        <button type="button" className={triggerClassName} onClick={() => setOpen(true)}>
+          {triggerIcon}
+          <span>{triggerLabel}</span>
+        </button>
+      ) : (
+        <Button type="button" variant="secondary" className="w-full" onClick={() => setOpen(true)}>
+          {triggerLabel}
+        </Button>
+      )}
       <Sheet open={open} onOpenChange={setOpen} title={`사진 선택 (${selected.size}/${max})`}>
         <div className="grid grid-cols-3 gap-1">
           {available.map((a) => {
