@@ -96,7 +96,9 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
 }
 
 async function main(): Promise<void> {
-  const keys = await ensureVapidKeys({ get: settingsGet, set: settingsSet })
+  const secretKey = process.env.SECRET_KEY
+  if (!secretKey) throw new Error('SECRET_KEY required')
+  const keys = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
   const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
   webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
 

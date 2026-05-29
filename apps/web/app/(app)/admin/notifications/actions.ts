@@ -30,19 +30,34 @@ export async function setPushCategory(category: string, enabled: boolean): Promi
   await setSetting(`push.categories.${category}.enabled`, String(enabled), userId, prismaPublic)
 }
 
+function requireSecretKey(): string {
+  const secretKey = process.env.SECRET_KEY
+  if (!secretKey) throw new Error('SECRET_KEY required')
+  return secretKey
+}
+
 export async function generateVapidKeys(): Promise<void> {
   const userId = await adminUserId()
-  await ensureVapidKeys({
-    get: (key) => getSetting(key, z.string().nullable(), null, prismaPublic),
-    set: (key, value) => setSetting(key, value, userId, prismaPublic),
-  })
+  await ensureVapidKeys(
+    {
+      get: (key) => getSetting(key, z.string().nullable(), null, prismaPublic),
+      set: (key, value) => setSetting(key, value, userId, prismaPublic),
+    },
+    requireSecretKey(),
+  )
 }
 
 export async function regenerateVapidKeys(): Promise<void> {
   const userId = await adminUserId()
   const generated = webpush.generateVAPIDKeys()
   await setSetting('push.vapid_public', generated.publicKey, userId, prismaPublic)
-  await setSetting('push.vapid_private', generated.privateKey, userId, prismaPublic)
+  // private 는 암호화 저장 (vapid.ts 와 동일 규약).
+  await setSetting(
+    'push.vapid_private',
+    await encryptSecret(generated.privateKey, requireSecretKey()),
+    userId,
+    prismaPublic,
+  )
   await prismaPublic.pushSubscription.deleteMany({})
 }
 

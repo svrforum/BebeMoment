@@ -9,10 +9,12 @@ import { z } from 'zod'
 export async function GET() {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  const secretKey = process.env.SECRET_KEY
+  if (!secretKey) return NextResponse.json({ error: 'SECRET_KEY required' }, { status: 500 })
   const store = {
     get: (k: string) => getSetting(k, z.string().nullable(), null, prismaPublic),
     set: (k: string, v: string) => setSetting(k, v, null, prismaPublic),
   }
-  const { publicKey } = await ensureVapidKeys(store)
+  const { publicKey } = await ensureVapidKeys(store, secretKey)
   return NextResponse.json({ publicKey })
 }
