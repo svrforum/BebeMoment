@@ -136,18 +136,27 @@ function SwiperViewport({
   // 줌 여부: pinch 또는 double-tap 으로 줌인되면 세로 swipe-down 닫기를 죽인다.
   const [zoomed, setZoomed] = useState(false)
 
-  // Swiper 인스턴스 — current.id 가 변하면 silently (애니메이션 없이) 새 currentIndex 로
-  // 슬라이드해서 중앙 정렬. ViewerShell 의 state 갱신이 트리거.
+  // Swiper 인스턴스 — current.id 또는 슬롯 레이아웃(currentIndex)이 변하면 silently
+  // (애니메이션 없이) currentIndex 로 슬라이드해 중앙 정렬. ViewerShell 의 state 갱신이 트리거.
+  // ⚠️ currentIndex 를 deps 에 반드시 포함: 가장 오래된 자산으로 이동하면 뒤이은
+  // viewer-bundle fetch 로 next 가 null 이 되어 currentIndex 가 1→0 으로 줄어든다. 이때
+  // current.id 는 안 변하므로 current.id 만 보던 과거 버전은 재중앙화를 건너뛰어 activeIndex
+  // 가 1(=prev/더 최신 슬롯)에 남았다 → "넘기면 이전 사진으로 되돌아가는" 버그. 이 뷰어의
+  // 핵심 불변식은 'activeIndex === currentIndex' 이며, 그 둘을 깨는 모든 변화(id·레이아웃)에
+  // 재중앙화가 걸려야 한다.
   // biome-ignore lint/suspicious/noExplicitAny: swiper instance type complex; use minimal surface
   const swiperRef = useRef<any>(null)
-  // biome-ignore lint/correctness/useExhaustiveDependencies: current.id 변경이 트리거. 다른 deps 는 의도적으로 제외(stale 캡쳐 위험 없음).
+  // current.id 는 본문에서 읽지 않지만 의도적 트리거다 — currentIndex 가 1 로 유지되는 일반
+  // 스와이프(다음/이전 사진) 후에도 스와이프한 슬롯(0/2)에서 중앙(1)으로 재정렬해야 하므로
+  // id 변화로 effect 를 깨워야 한다. currentIndex 는 가장 오래된 자산 경계(1→0)를 잡는다. 둘 다 필요.
+  // biome-ignore lint/correctness/useExhaustiveDependencies: current.id 는 위 사유로 의도적 트리거.
   useEffect(() => {
     const s = swiperRef.current
     if (s && s.activeIndex !== currentIndex) {
       // duration 0 + no event emit — 새 슬라이드 마운트 직후 침묵 동기화.
       s.slideTo(currentIndex, 0, false)
     }
-  }, [current.id])
+  }, [current.id, currentIndex])
 
   // 탭 vs 스와이프 구분: 스와이프 후 합성 click 으로 onTap 이 호출돼 크로미가
   // 깜빡이는 걸 막기 위한 가드. Swiper 슬라이드 변경/줌 변경 직후 잠시 무시.
