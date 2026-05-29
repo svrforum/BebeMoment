@@ -119,7 +119,8 @@ export function ViewerShell({
       // Optimistic: 현재 siblings 에서 해당 슬롯을 즉시 current 로 승격.
       // URLs 가 이미 사인되어 있어 사진이 끊김 없이 이어진다.
       const optimisticSlim = direction === 'next' ? siblings.next : siblings.prev
-      if (optimisticSlim && optimisticSlim.id === assetId) {
+      const optimisticMatched = !!(optimisticSlim && optimisticSlim.id === assetId)
+      if (optimisticMatched && optimisticSlim) {
         setCurrentSlim(optimisticSlim)
       }
 
@@ -166,7 +167,14 @@ export function ViewerShell({
         }
         // 사용자가 그 사이에 또 swipe 했으면 (assetId !== lastNavRef.current) 덮어쓰지 않는다.
         if (lastNavRef.current !== assetId) return
-        setCurrentSlim(next.current)
+        // optimistic 으로 이미 같은 자산을 set 했으면 current 를 다시 set 하지 않는다 —
+        // 새 fetch 의 signed URL 은 string 이 달라 <img src> 가 cache miss → blurhash 가
+        // 잠깐 비치는 깜빡임의 원인. 같은 assetId 면 preloaded URL 그대로 유지하고
+        // siblings/social/meta 만 갱신. (TTL 10분이라 곧 만료될 위험은 사실상 없음 —
+        // 만약 만료되면 다음 swipe 시 재발급.)
+        if (!optimisticMatched) {
+          setCurrentSlim(next.current)
+        }
         setSiblings({
           prevId: next.prevId,
           nextId: next.nextId,
