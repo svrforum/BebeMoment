@@ -16,6 +16,12 @@ export function SuspendModal({ open, onOpenChange, membershipId, displayName }: 
   const [error, setError] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
+  const close = () => {
+    setReason('')
+    setError(null)
+    onOpenChange(false)
+  }
+
   const submit = () => {
     setError(null)
     startTransition(async () => {
@@ -36,7 +42,7 @@ export function SuspendModal({ open, onOpenChange, membershipId, displayName }: 
   }
 
   return (
-    <Sheet open={open} onOpenChange={(n) => !pending && onOpenChange(n)}>
+    <Sheet open={open} onOpenChange={(n) => !pending && (n ? onOpenChange(true) : close())}>
       <div className="flex flex-col gap-4 px-1 py-2">
         <div className="text-center">
           <p className="text-base font-semibold text-base-900 dark:text-base-50">
@@ -63,7 +69,7 @@ export function SuspendModal({ open, onOpenChange, membershipId, displayName }: 
           </button>
           <button
             type="button"
-            onClick={() => onOpenChange(false)}
+            onClick={close}
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 hover:bg-base-200 disabled:opacity-60 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"
           >

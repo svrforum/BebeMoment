@@ -1,4 +1,5 @@
 'use client'
+import { useToast } from '@/lib/toast'
 import type { FamilyMember } from '@/server/family/list-members'
 import { MoreVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
@@ -11,6 +12,7 @@ type ModalKind = 'suspend' | 'reset' | 'remove' | null
 
 export function MemberActionsMenu({ member }: { member: FamilyMember }) {
   const router = useRouter()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [modal, setModal] = useState<ModalKind>(null)
   const [pending, startTransition] = useTransition()
@@ -20,7 +22,14 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
   const unsuspend = () => {
     setOpen(false)
     startTransition(async () => {
-      await fetch(`/api/admin/members/${member.membershipId}/unsuspend`, { method: 'POST' })
+      const res = await fetch(`/api/admin/members/${member.membershipId}/unsuspend`, {
+        method: 'POST',
+      })
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}))
+        toast({ title: data.error ?? '정지 해제에 실패했어요', variant: 'danger' })
+        return
+      }
       router.refresh()
     })
   }

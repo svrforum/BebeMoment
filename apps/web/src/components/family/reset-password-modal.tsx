@@ -1,5 +1,6 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
+import { useToast } from '@/lib/toast'
 import { Copy } from 'lucide-react'
 import { useState, useTransition } from 'react'
 
@@ -11,6 +12,7 @@ type Props = {
 }
 
 export function ResetPasswordModal({ open, onOpenChange, membershipId, displayName }: Props) {
+  const toast = useToast()
   const [url, setUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -35,9 +37,15 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
 
   const copy = async () => {
     if (!url) return
-    await navigator.clipboard.writeText(url)
-    setCopied(true)
-    setTimeout(() => setCopied(false), 1500)
+    if (navigator.clipboard?.writeText) {
+      try {
+        await navigator.clipboard.writeText(url)
+        setCopied(true)
+        setTimeout(() => setCopied(false), 1500)
+        return
+      } catch {}
+    }
+    toast({ title: '복사에 실패했어요. 링크를 길게 눌러 직접 복사해주세요', variant: 'danger' })
   }
 
   const close = () => {
