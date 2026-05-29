@@ -37,16 +37,16 @@ model User {
   settingHistory        SettingHistory[]
   createdGrowthRecords  GrowthRecord[]
   createdMilestones     Milestone[]
-  createdJournalEntries JournalEntry[]
+  createdStories Story[]
   likes                 AssetLike[]
   bookmarks             AssetBookmark[]
-  journalBookmarks      JournalBookmark[]
+  storyBookmarks      StoryBookmark[]
   authoredComments      AssetComment[]
   createdTags           Tag[]            @relation("TagCreatedBy")
   attachedTags          AssetTag[]       @relation("AssetTagAddedBy")
   createdAlbums         Album[]          @relation("AlbumCreatedBy")
   attachedAlbumAssets   AlbumAsset[]     @relation("AlbumAssetAddedBy")
-  attachedAlbumEntries  AlbumJournalEntry[] @relation("AlbumEntryAddedBy")
+  attachedAlbumEntries  AlbumStory[] @relation("AlbumEntryAddedBy")
   pushSubscriptions     PushSubscription[]
   notificationPrefs     NotificationPref[]
   devicePushTokens      DevicePushToken[]
@@ -167,16 +167,16 @@ model Family {
   sessions       Session[]
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
-  journalEntries JournalEntry[]
+  stories Story[]
   assetLikes       AssetLike[]
   assetBookmarks   AssetBookmark[]
-  journalBookmarks JournalBookmark[]
+  storyBookmarks StoryBookmark[]
   assetComments    AssetComment[]
   tags             Tag[]
   assetTags      AssetTag[]
   albums         Album[]
   albumAssets    AlbumAsset[]
-  albumEntries   AlbumJournalEntry[]
+  albumEntries   AlbumStory[]
 
   @@map("families")
   @@schema("public")
@@ -278,7 +278,7 @@ model Baby {
   family         Family         @relation(fields: [familyId], references: [id], onDelete: Cascade)
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
-  journalEntries JournalEntry[]
+  stories Story[]
 
   @@index([familyId])
   @@map("babies")
@@ -380,15 +380,16 @@ model MilestoneAsset {
   @@schema("public")
 }
 
-model JournalEntry {
+model Story {
   id              String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  publicNo        Int                @unique @default(dbgenerated("nextval('public.stories_public_no_seq')")) @map("public_no")
   familyId        String             @map("family_id") @db.Uuid
   babyId          String?            @map("baby_id") @db.Uuid
   entryDate       DateTime           @map("entry_date") @db.Date
   title           String?
   body            String
   mood            String?
-  visibility      JournalVisibility  @default(family)
+  visibility      StoryVisibility  @default(family)
   createdByUserId String             @map("created_by_user_id") @db.Uuid
   createdAt       DateTime           @default(now()) @map("created_at")
   updatedAt       DateTime           @updatedAt @map("updated_at")
@@ -397,33 +398,33 @@ model JournalEntry {
   family    Family              @relation(fields: [familyId], references: [id], onDelete: Cascade)
   baby      Baby?               @relation(fields: [babyId], references: [id], onDelete: SetNull)
   createdBy User                @relation(fields: [createdByUserId], references: [id])
-  assets    JournalEntryAsset[]
-  albums    AlbumJournalEntry[]
-  bookmarks JournalBookmark[]
+  assets    StoryAsset[]
+  albums    AlbumStory[]
+  bookmarks StoryBookmark[]
 
   @@index([familyId, entryDate])
   @@index([familyId, babyId, entryDate])
   @@index([familyId, visibility, entryDate(sort: Desc)])
-  @@map("journal_entries")
+  @@map("stories")
   @@schema("public")
 }
 
-enum JournalVisibility {
+enum StoryVisibility {
   family
   guardians
-  @@map("journal_visibility")
+  @@map("story_visibility")
   @@schema("public")
 }
 
-model JournalEntryAsset {
+model StoryAsset {
   entryId String @map("entry_id") @db.Uuid
   assetId String @map("asset_id") @db.Uuid
   order   Int    @default(0)
 
-  entry JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entry Story @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@id([entryId, assetId])
-  @@map("journal_entry_assets")
+  @@map("story_assets")
   @@schema("public")
 }
 
@@ -457,7 +458,7 @@ model AssetBookmark {
   @@schema("public")
 }
 
-model JournalBookmark {
+model StoryBookmark {
   entryId   String   @map("entry_id") @db.Uuid
   userId    String   @map("user_id") @db.Uuid
   familyId  String   @map("family_id") @db.Uuid
@@ -465,11 +466,11 @@ model JournalBookmark {
 
   user   User         @relation(fields: [userId], references: [id], onDelete: Cascade)
   family Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
-  entry  JournalEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  entry  Story @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@id([entryId, userId])
   @@index([familyId, userId, createdAt])
-  @@map("journal_bookmarks")
+  @@map("story_bookmarks")
   @@schema("public")
 }
 
@@ -560,7 +561,7 @@ model Album {
   children  Album[]      @relation("AlbumTree")
   createdBy User         @relation("AlbumCreatedBy", fields: [createdByUserId], references: [id])
   assets    AlbumAsset[]
-  entries   AlbumJournalEntry[]
+  entries   AlbumStory[]
 
   @@index([familyId, parentId, deletedAt])
   @@map("albums")
@@ -586,9 +587,9 @@ model AlbumAsset {
   @@schema("public")
 }
 
-model AlbumJournalEntry {
+model AlbumStory {
   albumId        String   @map("album_id") @db.Uuid
-  journalEntryId String   @map("journal_entry_id") @db.Uuid
+  storyId String   @map("story_id") @db.Uuid
   familyId       String   @map("family_id") @db.Uuid
   addedByUserId  String   @map("added_by_user_id") @db.Uuid
   addedAt        DateTime @default(now()) @map("added_at")
@@ -596,13 +597,13 @@ model AlbumJournalEntry {
 
   family  Family       @relation(fields: [familyId], references: [id], onDelete: Cascade)
   album   Album        @relation(fields: [albumId], references: [id], onDelete: Cascade)
-  entry   JournalEntry @relation(fields: [journalEntryId], references: [id], onDelete: Cascade)
+  entry   Story @relation(fields: [storyId], references: [id], onDelete: Cascade)
   addedBy User         @relation("AlbumEntryAddedBy", fields: [addedByUserId], references: [id])
 
-  @@id([albumId, journalEntryId])
-  @@index([journalEntryId])
+  @@id([albumId, storyId])
+  @@index([storyId])
   @@index([familyId, albumId, sortIndex])
-  @@map("album_journal_entries")
+  @@map("album_stories")
   @@schema("public")
 }
 
