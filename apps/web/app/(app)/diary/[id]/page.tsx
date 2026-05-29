@@ -2,7 +2,7 @@ import { DiaryAlbumButton } from '@/components/diary/diary-album-button'
 import { DiaryBookmarkButton } from '@/components/diary/DiaryBookmarkButton'
 import { DiaryDeleteButton } from '@/components/diary/DiaryDeleteButton'
 import { DiaryDetail } from '@/components/diary/DiaryDetail'
-import { DiaryForm } from '@/components/diary/DiaryForm'
+import { DiaryEditForm } from '@/components/diary/DiaryEditForm'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -12,7 +12,7 @@ import { getFeatureFlags } from '@/server/settings/features'
 import { ChevronLeft, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
-import { deleteDiaryAction, updateDiaryAction } from './actions'
+import { deleteDiaryAction } from './actions'
 
 export default async function DiaryDetailPage({
   params,
@@ -41,28 +41,9 @@ export default async function DiaryDetailPage({
   if (!entry) notFound()
 
   if (sp.edit === '1') {
-    const [babies, assets] = await Promise.all([
-      prismaPublic.baby.findMany({
-        where: { familyId: ctx.family.id, deletedAt: null },
-        select: { id: true, name: true },
-        orderBy: { birthDate: 'asc' },
-      }),
-      prismaMedia.asset.findMany({
-        where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
-        orderBy: { takenAt: 'desc' },
-        take: 200,
-      }),
-    ])
-    const urlsMap = assets.length
-      ? await getMediaClient().getAssetUrlsBatch(
-          ctx.family.id,
-          assets.map((a) => a.id),
-        )
-      : {}
-    const pickerAssets = assets.map((a) => ({
-      id: a.id,
-      urls: urlsMap[a.id] ?? null,
-    }))
+    const existingAssets = entry.assets.flatMap((ea) =>
+      ea.asset ? [{ id: ea.asset.id, kind: ea.asset.kind, urls: ea.asset.urls }] : [],
+    )
     return (
       <>
         <header className="sticky top-0 z-30 border-b border-base-200/60 bg-base-50/80 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/70">
@@ -80,19 +61,11 @@ export default async function DiaryDetailPage({
           </div>
         </header>
         <div className="mx-auto max-w-2xl px-5 py-4">
-          <DiaryForm
-            action={updateDiaryAction.bind(null, id)}
-            babies={babies}
-            availableAssets={pickerAssets}
-            submitLabel="저장"
-            defaults={{
-              babyId: entry.babyId,
-              entryDate: entry.entryDate.toISOString().slice(0, 10),
-              title: entry.title,
-              body: entry.body,
-              mood: entry.mood,
-              assetIds: entry.assets.map((a) => a.assetId),
-            }}
+          <DiaryEditForm
+            entryId={id}
+            defaultBody={entry.body}
+            existingAssets={existingAssets}
+            canUpload={ctx.capabilities.includes('asset.upload')}
           />
         </div>
       </>
