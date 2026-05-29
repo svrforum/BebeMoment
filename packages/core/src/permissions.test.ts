@@ -125,6 +125,16 @@ describe('capabilitiesForRole', () => {
   })
 })
 
+describe('member-admin capabilities', () => {
+  it('owner 만 멤버 관리 권한을 가진다', () => {
+    for (const cap of ['member.suspend', 'member.reset_password', 'member.remove'] as const) {
+      expect(can('owner', cap)).toBe(true)
+      expect(can('guardian', cap)).toBe(false)
+      expect(can('family', cap)).toBe(false)
+    }
+  })
+})
+
 describe('social capabilities', () => {
   it.each([
     ['owner', 'social.react', true],

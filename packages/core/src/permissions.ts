@@ -5,6 +5,8 @@ export type Capability =
   | 'family.edit'
   | 'member.invite'
   | 'member.remove'
+  | 'member.suspend'
+  | 'member.reset_password'
   | 'member.change_role_to_owner'
   | 'member.change_role'
   | 'baby.create'
@@ -47,6 +49,8 @@ const MATRIX: Record<Role, Capability[]> = {
     'family.edit',
     'member.invite',
     'member.remove',
+    'member.suspend',
+    'member.reset_password',
     'member.change_role',
     'member.change_role_to_owner',
     'baby.create',
@@ -86,7 +90,6 @@ const MATRIX: Record<Role, Capability[]> = {
   guardian: [
     'family.edit',
     'member.invite',
-    'member.remove',
     'member.change_role',
     'baby.create',
     'baby.edit',
