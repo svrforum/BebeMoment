@@ -7,7 +7,7 @@
 - **일반 Linux Docker**: [docs/deployment-linux.md](./docs/deployment-linux.md)
 - **Synology DSM**: [docs/deployment-synology.md](./docs/deployment-synology.md)
 
-태그를 푸시하면 GitHub Actions 가 `ghcr.io/<org>/bebe-moment-{web,media}:vX.Y.Z` 멀티 아키 이미지를 빌드·푸시합니다.
+태그를 푸시하면 GitHub Actions 가 단일 앱 이미지 `ghcr.io/<org>/bebe-moment/app:vX.Y.Z` (web·media·알림 워커를 한 컨테이너에서 실행) 를 빌드·푸시합니다. 현재는 **`linux/amd64` 전용** — `linux/arm64`(ARM 시놀로지 등) 빌드는 추후 추가 예정입니다.
 
 ## 개발
 
