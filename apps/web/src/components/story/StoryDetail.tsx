@@ -3,9 +3,11 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
+import { useFamilySSE } from '@/lib/sse'
 import { ShieldCheck } from 'lucide-react'
 import dynamic from 'next/dynamic'
-import { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useState } from 'react'
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
@@ -32,6 +34,26 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const day = DAYS[d.getDay()] ?? ''
   const trimmed = entry.body.trim()
   const [activeIdx, setActiveIdx] = useState(0)
+
+  // 편집에서 막 추가한 사진은 저장 시점에 아직 처리 중(urls=null)이라 빈 슬라이드로 보인다.
+  // 가족 SSE 로 해당 사진이 ready 가 되면 자동 새로고침해 채운다(타임라인 그리드와 동일 패턴)
+  // — 사용자가 수동 새로고침할 필요 없이 추가한 사진이 뷰에 나타난다.
+  const router = useRouter()
+  const hasPending = entry.assets.some((a) => a.asset !== null && a.asset.urls === null)
+  useFamilySSE(
+    useCallback(
+      (event) => {
+        if (!hasPending) return
+        if (
+          event.type === 'asset.updated' &&
+          (event.status === 'ready' || event.status === 'failed')
+        ) {
+          router.refresh()
+        }
+      },
+      [hasPending, router],
+    ),
+  )
 
   // 인스타식 아바타 — 아기 이름의 첫 글자를 point 컬러 그라데이션 원에. 아기가 없으면
   // bullet 점. 추후 아기 프로필 사진이 생기면 여기서 보여줄 수 있음.
