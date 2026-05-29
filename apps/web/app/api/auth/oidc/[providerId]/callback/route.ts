@@ -10,6 +10,7 @@ import {
 } from '@/server/oidc/callback'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
+import { isUserFullySuspended } from '@/server/auth/suspension'
 import { acceptInvite } from '@/server/invite/accept'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
@@ -120,6 +121,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         orderBy: { joinedAt: 'asc' },
       })
       currentFamilyId = membership?.familyId ?? null
+    }
+
+    if (await isUserFullySuspended(user.id, prismaPublic)) {
+      clearOidcCookies(cookieStore)
+      return NextResponse.redirect(new URL('/login?error=suspended', req.url))
     }
 
     await createSessionAndSetCookie(user.id, currentFamilyId)

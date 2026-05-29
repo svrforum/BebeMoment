@@ -1,6 +1,7 @@
 import { verifyPassword } from '@/lib/password'
 import { ServiceError } from '@/server/error'
 import type { PrismaClient, User } from '@bebe/db-public'
+import { isUserFullySuspended } from './suspension'
 import { normalizeUsername } from './username'
 
 export type AuthenticateInput = { identifier: string; password: string }
@@ -35,11 +36,7 @@ export async function authenticate(
   if (!ok) return null
 
   // 비번은 맞지만 가족 멤버십이 모두 정지된 계정은 차단한다(단일 가족 모델에선 보통 1개).
-  const memberships = await prisma.membership.findMany({
-    where: { userId: user.id, deletedAt: null },
-  })
-  const allSuspended = memberships.length > 0 && memberships.every((m) => m.suspendedAt !== null)
-  if (allSuspended) {
+  if (await isUserFullySuspended(user.id, prisma)) {
     throw new ServiceError(403, '관리자에 의해 일시 정지된 계정이에요. 관리자에게 문의해주세요.')
   }
 
