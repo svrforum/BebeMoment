@@ -2,6 +2,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { authenticate } from '@/server/auth/authenticate'
+import { ServiceError } from '@/server/error'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
@@ -26,6 +27,9 @@ export async function POST(req: Request) {
         { error: e.issues[0]?.message ?? '입력값이 올바르지 않아요' },
         { status: 400 },
       )
+    }
+    if (e instanceof ServiceError) {
+      return NextResponse.json({ error: e.message }, { status: e.status })
     }
     return NextResponse.json({ error: '로그인에 실패했어요' }, { status: 400 })
   }
