@@ -40,37 +40,84 @@ describe('issuePasswordReset', () => {
   it('토큰 URL 을 발급한다', async () => {
     const { owner, family, member, membership } = await setup()
     const result = await issuePasswordReset(
-      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id, publicUrl: 'https://bebe.example.com' },
+      {
+        membershipId: membership.id,
+        familyId: family.id,
+        actorUserId: owner.id,
+        publicUrl: 'https://bebe.example.com',
+      },
       db.prismaPublic,
     )
     expect(result.url).toMatch(/^https:\/\/bebe\.example\.com\/reset-password\?token=[a-f0-9]{64}$/)
     expect(result.expiresAt.getTime()).toBeGreaterThan(Date.now())
-    const tokens = await db.prismaPublic.passwordResetToken.findMany({ where: { userId: member.id, usedAt: null } })
+    const tokens = await db.prismaPublic.passwordResetToken.findMany({
+      where: { userId: member.id, usedAt: null },
+    })
     expect(tokens).toHaveLength(1)
     expect(tokens[0]?.issuedByUserId).toBe(owner.id)
   })
   it('기존 미사용 토큰을 무효화하고 새로 발급한다', async () => {
     const { owner, family, member, membership } = await setup()
-    await issuePasswordReset({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id, publicUrl: 'https://x' }, db.prismaPublic)
-    await issuePasswordReset({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id, publicUrl: 'https://x' }, db.prismaPublic)
-    const unused = await db.prismaPublic.passwordResetToken.findMany({ where: { userId: member.id, usedAt: null } })
+    await issuePasswordReset(
+      {
+        membershipId: membership.id,
+        familyId: family.id,
+        actorUserId: owner.id,
+        publicUrl: 'https://x',
+      },
+      db.prismaPublic,
+    )
+    await issuePasswordReset(
+      {
+        membershipId: membership.id,
+        familyId: family.id,
+        actorUserId: owner.id,
+        publicUrl: 'https://x',
+      },
+      db.prismaPublic,
+    )
+    const unused = await db.prismaPublic.passwordResetToken.findMany({
+      where: { userId: member.id, usedAt: null },
+    })
     expect(unused).toHaveLength(1)
     const all = await db.prismaPublic.passwordResetToken.findMany({ where: { userId: member.id } })
     expect(all).toHaveLength(2)
   })
   it('본인은 거부한다', async () => {
     const { owner, family } = await setup()
-    const ownerMembership = await db.prismaPublic.membership.findFirst({ where: { familyId: family.id, userId: owner.id } })
+    const ownerMembership = await db.prismaPublic.membership.findFirst({
+      where: { familyId: family.id, userId: owner.id },
+    })
     await expect(
-      issuePasswordReset({ membershipId: ownerMembership!.id, familyId: family.id, actorUserId: owner.id, publicUrl: 'https://x' }, db.prismaPublic),
+      issuePasswordReset(
+        {
+          membershipId: ownerMembership!.id,
+          familyId: family.id,
+          actorUserId: owner.id,
+          publicUrl: 'https://x',
+        },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow('본인')
   })
   it('credential 계정이 없는 OIDC 멤버는 거부한다', async () => {
     const { owner, family } = await setup()
-    const oidcUser = await db.prismaPublic.user.create({ data: { username: 'oidcuser', displayName: 'OIDC', email: 'o@oidc.com' } })
-    const oidcMembership = await db.prismaPublic.membership.create({ data: { familyId: family.id, userId: oidcUser.id, role: 'family' } })
+    const oidcUser = await db.prismaPublic.user.create({
+      data: { username: 'oidcuser', displayName: 'OIDC', email: 'o@oidc.com' },
+    })
+    const oidcMembership = await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: oidcUser.id, role: 'family' },
+    })
     await expect(
-      issuePasswordReset({ membershipId: oidcMembership.id, familyId: family.id, actorUserId: owner.id, publicUrl: 'https://x' }, db.prismaPublic),
+      issuePasswordReset(
+        {
+          membershipId: oidcMembership.id,
+          familyId: family.id,
+          actorUserId: owner.id,
+          publicUrl: 'https://x',
+        },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow('OIDC')
   })
 })

@@ -41,9 +41,17 @@ async function setup() {
 describe('unsuspendMember', () => {
   it('정지를 해제한다', async () => {
     const { owner, family, membership } = await setup()
-    await suspendMember({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic)
-    await unsuspendMember({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic)
-    const updated = await db.prismaPublic.membership.findFirst({ where: { id: membership.id, familyId: family.id } })
+    await suspendMember(
+      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+      db.prismaPublic,
+    )
+    await unsuspendMember(
+      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+      db.prismaPublic,
+    )
+    const updated = await db.prismaPublic.membership.findFirst({
+      where: { id: membership.id, familyId: family.id },
+    })
     expect(updated?.suspendedAt).toBeNull()
     expect(updated?.suspendedReason).toBeNull()
     expect(updated?.suspendedByUserId).toBeNull()
@@ -51,7 +59,10 @@ describe('unsuspendMember', () => {
   it('정지 상태가 아니면 거부한다', async () => {
     const { owner, family, membership } = await setup()
     await expect(
-      unsuspendMember({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic),
+      unsuspendMember(
+        { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow('정지된 상태가 아니')
   })
 })

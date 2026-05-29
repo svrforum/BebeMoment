@@ -44,7 +44,12 @@ describe('suspendMember', () => {
       data: { token: 't-1', userId: member.id, expiresAt: new Date(Date.now() + 60_000) },
     })
     const result = await suspendMember(
-      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id, reason: '실수 가입' },
+      {
+        membershipId: membership.id,
+        familyId: family.id,
+        actorUserId: owner.id,
+        reason: '실수 가입',
+      },
       db.prismaPublic,
     )
     expect(result.suspendedAt).toBeInstanceOf(Date)
@@ -63,14 +68,23 @@ describe('suspendMember', () => {
       where: { familyId: family.id, userId: owner.id },
     })
     await expect(
-      suspendMember({ membershipId: ownerMembership!.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic),
+      suspendMember(
+        { membershipId: ownerMembership!.id, familyId: family.id, actorUserId: owner.id },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow('본인')
   })
   it('이미 정지된 멤버는 다시 정지할 수 없다', async () => {
     const { owner, family, membership } = await setup()
-    await suspendMember({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic)
+    await suspendMember(
+      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+      db.prismaPublic,
+    )
     await expect(
-      suspendMember({ membershipId: membership.id, familyId: family.id, actorUserId: owner.id }, db.prismaPublic),
+      suspendMember(
+        { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+        db.prismaPublic,
+      ),
     ).rejects.toThrow('이미 정지')
   })
 })
