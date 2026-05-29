@@ -1,5 +1,3 @@
-import { NotificationPrefs } from '@/components/settings/notification-prefs'
-import { PushToggle } from '@/components/settings/push-toggle'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
@@ -7,10 +5,11 @@ import { isInstanceAdminUser } from '@/lib/admin'
 import { getContext } from '@/server/context'
 import { getFeatureFlags } from '@/server/settings/features'
 import { parseEnv } from '@bebe/config'
-import { type FeatureFlag, NOTIFICATION_CATEGORIES, type NotificationCategory } from '@bebe/core'
+import type { FeatureFlag } from '@bebe/core'
 import type { Role } from '@bebe/db-public'
 import {
   Baby,
+  Bell,
   Bookmark,
   ChevronRight,
   type LucideIcon,
@@ -75,14 +74,7 @@ export default async function SettingsPage() {
       env.ADMIN_USER_EMAILS,
     )
 
-  const [prefRows, features] = await Promise.all([
-    prismaPublic.notificationPref.findMany({ where: { userId: user.id } }),
-    getFeatureFlags(prismaPublic),
-  ])
-  const prefMap = new Map(prefRows.map((r) => [r.category, r.enabled]))
-  const initialPrefs = Object.fromEntries(
-    NOTIFICATION_CATEGORIES.map((c) => [c, prefMap.get(c) ?? true]),
-  ) as Record<NotificationCategory, boolean>
+  const features = await getFeatureFlags(prismaPublic)
 
   const familyRows: Row[] = [
     { href: '/family', label: '가족 멤버', sublabel: '구성원·초대', icon: Users },
@@ -143,12 +135,16 @@ export default async function SettingsPage() {
         {/* 알림 */}
         <section className="space-y-2">
           <SectionTitle>알림</SectionTitle>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
-            <PushToggle />
-          </div>
-          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-2 shadow-card dark:border-base-800/70 dark:bg-base-900">
-            <NotificationPrefs initial={initialPrefs} />
-          </div>
+          <LinkRows
+            rows={[
+              {
+                href: '/settings/notifications',
+                label: '푸시 알림',
+                sublabel: '기기 등록 · 테스트 · 받을 알림 설정',
+                icon: Bell,
+              },
+            ]}
+          />
         </section>
 
         {/* 화면 */}
