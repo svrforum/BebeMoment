@@ -3,7 +3,8 @@ import { useToast } from '@/lib/toast'
 import type { FamilyMember } from '@/server/family/list-members'
 import { MoreVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useRef, useState, useTransition } from 'react'
+import { createPortal } from 'react-dom'
 import { RemoveModal } from './remove-modal'
 import { ResetPasswordModal } from './reset-password-modal'
 import { SuspendModal } from './suspend-modal'
@@ -14,8 +15,10 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
   const router = useRouter()
   const toast = useToast()
   const [open, setOpen] = useState(false)
+  const [coords, setCoords] = useState<{ top: number; right: number } | null>(null)
   const [modal, setModal] = useState<ModalKind>(null)
   const [pending, startTransition] = useTransition()
+  const triggerRef = useRef<HTMLButtonElement>(null)
 
   const isSuspended = member.suspendedAt !== null
 
@@ -39,38 +42,55 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
     setModal(kind)
   }
 
+  // 드롭다운은 카드의 `overflow-hidden`(둥근 모서리 마스킹)에 잘려 빈 흰 박스로만
+  // 보였다. body 로 포털 + 버튼 위치 기준 fixed 배치해 클리핑을 벗어난다(§17#19 패턴).
+  const toggle = () => {
+    if (!open && triggerRef.current) {
+      const r = triggerRef.current.getBoundingClientRect()
+      setCoords({ top: r.bottom + 4, right: window.innerWidth - r.right })
+    }
+    setOpen((v) => !v)
+  }
+
   return (
-    <div className="relative">
+    <>
       <button
+        ref={triggerRef}
         type="button"
         aria-label="멤버 관리"
-        onClick={() => setOpen((v) => !v)}
+        onClick={toggle}
         disabled={pending}
         className="flex h-9 w-9 items-center justify-center rounded-full text-base-400 hover:bg-base-100 disabled:opacity-50 dark:hover:bg-base-800"
       >
         <MoreVertical size={18} />
       </button>
 
-      {open && (
-        <>
-          <button
-            type="button"
-            aria-hidden
-            tabIndex={-1}
-            onClick={() => setOpen(false)}
-            className="fixed inset-0 z-10 cursor-default"
-          />
-          <div className="absolute right-0 z-20 mt-1 w-44 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 py-1 shadow-card dark:border-base-800/70 dark:bg-base-900">
-            {isSuspended ? (
-              <MenuItem label="정지 해제" onClick={unsuspend} />
-            ) : (
-              <MenuItem label="일시정지" onClick={() => pick('suspend')} />
-            )}
-            <MenuItem label="비밀번호 재설정" onClick={() => pick('reset')} />
-            <MenuItem label="가족에서 제외" danger onClick={() => pick('remove')} />
-          </div>
-        </>
-      )}
+      {open &&
+        coords &&
+        createPortal(
+          <>
+            <button
+              type="button"
+              aria-hidden
+              tabIndex={-1}
+              onClick={() => setOpen(false)}
+              className="fixed inset-0 z-[60] cursor-default"
+            />
+            <div
+              style={{ top: coords.top, right: coords.right }}
+              className="fixed z-[61] w-44 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 py-1 shadow-card dark:border-base-800/70 dark:bg-base-900"
+            >
+              {isSuspended ? (
+                <MenuItem label="정지 해제" onClick={unsuspend} />
+              ) : (
+                <MenuItem label="일시정지" onClick={() => pick('suspend')} />
+              )}
+              <MenuItem label="비밀번호 재설정" onClick={() => pick('reset')} />
+              <MenuItem label="가족에서 제외" danger onClick={() => pick('remove')} />
+            </div>
+          </>,
+          document.body,
+        )}
 
       <SuspendModal
         open={modal === 'suspend'}
@@ -90,7 +110,7 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
         membershipId={member.membershipId}
         displayName={member.displayName}
       />
-    </div>
+    </>
   )
 }
 
