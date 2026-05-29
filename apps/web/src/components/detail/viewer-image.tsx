@@ -260,6 +260,10 @@ function SwiperViewport({
         resistance={true}
         resistanceRatio={0.5}
         threshold={5}
+        // Swiper 기본 focusableElements 에 'video' 가 포함돼 있어 Capacitor WebView 에서
+        // 영상이 자동 포커스되면 touchmove 가 short-circuit 돼 스와이프가 죽는다.
+        // video 만 빼서 — 입력 요소들의 키 입력은 그대로 보호하면서 영상은 자유롭게 드래그.
+        focusableElements="input, select, option, textarea, button, label"
         zoom={{ maxRatio: 4, minRatio: 1, toggle: true }}
         onSwiper={(s) => {
           swiperRef.current = s
@@ -368,6 +372,9 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
       playsInline
       onError={() => setFailed(true)}
       className="max-h-full max-w-full"
+      // 영상은 기본 touch-action: auto 라 모바일 WebView 가 가로 터치를 자체 제스처에
+      // 쓸 수 있다 → Swiper 에 도달 못 함. pan-y 로 좁혀서 가로는 JS(Swiper) 로 패스.
+      style={{ touchAction: 'pan-y' }}
     >
       <track kind="captions" />
     </video>
