@@ -1,13 +1,20 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import {
+  pickBlurhash,
+  pickDisplayTrio,
+  pickDisplayUrl,
+  pickThumbTrio,
+  pickThumbUrl,
+} from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
-import { ShieldCheck } from 'lucide-react'
+import { LayoutGrid, ShieldCheck, Square } from 'lucide-react'
 import dynamic from 'next/dynamic'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
@@ -34,6 +41,21 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const day = DAYS[d.getDay()] ?? ''
   const trimmed = entry.body.trim()
   const [activeIdx, setActiveIdx] = useState(0)
+
+  // 사진 보기 모드: 슬라이드(캐러셀) ↔ 격자(갤러리). 마지막 선택을 localStorage 에 기억.
+  const [view, setView] = useState<'slide' | 'grid'>('slide')
+  useEffect(() => {
+    try {
+      const v = localStorage.getItem('bebe.story.photoView')
+      if (v === 'grid' || v === 'slide') setView(v)
+    } catch {}
+  }, [])
+  const chooseView = useCallback((v: 'slide' | 'grid') => {
+    setView(v)
+    try {
+      localStorage.setItem('bebe.story.photoView', v)
+    } catch {}
+  }, [])
 
   // 편집에서 막 추가한 사진은 저장 시점에 아직 처리 중(urls=null)이라 빈 슬라이드로 보인다.
   // 가족 SSE 로 해당 사진이 ready 가 되면 자동 새로고침해 채운다(타임라인 그리드와 동일 패턴)
@@ -86,45 +108,94 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         )}
       </header>
 
-      {/* 사진 캐러셀 — 인스타식 정사각 1장씩, 여러 장이면 스와이프 + 페이지네이션 점 +
-          오른쪽 상단 "1/3" 카운터. 한 장만 있으면 카운터·점 없이 단일 슬라이드. */}
+      {/* 사진 — 슬라이드(인스타식 캐러셀) 또는 격자(갤러리) 토글. 여러 장일 때만 토글 노출.
+          격자에서 탭하면 전체화면 뷰어(/detail/<publicNo>)로 연다. */}
       {sortedAssets.length > 0 && (
         <div className="relative bg-base-100 dark:bg-base-950">
-          <Swiper
-            modules={[Pagination]}
-            pagination={sortedAssets.length > 1 ? { clickable: true } : false}
-            spaceBetween={0}
-            slidesPerView={1}
-            onSlideChange={(s) => setActiveIdx(s.activeIndex)}
-            className="story-carousel aspect-square w-full"
-          >
-            {sortedAssets.map((link) => {
-              const trio = pickDisplayTrio(link.asset?.urls ?? null)
-              const fallbackUrl = pickDisplayUrl(link.asset?.urls ?? null)
-              if (!trio && !fallbackUrl) return null
-              return (
-                <SwiperSlide
+          {sortedAssets.length > 1 && (
+            <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-full bg-black/55 p-0.5 backdrop-blur-sm">
+              <button
+                type="button"
+                aria-label="슬라이드 보기"
+                aria-pressed={view === 'slide'}
+                onClick={() => chooseView('slide')}
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${view === 'slide' ? 'bg-white/90 text-black' : 'text-white'}`}
+              >
+                <Square size={14} strokeWidth={2.2} />
+              </button>
+              <button
+                type="button"
+                aria-label="격자 보기"
+                aria-pressed={view === 'grid'}
+                onClick={() => chooseView('grid')}
+                className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${view === 'grid' ? 'bg-white/90 text-black' : 'text-white'}`}
+              >
+                <LayoutGrid size={14} strokeWidth={2.2} />
+              </button>
+            </div>
+          )}
+
+          {view === 'slide' ? (
+            <>
+              <Swiper
+                modules={[Pagination]}
+                pagination={sortedAssets.length > 1 ? { clickable: true } : false}
+                spaceBetween={0}
+                slidesPerView={1}
+                onSlideChange={(s) => setActiveIdx(s.activeIndex)}
+                className="story-carousel aspect-square w-full"
+              >
+                {sortedAssets.map((link) => {
+                  const trio = pickDisplayTrio(link.asset?.urls ?? null)
+                  const fallbackUrl = pickDisplayUrl(link.asset?.urls ?? null)
+                  return (
+                    <SwiperSlide
+                      key={link.assetId}
+                      style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                    >
+                      <PictureImage
+                        trio={trio}
+                        fallbackUrl={fallbackUrl}
+                        alt=""
+                        dominantColor={link.asset?.urls?.dominantColor ?? null}
+                        blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                        aspectRatio={1}
+                        className="aspect-square w-full"
+                        objectFit="cover"
+                        loading="eager"
+                        fade={false}
+                      />
+                    </SwiperSlide>
+                  )
+                })}
+              </Swiper>
+              {sortedAssets.length > 1 && (
+                <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+                  {activeIdx + 1}/{sortedAssets.length}
+                </span>
+              )}
+            </>
+          ) : (
+            <div className="grid grid-cols-3 gap-0.5">
+              {sortedAssets.map((link) => (
+                <Link
                   key={link.assetId}
-                  style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+                  href={`/detail/${link.asset?.publicNo}`}
+                  className="block aspect-square"
                 >
                   <PictureImage
-                    trio={trio}
-                    fallbackUrl={fallbackUrl}
+                    trio={pickThumbTrio(link.asset?.urls ?? null)}
+                    fallbackUrl={pickThumbUrl(link.asset?.urls ?? null)}
                     alt=""
                     dominantColor={link.asset?.urls?.dominantColor ?? null}
                     blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                    aspectRatio={1}
                     className="aspect-square w-full"
                     objectFit="cover"
-                    loading="eager"
                   />
-                </SwiperSlide>
-              )
-            })}
-          </Swiper>
-          {sortedAssets.length > 1 && (
-            <span className="pointer-events-none absolute right-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
-              {activeIdx + 1}/{sortedAssets.length}
-            </span>
+                </Link>
+              ))}
+            </div>
           )}
         </div>
       )}
