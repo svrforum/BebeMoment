@@ -32,6 +32,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           familyId: ctx.family.id,
           deletedAt: null,
           status: 'ready',
+          duplicateOf: null, // 중복 별칭은 미열람 카운트에서 제외
           createdAt: { gt: lastSeen },
         },
       })

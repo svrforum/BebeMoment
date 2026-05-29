@@ -131,6 +131,7 @@ export async function listTimeline(
         familyId,
         status: 'ready',
         deletedAt: null,
+        duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
         ...(tagAssetIds ? { id: { in: tagAssetIds } } : {}),
         ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
         ...(cursorTs && cur

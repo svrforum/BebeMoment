@@ -46,6 +46,12 @@ model Asset {
   processingError         String?     @map("processing_error")
   derivatives             Json       @default("{}")
 
+  // 중복 업로드(같은 family·sha256)면 워커가 기존(canonical) 자산의 표시 필드를 복사해
+  // ready 별칭으로 만들고 이 컬럼에 canonical id 를 기록한다. 타임라인 그리드·미해결
+  // 카운트 등 "둘러보기" 목록에서는 제외(duplicate_of IS NULL), 스토리·앨범 등 명시적
+  // 참조에서는 정상 표시.
+  duplicateOf             String?   @map("duplicate_of") @db.Uuid
+
   visibility              Visibility @default(family)
 
   tags                    String[]   @default([])
