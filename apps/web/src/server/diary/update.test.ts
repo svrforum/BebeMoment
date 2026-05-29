@@ -1,5 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -91,5 +92,39 @@ describe('updateDiaryEntry', () => {
       db.prismaMedia,
     )
     expect(updated.babyId).toBeNull()
+  })
+
+  it('아직 처리 중(non-ready)인 새 사진도 첨부할 수 있다 — 편집 "사진 추가" 회귀', async () => {
+    const { user, family } = await setup()
+    const entry = await createDiaryEntry(
+      { familyId: family.id, babyId: null, entryDate: '2026-04-01', body: '본문', byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    // createAsset 는 ready 가 아닌 기본 상태로 자산을 만든다(업로드 직후 = 처리 중).
+    const asset = await createAsset(
+      {
+        familyId: family.id,
+        uploadedByUserId: user.id,
+        kind: 'image',
+        originalKey: 'k-upd-1',
+        originalFilename: 'a.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1n,
+        sha256: 'sha-upd-regression-1',
+        takenAt: new Date('2026-03-01'),
+        takenAtSource: 'uploaded',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const updated = await updateDiaryEntry(
+      { id: entry.id, familyId: family.id, byUserId: user.id, patch: { assetIds: [asset.id] } },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.id).toBe(entry.id)
+    const links = await db.prismaPublic.journalEntryAsset.findMany({ where: { entryId: entry.id } })
+    expect(links.map((l) => l.assetId)).toEqual([asset.id])
   })
 })

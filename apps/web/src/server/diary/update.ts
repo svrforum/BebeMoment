@@ -53,11 +53,14 @@ export async function updateDiaryEntry(
     }
   }
   if (input.patch.assetIds && input.patch.assetIds.length > 0) {
+    // Status check intentionally relaxed (matches create.ts): 편집에서 방금 올린
+    // 사진은 저장 시점에 아직 `uploading`/`processing` 일 수 있다. 가족 소유 +
+    // 미삭제만 검증하고, 상태가 `ready` 로 바뀌면 타임라인이 최종 URL 을 잡는다.
+    // (status:'ready' 를 요구하면 새 업로드가 "one or more assets invalid" 로 실패.)
     const count = await prismaMedia.asset.count({
       where: {
         id: { in: input.patch.assetIds },
         familyId: input.familyId,
-        status: 'ready',
         deletedAt: null,
       },
     })
