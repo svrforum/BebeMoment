@@ -21,7 +21,7 @@ export default async function FamilyPage() {
     <>
       <AppHeader title="가족" />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 space-y-6">
-        <MemberList members={members} currentUserId={ctx.user.id} />
+        <MemberList members={members} currentUserId={ctx.user.id} isAdmin={isOwner} />
         {canInvite && <InviteManager />}
         {isOwner && <PermissionsSection />}
 
