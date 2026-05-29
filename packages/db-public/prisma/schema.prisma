@@ -50,6 +50,9 @@ model User {
   pushSubscriptions     PushSubscription[]
   notificationPrefs     NotificationPref[]
   devicePushTokens      DevicePushToken[]
+  suspendedMemberships Membership[]         @relation("MembershipSuspendedBy")
+  passwordResetTokens  PasswordResetToken[] @relation("PasswordResetUser")
+  issuedPasswordResets PasswordResetToken[] @relation("PasswordResetIssuedBy")
 
   @@map("users")
   @@schema("public")
@@ -189,13 +192,35 @@ model Membership {
   updatedAt  DateTime  @updatedAt @map("updated_at")
   deletedAt  DateTime? @map("deleted_at")
   lastSeenAt DateTime? @map("last_seen_at")
+  suspendedAt       DateTime? @map("suspended_at")
+  suspendedReason   String?   @map("suspended_reason")
+  suspendedByUserId String?   @map("suspended_by_user_id") @db.Uuid
 
   family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
   user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  suspendedBy User? @relation("MembershipSuspendedBy", fields: [suspendedByUserId], references: [id], onDelete: SetNull)
 
   @@unique([familyId, userId])
   @@index([userId])
   @@map("memberships")
+  @@schema("public")
+}
+
+model PasswordResetToken {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  token          String    @unique
+  userId         String    @map("user_id") @db.Uuid
+  issuedByUserId String?   @map("issued_by_user_id") @db.Uuid
+  expiresAt      DateTime  @map("expires_at")
+  usedAt         DateTime? @map("used_at")
+  createdAt      DateTime  @default(now()) @map("created_at")
+
+  user     User  @relation("PasswordResetUser", fields: [userId], references: [id], onDelete: Cascade)
+  issuedBy User? @relation("PasswordResetIssuedBy", fields: [issuedByUserId], references: [id], onDelete: SetNull)
+
+  @@index([userId, usedAt])
+  @@index([token])
+  @@map("password_reset_tokens")
   @@schema("public")
 }
 
