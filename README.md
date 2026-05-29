@@ -1,6 +1,6 @@
 # bebe-moment
 
-셀프호스팅 아기 포토 저널. **Plan 1 (Foundation)** — 인증·가족·초대·아기 등록.
+셀프호스팅 **가족용 아기 포토 저널** (한 인스턴스 = 한 가족, 초대제). 타임라인·캘린더, 사진·영상 상세 뷰어 + 좋아요·댓글·북마크, 중첩/비밀 앨범, 태그, 일기(스토리), 성장기록·마일스톤, 설치형 PWA + 웹푸시, 안드로이드 앱(FCM), 멤버 관리, OIDC SSO 를 갖춘다. 전체 페이즈 현황은 [CLAUDE.md §3](./CLAUDE.md) 참조.
 
 ## 배포
 
@@ -48,7 +48,13 @@ SECRET_KEY=dev_secret_key_32bytes_minimum_______________
 PUBLIC_URL=http://localhost:3000
 NODE_ENV=development
 LOG_LEVEL=debug
+# media 서비스(업로드/조회)에 필수 — 없으면 web 의 getMediaClient 가 throw
+MEDIA_INTERNAL_URL=http://localhost:3001
+MEDIA_SERVICE_TOKEN=dev_media_service_token_32bytes_minimum_______
+MEDIA_JWT_SECRET=dev_media_jwt_secret_32bytes_minimum__________
 ```
+
+> ⚠️ 루트 `.env` 는 gitignore **이자 dockerignore** 대상이라 도커 이미지에 들어가지 않는다. 프로덕션(compose/Synology)에서는 `MEDIA_SERVICE_TOKEN`·`MEDIA_JWT_SECRET`·`SECRET_KEY` 등 시크릿을 **런타임 env 로 주입**해야 한다(`compose/.env.example` 참조). `MEDIA_PUBLIC_BASE_URL`/`NEXT_PUBLIC_MEDIA_BASE_URL` 은 보통 미설정으로 두면 `PUBLIC_URL` 로 폴백된다.
 
 ## 테스트
 
@@ -62,7 +68,7 @@ pnpm lint
 
 ```
 apps/
-  web/          # Next.js 15 앱
+  web/          # Next.js 16 앱
 packages/
   db/           # Prisma 스키마 + 클라이언트 + tenant 미들웨어
   core/         # 도메인 유틸 (나이 버킷, 권한)
