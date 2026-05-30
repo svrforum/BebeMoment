@@ -14,7 +14,9 @@ import android.os.Environment;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
+import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
@@ -77,7 +79,53 @@ public class MainActivity extends BridgeActivity {
                 }
                 return super.shouldOverrideUrlLoading(view, request);
             }
+
+            // 배포 중(컨테이너 재시작)이나 일시적 서버 다운으로 메인 페이지가 502/네트워크
+            // 오류면 WebView 가 에러 페이지에 갇혀 새로고침도 안 된다 → 자동 재연결.
+            @Override
+            public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request != null && request.isForMainFrame()) {
+                    scheduleReconnect(view, request.getUrl().toString());
+                    return;
+                }
+                super.onReceivedError(view, request, error);
+            }
+
+            @Override
+            public void onReceivedHttpError(
+                WebView view, WebResourceRequest request, WebResourceResponse errorResponse) {
+                if (request != null
+                    && request.isForMainFrame()
+                    && errorResponse != null
+                    && errorResponse.getStatusCode() >= 500) {
+                    scheduleReconnect(view, request.getUrl().toString());
+                    return;
+                }
+                super.onReceivedHttpError(view, request, errorResponse);
+            }
         });
+    }
+
+    /** 서버 origin 의 메인 프레임 로드 실패 시 "연결 중" 안내를 띄우고 4초마다 자동 재시도. */
+    private void scheduleReconnect(WebView view, String url) {
+        final String server = readServerUrl();
+        if (server == null || url == null) return;
+        final String base = server.replaceAll("/+$", "");
+        if (!url.startsWith(base)) return; // 서버 origin 만 — 온보딩/외부는 제외
+        final String html =
+            "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
+                + "<style>html,body{height:100%;margin:0;background:#0b0b0c;color:#e7e7ea;"
+                + "font-family:-apple-system,Roboto,sans-serif}.w{height:100%;display:flex;flex-direction:column;"
+                + "align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}"
+                + ".s{width:34px;height:34px;border:3px solid #2a2a2e;border-top-color:#6b8afd;border-radius:50%;"
+                + "animation:r 0.9s linear infinite}@keyframes r{to{transform:rotate(360deg)}}"
+                + "b{display:inline-block;margin-top:8px;padding:11px 22px;background:#6b8afd;color:#fff;"
+                + "border-radius:999px;font-weight:600;text-decoration:none}p{margin:0;color:#9a9aa0;font-size:14px}</style>"
+                + "</head><body><div class=w><div class=s></div>"
+                + "<p>서버에 다시 연결하고 있어요…<br>업데이트 중이라면 잠시 후 자동으로 이어져요.</p>"
+                + "<a class=b href='" + base + "'>다시 시도</a></div></body></html>";
+        view.loadDataWithBaseURL(base, html, "text/html", "UTF-8", null);
+        view.postDelayed(() -> view.loadUrl(url), 4000);
     }
 
     /** 비-http(s) URI 를 네이티브 앱으로. 앱이 없으면 browser_fallback_url / 마켓으로. */
