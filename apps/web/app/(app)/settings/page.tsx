@@ -5,31 +5,24 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { isInstanceAdminUser } from '@/lib/admin'
 import { getContext } from '@/server/context'
-import { getFeatureFlags } from '@/server/settings/features'
 import { parseEnv } from '@bebe/config'
-import type { FeatureFlag } from '@bebe/core'
 import type { Role } from '@bebe/db-public'
 import {
   Baby,
   Bell,
-  Bookmark,
   ChevronRight,
   type LucideIcon,
-  NotebookPen,
   SlidersHorizontal,
-  Tags,
   Trash2,
   Users,
 } from 'lucide-react'
 import Link from 'next/link'
-import { prismaPublic } from '@/lib/db-init'
 
 type Row = {
   href: string
   label: string
   sublabel?: string
   icon: LucideIcon
-  feature?: FeatureFlag
 }
 
 const ROLE_LABEL: Record<Role, string> = {
@@ -76,20 +69,10 @@ export default async function SettingsPage() {
       env.ADMIN_USER_EMAILS,
     )
 
-  const features = await getFeatureFlags(prismaPublic)
-
   const familyRows: Row[] = [
     { href: '/family', label: '가족 멤버', sublabel: '구성원·초대', icon: Users },
     { href: '/babies', label: '아기 관리', icon: Baby },
   ]
-  const contentRows: Row[] = (
-    [
-      { href: '/saved', label: '저장함', icon: Bookmark, feature: 'bookmarks' },
-      { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
-      { href: '/settings/tags', label: '태그 관리', icon: Tags, feature: 'tags' },
-      { href: '/trash', label: '휴지통', icon: Trash2 },
-    ] satisfies Row[]
-  ).filter((r) => !r.feature || features[r.feature])
 
   return (
     <>
@@ -128,18 +111,12 @@ export default async function SettingsPage() {
           <SnsLinkSection />
         </section>
 
-        {/* 가족·콘텐츠 — 관리(owner/관리자)만. 일반 구성원은 알림·화면·SNS 만 본다. */}
+        {/* 가족 — 관리(owner/관리자)만. 일반 구성원은 알림·화면·SNS 만 본다. */}
         {isAdmin && (
-          <>
-            <section className="space-y-2">
-              <SectionTitle>가족</SectionTitle>
-              <LinkRows rows={familyRows} />
-            </section>
-            <section className="space-y-2">
-              <SectionTitle>콘텐츠</SectionTitle>
-              <LinkRows rows={contentRows} />
-            </section>
-          </>
+          <section className="space-y-2">
+            <SectionTitle>가족</SectionTitle>
+            <LinkRows rows={familyRows} />
+          </section>
         )}
 
         {/* 알림 */}
@@ -177,6 +154,7 @@ export default async function SettingsPage() {
                   sublabel: '인증·기능·테마·SMTP·스토리지',
                   icon: SlidersHorizontal,
                 },
+                { href: '/trash', label: '휴지통', icon: Trash2 },
               ]}
             />
           </section>

@@ -30,11 +30,6 @@ export type Capability =
   | 'social.comment.edit.own'
   | 'social.comment.delete.own'
   | 'social.comment.delete.any'
-  | 'tag.create'
-  | 'tag.rename'
-  | 'tag.delete'
-  | 'asset.tag.attach'
-  | 'asset.tag.detach'
   | 'album.create'
   | 'album.update.own'
   | 'album.update.any'
@@ -74,11 +69,6 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.edit.own',
     'social.comment.delete.own',
     'social.comment.delete.any',
-    'tag.create',
-    'tag.rename',
-    'tag.delete',
-    'asset.tag.attach',
-    'asset.tag.detach',
     'album.create',
     'album.update.own',
     'album.update.any',
@@ -112,11 +102,6 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.edit.own',
     'social.comment.delete.own',
     'social.comment.delete.any',
-    'tag.create',
-    'tag.rename',
-    'tag.delete',
-    'asset.tag.attach',
-    'asset.tag.detach',
     'album.create',
     'album.update.own',
     'album.update.any',
@@ -138,9 +123,6 @@ const MATRIX: Record<Role, Capability[]> = {
     'social.comment.create',
     'social.comment.edit.own',
     'social.comment.delete.own',
-    'tag.create',
-    'asset.tag.attach',
-    'asset.tag.detach',
     'album.create',
     'album.update.own',
     'album.delete.own',
@@ -174,9 +156,6 @@ export const GRANTABLE_FAMILY_CAPABILITIES: Capability[] = [
   'album.delete.own',
   'album.asset.attach',
   'album.asset.detach',
-  'tag.create',
-  'asset.tag.attach',
-  'asset.tag.detach',
 ]
 
 const GRANTABLE_SET = new Set<string>(GRANTABLE_FAMILY_CAPABILITIES)

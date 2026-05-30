@@ -1,6 +1,5 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
-import type { AssetTag } from '@/components/tags/tag-editor'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
@@ -46,7 +45,6 @@ export function ViewerShell({
   initialLiked,
   initialBookmarked,
   initialComments,
-  initialTags,
   initialFilename,
   initialCaption,
 }: {
@@ -62,7 +60,6 @@ export function ViewerShell({
   initialLiked: boolean
   initialBookmarked: boolean
   initialComments: CommentWithAuthor[]
-  initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
 }) {
@@ -272,8 +269,8 @@ export function ViewerShell({
   // chrome 서브트리는 re-key 하지 않는다 — 화면에 항상 보이는 상단바·하단바·우측
   // 패널이 사진 전환마다 unmount/remount 하면 그 자체가 "깜빡임"이 된다.
   // ViewerTopBar/ActionBar/InfoPanel 은 모두 prop-driven (liked·count·bookmarked·
-  // commentCount·meta 가 state) 이므로 props 만 갱신해도 충분하다. CommentList /
-  // TagEditor 는 자체적으로 `[assetId]` useEffect 로 fresh fetch 한다. 시드 state 를
+  // commentCount·meta 가 state) 이므로 props 만 갱신해도 충분하다. CommentList
+  // 는 자체적으로 `[assetId]` useEffect 로 fresh fetch 한다. 시드 state 를
   // 가진 MetadataEditor 만 안쪽에서 `key={assetId}` 로 remount 시킨다.
   //
   // 단 ViewerBottomSheet 는 닫혀있을 때 보이지 않아 remount 가 시각적 깜빡임이 아니므로
@@ -345,7 +342,6 @@ export function ViewerShell({
           commentCount={commentCount}
           onCommentCountChange={setCommentCount}
           initialComments={initialComments}
-          initialTags={initialTags}
           initialFilename={filenameState}
           initialCaption={captionState}
           initialDetailsOpen={sheetDetailsOpen}
@@ -370,7 +366,6 @@ export function ViewerShell({
           commentCount={commentCount}
           onCommentCountChange={setCommentCount}
           initialComments={initialComments}
-          initialTags={initialTags}
           initialFilename={filenameState}
           initialCaption={captionState}
           canAlbum={canAlbum}

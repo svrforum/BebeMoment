@@ -1,5 +1,4 @@
 'use client'
-import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { useFeatures } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Download, FolderPlus } from 'lucide-react'
@@ -32,7 +31,6 @@ export function ViewerInfoPanel({
   commentCount,
   onCommentCountChange,
   initialComments,
-  initialTags,
   initialFilename,
   initialCaption,
   canAlbum,
@@ -53,7 +51,6 @@ export function ViewerInfoPanel({
   commentCount: number
   onCommentCountChange: (count: number) => void
   initialComments: CommentWithAuthor[]
-  initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
   canAlbum: boolean
@@ -81,7 +78,6 @@ export function ViewerInfoPanel({
           initialTakenAtSource={meta.takenAtSource}
         />
         <MetadataSection {...meta} />
-        {features.tags && <TagEditor assetId={assetId} initial={initialTags} />}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />

@@ -2,14 +2,14 @@
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
-import { Bookmark, Calendar, Clock4, FolderOpen, NotebookPen, Settings, Users } from 'lucide-react'
+import { Bookmark, Calendar, Clock4, FolderOpen, NotebookPen, Settings } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { UnreadBadge } from './unread-badge'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
-// 자동 조정(아래 visible + gridTemplateColumns). 마지막 칸은 권한에 따라 가족(관리
-// 가능) 또는 설정(일반 구성원) — 일반 구성원은 가족 탭 대신 설정으로 바로 간다.
+// 자동 조정(아래 visible + gridTemplateColumns). 마지막 칸은 모두에게 설정 —
+// 가족 관리는 설정 → 가족에서 들어간다.
 const baseItems: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
@@ -20,6 +20,7 @@ const baseItems: { href: string; label: string; icon: typeof Clock4; feature?: F
 type Props = {
   /** Optional per-route unread counts. Currently only '/timeline' is used. */
   unreadCounts?: Record<string, number>
+  /** 레이아웃이 사이드내비와 공유해 넘기지만 하단 네비는 마지막 칸을 항상 설정으로 둔다. */
   canManageFamily?: boolean
   /** 관리자가 일반 가족에게 숨긴 메뉴 키(예: ['story','albums']). */
   hiddenNav?: string[]
@@ -27,12 +28,7 @@ type Props = {
   showBookmark?: boolean
 }
 
-export function BottomNav({
-  unreadCounts,
-  canManageFamily = true,
-  hiddenNav = [],
-  showBookmark = false,
-}: Props = {}) {
+export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }: Props = {}) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const features = useFeatures()
@@ -40,9 +36,7 @@ export function BottomNav({
   if (pathname?.startsWith('/detail') === true) return null
   // 캘린더에서 특정 날짜로 들어온 화면(/timeline?date=)은 캘린더 맥락이므로 캘린더 탭을 활성으로.
   const inDateView = pathname === '/timeline' && searchParams.get('date') !== null
-  const lastItem = canManageFamily
-    ? { href: '/family', label: '가족', icon: Users }
-    : { href: '/settings', label: '설정', icon: Settings }
+  const lastItem = { href: '/settings', label: '설정', icon: Settings }
   const visible = [
     ...baseItems.filter(
       (it) => (!it.feature || features[it.feature]) && !hiddenNav.includes(it.href.slice(1)),

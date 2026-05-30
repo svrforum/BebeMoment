@@ -5,7 +5,7 @@ export type TimelineSortMode = 'taken' | 'uploaded'
 type Props = {
   /** Currently active mode (server-resolved from `?sort=`). */
   value: TimelineSortMode
-  /** Other URL params to preserve when switching (tag, etc.). `sort` 키는
+  /** Other URL params to preserve when switching. `sort` 키는
    *  이쪽에서 덮어쓰므로 호출자가 넣어도 무시된다. */
   preserveParams?: Record<string, string | string[] | undefined>
 }

@@ -1,5 +1,4 @@
 'use client'
-import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { Sheet } from '@/components/ui/sheet'
 import { useFeatures } from '@/lib/features'
 import { ChevronDown } from 'lucide-react'
@@ -35,7 +34,6 @@ export function ViewerBottomSheet({
   commentCount,
   onCommentCountChange,
   initialComments,
-  initialTags,
   initialFilename,
   initialCaption,
   initialDetailsOpen,
@@ -57,7 +55,6 @@ export function ViewerBottomSheet({
   commentCount: number
   onCommentCountChange: (count: number) => void
   initialComments: CommentWithAuthor[]
-  initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
   /** ⋮ "정보"로 열면 세부정보 펼친 채로, 댓글로 열면 접힌 채로. */
@@ -103,7 +100,6 @@ export function ViewerBottomSheet({
             initialTakenAtSource={meta.takenAtSource}
           />
           <MetadataSection {...meta} />
-          {features.tags && <TagEditor assetId={assetId} initial={initialTags} />}
         </div>
       </details>
     </div>

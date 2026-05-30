@@ -4,7 +4,7 @@ import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import { useEffect, useState } from 'react'
 
-type GroupKey = 'upload' | 'records' | 'albums' | 'tags'
+type GroupKey = 'upload' | 'records' | 'albums'
 
 type Group = {
   key: GroupKey
@@ -42,13 +42,6 @@ const GROUPS: Group[] = [
       'album.asset.detach',
     ],
   },
-  {
-    key: 'tags',
-    label: '태그',
-    description: '태그를 만들고 사진에 태그를 붙이거나 뗄 수 있어요.',
-    representative: 'tag.create',
-    capabilities: ['tag.create', 'asset.tag.attach', 'asset.tag.detach'],
-  },
 ]
 
 function deriveEnabled(caps: string[]): Record<GroupKey, boolean> {
@@ -66,7 +59,6 @@ export function PermissionsSection() {
     upload: false,
     records: false,
     albums: false,
-    tags: false,
   })
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)

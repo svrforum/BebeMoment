@@ -3,7 +3,6 @@ import { StoryStrip, type TimelineStory } from '@/components/timeline/bucket-sec
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { StoryCard } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
-import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { TimelineComposer } from '@/components/timeline/timeline-composer'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
@@ -23,12 +22,11 @@ import { z } from 'zod'
 export default async function TimelinePage({
   searchParams,
 }: {
-  searchParams: Promise<{ tag?: string | string[]; date?: string; sort?: string }>
+  searchParams: Promise<{ date?: string; sort?: string }>
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
-  const { tag, date, sort } = await searchParams
-  const tagSlugs = Array.isArray(tag) ? tag : tag ? [tag] : []
+  const { date, sort } = await searchParams
   const dateFilter = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null
   const sortMode: 'taken' | 'uploaded' = sort === 'uploaded' ? 'uploaded' : 'taken'
 
@@ -46,7 +44,6 @@ export default async function TimelinePage({
         limit: 100,
         viewerRole,
         sort: sortMode,
-        ...(tagSlugs.length > 0 ? { tagSlugs } : {}),
         ...(dateFilter ? { date: dateFilter } : {}),
       },
       prismaPublic,
@@ -137,7 +134,7 @@ export default async function TimelinePage({
   const canAddAlbum = ctx.capabilities.includes('album.create') && !navHidden.includes('albums')
 
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
-  // 컴포저·태그 섹션은 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
+  // 컴포저는 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
   if (dateFilter) {
     const dateObj = new Date(`${dateFilter}T00:00:00.000Z`)
     const WEEKDAYS_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
@@ -217,16 +214,13 @@ export default async function TimelinePage({
   }
   const canUpload = ctx.capabilities.includes('asset.upload')
 
-  // 오늘 추억 — 태그/날짜 필터가 없는 기본 타임라인에서만 상단 카드로.
-  const memoryGroups =
-    tagSlugs.length === 0
-      ? await listMemories(
-          { familyId: ctx.family.id, today: new Date(), viewerRole },
-          prismaMedia,
-          prismaPublic,
-          getMediaClient(),
-        )
-      : []
+  // 오늘 추억 — 날짜 필터가 없는 기본 타임라인에서만 상단 카드로.
+  const memoryGroups = await listMemories(
+    { familyId: ctx.family.id, today: new Date(), viewerRole },
+    prismaMedia,
+    prismaPublic,
+    getMediaClient(),
+  )
 
   return (
     <>
@@ -236,25 +230,13 @@ export default async function TimelinePage({
       ) : (
         <AppHeader title={ctx.family.name} wide />
       )}
-      {canUpload && (
-        <TimelineSortToggle
-          value={sortMode}
-          preserveParams={tagSlugs.length > 0 ? { tag: tagSlugs } : {}}
-        />
-      )}
+      {canUpload && <TimelineSortToggle value={sortMode} />}
       {memoryGroups.length > 0 && memoryGroups[0] && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <MemoriesCard group={memoryGroups[0]} />
         </div>
       )}
-      {features.tags && (
-        <TagFilterStrip
-          familyId={ctx.family.id}
-          prismaPublic={prismaPublic}
-          activeSlugs={tagSlugs}
-        />
-      )}
-      {tagSlugs.length === 0 && features.diary && ctx.capabilities.includes('record.create') && (
+      {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
             userDisplayName={ctx.user?.displayName ?? '나'}

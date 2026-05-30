@@ -13,7 +13,6 @@ import {
   NotebookPen,
   Settings,
   Sun,
-  Users,
 } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
@@ -31,7 +30,6 @@ const items: {
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
   { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
   { href: '/saved', label: '북마크', icon: Bookmark, bookmarkOnly: true },
-  { href: '/family', label: '가족', icon: Users, manageOnly: true },
   { href: '/settings', label: '설정', icon: Settings },
 ]
 

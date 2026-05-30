@@ -1,7 +1,7 @@
 // 인스턴스 단위로 끄고 켤 수 있는 기능 플래그. 관리자가 설정(`features.<key>`)에서
 // 토글하고, 끄면 해당 UI 가 숨고 관련 API 가 거부된다. 기본값은 전부 켜짐.
 
-export const FEATURE_FLAGS = ['likes', 'comments', 'bookmarks', 'diary', 'albums', 'tags'] as const
+export const FEATURE_FLAGS = ['likes', 'comments', 'bookmarks', 'diary', 'albums'] as const
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number]
 
@@ -13,7 +13,6 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   bookmarks: true,
   diary: true,
   albums: true,
-  tags: true,
 }
 
 export const FEATURE_FLAG_LABELS: Record<FeatureFlag, { label: string; description: string }> = {
@@ -22,7 +21,6 @@ export const FEATURE_FLAG_LABELS: Record<FeatureFlag, { label: string; descripti
   bookmarks: { label: '저장함(북마크)', description: '항목을 개인 저장함에 담을 수 있어요.' },
   diary: { label: '일기·기록', description: '일기, 성장 기록, 마일스톤을 작성할 수 있어요.' },
   albums: { label: '앨범', description: '앨범을 만들고 사진을 정리할 수 있어요.' },
-  tags: { label: '태그', description: '태그를 만들고 사진에 붙일 수 있어요.' },
 }
 
 /** 설정 맵(부분)을 받아 누락 키는 기본값(켜짐)으로 채운 완전한 플래그 집합을 만든다. */

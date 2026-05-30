@@ -48,10 +48,6 @@ export async function listTimeline(
   params: {
     limit?: number
     cursor?: string
-    /** Single tag (back-compat) — equivalent to tagSlugs of length 1. */
-    tagSlug?: string
-    /** AND filter: assets matching ALL slugs. */
-    tagSlugs?: string[]
     /** Single-day filter (YYYY-MM-DD, UTC day). takenAt/entryDate 가 저장된
      *  값(벽시계 시각을 UTC 로 저장)과 같은 UTC 일자로 매칭 → 캘린더 셀과 정합. */
     date?: string
@@ -85,43 +81,6 @@ export async function listTimeline(
     dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
   }
 
-  // Resolve the tag filter (single or multi) to an asset_id intersection.
-  // Empty resolved set means "matches nothing" — short-circuit.
-  const requestedSlugs = params.tagSlugs?.length
-    ? params.tagSlugs
-    : params.tagSlug
-      ? [params.tagSlug]
-      : []
-  let tagAssetIds: string[] | null = null
-  if (requestedSlugs.length > 0) {
-    const tagRows = await prismaPublic.tag.findMany({
-      where: { familyId, slug: { in: requestedSlugs }, deletedAt: null },
-      select: { id: true, slug: true },
-    })
-    if (tagRows.length !== requestedSlugs.length) {
-      // At least one slug is unknown / deleted — AND can't match.
-      return { items: [], nextCursor: null }
-    }
-    const tagIds = tagRows.map((t) => t.id)
-    // Find asset ids that have ALL the requested tags. Cap the result so a
-    // tag with 100k+ photos doesn't blow Postgres's bind-parameter ceiling
-    // when we hand the ids over to media. The cap is intentionally larger
-    // than `limit + 1` so cursor pagination still works against the cap.
-    const TAG_INTERSECT_CAP = 10_000
-    const grouped = await prismaPublic.assetTag.groupBy({
-      by: ['assetId'],
-      where: { familyId, tagId: { in: tagIds } },
-      _count: { tagId: true },
-      having: { tagId: { _count: { equals: tagIds.length } } },
-      orderBy: { assetId: 'asc' },
-      take: TAG_INTERSECT_CAP,
-    })
-    tagAssetIds = grouped.map((g) => g.assetId)
-    if (tagAssetIds.length === 0) {
-      return { items: [], nextCursor: null }
-    }
-  }
-
   // The "?date=" calendar filter always pins to the wall-clock day the
   // moment was experienced (takenAt / entryDate), regardless of sort mode.
   // The sort toggle only changes ordering — not which day a moment "is".
@@ -132,7 +91,6 @@ export async function listTimeline(
         status: 'ready',
         deletedAt: null,
         duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
-        ...(tagAssetIds ? { id: { in: tagAssetIds } } : {}),
         ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
         ...(cursorTs && cur
           ? sort === 'uploaded'
@@ -150,43 +108,31 @@ export async function listTimeline(
           : [{ takenAt: 'desc' }, { id: 'desc' }],
       take: limit + 1,
     }),
-    // When filtering by tag, hide diary entries — they're not tagged.
-    tagAssetIds
-      ? prismaPublic.story.findMany({
-          where: { familyId, id: '00000000-0000-0000-0000-000000000000' },
-          include: { assets: true },
-        })
-      : prismaPublic.story.findMany({
-          where: {
-            familyId,
-            deletedAt: null,
-            // Family viewer sees only family-visible entries; owner /
-            // guardian see everything.
-            ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
-            ...(dayStart && dayEnd ? { entryDate: { gte: dayStart, lt: dayEnd } } : {}),
-            ...(cursorTs && cur
-              ? sort === 'uploaded'
-                ? {
-                    OR: [
-                      { createdAt: { lt: cursorTs } },
-                      { createdAt: cursorTs, id: { lt: cur.id } },
-                    ],
-                  }
-                : {
-                    OR: [
-                      { entryDate: { lt: cursorTs } },
-                      { entryDate: cursorTs, id: { lt: cur.id } },
-                    ],
-                  }
-              : {}),
-          },
-          include: { assets: true },
-          orderBy:
-            sort === 'uploaded'
-              ? [{ createdAt: 'desc' }, { id: 'desc' }]
-              : [{ entryDate: 'desc' }, { id: 'desc' }],
-          take: limit + 1,
-        }),
+    prismaPublic.story.findMany({
+      where: {
+        familyId,
+        deletedAt: null,
+        // Family viewer sees only family-visible entries; owner /
+        // guardian see everything.
+        ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
+        ...(dayStart && dayEnd ? { entryDate: { gte: dayStart, lt: dayEnd } } : {}),
+        ...(cursorTs && cur
+          ? sort === 'uploaded'
+            ? {
+                OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }],
+              }
+            : {
+                OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
+              }
+          : {}),
+      },
+      include: { assets: true },
+      orderBy:
+        sort === 'uploaded'
+          ? [{ createdAt: 'desc' }, { id: 'desc' }]
+          : [{ entryDate: 'desc' }, { id: 'desc' }],
+      take: limit + 1,
+    }),
   ])
 
   const entryAssetIds = Array.from(

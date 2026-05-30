@@ -7,14 +7,6 @@
  */
 import { revalidateTag } from 'next/cache'
 
-export function revalidateTagsTag(familyId: string): void {
-  try {
-    revalidateTag(`tags:${familyId}`, 'max')
-  } catch {
-    // outside request scope (tests); cache helpers are no-ops there
-  }
-}
-
 export function revalidateAlbumsTag(familyId: string): void {
   try {
     revalidateTag(`albums:${familyId}`, 'max')
