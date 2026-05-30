@@ -282,7 +282,11 @@ public class MainActivity extends BridgeActivity {
 
     private void handleDeepLink(Intent intent) {
         if (intent == null || getBridge() == null) return;
-        final String raw = intent.getStringExtra("deepLink");
+        // "deepLink": 포그라운드에서 BebeMessagingService 가 만든 알림(커스텀 키).
+        // "url": 백그라운드/종료 상태에서 시스템이 FCM notification 을 처리할 때 data
+        //        페이로드(url)가 런처 인텐트 extra 로 전달되는 키. 둘 다 본다.
+        String raw = intent.getStringExtra("deepLink");
+        if (raw == null) raw = intent.getStringExtra("url");
         if (raw == null) return;
         final String target = resolveDeepLink(raw);
         if (target == null) return;
