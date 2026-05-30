@@ -77,11 +77,13 @@ export function ViewerActionBar({
           <Download size={22} />
         </a>
       )}
-      <ShareLinkButton
-        path={`/detail/${publicNo}`}
-        iconSize={22}
-        className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
-      />
+      {features.share && (
+        <ShareLinkButton
+          path={`/detail/${publicNo}`}
+          iconSize={22}
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+        />
+      )}
       <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
     </div>
   )

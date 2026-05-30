@@ -112,12 +112,14 @@ export default async function StoryDetailPage({
           )}
           {features.albums && !albumsHidden && <StoryAlbumButton entryId={uuid} />}
           <BulkDownloadButton assetIds={storyAssetIds} label="사진 저장" />
-          <ShareLinkButton
-            path={`/story/${publicNo}`}
-            showLabel
-            iconSize={13}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
-          />
+          {features.share && (
+            <ShareLinkButton
+              path={`/story/${publicNo}`}
+              showLabel
+              iconSize={13}
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+            />
+          )}
           {canEdit && (
             <Link
               href={`/story/${publicNo}?edit=1`}
