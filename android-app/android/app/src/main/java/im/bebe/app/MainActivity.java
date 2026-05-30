@@ -2,6 +2,7 @@ package im.bebe.app;
 
 import android.Manifest;
 import android.app.DownloadManager;
+import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -13,11 +14,13 @@ import android.os.Environment;
 import android.webkit.CookieManager;
 import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
+import android.webkit.WebResourceRequest;
 import android.webkit.WebView;
 import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
@@ -35,7 +38,70 @@ public class MainActivity extends BridgeActivity {
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
         setupDownloadListener();
+        setupExternalSchemeHandler();
         markUserAgent();
+    }
+
+    /**
+     * 카카오·네이버 등 SNS '앱으로 로그인' 은 웹페이지에서 `intent://` 또는 앱 전용
+     * 스킴(kakaotalk://, kakaolink://, naversearchapp:// …)으로 네이티브 앱을 띄운다.
+     * WebView 는 http/https 만 처리하므로 그대로 두면 "앱으로 가기" 가 먹통이 되고
+     * 사용자가 아이디·비번을 손으로 쳐야 한다. BridgeWebViewClient 를 확장해 http(s)
+     * 가 아닌 스킴을 가로채 네이티브 앱(또는 마켓)으로 보낸다. http(s) 는 super 로
+     * 넘겨 Capacitor 브리지 동작을 유지.
+     */
+    private void setupExternalSchemeHandler() {
+        if (getBridge() == null) return;
+        final WebView wv = getBridge().getWebView();
+        if (wv == null) return;
+        wv.setWebViewClient(new BridgeWebViewClient(getBridge()) {
+            @Override
+            public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
+                final Uri uri = request != null ? request.getUrl() : null;
+                final String scheme = uri != null ? uri.getScheme() : null;
+                if (scheme != null) {
+                    final String s = scheme.toLowerCase();
+                    if (!s.equals("http") && !s.equals("https")) {
+                        return launchExternal(uri);
+                    }
+                }
+                return super.shouldOverrideUrlLoading(view, request);
+            }
+        });
+    }
+
+    /** 비-http(s) URI 를 네이티브 앱으로. 앱이 없으면 browser_fallback_url / 마켓으로. */
+    private boolean launchExternal(Uri uri) {
+        final String scheme = uri.getScheme().toLowerCase();
+        try {
+            if (scheme.equals("intent")) {
+                final Intent intent = Intent.parseUri(uri.toString(), Intent.URI_INTENT_SCHEME);
+                try {
+                    startActivity(intent);
+                } catch (ActivityNotFoundException notFound) {
+                    final String fallback = intent.getStringExtra("browser_fallback_url");
+                    if (fallback != null) {
+                        getBridge().getWebView().loadUrl(fallback);
+                    } else {
+                        final String pkg = intent.getPackage();
+                        if (pkg != null) openMarket(pkg);
+                    }
+                }
+                return true;
+            }
+            startActivity(new Intent(Intent.ACTION_VIEW, uri));
+            return true;
+        } catch (Exception e) {
+            // 파싱 실패·앱 부재 등은 조용히 무시(웹 로그인으로 계속 진행 가능).
+            return true;
+        }
+    }
+
+    private void openMarket(String pkg) {
+        try {
+            startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=" + pkg)));
+        } catch (ActivityNotFoundException ignored) {
+        }
     }
 
     /**
