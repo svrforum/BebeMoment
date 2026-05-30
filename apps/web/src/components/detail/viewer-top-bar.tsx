@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import { Download, MoreVertical, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
@@ -22,6 +23,7 @@ export function ViewerTopBar({
 }) {
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
+  const toast = useToast()
 
   function close() {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -52,6 +54,7 @@ export function ViewerTopBar({
             href={`/api/asset/${assetId}/download?q=original`}
             download
             aria-label="다운로드"
+            onClick={() => toast({ title: '사진을 저장하고 있어요' })}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
           >
             <Download className="h-6 w-6" />

@@ -90,7 +90,8 @@ export function ViewerShell({
     setCaptionState(initialCaption)
   }, [initialCurrent.id])
 
-  const [chromeVisible, setChromeVisible] = useState(true)
+  // 크롬(상단바·액션바)은 항상 표시 — 사진 탭으로 전체화면(크롬 숨김)되던 동작 제거(사용자 요청).
+  const chromeVisible = true
   const [sheetOpen, setSheetOpen] = useState(false)
   const [sheetDetailsOpen, setSheetDetailsOpen] = useState(false)
   const [albumPickerOpen, setAlbumPickerOpen] = useState(false)
@@ -302,7 +303,6 @@ export function ViewerShell({
           siblings={siblings}
           navigateTo={navigateTo}
           chromeVisible={chromeVisible}
-          onToggleChrome={() => setChromeVisible((v) => !v)}
         />
       </div>
 

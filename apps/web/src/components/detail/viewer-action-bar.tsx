@@ -1,6 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
+import { useToast } from '@/lib/toast'
 import { Download, FolderPlus, MessageCircle } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
@@ -36,6 +37,7 @@ export function ViewerActionBar({
   onAlbumTap: () => void
 }) {
   const features = useFeatures()
+  const toast = useToast()
   return (
     <div
       className={cn(
@@ -69,6 +71,7 @@ export function ViewerActionBar({
           href={`/api/asset/${assetId}/download?q=original`}
           download
           aria-label="원본 다운로드"
+          onClick={() => toast({ title: '사진을 저장하고 있어요' })}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
         >
           <Download size={22} />
