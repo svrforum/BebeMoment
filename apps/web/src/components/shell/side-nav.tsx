@@ -35,14 +35,18 @@ const items: {
 type Props = {
   familyName: string
   canManageFamily?: boolean
+  hiddenNav?: string[]
 }
 
-export function SideNav({ familyName, canManageFamily = true }: Props) {
+export function SideNav({ familyName, canManageFamily = true, hiddenNav = [] }: Props) {
   const pathname = usePathname()
   const features = useFeatures()
   const { mode, resolved, setMode } = useTheme()
   const visible = items.filter(
-    (it) => (!it.feature || features[it.feature]) && (!it.manageOnly || canManageFamily),
+    (it) =>
+      (!it.feature || features[it.feature]) &&
+      (!it.manageOnly || canManageFamily) &&
+      !hiddenNav.includes(it.href.slice(1)),
   )
 
   const cycle = () => {

@@ -4,8 +4,10 @@ import { WidgetRegistrar } from '@/components/widget/widget-registrar'
 import { FeaturesProvider } from '@/lib/features'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
+import { getSetting } from '@/server/settings/get'
 import { getFeatureFlags } from '@/server/settings/features'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
 import { AppShellClient } from './shell-client'
 
 // `force-dynamic` removed from the layout — it was forcing every page in
@@ -24,6 +26,10 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // 일반 가족 구성원(family)은 멤버·초대 관리가 없으므로 '가족' 탭을 숨긴다(설정으로 대체).
   const role = ctx.membership?.role ?? null
   const canManageFamily = role === 'owner' || role === 'guardian'
+  // 관리자가 일반 가족에게 숨기도록 설정한 메뉴(스토리·앨범). 일반 구성원에게만 적용.
+  const hiddenNav = canManageFamily
+    ? []
+    : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
 
   // Unread = ready assets in the current family newer than this member's
   // lastSeenAt. Capped to 100 (badge shows "99+"). First-visit (no
@@ -45,11 +51,16 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <FeaturesProvider value={features}>
       <AppShellClient capabilities={ctx.capabilities}>
-        <SideNav familyName={ctx.family.name} canManageFamily={canManageFamily} />
+        <SideNav
+          familyName={ctx.family.name}
+          canManageFamily={canManageFamily}
+          hiddenNav={hiddenNav}
+        />
         <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
         <BottomNav
           unreadCounts={{ '/timeline': unreadTimeline }}
           canManageFamily={canManageFamily}
+          hiddenNav={hiddenNav}
         />
         <WidgetRegistrar />
       </AppShellClient>

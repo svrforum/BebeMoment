@@ -21,9 +21,11 @@ type Props = {
   /** Optional per-route unread counts. Currently only '/timeline' is used. */
   unreadCounts?: Record<string, number>
   canManageFamily?: boolean
+  /** 관리자가 일반 가족에게 숨긴 메뉴 키(예: ['story','albums']). */
+  hiddenNav?: string[]
 }
 
-export function BottomNav({ unreadCounts, canManageFamily = true }: Props = {}) {
+export function BottomNav({ unreadCounts, canManageFamily = true, hiddenNav = [] }: Props = {}) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const features = useFeatures()
@@ -34,7 +36,12 @@ export function BottomNav({ unreadCounts, canManageFamily = true }: Props = {}) 
   const lastItem = canManageFamily
     ? { href: '/family', label: '가족', icon: Users }
     : { href: '/settings', label: '설정', icon: Settings }
-  const visible = [...baseItems.filter((it) => !it.feature || features[it.feature]), lastItem]
+  const visible = [
+    ...baseItems.filter(
+      (it) => (!it.feature || features[it.feature]) && !hiddenNav.includes(it.href.slice(1)),
+    ),
+    lastItem,
+  ]
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
       <div

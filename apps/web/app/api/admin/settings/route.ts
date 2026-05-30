@@ -36,6 +36,7 @@ export async function GET() {
     defaultTheme,
     downloadCompress,
     features,
+    navFamilyHidden,
   ] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
     getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
@@ -45,6 +46,7 @@ export async function GET() {
     getSetting('appearance.default_theme', AnySchema, 'auto', prismaPublic),
     getSetting('download.compress.enabled', AnySchema, true, prismaPublic),
     getFeatureFlags(prismaPublic),
+    getSetting('nav.family.hidden', AnySchema, [], prismaPublic),
   ])
   return NextResponse.json({
     general: { app_name: appName },
@@ -55,5 +57,6 @@ export async function GET() {
     appearance: { default_theme: defaultTheme },
     download: { compress: { enabled: downloadCompress } },
     features,
+    nav: { family: { hidden: navFamilyHidden } },
   })
 }
