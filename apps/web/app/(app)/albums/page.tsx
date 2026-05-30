@@ -9,6 +9,7 @@ import { listAlbums } from '@/server/album/list'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
+import { assertMenuAccess } from '@/server/permissions/nav-access'
 import { FolderHeart, FolderPlus, Search } from 'lucide-react'
 
 const PREVIEW_PER_ALBUM = 4
@@ -20,6 +21,7 @@ export default async function AlbumsRootPage({
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
+  await assertMenuAccess('albums', ctx.membership?.role ?? null, prismaPublic)
 
   const canCreate = ctx.capabilities.includes('album.create')
   const viewerRole = ctx.membership?.role ?? 'family'

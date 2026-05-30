@@ -8,6 +8,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
+import { assertMenuAccess } from '@/server/permissions/nav-access'
 import { getStoryEntry } from '@/server/story/get'
 import { getFeatureFlags } from '@/server/settings/features'
 import { ChevronLeft, Pencil } from 'lucide-react'
@@ -29,6 +30,7 @@ export default async function StoryDetailPage({
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
+  await assertMenuAccess('story', ctx.membership?.role ?? null, prismaPublic)
   const { id } = await params
   const sp = await searchParams
   const entry = await getStoryEntry(
