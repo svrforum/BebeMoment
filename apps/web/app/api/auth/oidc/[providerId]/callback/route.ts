@@ -32,28 +32,31 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const code = url.searchParams.get('code')
   const state = url.searchParams.get('state')
   const cookieStore = await cookies()
+  // 모든 리다이렉트는 접속한 공개 오리진(도메인) 기준 — req.url 은 프록시 뒤에서 내부
+  // 주소(0.0.0.0:3000)라 그대로 쓰면 엉뚱한 곳으로 튕긴다.
+  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const origin = publicOrigin(req, env.PUBLIC_URL)
   if (!code || !state) {
     clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=oidc', req.url))
+    return NextResponse.redirect(new URL('/login?error=oidc', origin))
   }
 
   const { providerId } = await params
-  const env = parseEnv(process.env as Record<string, string | undefined>)
   const expectedState = cookieStore.get('oidc_state')?.value
   const expectedNonce = cookieStore.get('oidc_nonce')?.value
   if (state !== expectedState) {
     clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=state', req.url))
+    return NextResponse.redirect(new URL('/login?error=state', origin))
   }
 
   const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider || !provider.enabled) {
     clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=provider', req.url))
+    return NextResponse.redirect(new URL('/login?error=provider', origin))
   }
 
   const clientSecret = await decryptSecret(provider.clientSecretEnc, env.SECRET_KEY)
-  const redirectUri = `${publicOrigin(req, env.PUBLIC_URL)}/api/auth/oidc/${providerId}/callback`
+  const redirectUri = `${origin}/api/auth/oidc/${providerId}/callback`
 
   try {
     let linkInput: {
@@ -126,7 +129,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       const { session } = await getAuth()
       if (!session) {
         clearOidcCookies(cookieStore)
-        return NextResponse.redirect(new URL('/login?error=link_session', req.url))
+        return NextResponse.redirect(new URL('/login?error=link_session', origin))
       }
       const r = await linkIdentityToUser(
         {
@@ -139,7 +142,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
       )
       clearOidcCookies(cookieStore)
       return NextResponse.redirect(
-        new URL(r.conflict ? '/settings?error=link_conflict' : '/settings?linked=1', req.url),
+        new URL(r.conflict ? '/settings?error=link_conflict' : '/settings?linked=1', origin),
       )
     }
 
@@ -152,7 +155,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         const ok = inviteToken ? await validateInviteForSignup(inviteToken, prismaPublic) : false
         if (!ok) {
           clearOidcCookies(cookieStore)
-          return NextResponse.redirect(new URL('/login?error=invite_required', req.url))
+          return NextResponse.redirect(new URL('/login?error=invite_required', origin))
         }
       }
     }
@@ -184,17 +187,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
 
     if (await isUserFullySuspended(user.id, prismaPublic)) {
       clearOidcCookies(cookieStore)
-      return NextResponse.redirect(new URL('/login?error=suspended', req.url))
+      return NextResponse.redirect(new URL('/login?error=suspended', origin))
     }
 
     await createSessionAndSetCookie(user.id, currentFamilyId)
 
     clearOidcCookies(cookieStore)
 
-    return NextResponse.redirect(new URL('/', req.url))
+    return NextResponse.redirect(new URL('/', origin))
   } catch (e) {
     console.error('OIDC callback error:', e)
     clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=oidc_exchange', req.url))
+    return NextResponse.redirect(new URL('/login?error=oidc_exchange', origin))
   }
 }

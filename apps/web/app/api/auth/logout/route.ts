@@ -1,4 +1,5 @@
 import { auth } from '@/lib/auth-config'
+import { publicOrigin } from '@/lib/request-origin'
 import { headers } from 'next/headers'
 import { NextResponse } from 'next/server'
 
@@ -15,7 +16,8 @@ export async function POST(req: Request) {
   // fetch() callers with JSON Accept get the JSON body.
   const accept = req.headers.get('accept') ?? ''
   if (accept.includes('text/html')) {
-    return NextResponse.redirect(new URL('/login', req.url), { status: 303 })
+    const origin = publicOrigin(req, new URL(req.url).origin)
+    return NextResponse.redirect(new URL('/login', origin), { status: 303 })
   }
   return NextResponse.json({ ok: true })
 }
