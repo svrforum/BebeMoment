@@ -61,7 +61,12 @@ describe('getWidgetData', () => {
   it('멤버십 없으면 null', async () => {
     const { user } = await setup()
     await db.prismaPublic.membership.deleteMany()
-    const data = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, new FakeMediaClient())
+    const data = await getWidgetData(
+      user.id,
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
     expect(data).toBeNull()
   })
 
@@ -101,7 +106,12 @@ describe('getWidgetData', () => {
 
   it('사진 없으면 hasPhoto=false', async () => {
     const { user } = await setup()
-    const data = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, new FakeMediaClient())
+    const data = await getWidgetData(
+      user.id,
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
     expect(data?.hasPhoto).toBe(false)
     expect(data?.photoUrl).toBeNull()
   })

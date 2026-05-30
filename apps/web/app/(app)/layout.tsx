@@ -1,5 +1,6 @@
 import { BottomNav } from '@/components/shell/bottom-nav'
 import { SideNav } from '@/components/shell/side-nav'
+import { WidgetRegistrar } from '@/components/widget/widget-registrar'
 import { FeaturesProvider } from '@/lib/features'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
@@ -44,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
         <SideNav familyName={ctx.family.name} />
         <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
         <BottomNav unreadCounts={{ '/timeline': unreadTimeline }} />
+        <WidgetRegistrar />
       </AppShellClient>
     </FeaturesProvider>
   )
