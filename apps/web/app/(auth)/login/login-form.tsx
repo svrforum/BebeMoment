@@ -10,11 +10,12 @@ type Props = {
   passwordEnabled: boolean
 }
 
-// 로그인 후 돌아갈 경로. open-redirect 방지로 같은 출처의 절대경로(/...)만 허용.
+// 로그인 후 돌아갈 경로. open-redirect 방지: 첫 글자가 '/' 이고 그 다음이 '/'·'\\' 가 아닌
+// 같은-출처 절대경로만 허용(`//evil`·`/\evil` 같은 프로토콜-상대/백슬래시 우회 차단).
 function safeNext(): string {
   if (typeof window === 'undefined') return '/'
   const p = new URLSearchParams(window.location.search).get('next')
-  if (p && p.startsWith('/') && !p.startsWith('//')) return p
+  if (p && /^\/(?![/\\])/.test(p)) return p
   return '/'
 }
 

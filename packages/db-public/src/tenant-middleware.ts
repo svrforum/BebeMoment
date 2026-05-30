@@ -8,24 +8,24 @@ const TENANT_SCOPED_MODELS = new Set([
   'GrowthRecord',
   'Milestone',
   'MilestoneAsset',
-  'JournalEntry',
-  'JournalEntryAsset',
+  'Story',
+  'StoryAsset',
   'AssetLike',
   'AssetBookmark',
-  'JournalBookmark',
+  'StoryBookmark',
   'AssetComment',
   'Tag',
   'AssetTag',
   'Album',
   'AlbumAsset',
-  'AlbumJournalEntry',
+  'AlbumStory',
   // NOTE: PushSubscription, NotificationPref are user-scoped (not family-scoped),
   // like Session — queried by userId, no familyId filter required.
 ])
 
 // Models that carry a direct `familyId` column. Inserts on these MUST include
 // it in the create payload. Family itself is its own anchor (no column),
-// MilestoneAsset/JournalEntryAsset are transitive join tables scoped through
+// MilestoneAsset/StoryAsset are transitive join tables scoped through
 // the parent row's familyId — they have no direct column either.
 const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
   'Membership',
@@ -33,16 +33,16 @@ const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
   'Baby',
   'GrowthRecord',
   'Milestone',
-  'JournalEntry',
+  'Story',
   'AssetLike',
   'AssetBookmark',
-  'JournalBookmark',
+  'StoryBookmark',
   'AssetComment',
   'Tag',
   'AssetTag',
   'Album',
   'AlbumAsset',
-  'AlbumJournalEntry',
+  'AlbumStory',
 ])
 
 const READ_LIKE_OPERATIONS = new Set([

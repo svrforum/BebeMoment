@@ -32,6 +32,9 @@ export async function resetPasswordWithToken(
       where: { token: input.token },
       data: { usedAt: new Date() },
     })
+    // 비밀번호 변경 시 기존 세션 전부 무효화 — 관리자가 (탈취 등으로) 재설정한 경우
+    // 옛 세션이 살아있으면 안 된다. 사용자는 새 비번으로 다시 로그인.
+    await tx.session.deleteMany({ where: { userId: record.userId } })
   })
   return { ok: true }
 }

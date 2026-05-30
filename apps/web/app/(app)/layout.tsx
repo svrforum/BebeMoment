@@ -24,7 +24,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
     // 미로그인으로 보호 페이지(공유된 /detail/52 등)에 들어오면 로그인 후 그 자리로
     // 돌려보내도록 ?next= 를 붙인다. 경로는 미들웨어가 심은 x-pathname 에서 읽는다.
     const path = (await headers()).get('x-pathname') ?? ''
-    const next = path.startsWith('/') && !path.startsWith('//') ? path : ''
+    // 같은-출처 절대경로만 (`//`·`/\` 프로토콜-상대 우회 차단).
+    const next = /^\/(?![/\\])/.test(path) ? path : ''
     redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   }
   if (!ctx.family) redirect('/onboarding')
