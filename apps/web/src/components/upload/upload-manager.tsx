@@ -108,6 +108,15 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           allowedFileTypes: ['image/*', 'video/*'],
         },
         autoProceed: false,
+        // Uppy 기본 영문 제한 메시지를 한국어로(중복 파일·크기·형식).
+        // biome-ignore lint/suspicious/noExplicitAny: Uppy locale partial-strings type is awkward across the dynamic import
+        locale: {
+          strings: {
+            noDuplicates: "이미 추가된 파일이에요: '%{fileName}'",
+            exceedsSize: '파일이 너무 커요',
+            youCanOnlyUploadFileTypes: '이미지·영상만 올릴 수 있어요',
+          },
+        } as any,
       }).use(Tus, {
         chunkSize: 8 * 1024 * 1024,
         retryDelays: [0, 1000, 3000, 5000],
