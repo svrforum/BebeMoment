@@ -32,6 +32,10 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     datastore: getTusStore(),
     locker: new MemoryLocker(),
     maxSize: 5 * 1024 * 1024 * 1024,
+    // POST 생성 응답의 Location 을 상대경로(/media/v1/tus/<id>)로 — 컨테이너 내부에선
+    // Host 가 localhost:3001 이라 절대 Location 을 주면 클라가 도달 못 해 PATCH 가
+    // 네트워크 에러로 죽는다. 상대경로면 브라우저가 현재 오리진(도메인) 기준으로 PATCH.
+    relativeLocation: true,
     // 업로드 id = 토큰의 assetId 로 고정. init 이 미리 등록한 deterministic 경로
     // (tus-tmp/<assetId>)와 일치해야 moveTusToFinal 이 바이트를 찾는다. 클라이언트가
     // resume(HEAD)에 실패해 POST 로 새로 생성(endpoint 폴백)하더라도 같은 assetId 로
