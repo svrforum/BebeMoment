@@ -1,7 +1,7 @@
 'use client'
 import { MOODS, isMood } from '@/components/story/mood'
 import type { AssetUrls } from '@bebe/media-client'
-import { ChevronDown, ShieldCheck } from 'lucide-react'
+import { ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
 import { type CSSProperties, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
@@ -28,44 +28,29 @@ export type TimelineStory = {
   visibility: string
 }
 
+// 인스타 스토리처럼 절제된 표현 — 사진은 아래 그리드에 있으니 스토리는 한 줄짜리
+// 미니멀 리스트로(이모지 + 제목/본문 한 줄). 카드를 쌓지 않아 공간을 거의 안 먹는다.
 function StoryStrip({ stories }: { stories: TimelineStory[] }) {
   return (
-    <div className="mb-3 space-y-2">
+    <div className="mb-2.5 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
       {stories.map((s) => {
         const mood = isMood(s.mood) ? MOODS[s.mood] : null
         return (
           <Link
             key={s.id}
             href={`/story/${s.publicNo}`}
-            className="block rounded-2xl border border-base-200/70 bg-base-0 p-3.5 shadow-card transition-transform ease-ios active:scale-[0.99] dark:border-base-800/70 dark:bg-base-900"
+            className="flex items-center gap-2 px-3.5 py-2.5 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
           >
-            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-400">
-              <span>스토리</span>
-              {s.visibility === 'guardians' && (
-                <span className="inline-flex items-center gap-0.5 rounded-full bg-point-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-point-500">
-                  <ShieldCheck size={10} strokeWidth={2.4} />
-                  보호자만
-                </span>
-              )}
-              {mood && (
-                <span
-                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${mood.chip}`}
-                >
-                  <span aria-hidden className="text-[11px] leading-none">
-                    {mood.emoji}
-                  </span>
-                  <span>{mood.label}</span>
-                </span>
-              )}
-            </div>
-            {s.title && (
-              <h3 className="mt-1.5 truncate text-[16px] font-semibold tracking-tight text-base-900 dark:text-base-50">
-                {s.title}
-              </h3>
+            <span aria-hidden className="text-[14px] leading-none">
+              {mood ? mood.emoji : '📝'}
+            </span>
+            <span className="min-w-0 flex-1 truncate text-[13.5px] text-base-700 dark:text-base-300">
+              {s.title || s.body}
+            </span>
+            {s.visibility === 'guardians' && (
+              <ShieldCheck size={13} className="shrink-0 text-point-500" strokeWidth={2.2} />
             )}
-            <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-base-600 dark:text-base-300">
-              {s.body}
-            </p>
+            <ChevronRight size={15} className="shrink-0 text-base-300 dark:text-base-600" />
           </Link>
         )
       })}
