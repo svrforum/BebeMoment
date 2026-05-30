@@ -29,11 +29,16 @@ export type TimelineStory = {
 }
 
 // 인스타 스토리처럼 절제된 표현 — 사진은 아래 그리드에 있으니 스토리는 한 줄짜리
-// 미니멀 리스트로(이모지 + 제목/본문 한 줄). 카드를 쌓지 않아 공간을 거의 안 먹는다.
-function StoryStrip({ stories }: { stories: TimelineStory[] }) {
+// 미니멀 리스트로(이모지 + 제목/본문 한 줄). 3개 이상이면 2개만 보이고 '…더보기'로 펼침.
+const STORY_COLLAPSE = 2
+
+export function StoryStrip({ stories }: { stories: TimelineStory[] }) {
+  const [expanded, setExpanded] = useState(false)
+  const collapsible = stories.length > STORY_COLLAPSE
+  const visible = collapsible && !expanded ? stories.slice(0, STORY_COLLAPSE) : stories
   return (
     <div className="mb-2.5 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
-      {stories.map((s) => {
+      {visible.map((s) => {
         const mood = isMood(s.mood) ? MOODS[s.mood] : null
         return (
           <Link
@@ -54,6 +59,16 @@ function StoryStrip({ stories }: { stories: TimelineStory[] }) {
           </Link>
         )
       })}
+      {collapsible && !expanded && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="flex w-full items-center justify-center gap-1 px-3.5 py-2 text-[12.5px] font-medium text-base-500 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:text-base-400 dark:active:bg-base-800"
+        >
+          스토리 {stories.length - STORY_COLLAPSE}개 더보기
+          <ChevronDown size={14} strokeWidth={2.2} />
+        </button>
+      )}
     </div>
   )
 }
