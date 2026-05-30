@@ -1,6 +1,6 @@
 import type { PrismaClient } from '../prisma/generated/client/client'
 
-const TENANT_SCOPED_MODELS = new Set([
+export const TENANT_SCOPED_MODELS = new Set([
   'Family',
   'Membership',
   'Invite',
@@ -27,7 +27,7 @@ const TENANT_SCOPED_MODELS = new Set([
 // it in the create payload. Family itself is its own anchor (no column),
 // MilestoneAsset/StoryAsset are transitive join tables scoped through
 // the parent row's familyId — they have no direct column either.
-const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
+export const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
   'Membership',
   'Invite',
   'Baby',

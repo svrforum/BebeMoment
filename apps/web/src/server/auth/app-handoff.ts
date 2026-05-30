@@ -14,6 +14,9 @@ export async function createAppHandoff(
   input: { userId: string; currentFamilyId: string | null; challenge: string },
   prisma: PrismaClient,
 ): Promise<{ code: string }> {
+  // sha256(verifier) base64url = 정확히 43자 [A-Za-z0-9_-]. 형식 강제로 full-entropy
+  // verifier 에 대응하는 해시만 저장한다(약한 challenge 거부).
+  if (!/^[A-Za-z0-9_-]{43}$/.test(input.challenge)) throw new Error('잘못된 challenge 형식이에요')
   // 버려진(미교환) 만료 핸드오프 청소 — 이 테이블엔 usedAt 톰스톤이 없어 미교환 행이
   // 영원히 남으므로 발급 시점에 만료분을 쓸어낸다(베스트에포트).
   await prisma.appAuthHandoff
@@ -38,9 +41,14 @@ export async function exchangeAppHandoff(
   input: { code: string; verifier: string },
   prisma: PrismaClient,
 ): Promise<{ userId: string; currentFamilyId: string | null }> {
-  const row = await prisma.appAuthHandoff.findUnique({ where: { code: input.code } })
-  if (!row) throw new Error('유효하지 않은 코드예요')
-  await prisma.appAuthHandoff.delete({ where: { code: input.code } })
+  // 원자적 1회용: delete 가 row 를 반환하며 동시요청 중 하나만 성공(나머지는 P2025).
+  // findUnique→delete 분리(TOCTOU) 대신 delete 로 코드를 '청구'한 뒤 검증한다.
+  let row: Awaited<ReturnType<typeof prisma.appAuthHandoff.delete>>
+  try {
+    row = await prisma.appAuthHandoff.delete({ where: { code: input.code } })
+  } catch {
+    throw new Error('유효하지 않은 코드예요')
+  }
   if (row.expiresAt.getTime() < Date.now()) throw new Error('만료된 코드예요')
   if (hashVerifier(input.verifier) !== row.verifierHash) throw new Error('검증에 실패했어요')
   return { userId: row.userId, currentFamilyId: row.currentFamilyId }

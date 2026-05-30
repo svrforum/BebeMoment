@@ -1,5 +1,6 @@
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import type { AssetEvent } from '@bebe/core'
-import { can, channelForFamily } from '@bebe/core'
+import { channelForFamily, resolveCan } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
@@ -29,7 +30,7 @@ export async function softDeleteComment(
 
   const isOwn = existing.authorUserId === input.byUserId
   const capability = isOwn ? 'social.comment.delete.own' : 'social.comment.delete.any'
-  if (!can(membership.role, capability)) {
+  if (!resolveCan(membership.role, capability, await getFamilyCapabilities(prisma))) {
     throw new Error('No permission to delete this comment')
   }
 

@@ -1,5 +1,6 @@
+import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import type { AssetEvent } from '@bebe/core'
-import { can, channelForFamily } from '@bebe/core'
+import { channelForFamily, resolveCan } from '@bebe/core'
 import type { AssetComment, PrismaClient } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
@@ -33,7 +34,9 @@ export async function updateComment(
   if (existing.authorUserId !== input.byUserId) {
     throw new Error('본인 댓글만 편집할 수 있어요')
   }
-  if (!can(membership.role, 'social.comment.edit.own')) {
+  if (
+    !resolveCan(membership.role, 'social.comment.edit.own', await getFamilyCapabilities(prisma))
+  ) {
     throw new Error('No permission to edit this comment')
   }
 

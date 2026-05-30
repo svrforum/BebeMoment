@@ -87,6 +87,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         ...(profile.displayName ? { displayName: profile.displayName } : {}),
       }
     } else {
+      // OIDC(non-naver)는 id_token nonce 필수 — 시작 시 심은 oidc_nonce 쿠키가 없으면
+      // 검증을 건너뛰지 말고 하드 실패(리플레이/주입 방지).
+      if (!expectedNonce) {
+        clearOidcCookies(cookieStore)
+        return NextResponse.redirect(new URL('/login?error=nonce', origin))
+      }
       const disc = await fetchDiscovery(provider.issuer)
       const tokens = await exchangeCodeForTokens({
         tokenEndpoint: disc.token_endpoint,
