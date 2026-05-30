@@ -290,6 +290,7 @@ export function ViewerShell({
         <ViewerTopBar
           assetId={currentSlim.id}
           visible={chromeVisible}
+          showDownload={canAlbum}
           onInfo={() => {
             setSheetDetailsOpen(true)
             setSheetOpen(true)

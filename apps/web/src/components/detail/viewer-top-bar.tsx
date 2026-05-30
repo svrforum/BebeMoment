@@ -7,11 +7,15 @@ import { useState } from 'react'
 export function ViewerTopBar({
   assetId,
   visible,
+  showDownload = true,
   onDelete,
   onInfo,
 }: {
   assetId: string
   visible: boolean
+  /** 상단 다운로드 아이콘 노출. 액션바에 다운로드가 이미 있는(앨범 권한 없는) 사용자는
+   *  중복이라 숨긴다 — 앨범 권한자(관리자)만 상단 다운로드를 본다. */
+  showDownload?: boolean
   onDelete?: () => void
   /** ⋮ "정보" — 세부정보(메타·태그) 시트를 펼친 채로 연다. 모바일 전용(데스크탑은 사이드 패널). */
   onInfo?: () => void
@@ -34,24 +38,31 @@ export function ViewerTopBar({
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <button type="button" onClick={close} aria-label="닫기" className="text-white">
+      <button
+        type="button"
+        onClick={close}
+        aria-label="닫기"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
+      >
         <X className="h-6 w-6" />
       </button>
-      <div className="flex items-center gap-2">
-        <a
-          href={`/api/asset/${assetId}/download?q=original`}
-          download
-          aria-label="다운로드"
-          className="text-white"
-        >
-          <Download className="h-6 w-6" />
-        </a>
+      <div className="flex items-center gap-1">
+        {showDownload && (
+          <a
+            href={`/api/asset/${assetId}/download?q=original`}
+            download
+            aria-label="다운로드"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
+          >
+            <Download className="h-6 w-6" />
+          </a>
+        )}
         <div className="relative">
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
             aria-label="메뉴"
-            className="text-white"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
           >
             <MoreVertical className="h-6 w-6" />
           </button>
