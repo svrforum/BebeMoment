@@ -206,10 +206,17 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         prismaPublic,
       )
       clearOidcCookies(cookieStore)
-      // 커스텀 스킴은 NextResponse.redirect(http/https 검증)이 거부할 수 있어 Location 직접 설정.
-      return new NextResponse(null, {
-        status: 302,
-        headers: { Location: `bebe://auth?code=${encodeURIComponent(code)}` },
+      // 크롬 Custom Tab 은 서버가 bebe:// 로 그냥 리다이렉트하면 앱을 안 띄운다(보안).
+      // intent:// URL(패키지 지정) 로 자동 실행 + 사용자 탭 버튼(제스처) 폴백 페이지를 준다.
+      const intentUrl = `intent://auth?code=${encodeURIComponent(code)}#Intent;scheme=bebe;package=im.bebe.app;end`
+      const html = `<!doctype html><html lang="ko"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>로그인 완료</title></head><body style="margin:0;font-family:system-ui,-apple-system,sans-serif;display:flex;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;text-align:center;color:#111">
+<p style="font-size:16px;margin:0">로그인됐어요. 앱으로 돌아가는 중…</p>
+<a href="${intentUrl}" style="display:inline-block;background:#111;color:#fff;padding:15px 30px;border-radius:999px;text-decoration:none;font-weight:600;font-size:16px">앱으로 돌아가기</a>
+<script>setTimeout(function(){location.href=${JSON.stringify(intentUrl)}},250)</script>
+</body></html>`
+      return new NextResponse(html, {
+        status: 200,
+        headers: { 'content-type': 'text/html; charset=utf-8' },
       })
     }
 
