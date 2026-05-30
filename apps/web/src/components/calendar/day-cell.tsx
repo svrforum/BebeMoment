@@ -27,7 +27,7 @@ export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props
     <Link
       href={`/timeline?date=${dateParam}`}
       className={cn(
-        'group relative flex aspect-square items-center justify-center overflow-hidden rounded-2xl',
+        'group relative flex aspect-square overflow-hidden rounded-2xl',
         'transition-transform ease-ios active:scale-[0.94]',
         !isCurrentMonth && 'opacity-35',
         hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
@@ -46,30 +46,21 @@ export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props
           loading="lazy"
         />
       )}
-      {!hasAssets && (
-        <span
-          className={cn(
-            'text-[15px] font-medium tabular-nums',
-            isToday
+      {/* 날짜는 모든 칸에서 좌상단 동일 위치. 사진 있는 날만 가독성 위해 알약 배경. */}
+      <span
+        className={cn(
+          'absolute left-1.5 top-1.5 z-10 text-[12px] font-semibold tabular-nums',
+          hasAssets
+            ? 'rounded-md bg-black/55 px-1.5 py-0.5 text-white backdrop-blur-sm'
+            : isToday
               ? 'text-point-500'
               : isCurrentMonth
                 ? 'text-base-700 dark:text-base-300'
                 : 'text-base-400 dark:text-base-600',
-          )}
-        >
-          {dayNum}
-        </span>
-      )}
-      {hasAssets && (
-        <span className="absolute left-1.5 top-1.5 rounded-md bg-black/55 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-sm">
-          {dayNum}
-        </span>
-      )}
-      {assets.length > 1 && (
-        <span className="absolute bottom-1.5 right-1.5 rounded-full bg-black/65 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white backdrop-blur-sm">
-          +{assets.length - 1}
-        </span>
-      )}
+        )}
+      >
+        {dayNum}
+      </span>
     </Link>
   )
 }
