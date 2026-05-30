@@ -118,6 +118,10 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           // biome-ignore lint/suspicious/noExplicitAny: Uppy locale partial-strings type is awkward across the dynamic import
         } as any,
       }).use(Tus, {
+        // 같은 오리진의 tus 엔드포인트. 평소엔 init 이 미리 등록한 per-file uploadUrl 로
+        // resume(HEAD) 하지만, 그게 404(만료·재시작 등)면 endpoint 로 새로 POST 생성해
+        // 회복한다. 서버 namingFunction 이 토큰의 assetId 로 이름지어 완료가 정상 동작.
+        endpoint: `${window.location.origin}/media/v1/tus`,
         chunkSize: 8 * 1024 * 1024,
         retryDelays: [0, 1000, 3000, 5000],
         // We always create a fresh upload via startUpload server action.

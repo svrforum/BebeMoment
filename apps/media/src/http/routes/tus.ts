@@ -32,6 +32,16 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     datastore: getTusStore(),
     locker: new MemoryLocker(),
     maxSize: 5 * 1024 * 1024 * 1024,
+    // 업로드 id = 토큰의 assetId 로 고정. init 이 미리 등록한 deterministic 경로
+    // (tus-tmp/<assetId>)와 일치해야 moveTusToFinal 이 바이트를 찾는다. 클라이언트가
+    // resume(HEAD)에 실패해 POST 로 새로 생성(endpoint 폴백)하더라도 같은 assetId 로
+    // 만들어져 정상 완료된다 — "cannot create without an endpoint" 치명적 오류 방지.
+    namingFunction: (req) => {
+      const nodeReq = req.runtime?.node?.req as unknown as NodeReqWithToken | undefined
+      const token = nodeReq?.__bebeUploadToken
+      if (!token?.assetId) throw new Error('upload token required')
+      return token.assetId
+    },
     async onUploadFinish(req, upload: Upload) {
       const nodeReq = req.runtime?.node?.req as unknown as NodeReqWithToken | undefined
       const token = nodeReq?.__bebeUploadToken
