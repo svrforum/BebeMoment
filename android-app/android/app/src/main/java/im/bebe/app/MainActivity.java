@@ -212,10 +212,14 @@ public class MainActivity extends BridgeActivity {
         try {
             final String filename = resolveDownloadFilename(url, contentDisposition, mimeType);
             final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
-            // 같은 WebView 가 세션 쿠키를 들고 있으니 그대로 헤더에 실어 보내야
-            // 인증이 필요한 /api/asset/.../download 같은 사설 경로도 통과한다.
-            final String cookies = CookieManager.getInstance().getCookie(url);
-            if (cookies != null) req.addRequestHeader("Cookie", cookies);
+            // 세션 쿠키는 우리 서버(same-origin) 다운로드에만 실어 보낸다 — 페이지가 임의
+            // 외부 URL 로 다운로드를 띄워 세션 쿠키를 새 호스트로 유출하는 걸 막는다.
+            final String server = readServerUrl();
+            final String base = server != null ? server.replaceAll("/+$", "") : null;
+            if (base != null && sameOrigin(url, base)) {
+                final String cookies = CookieManager.getInstance().getCookie(url);
+                if (cookies != null) req.addRequestHeader("Cookie", cookies);
+            }
             if (userAgent != null) req.addRequestHeader("User-Agent", userAgent);
             req.setNotificationVisibility(
                 DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED
