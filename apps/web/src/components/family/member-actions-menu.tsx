@@ -5,11 +5,12 @@ import { MoreVertical } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
+import { ChangeRoleModal } from './change-role-modal'
 import { RemoveModal } from './remove-modal'
 import { ResetPasswordModal } from './reset-password-modal'
 import { SuspendModal } from './suspend-modal'
 
-type ModalKind = 'suspend' | 'reset' | 'remove' | null
+type ModalKind = 'suspend' | 'reset' | 'remove' | 'role' | null
 
 export function MemberActionsMenu({ member }: { member: FamilyMember }) {
   const router = useRouter()
@@ -80,6 +81,9 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
               style={{ top: coords.top, right: coords.right }}
               className="fixed z-[61] w-44 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 py-1 shadow-card dark:border-base-800/70 dark:bg-base-900"
             >
+              {member.role !== 'owner' && (
+                <MenuItem label="역할 변경" onClick={() => pick('role')} />
+              )}
               {isSuspended ? (
                 <MenuItem label="정지 해제" onClick={unsuspend} />
               ) : (
@@ -92,6 +96,13 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
           document.body,
         )}
 
+      <ChangeRoleModal
+        open={modal === 'role'}
+        onOpenChange={(n) => setModal(n ? 'role' : null)}
+        membershipId={member.membershipId}
+        displayName={member.displayName}
+        currentRole={member.role}
+      />
       <SuspendModal
         open={modal === 'suspend'}
         onOpenChange={(n) => setModal(n ? 'suspend' : null)}

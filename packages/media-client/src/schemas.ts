@@ -30,7 +30,7 @@ export type InitAssetRequest = z.input<typeof initAssetRequest>
 export const initAssetResponse = z.object({
   v: z.literal(VERSION),
   assetId: z.string().uuid(),
-  tusUploadUrl: z.string().url(),
+  tusUploadUrl: mediaUrl,
   uploadToken: z.string().min(1),
   expiresAt: z.string().datetime(),
 })

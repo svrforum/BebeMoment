@@ -1,4 +1,5 @@
 'use client'
+import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
@@ -99,9 +100,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
           )}
           <div className="space-y-2">
             {oidcProviders.map((p) => (
-              <Button key={p.id} asChild variant="secondary" size="lg" className="w-full">
-                <a href={`/api/auth/oidc/${p.id}`}>{p.name} 으로 로그인</a>
-              </Button>
+              <SnsButton key={p.id} href={`/api/auth/oidc/${p.id}`} name={p.name} />
             ))}
           </div>
         </>

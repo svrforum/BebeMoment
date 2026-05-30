@@ -1,4 +1,5 @@
 'use client'
+import { SnsButton } from '@/components/auth/sns-brand'
 import { useState } from 'react'
 
 /**
@@ -37,13 +38,12 @@ export function InviteOidcButtons({
       </div>
 
       {providers.map((p) => (
-        <a
+        <SnsButton
           key={p.id}
-          href={`/api/auth/oidc/${p.id}?invite=${token}${suffix}`}
-          className="flex h-12 w-full items-center justify-center rounded-2xl bg-base-100 text-sm font-medium text-base-900 hover:bg-base-200/60 dark:bg-base-800 dark:text-base-50"
-        >
-          {p.name} 으로 가입
-        </a>
+          href={`/api/auth/oidc/${p.id}?invite=${token}`}
+          name={p.name}
+          suffix={suffix}
+        />
       ))}
     </div>
   )
