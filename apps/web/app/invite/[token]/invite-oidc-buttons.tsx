@@ -1,0 +1,50 @@
+'use client'
+import { useState } from 'react'
+
+/**
+ * 초대 가입의 SNS 버튼 묶음. 입력한 닉네임을 OIDC start 링크의 `name` 파라미터로
+ * 실어 보내면(콜백이 신규 유저 생성 시 표시 이름으로 사용), SNS 자동 이름 대신
+ * 사용자가 고른 이름으로 가족에 합류한다. 비워두면 SNS 이름을 그대로 쓴다.
+ */
+export function InviteOidcButtons({
+  token,
+  providers,
+}: {
+  token: string
+  providers: { id: string; name: string }[]
+}) {
+  const [name, setName] = useState('')
+  const suffix = name.trim() ? `&name=${encodeURIComponent(name.trim())}` : ''
+
+  return (
+    <div className="mt-6 space-y-3">
+      <div className="relative flex items-center">
+        <div className="flex-grow border-t border-base-200 dark:border-base-800" />
+        <span className="mx-3 text-xs text-base-400">또는 SNS 계정으로</span>
+        <div className="flex-grow border-t border-base-200 dark:border-base-800" />
+      </div>
+
+      <div className="space-y-1">
+        <input
+          type="text"
+          value={name}
+          onChange={(e) => setName(e.target.value)}
+          maxLength={60}
+          placeholder="가족 안에서 보일 이름 (선택)"
+          className="h-12 w-full rounded-2xl border border-base-200 bg-transparent px-4 text-sm text-base-900 placeholder:text-base-400 focus:border-point-500 focus:outline-none dark:border-base-800 dark:text-base-50"
+        />
+        <p className="px-1 text-[12px] text-base-400">비워두면 SNS 계정 이름으로 합류해요.</p>
+      </div>
+
+      {providers.map((p) => (
+        <a
+          key={p.id}
+          href={`/api/auth/oidc/${p.id}?invite=${token}${suffix}`}
+          className="flex h-12 w-full items-center justify-center rounded-2xl bg-base-100 text-sm font-medium text-base-900 hover:bg-base-200/60 dark:bg-base-800 dark:text-base-50"
+        >
+          {p.name} 으로 가입
+        </a>
+      ))}
+    </div>
+  )
+}

@@ -32,6 +32,10 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const inviteToken = reqUrl.searchParams.get('invite')
   if (inviteToken) cookieStore.set('oidc_invite', inviteToken, cookieOpts)
 
+  // 초대 가입 시 사용자가 직접 고른 표시 이름 — 콜백이 신규 유저 생성에만 적용(SNS 자동 이름 대체).
+  const chosenName = reqUrl.searchParams.get('name')?.trim()
+  if (chosenName) cookieStore.set('oidc_name', chosenName.slice(0, 60), cookieOpts)
+
   // 계정 연동 모드 — 콜백이 이 쿠키를 보면 새 로그인 대신 현재 로그인 사용자에게
   // 신원을 연결한다(세션은 콜백에서 검증).
   if (reqUrl.searchParams.get('link') === '1') cookieStore.set('oidc_link', '1', cookieOpts)

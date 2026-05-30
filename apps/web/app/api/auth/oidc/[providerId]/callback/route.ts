@@ -25,6 +25,7 @@ function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
   store.delete('oidc_nonce')
   store.delete('oidc_invite')
   store.delete('oidc_link')
+  store.delete('oidc_name')
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
@@ -149,6 +150,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     const inviteToken = cookieStore.get('oidc_invite')?.value ?? null
 
     const existing = await findLinkedUser(linkInput, prismaPublic)
+    // 초대 가입 시 사용자가 고른 표시 이름은 신규 유저 생성에만 적용(기존 유저 로그인은 그대로).
+    const chosenName = cookieStore.get('oidc_name')?.value?.trim()
+    if (!existing && chosenName) linkInput.displayName = chosenName
     if (!existing) {
       const open = await isRegistrationOpen(prismaPublic)
       if (!open) {

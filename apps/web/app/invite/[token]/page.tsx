@@ -7,6 +7,7 @@ import { Home, LinkIcon, LogIn, ShieldCheck, Users } from 'lucide-react'
 import Link from 'next/link'
 import { SignupWizard } from '../../(auth)/signup/signup-wizard'
 import { AcceptButton } from './accept-button'
+import { InviteOidcButtons } from './invite-oidc-buttons'
 
 const ROLE_LABEL: Record<string, string> = {
   guardian: '보호자',
@@ -109,24 +110,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     return (
       <main className="mx-auto w-full max-w-[520px] px-6 py-10 md:py-16">
         <SignupWizard inviteToken={token} />
-        {providers.length > 0 && (
-          <div className="mt-6 space-y-2">
-            <div className="relative flex items-center">
-              <div className="flex-grow border-t border-base-200 dark:border-base-800" />
-              <span className="mx-3 text-xs text-base-400">또는</span>
-              <div className="flex-grow border-t border-base-200 dark:border-base-800" />
-            </div>
-            {providers.map((p) => (
-              <a
-                key={p.id}
-                href={`/api/auth/oidc/${p.id}?invite=${token}`}
-                className="flex h-12 w-full items-center justify-center rounded-2xl bg-base-100 text-sm font-medium text-base-900 hover:bg-base-200/60 dark:bg-base-800 dark:text-base-50"
-              >
-                {p.name} 으로 가입
-              </a>
-            ))}
-          </div>
-        )}
+        {providers.length > 0 && <InviteOidcButtons token={token} providers={providers} />}
       </main>
     )
   }
