@@ -1,7 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
-import { FolderPlus, MessageCircle } from 'lucide-react'
+import { Download, FolderPlus, MessageCircle } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
 import { ShareLinkButton } from './share-link-button'
@@ -17,6 +17,7 @@ export function ViewerActionBar({
   setBookmarked,
   commentCount,
   visible,
+  canAlbum,
   onCommentTap,
   onAlbumTap,
 }: {
@@ -30,6 +31,7 @@ export function ViewerActionBar({
   setBookmarked: (next: boolean) => void
   commentCount: number
   visible: boolean
+  canAlbum: boolean
   onCommentTap: () => void
   onAlbumTap: () => void
 }) {
@@ -53,7 +55,7 @@ export function ViewerActionBar({
           {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
         </button>
       )}
-      {features.albums && (
+      {features.albums && canAlbum ? (
         <button
           type="button"
           onClick={onAlbumTap}
@@ -62,6 +64,15 @@ export function ViewerActionBar({
         >
           <FolderPlus size={22} />
         </button>
+      ) : (
+        <a
+          href={`/api/asset/${assetId}/download?q=original`}
+          download
+          aria-label="원본 다운로드"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+        >
+          <Download size={22} />
+        </a>
       )}
       <ShareLinkButton
         path={`/detail/${publicNo}`}

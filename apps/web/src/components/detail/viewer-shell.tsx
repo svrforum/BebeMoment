@@ -39,6 +39,7 @@ export function ViewerShell({
   currentUserId,
   canDeleteAny,
   canDelete,
+  canAlbum,
   familyMembers,
   meta,
   likers,
@@ -54,6 +55,7 @@ export function ViewerShell({
   currentUserId: string
   canDeleteAny: boolean
   canDelete: boolean
+  canAlbum: boolean
   familyMembers: Member[]
   meta: MetaProps
   likers: { count: number; users: User[] }
@@ -316,6 +318,7 @@ export function ViewerShell({
           setBookmarked={setBookmarked}
           commentCount={commentCount}
           visible={chromeVisible}
+          canAlbum={canAlbum}
           onCommentTap={() => {
             setSheetDetailsOpen(false)
             setSheetOpen(true)
@@ -369,6 +372,7 @@ export function ViewerShell({
           initialTags={initialTags}
           initialFilename={filenameState}
           initialCaption={captionState}
+          canAlbum={canAlbum}
           onAlbumTap={() => setAlbumPickerOpen(true)}
         />
       </aside>

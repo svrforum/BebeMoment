@@ -1,6 +1,6 @@
 'use client'
 import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
-import { FolderPlus } from 'lucide-react'
+import { Download, FolderPlus } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
 import type { CommentWithAuthor } from './comment-item'
 import { CommentList } from './comment-list'
@@ -33,6 +33,7 @@ export function ViewerInfoPanel({
   initialTags,
   initialFilename,
   initialCaption,
+  canAlbum,
   onAlbumTap,
 }: {
   assetId: string
@@ -53,6 +54,7 @@ export function ViewerInfoPanel({
   initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
+  canAlbum: boolean
   onAlbumTap: () => void
 }) {
   return (
@@ -80,14 +82,25 @@ export function ViewerInfoPanel({
           <div className="flex items-center gap-1">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
             <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
-            <button
-              type="button"
-              onClick={onAlbumTap}
-              aria-label="앨범에 추가"
-              className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition-colors hover:bg-base-100 hover:text-base-900 dark:hover:bg-base-800 dark:hover:text-base-100"
-            >
-              <FolderPlus size={18} strokeWidth={2} />
-            </button>
+            {canAlbum ? (
+              <button
+                type="button"
+                onClick={onAlbumTap}
+                aria-label="앨범에 추가"
+                className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition-colors hover:bg-base-100 hover:text-base-900 dark:hover:bg-base-800 dark:hover:text-base-100"
+              >
+                <FolderPlus size={18} strokeWidth={2} />
+              </button>
+            ) : (
+              <a
+                href={`/api/asset/${assetId}/download?q=original`}
+                download
+                aria-label="원본 다운로드"
+                className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition-colors hover:bg-base-100 hover:text-base-900 dark:hover:bg-base-800 dark:hover:text-base-100"
+              >
+                <Download size={18} strokeWidth={2} />
+              </a>
+            )}
           </div>
           <LikerAvatars users={likers.users} />
         </div>

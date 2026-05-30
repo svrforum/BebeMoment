@@ -5,8 +5,10 @@ import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
+import { getSetting } from '@/server/settings/get'
 import { listTagsForAsset } from '@/server/tag/list-for-asset'
 import { notFound } from 'next/navigation'
+import { z } from 'zod'
 
 export default async function DetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
@@ -75,6 +77,15 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
     caps.includes('asset.delete.any') ||
     (asset.uploadedByUserId === ctx.user.id && caps.includes('asset.delete.own'))
 
+  // 앨범에 추가 노출 = 앨범 생성 권한 + 앨범 메뉴 미숨김(타임라인과 동일 기준).
+  // 숨겨진 가족에겐 앨범 버튼 대신 다운로드 버튼을 그 자리에 보인다.
+  const role = ctx.membership?.role ?? 'family'
+  const isManager = role === 'owner' || role === 'guardian'
+  const navHidden = isManager
+    ? []
+    : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
+  const canAlbum = caps.includes('album.create') && !navHidden.includes('albums')
+
   const initialComments = commentsRaw.map((c) => ({
     ...c,
     createdAt: c.createdAt.toISOString(),
@@ -94,6 +105,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       currentUserId={ctx.user.id}
       canDeleteAny={canDeleteAny}
       canDelete={canDelete}
+      canAlbum={canAlbum}
       familyMembers={familyMembers}
       meta={{
         takenAt: asset.takenAt,
