@@ -55,7 +55,11 @@ export function AppHeader({ title, subtitle, left, right, wide = false }: Props)
                 {title}
               </div>
             </div>
-            {right && <div className="flex flex-shrink-0 items-center gap-2">{right}</div>}
+            {/* 액션(right)은 평소엔 큰 제목 옆에 두고, 스크롤되어 컴팩트 바가 떠야
+                여기로 옮겨 보인다 — 맨 위에서 상단 끝에 동떨어져 붙던 문제 해결. */}
+            {right && compact && (
+              <div className="flex flex-shrink-0 items-center gap-2">{right}</div>
+            )}
           </div>
         </div>
         <div
@@ -66,13 +70,19 @@ export function AppHeader({ title, subtitle, left, right, wide = false }: Props)
         />
       </header>
 
-      {/* 큰 제목: sticky 바 아래 일반 흐름 — 스크롤되며 자연스럽게 사라진다(높이 고정 영향 없음). */}
+      {/* 큰 제목: sticky 바 아래 일반 흐름 — 스크롤되며 자연스럽게 사라진다(높이 고정 영향 없음).
+          액션 버튼은 큰 제목과 같은 줄(우측)에 정렬해 깔끔하게 묶는다. */}
       <div className={cn('mx-auto px-5', maxW)}>
-        <div className="pb-4 pt-1">
-          <h1 className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
-            {title}
-          </h1>
-          {subtitle && <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>}
+        <div className="flex items-end justify-between gap-3 pb-4 pt-1">
+          <div className="min-w-0 flex-1">
+            <h1 className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
+              {title}
+            </h1>
+            {subtitle && <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>}
+          </div>
+          {right && !compact && (
+            <div className="flex flex-shrink-0 items-center gap-2 pb-1">{right}</div>
+          )}
         </div>
       </div>
     </>
