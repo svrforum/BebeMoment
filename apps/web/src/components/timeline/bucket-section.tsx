@@ -1,6 +1,11 @@
+'use client'
 import type { AssetUrls } from '@bebe/media-client'
-import type { CSSProperties } from 'react'
+import { ChevronDown } from 'lucide-react'
+import { type CSSProperties, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
+
+// 접힘 기본 노출 수 — 모바일 3열 기준 2줄. 이보다 많으면 '+더보기'로 펼친다.
+const COLLAPSED_COUNT = 6
 
 type AssetRow = {
   id: string
@@ -41,6 +46,12 @@ export function BucketSection({
   onTap,
   onContextMenu,
 }: Props) {
+  const [expanded, setExpanded] = useState(false)
+  // 선택 모드에선 전부 보여야 일괄 선택이 가능 — 접지 않는다.
+  const collapsible = !selectionMode && assets.length > COLLAPSED_COUNT
+  const visibleAssets = collapsible && !expanded ? assets.slice(0, COLLAPSED_COUNT) : assets
+  const hiddenCount = assets.length - COLLAPSED_COUNT
+
   return (
     <section
       className="section-enter mb-10"
@@ -71,7 +82,7 @@ export function BucketSection({
         </span>
       </header>
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6">
-        {assets.map((a, i) => (
+        {visibleAssets.map((a, i) => (
           <div
             key={a.id}
             className="asset-enter"
@@ -92,6 +103,16 @@ export function BucketSection({
           </div>
         ))}
       </div>
+      {collapsible && !expanded && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-base-100 py-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-200 dark:bg-base-800 dark:text-base-300 dark:hover:bg-base-700"
+        >
+          사진 {hiddenCount}장 더보기
+          <ChevronDown size={16} strokeWidth={2} />
+        </button>
+      )}
     </section>
   )
 }

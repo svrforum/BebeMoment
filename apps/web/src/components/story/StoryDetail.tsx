@@ -153,18 +153,25 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                       key={link.assetId}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      <PictureImage
-                        trio={trio}
-                        fallbackUrl={fallbackUrl}
-                        alt=""
-                        dominantColor={link.asset?.urls?.dominantColor ?? null}
-                        blurhash={pickBlurhash(link.asset?.urls ?? null)}
-                        aspectRatio={1}
-                        className="aspect-square w-full"
-                        objectFit="cover"
-                        loading="eager"
-                        fade={false}
-                      />
+                      {/* 탭하면 격자와 동일하게 전체화면 뷰어로. 스와이프(드래그)는
+                          Swiper 가 클릭과 구분해 처리하므로 슬라이드 넘김은 그대로. */}
+                      <Link
+                        href={`/detail/${link.asset?.publicNo}`}
+                        className="flex aspect-square w-full items-center justify-center"
+                      >
+                        <PictureImage
+                          trio={trio}
+                          fallbackUrl={fallbackUrl}
+                          alt=""
+                          dominantColor={link.asset?.urls?.dominantColor ?? null}
+                          blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                          aspectRatio={1}
+                          className="aspect-square w-full"
+                          objectFit="cover"
+                          loading="eager"
+                          fade={false}
+                        />
+                      </Link>
                     </SwiperSlide>
                   )
                 })}

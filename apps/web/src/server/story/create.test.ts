@@ -69,12 +69,14 @@ async function makeReadyAsset(
 describe('createStoryEntry', () => {
   it('creates entry with babyId', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'a'.repeat(64), 'o1')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: '오늘은 좋은 하루',
+        assetIds: [a.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -87,12 +89,14 @@ describe('createStoryEntry', () => {
 
   it('creates family-wide entry with babyId=null', async () => {
     const { user, family } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'c'.repeat(64), 'o3')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: null,
         entryDate: '2026-04-02',
         body: '가족 전체 메모',
+        assetIds: [a.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -104,6 +108,7 @@ describe('createStoryEntry', () => {
 
   it('rejects empty body', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'd'.repeat(64), 'o4')
     await expect(
       createStoryEntry(
         {
@@ -111,6 +116,24 @@ describe('createStoryEntry', () => {
           babyId: baby.id,
           entryDate: '2026-04-01',
           body: '',
+          assetIds: [a.id],
+          byUserId: user.id,
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('rejects when no photos attached', async () => {
+    const { user, family, baby } = await setup()
+    await expect(
+      createStoryEntry(
+        {
+          familyId: family.id,
+          babyId: baby.id,
+          entryDate: '2026-04-01',
+          body: '사진 없는 스토리',
           byUserId: user.id,
         },
         db.prismaPublic,
@@ -121,6 +144,7 @@ describe('createStoryEntry', () => {
 
   it('rejects invalid mood', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'e'.repeat(64), 'o5')
     await expect(
       createStoryEntry(
         {
@@ -129,6 +153,7 @@ describe('createStoryEntry', () => {
           entryDate: '2026-04-01',
           body: '좋음',
           mood: 'ecstatic',
+          assetIds: [a.id],
           byUserId: user.id,
         },
         db.prismaPublic,
@@ -139,6 +164,7 @@ describe('createStoryEntry', () => {
 
   it('enqueues diary.created with the stored visibility', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'f'.repeat(64), 'o6')
     const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
     const entry = await createStoryEntry(
       {
@@ -147,6 +173,7 @@ describe('createStoryEntry', () => {
         entryDate: '2026-04-01',
         body: '비밀 일기',
         visibility: 'guardians',
+        assetIds: [a.id],
         byUserId: user.id,
       },
       db.prismaPublic,

@@ -178,10 +178,12 @@ export default async function TimelinePage({
       ) : (
         <AppHeader title={ctx.family.name} wide />
       )}
-      <TimelineSortToggle
-        value={sortMode}
-        preserveParams={tagSlugs.length > 0 ? { tag: tagSlugs } : {}}
-      />
+      {canUpload && (
+        <TimelineSortToggle
+          value={sortMode}
+          preserveParams={tagSlugs.length > 0 ? { tag: tagSlugs } : {}}
+        />
+      )}
       {memoryGroups.length > 0 && memoryGroups[0] && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <MemoriesCard group={memoryGroups[0]} />

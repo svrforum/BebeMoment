@@ -41,7 +41,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? '저장 취소' : '저장함에 추가'}
+      aria-label={bookmarked ? '북마크 취소' : '북마크에 추가'}
       className={cn(
         'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors active:scale-95',
         bookmarked
@@ -55,7 +55,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
         strokeWidth={2.2}
         className={cn('transition', bookmarked && 'fill-point-500 text-point-500')}
       />
-      <span>{bookmarked ? '저장됨' : '저장'}</span>
+      <span>{bookmarked ? '북마크됨' : '북마크'}</span>
     </button>
   )
 }

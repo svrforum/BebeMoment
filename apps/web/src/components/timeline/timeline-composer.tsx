@@ -233,7 +233,11 @@ export function TimelineComposer({
 
   const submit = useCallback(async () => {
     const trimmed = body.trim()
-    if (!trimmed && attachments.length === 0) return
+    // 스토리는 사진 필수 — 최소 1장 없으면 등록 불가.
+    if (attachments.length === 0) {
+      toast({ title: '사진을 최소 1장 추가해주세요', variant: 'danger' })
+      return
+    }
     if (submitting) return
     setSubmitting(true)
     try {
@@ -495,7 +499,7 @@ export function TimelineComposer({
           <button
             type="button"
             onClick={submit}
-            disabled={submitting || (body.trim().length === 0 && attachments.length === 0)}
+            disabled={submitting || attachments.length === 0}
             className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
           >
             {submitting ? '올리는 중…' : '올리기'}

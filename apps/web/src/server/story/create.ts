@@ -17,7 +17,8 @@ const Input = z.object({
   body: z.string().min(1).max(20000),
   mood: z.enum(MOODS).optional(),
   visibility: z.enum(VISIBILITIES).optional(),
-  assetIds: z.array(z.string().uuid()).max(10).optional(),
+  // 사진 필수 — 스토리는 최소 1장의 사진을 포함해야 한다.
+  assetIds: z.array(z.string().uuid()).min(1, '사진을 최소 1장 추가해주세요').max(10),
   byUserId: z.string().uuid(),
 })
 

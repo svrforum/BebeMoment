@@ -55,7 +55,7 @@ export function BookmarkButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? '저장 취소' : '저장함에 추가'}
+      aria-label={bookmarked ? '북마크 취소' : '북마크에 추가'}
       className={cn(
         'focus-ring inline-flex items-center rounded-full px-3 py-1.5 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',

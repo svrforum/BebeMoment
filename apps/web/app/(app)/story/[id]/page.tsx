@@ -43,7 +43,14 @@ export default async function StoryDetailPage({
   const uuid = entry.id
   const publicNo = entry.publicNo
 
+  // 편집·삭제는 권한 있는 사용자에게만(서버 update/soft-delete 가 최종 방어).
+  // 본인 글이면 *.own, 남의 글이면 *.any 능력이 필요.
+  const isOwn = entry.createdByUserId === ctx.user.id
+  const canEdit = ctx.capabilities.includes(isOwn ? 'record.edit.own' : 'record.edit.any')
+  const canDelete = ctx.capabilities.includes(isOwn ? 'record.delete.own' : 'record.delete.any')
+
   if (sp.edit === '1') {
+    if (!canEdit) redirect(`/story/${publicNo}`)
     const existingAssets = entry.assets.flatMap((ea) =>
       ea.asset ? [{ id: ea.asset.id, kind: ea.asset.kind, urls: ea.asset.urls }] : [],
     )
@@ -98,14 +105,16 @@ export default async function StoryDetailPage({
             iconSize={13}
             className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
           />
-          <Link
-            href={`/story/${publicNo}?edit=1`}
-            className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
-          >
-            <Pencil size={13} strokeWidth={2.2} />
-            <span>편집</span>
-          </Link>
-          <StoryDeleteButton onDelete={deleteStoryAction.bind(null, uuid)} />
+          {canEdit && (
+            <Link
+              href={`/story/${publicNo}?edit=1`}
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+            >
+              <Pencil size={13} strokeWidth={2.2} />
+              <span>편집</span>
+            </Link>
+          )}
+          {canDelete && <StoryDeleteButton onDelete={deleteStoryAction.bind(null, uuid)} />}
         </div>
       </div>
     </>
