@@ -36,6 +36,11 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const chosenName = reqUrl.searchParams.get('name')?.trim()
   if (chosenName) cookieStore.set('oidc_name', chosenName.slice(0, 60), cookieOpts)
 
+  // 앱(Custom Tab) 플로우 — challenge(=sha256(verifier))가 오면 콜백이 세션 쿠키 대신
+  // 1회용 핸드오프 코드를 발급해 bebe://auth 딥링크로 앱에 돌려준다(§SNS 앱 로그인).
+  const appChallenge = reqUrl.searchParams.get('app_challenge')
+  if (appChallenge) cookieStore.set('oidc_app_challenge', appChallenge.slice(0, 200), cookieOpts)
+
   // 계정 연동 모드 — 콜백이 이 쿠키를 보면 새 로그인 대신 현재 로그인 사용자에게
   // 신원을 연결한다(세션은 콜백에서 검증).
   if (reqUrl.searchParams.get('link') === '1') cookieStore.set('oidc_link', '1', cookieOpts)

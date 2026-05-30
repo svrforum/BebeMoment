@@ -23,19 +23,30 @@ import { cookies } from 'next/headers'
  * (by id) — never via `findFirst({ orderBy: createdAt desc })`, which under
  * concurrent logins could hit somebody else's session.
  */
-export async function createSessionAndSetCookie(
+export type SessionCookie = {
+  name: string
+  value: string
+  maxAge: number
+  httpOnly: boolean
+  sameSite: 'lax' | 'strict' | 'none'
+  secure: boolean
+  path: string
+}
+
+/**
+ * 세션 행을 만들고 서명된 쿠키 "값"만 돌려준다(쿠키를 응답에 set 하지 않음). SNS 앱-로그인
+ * 핸드오프 교환처럼 쿠키를 네이티브(WebView)에 직접 심어야 할 때 쓴다.
+ */
+export async function mintSessionCookie(
   userId: string,
   currentFamilyId: string | null,
-): Promise<void> {
+): Promise<SessionCookie> {
   const ctx = await auth.$context
 
   const session = await ctx.internalAdapter.createSession(userId, false, {
     ...(currentFamilyId ? { currentFamilyId } : {}),
   })
 
-  // additionalFields.currentFamilyId 의 `input: false` 때문에 internalAdapter 가
-  // 3rd-arg 의 currentFamilyId 를 drop 할 수 있어, 방금 만든 세션 id 로 한 번 더
-  // 박는다 (timestamp 정렬 findFirst 대체 — 동시 로그인 race-safe).
   if (currentFamilyId) {
     await prismaPublic.session.update({
       where: { id: session.id },
@@ -43,16 +54,31 @@ export async function createSessionAndSetCookie(
     })
   }
 
-  const cookieValue = await signCookieValue(session.token, ctx.secret)
+  const value = await signCookieValue(session.token, ctx.secret)
   const { name, attributes } = ctx.authCookies.sessionToken
-
-  const store = await cookies()
-  store.set(name, cookieValue, {
+  return {
+    name,
+    value,
+    maxAge: ctx.sessionConfig.expiresIn,
     httpOnly: attributes.httpOnly ?? true,
     sameSite: (attributes.sameSite as 'lax' | 'strict' | 'none' | undefined) ?? 'lax',
     secure: attributes.secure ?? false,
     path: attributes.path ?? '/',
-    maxAge: ctx.sessionConfig.expiresIn,
+  }
+}
+
+export async function createSessionAndSetCookie(
+  userId: string,
+  currentFamilyId: string | null,
+): Promise<void> {
+  const c = await mintSessionCookie(userId, currentFamilyId)
+  const store = await cookies()
+  store.set(c.name, c.value, {
+    httpOnly: c.httpOnly,
+    sameSite: c.sameSite,
+    secure: c.secure,
+    path: c.path,
+    maxAge: c.maxAge,
   })
 }
 

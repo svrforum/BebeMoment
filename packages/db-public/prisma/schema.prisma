@@ -54,6 +54,7 @@ model User {
   passwordResetTokens  PasswordResetToken[] @relation("PasswordResetUser")
   issuedPasswordResets PasswordResetToken[] @relation("PasswordResetIssuedBy")
   widgetToken          WidgetToken?
+  appAuthHandoffs      AppAuthHandoff[]
 
   @@map("users")
   @@schema("public")
@@ -236,6 +237,24 @@ model PasswordResetToken {
   @@index([userId, usedAt])
   @@index([token])
   @@map("password_reset_tokens")
+  @@schema("public")
+}
+
+// SNS 앱-로그인(Custom Tab) 핸드오프 — 외부 브라우저 OIDC 완료 후 발급되는 1회용 코드.
+// 앱이 deep link 로 받아 verifier(PKCE식)와 함께 교환해 WebView 세션 쿠키를 받는다.
+// user-scoped(테넌트 미적용).
+model AppAuthHandoff {
+  code            String   @id
+  userId          String   @map("user_id") @db.Uuid
+  currentFamilyId String?  @map("current_family_id") @db.Uuid
+  verifierHash    String   @map("verifier_hash")
+  expiresAt       DateTime @map("expires_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([expiresAt])
+  @@map("app_auth_handoffs")
   @@schema("public")
 }
 

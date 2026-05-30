@@ -13,6 +13,7 @@ import {
 } from '@/server/oidc/callback'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { exchangeNaverCode, fetchNaverProfile } from '@/server/oidc/naver'
+import { createAppHandoff } from '@/server/auth/app-handoff'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
 import { isUserFullySuspended } from '@/server/auth/suspension'
 import { acceptInvite } from '@/server/invite/accept'
@@ -26,6 +27,7 @@ function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
   store.delete('oidc_invite')
   store.delete('oidc_link')
   store.delete('oidc_name')
+  store.delete('oidc_app_challenge')
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
@@ -192,6 +194,23 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     if (await isUserFullySuspended(user.id, prismaPublic)) {
       clearOidcCookies(cookieStore)
       return NextResponse.redirect(new URL('/login?error=suspended', origin))
+    }
+
+    // 앱(Custom Tab) 플로우: 세션 쿠키(외부 브라우저 쿠키 jar 라 앱과 공유 안 됨) 대신
+    // 1회용 핸드오프 코드를 발급해 bebe://auth 딥링크로 앱에 돌려준다. 앱이 verifier 와
+    // 교환해 WebView 에 세션을 심는다.
+    const appChallenge = cookieStore.get('oidc_app_challenge')?.value
+    if (appChallenge) {
+      const { code } = await createAppHandoff(
+        { userId: user.id, currentFamilyId, challenge: appChallenge },
+        prismaPublic,
+      )
+      clearOidcCookies(cookieStore)
+      // 커스텀 스킴은 NextResponse.redirect(http/https 검증)이 거부할 수 있어 Location 직접 설정.
+      return new NextResponse(null, {
+        status: 302,
+        headers: { Location: `bebe://auth?code=${encodeURIComponent(code)}` },
+      })
     }
 
     await createSessionAndSetCookie(user.id, currentFamilyId)
