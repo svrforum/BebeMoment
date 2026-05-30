@@ -1,4 +1,5 @@
 'use client'
+import { FirebaseSetupGuide } from '@/components/admin/firebase-setup-guide'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
@@ -250,6 +251,8 @@ export function NotificationsForm({
               onChange={(e) => toggleFcm(e.target.checked)}
             />
           </div>
+
+          <FirebaseSetupGuide />
 
           <div className="space-y-1.5">
             <div className="text-sm">
