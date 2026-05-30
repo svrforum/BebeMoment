@@ -26,6 +26,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onCreate(Bundle savedInstanceState) {
         registerPlugin(BebePushPlugin.class);
+        registerPlugin(BebeWidgetPlugin.class);
         super.onCreate(savedInstanceState);
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
