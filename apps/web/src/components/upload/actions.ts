@@ -6,6 +6,18 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { initAssetViaMedia } from '@/server/upload/init'
 import { resolveCan } from '@bebe/core'
 import type { InitAssetResponse } from '@bebe/media-client'
+import { headers } from 'next/headers'
+
+// media 는 tus 업로드 URL 을 상대경로(/media/v1/tus/...)로 준다. tus-js-client 는 절대
+// URL 을 요구하므로(상대 uploadUrl 이면 업로드 에러) 현재 접속 오리진(프록시 뒤
+// x-forwarded-*)으로 절대화한다 — same-origin 이라 mixed-content 도 없다.
+async function absolutizeTusUrl(url: string): Promise<string> {
+  if (!url.startsWith('/')) return url
+  const h = await headers()
+  const proto = h.get('x-forwarded-proto') ?? 'http'
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  return host ? `${proto}://${host}${url}` : url
+}
 
 export type StartUploadInput = {
   mime: string
@@ -31,7 +43,7 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
     throw new Error('업로드 권한이 없어요. 관리자에게 문의하세요.')
   }
 
-  return await initAssetViaMedia({
+  const result = await initAssetViaMedia({
     familyId: ctx.family.id,
     uploaderId: ctx.user.id,
     mime: input.mime,
@@ -42,4 +54,5 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
     ...(input.clientWidth !== undefined && { clientWidth: input.clientWidth }),
     ...(input.clientHeight !== undefined && { clientHeight: input.clientHeight }),
   })
+  return { ...result, tusUploadUrl: await absolutizeTusUrl(result.tusUploadUrl) }
 }
