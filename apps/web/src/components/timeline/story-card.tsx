@@ -8,11 +8,14 @@ import Link from 'next/link'
 
 type Props = {
   entry: Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
+  /** 같은 날짜 화면(캘린더 날짜뷰)처럼 사진이 아래 그리드에 이미 보이는 맥락 —
+   *  날짜 컬럼·사진 썸네일을 숨겨 글 중심으로 컴팩트하게 렌더. */
+  compact?: boolean
 }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
 
-export function StoryCard({ entry }: Props) {
+export function StoryCard({ entry, compact = false }: Props) {
   const thumbs = entry.assets.slice(0, 3)
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
   const d = entry.entryDate
@@ -31,17 +34,19 @@ export function StoryCard({ entry }: Props) {
             className={`absolute inset-y-0 left-0 w-1 bg-gradient-to-b ${mood.tint}`}
           />
         )}
-        <div className="flex gap-4 p-5">
-          {/* Date column — big day number, small month */}
-          <div className="flex w-12 flex-col items-center justify-start pt-0.5">
-            <span className="text-[26px] font-bold leading-none tabular-nums tracking-tight text-base-900 dark:text-base-50">
-              {d.getDate()}
-            </span>
-            <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-base-400">
-              {d.getMonth() + 1}월
-            </span>
-            <span className="mt-0.5 text-[10px] text-base-400">{day}</span>
-          </div>
+        <div className={compact ? 'p-4' : 'flex gap-4 p-5'}>
+          {/* Date column — big day number, small month (컴팩트 모드에선 숨김) */}
+          {!compact && (
+            <div className="flex w-12 flex-col items-center justify-start pt-0.5">
+              <span className="text-[26px] font-bold leading-none tabular-nums tracking-tight text-base-900 dark:text-base-50">
+                {d.getDate()}
+              </span>
+              <span className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-base-400">
+                {d.getMonth() + 1}월
+              </span>
+              <span className="mt-0.5 text-[10px] text-base-400">{day}</span>
+            </div>
+          )}
 
           {/* Body column */}
           <div className="min-w-0 flex-1">
@@ -72,7 +77,7 @@ export function StoryCard({ entry }: Props) {
             <p className="mt-1.5 line-clamp-2 text-[14px] leading-relaxed text-base-600 dark:text-base-300">
               {entry.body}
             </p>
-            {thumbs.length > 0 && (
+            {!compact && thumbs.length > 0 && (
               <div className="mt-4 flex gap-1.5">
                 {thumbs.map((t) => {
                   if (!t.asset) return null

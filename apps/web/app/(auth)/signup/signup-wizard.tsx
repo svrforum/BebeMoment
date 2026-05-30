@@ -234,7 +234,9 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
         <div className="w-9" />
       </div>
 
-      <div className="flex-1">
+      {/* flex-1 제거 — 짧은 스텝(이름 1줄)에서 입력과 '다음' 버튼 사이 공백이 과하게
+          벌어지지 않게. 콘텐츠 바로 아래에 버튼이 따라온다(한 화면에 모두 보이게). */}
+      <div>
         <AnimatePresence initial={false} mode="wait" custom={dir}>
           <motion.div
             key={step}

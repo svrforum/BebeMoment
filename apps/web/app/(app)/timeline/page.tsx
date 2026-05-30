@@ -122,9 +122,11 @@ export default async function TimelinePage({
           wide
         />
         {storyItems.length > 0 && (
-          <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
+          <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
             {storyItems.map((it) =>
-              it.kind === 'story' ? <StoryCard key={`j-${it.id}`} entry={it.entry} /> : null,
+              it.kind === 'story' ? (
+                <StoryCard key={`j-${it.id}`} entry={it.entry} compact />
+              ) : null,
             )}
           </div>
         )}
