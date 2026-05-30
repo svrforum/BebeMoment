@@ -35,6 +35,23 @@ public class MainActivity extends BridgeActivity {
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
         setupDownloadListener();
+        markUserAgent();
+    }
+
+    /**
+     * 원격 서버 페이지엔 Capacitor 브리지(window.Capacitor)가 없어 웹이 "네이티브 앱"인지
+     * 감지할 수 없다 → User-Agent 에 표식을 넣어 웹이 앱 환경을 인식하게 한다(알림 안내 등).
+     */
+    private void markUserAgent() {
+        if (getBridge() == null) return;
+        final WebView wv = getBridge().getWebView();
+        if (wv == null) return;
+        try {
+            final android.webkit.WebSettings s = wv.getSettings();
+            final String ua = s.getUserAgentString();
+            if (ua != null && !ua.contains("bebeApp")) s.setUserAgentString(ua + " bebeApp");
+        } catch (Exception ignored) {
+        }
     }
 
     /**

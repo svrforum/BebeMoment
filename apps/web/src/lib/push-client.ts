@@ -99,7 +99,11 @@ function capacitor(): CapacitorBridge | null {
 }
 
 export function isNativeApp(): boolean {
-  return capacitor()?.isNativePlatform?.() === true
+  if (capacitor()?.isNativePlatform?.() === true) return true
+  // 원격 페이지엔 window.Capacitor 가 없어 브리지로 못 잡으므로 User-Agent 표식으로도
+  // 감지(Android 앱이 UA 에 "bebeApp" 추가, MainActivity.markUserAgent).
+  if (typeof navigator !== 'undefined' && navigator.userAgent.includes('bebeApp')) return true
+  return false
 }
 
 export async function registerNativePush(): Promise<boolean> {

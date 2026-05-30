@@ -5,7 +5,6 @@ import {
   isNativeApp,
   isStandalone,
   pushSupported,
-  registerNativePush,
   subscribeToPush,
   unsubscribeFromPush,
 } from '@/lib/push-client'
@@ -38,24 +37,6 @@ export function PushToggle(): React.JSX.Element {
     }
     setSupport('unsupported')
   }, [])
-
-  async function onToggleNative(): Promise<void> {
-    if (pending) return
-    setPending(true)
-    try {
-      const ok = await registerNativePush()
-      if (!ok) {
-        toast({ title: '관리자가 앱 푸시(Firebase)를 설정해야 해요', variant: 'danger' })
-        return
-      }
-      setEnabled(true)
-      toast({ title: '이 기기에서 알림을 켰어요', variant: 'success' })
-    } catch {
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
-    } finally {
-      setPending(false)
-    }
-  }
 
   async function onToggle(): Promise<void> {
     if (pending) return
@@ -99,6 +80,22 @@ export function PushToggle(): React.JSX.Element {
     )
   }
 
+  // 네이티브 앱: FCM 기기 등록이 앱 실행 시 자동(MainActivity). 끄고 켜는 토글이 아니라
+  // 상태 안내로 보여준다(웹 push 토글은 원격 페이지에서 동작 불가).
+  if (support === 'native') {
+    return (
+      <div className="flex items-center gap-3">
+        <Bell className="h-[18px] w-[18px] flex-shrink-0 text-point-500" strokeWidth={1.9} />
+        <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">
+          앱에서 알림을 받고 있어요
+        </span>
+        <span className="rounded-full bg-point-500/12 px-2.5 py-1 text-[12px] font-semibold text-point-600 dark:text-point-300">
+          켜짐
+        </span>
+      </div>
+    )
+  }
+
   if (support === 'unsupported') {
     return <p className="text-[13px] text-base-500">이 브라우저는 알림을 지원하지 않아요</p>
   }
@@ -112,7 +109,7 @@ export function PushToggle(): React.JSX.Element {
       <Toggle
         checked={enabled}
         disabled={pending}
-        onChange={support === 'native' ? onToggleNative : onToggle}
+        onChange={onToggle}
         aria-label="이 기기에서 알림 받기"
       />
     </div>
