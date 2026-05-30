@@ -53,8 +53,20 @@ model User {
   suspendedMemberships Membership[]         @relation("MembershipSuspendedBy")
   passwordResetTokens  PasswordResetToken[] @relation("PasswordResetUser")
   issuedPasswordResets PasswordResetToken[] @relation("PasswordResetIssuedBy")
+  widgetToken          WidgetToken?
 
   @@map("users")
+  @@schema("public")
+}
+
+model WidgetToken {
+  token      String    @id
+  userId     String    @unique @map("user_id") @db.Uuid
+  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt  DateTime  @default(now()) @map("created_at")
+  lastUsedAt DateTime? @map("last_used_at")
+
+  @@map("widget_tokens")
   @@schema("public")
 }
 
