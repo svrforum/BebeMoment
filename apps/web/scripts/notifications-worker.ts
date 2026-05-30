@@ -1,6 +1,10 @@
 import { decryptSecret } from '@/lib/crypto'
-import { prismaPublic } from '@/lib/db-init'
+import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { getMediaClient } from '@/lib/media-client'
+import { listMemories } from '@/server/memories/list'
+import { decideMemoryPush } from '@/server/memories/scan'
 import { deleteDeviceToken, listDeviceTokensForUsers } from '@/server/notifications/device-tokens'
+import { enqueueNotification } from '@/server/notifications/enqueue'
 import {
   type FcmServiceAccount,
   getFcmAccessToken,
@@ -13,11 +17,12 @@ import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { NOTIFICATIONS_QUEUE, type NotificationJob } from '@bebe/core'
 import { createRedisConnection } from '@bebe/queue'
-import { type Job, Worker } from 'bullmq'
+import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
 import { z } from 'zod'
 
 const stringSetting = z.string()
+const MEMORIES_SCAN_JOB = 'memories-scan'
 
 async function settingsGet(key: string): Promise<string | null> {
   return getSetting(key, stringSetting.nullable(), null, prismaPublic)
@@ -25,6 +30,56 @@ async function settingsGet(key: string): Promise<string | null> {
 
 async function settingsSet(key: string, value: string): Promise<void> {
   await setSetting(key, value, null, prismaPublic)
+}
+
+/**
+ * 매일 1회 — 가족별 오늘 추억을 스캔해 연 단위(항상)·월 단위(주1회 무작위) 푸시를
+ * enqueue. enqueue 된 잡은 같은 워커가 일반 알림처럼 처리(카테고리 'memory' 게이트
+ * 통과 시 발송). 마지막 발송일은 settings 에 기록해 중복·throttle 관리.
+ */
+async function runMemoriesScan(): Promise<void> {
+  const today = new Date()
+  const todayStr = today.toISOString().slice(0, 10)
+  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  for (const fam of families) {
+    // 카운트는 family-가시 기준(전체 멤버 대상 발송이라 숨김 콘텐츠 수 노출 방지).
+    const groups = await listMemories(
+      { familyId: fam.id, today, viewerRole: 'family' },
+      prismaMedia,
+      prismaPublic,
+      getMediaClient(),
+    )
+    const lastYearly = await settingsGet(`memory.last_yearly.${fam.id}`)
+    const lastMonthly = await settingsGet(`memory.last_monthly.${fam.id}`)
+    const decision = decideMemoryPush({ today, groups, lastYearly, lastMonthly })
+
+    if (decision.yearly) {
+      await enqueueNotification({
+        familyId: fam.id,
+        actorUserId: '',
+        type: 'memory.yearly',
+        payload: {
+          count: String(decision.yearly.count),
+          interval: decision.yearly.interval,
+          visibility: 'family',
+        },
+      })
+      await settingsSet(`memory.last_yearly.${fam.id}`, todayStr)
+    }
+    if (decision.monthly) {
+      await enqueueNotification({
+        familyId: fam.id,
+        actorUserId: '',
+        type: 'memory.monthly',
+        payload: {
+          count: String(decision.monthly.count),
+          interval: decision.monthly.interval,
+          visibility: 'family',
+        },
+      })
+      await settingsSet(`memory.last_monthly.${fam.id}`, todayStr)
+    }
+  }
 }
 
 type Role = 'owner' | 'guardian' | 'family'
@@ -107,6 +162,10 @@ async function main(): Promise<void> {
   const worker = new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     async (job: Job<NotificationJob>) => {
+      if (job.name === MEMORIES_SCAN_JOB) {
+        await runMemoriesScan()
+        return
+      }
       const fcm = await buildFcmDeps()
       await handleNotificationJob(job.data, {
         ...(fcm ?? {}),
@@ -152,6 +211,14 @@ async function main(): Promise<void> {
   worker.on('failed', (job, err) => {
     console.error(`[notifications-worker] job ${job?.id} failed:`, err)
   })
+
+  // 매일 09:00(서버 로컬) 추억 스캔 — 반복 작업 1개로 등록(jobId 고정 → 멱등).
+  const queue = new Queue(NOTIFICATIONS_QUEUE, { connection })
+  await queue.add(
+    MEMORIES_SCAN_JOB,
+    {},
+    { repeat: { pattern: '0 9 * * *' }, jobId: MEMORIES_SCAN_JOB, removeOnComplete: true },
+  )
 
   console.log('[notifications-worker] started')
 }
