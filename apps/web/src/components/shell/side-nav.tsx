@@ -4,6 +4,7 @@ import { useFeatures } from '@/lib/features'
 import { useTheme } from '@/lib/theme'
 import type { FeatureFlag } from '@bebe/core'
 import {
+  Bookmark,
   Calendar,
   Clock4,
   FolderOpen,
@@ -23,11 +24,13 @@ const items: {
   icon: typeof Clock4
   feature?: FeatureFlag
   manageOnly?: boolean
+  bookmarkOnly?: boolean
 }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
   { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
+  { href: '/saved', label: '북마크', icon: Bookmark, bookmarkOnly: true },
   { href: '/family', label: '가족', icon: Users, manageOnly: true },
   { href: '/settings', label: '설정', icon: Settings },
 ]
@@ -36,9 +39,15 @@ type Props = {
   familyName: string
   canManageFamily?: boolean
   hiddenNav?: string[]
+  showBookmark?: boolean
 }
 
-export function SideNav({ familyName, canManageFamily = true, hiddenNav = [] }: Props) {
+export function SideNav({
+  familyName,
+  canManageFamily = true,
+  hiddenNav = [],
+  showBookmark = false,
+}: Props) {
   const pathname = usePathname()
   const features = useFeatures()
   const { mode, resolved, setMode } = useTheme()
@@ -46,6 +55,7 @@ export function SideNav({ familyName, canManageFamily = true, hiddenNav = [] }: 
     (it) =>
       (!it.feature || features[it.feature]) &&
       (!it.manageOnly || canManageFamily) &&
+      (!it.bookmarkOnly || showBookmark) &&
       !hiddenNav.includes(it.href.slice(1)),
   )
 

@@ -2,7 +2,7 @@
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
-import { Calendar, Clock4, FolderOpen, NotebookPen, Settings, Users } from 'lucide-react'
+import { Bookmark, Calendar, Clock4, FolderOpen, NotebookPen, Settings, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { UnreadBadge } from './unread-badge'
@@ -23,9 +23,16 @@ type Props = {
   canManageFamily?: boolean
   /** 관리자가 일반 가족에게 숨긴 메뉴 키(예: ['story','albums']). */
   hiddenNav?: string[]
+  /** 스토리·앨범이 숨겨진 가족에게 북마크(저장함) 바로가기를 노출. */
+  showBookmark?: boolean
 }
 
-export function BottomNav({ unreadCounts, canManageFamily = true, hiddenNav = [] }: Props = {}) {
+export function BottomNav({
+  unreadCounts,
+  canManageFamily = true,
+  hiddenNav = [],
+  showBookmark = false,
+}: Props = {}) {
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const features = useFeatures()
@@ -40,6 +47,7 @@ export function BottomNav({ unreadCounts, canManageFamily = true, hiddenNav = []
     ...baseItems.filter(
       (it) => (!it.feature || features[it.feature]) && !hiddenNav.includes(it.href.slice(1)),
     ),
+    ...(showBookmark ? [{ href: '/saved', label: '북마크', icon: Bookmark }] : []),
     lastItem,
   ]
   return (

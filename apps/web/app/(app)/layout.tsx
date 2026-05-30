@@ -30,6 +30,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const hiddenNav = canManageFamily
     ? []
     : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
+  // 스토리·앨범이 숨겨진 일반 가족에겐 북마크(저장함) 바로가기 탭을 대신 노출.
+  const showBookmark = hiddenNav.length > 0 && features.bookmarks
 
   // Unread = ready assets in the current family newer than this member's
   // lastSeenAt. Capped to 100 (badge shows "99+"). First-visit (no
@@ -55,12 +57,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           familyName={ctx.family.name}
           canManageFamily={canManageFamily}
           hiddenNav={hiddenNav}
+          showBookmark={showBookmark}
         />
         <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
         <BottomNav
           unreadCounts={{ '/timeline': unreadTimeline }}
           canManageFamily={canManageFamily}
           hiddenNav={hiddenNav}
+          showBookmark={showBookmark}
         />
         <WidgetRegistrar />
       </AppShellClient>
