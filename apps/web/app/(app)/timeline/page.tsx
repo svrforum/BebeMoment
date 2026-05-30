@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import type { TimelineStory } from '@/components/timeline/bucket-section'
+import { StoryStrip, type TimelineStory } from '@/components/timeline/bucket-section'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { StoryCard } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
@@ -99,7 +99,9 @@ export default async function TimelinePage({
   for (const it of storyItems) {
     if (it.kind !== 'story') continue
     const e = it.entry
-    const key = utcDayKey(e.entryDate)
+    // 그룹과 같은 축으로 키를 잡아야 같은 날에 붙는다 — uploaded 정렬에선 사진 그룹이
+    // createdAt 기준이므로 스토리도 createdAt(작성 시각)로. taken 정렬은 entryDate.
+    const key = utcDayKey(sortMode === 'uploaded' ? e.createdAt : e.entryDate)
     const arr = storiesByDate.get(key) ?? []
     arr.push({
       id: e.id,
@@ -117,8 +119,10 @@ export default async function TimelinePage({
     return { ...g, stories: s ?? [] }
   })
   // 사진 그룹에 못 붙은(사진 없는 옛) 스토리만 상단에 따로.
+  const storyKey = (e: { entryDate: Date; createdAt: Date }): string =>
+    utcDayKey(sortMode === 'uploaded' ? e.createdAt : e.entryDate)
   const orphanStoryItems = storyItems.filter(
-    (it) => it.kind === 'story' && storiesByDate.has(utcDayKey(it.entry.entryDate)),
+    (it) => it.kind === 'story' && storiesByDate.has(storyKey(it.entry)),
   )
 
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
@@ -154,12 +158,23 @@ export default async function TimelinePage({
           wide
         />
         {storyItems.length > 0 && (
-          <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
-            {storyItems.map((it) =>
-              it.kind === 'story' ? (
-                <StoryCard key={`j-${it.id}`} entry={it.entry} compact />
-              ) : null,
-            )}
+          <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
+            <StoryStrip
+              stories={storyItems.flatMap((it) =>
+                it.kind === 'story'
+                  ? [
+                      {
+                        id: it.entry.id,
+                        publicNo: it.entry.publicNo,
+                        title: it.entry.title ?? null,
+                        body: it.entry.body,
+                        mood: it.entry.mood ?? null,
+                        visibility: it.entry.visibility,
+                      },
+                    ]
+                  : [],
+              )}
+            />
           </div>
         )}
         {isEmpty ? (

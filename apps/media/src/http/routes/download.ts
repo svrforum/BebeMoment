@@ -25,30 +25,13 @@ function contentDisposition(filename: string): string {
   return `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
 }
 
-// JPEG 의 EXIF(APP1 "Exif") 세그먼트를 **무손실**로 제거한다 — 픽셀 재인코딩 없이
-// 마커만 걷어낸다("원본은 원본" 픽셀 유지). 다운로드 시 촬영일시 메타가 사라져
-// 휴대폰 갤러리가 파일 시각(=다운로드 시점) 기준으로 최신에 정렬한다.
-// JPEG 가 아니거나 구조가 깨졌으면 원본 버퍼를 그대로 반환한다.
-export function stripJpegExif(buf: Buffer): Buffer {
-  if (buf.length < 4 || buf[0] !== 0xff || buf[1] !== 0xd8) return buf
-  const out: Buffer[] = [buf.subarray(0, 2)]
-  let i = 2
-  while (i + 4 <= buf.length) {
-    if (buf[i] !== 0xff) return buf // 예상 못한 바이트 — 안전하게 원본 반환
-    const marker = buf[i + 1] as number
-    if (marker === 0xda || marker === 0xd9) {
-      out.push(buf.subarray(i)) // SOS/EOI 이후는 압축 데이터 — 통째로 복사
-      return Buffer.concat(out)
-    }
-    const len = buf.readUInt16BE(i + 2)
-    const segEnd = i + 2 + len
-    if (segEnd > buf.length) return buf
-    const isExifApp1 =
-      marker === 0xe1 && buf.subarray(i + 4, i + 8).toString('ascii') === 'Exif'
-    if (!isExifApp1) out.push(buf.subarray(i, segEnd))
-    i = segEnd
-  }
-  return Buffer.concat(out)
+// JPEG 다운로드 시 EXIF(촬영일 포함)를 제거하면 휴대폰 갤러리가 파일 시각(=다운로드
+// 시점) 기준 최신으로 정렬한다. sharp 는 기본적으로 metadata 를 보존하지 않으므로
+// 재인코딩하며 EXIF 를 떨어뜨리고, `.rotate()` 가 EXIF Orientation 을 픽셀에 구워
+// (회전 손실 방지) Orientation 태그 없이도 바로 선다. (무손실 마커-스트립은 Orientation
+// 까지 같이 날려 ≠1 사진이 돌아가 보이는 문제가 있어 sharp 재인코딩으로 교체.)
+async function stripJpegMetadata(buf: Buffer): Promise<Buffer> {
+  return sharp(buf, { failOn: 'none' }).rotate().jpeg({ quality: 95, mozjpeg: true }).toBuffer()
 }
 
 function setDownloadHeaders(reply: FastifyReply, payload: DownloadTokenPayload): void {
@@ -77,13 +60,13 @@ async function serveOriginal(
     })
   }
   const stream = await storage.read(payload.originalKey)
-  // JPEG 원본은 EXIF 를 무손실로 제거해 내려준다(갤러리 최신 정렬). 그 외(영상·HEIC·
-  // PNG 등)는 바이트 그대로 스트리밍.
+  // JPEG 원본은 EXIF 제거 + 회전 굽기해 내려준다(갤러리 최신 정렬, 회전 보존). 그 외
+  // (영상·HEIC·PNG 등)는 바이트 그대로 스트리밍.
   if ((payload.mimeType || '').toLowerCase() === 'image/jpeg') {
-    const stripped = stripJpegExif(await streamToBuffer(stream))
+    const out = await stripJpegMetadata(await streamToBuffer(stream))
     reply.header('content-type', 'image/jpeg')
-    reply.header('content-length', String(stripped.length))
-    return reply.status(200).send(stripped)
+    reply.header('content-length', String(out.length))
+    return reply.status(200).send(out)
   }
   reply.header('content-type', payload.mimeType || 'application/octet-stream')
   return reply.status(200).send(stream)

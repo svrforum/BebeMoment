@@ -14,9 +14,14 @@ import { headers } from 'next/headers'
 async function absolutizeTusUrl(url: string): Promise<string> {
   if (!url.startsWith('/')) return url
   const h = await headers()
-  const proto = h.get('x-forwarded-proto') ?? 'http'
   const host = h.get('x-forwarded-host') ?? h.get('host')
-  return host ? `${proto}://${host}${url}` : url
+  const publicUrl = process.env.PUBLIC_URL?.replace(/\/$/, '')
+  // 프록시가 호스트 헤더를 안 줄 때만 PUBLIC_URL 로 폴백.
+  if (!host) return publicUrl ? `${publicUrl}${url}` : url
+  // 스킴은 x-forwarded-proto 우선, 없으면 PUBLIC_URL 스킴(https 도메인에서 http 로 추측해
+  // mixed-content 로 막히는 걸 방지). 둘 다 없으면 http.
+  const proto = h.get('x-forwarded-proto') ?? (publicUrl?.startsWith('https') ? 'https' : 'http')
+  return `${proto}://${host}${url}`
 }
 
 export type StartUploadInput = {

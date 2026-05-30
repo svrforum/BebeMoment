@@ -8,7 +8,7 @@ import { z } from 'zod'
 // SNS 앱-로그인 핸드오프 교환(무인증 — code+verifier 가 자격). 앱이 deep link 로 받은
 // code 와 자신이 만든 verifier 를 보내면, 검증 후 세션 쿠키 값을 돌려준다. 앱은 그 값을
 // WebView CookieManager 에 심고 새로고침해 로그인 상태가 된다.
-const Body = z.object({ code: z.string().min(1).max(200), verifier: z.string().min(8).max(200) })
+const Body = z.object({ code: z.string().min(1).max(200), verifier: z.string().min(32).max(200) })
 
 export async function POST(req: Request) {
   try {

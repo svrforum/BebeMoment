@@ -14,6 +14,11 @@ export async function createAppHandoff(
   input: { userId: string; currentFamilyId: string | null; challenge: string },
   prisma: PrismaClient,
 ): Promise<{ code: string }> {
+  // 버려진(미교환) 만료 핸드오프 청소 — 이 테이블엔 usedAt 톰스톤이 없어 미교환 행이
+  // 영원히 남으므로 발급 시점에 만료분을 쓸어낸다(베스트에포트).
+  await prisma.appAuthHandoff
+    .deleteMany({ where: { expiresAt: { lt: new Date() } } })
+    .catch(() => {})
   const code = crypto.randomBytes(32).toString('base64url')
   await prisma.appAuthHandoff.create({
     data: {
