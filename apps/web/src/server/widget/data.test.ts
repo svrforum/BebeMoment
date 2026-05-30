@@ -99,9 +99,11 @@ describe('getWidgetData', () => {
     const data = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media)
     expect(data?.hasPhoto).toBe(true)
     expect(data?.photoUrl).toBeTruthy()
-    expect(typeof data?.photoUrl).toBe('string')
+    expect(data?.photoUrls.length).toBeGreaterThanOrEqual(1)
+    expect(data?.photoUrls[0]).toBe(data?.photoUrl)
     expect(data?.babyName).toBe('루키')
     expect(data?.birthDate).toBe('2026-01-15')
+    expect(typeof data?.newCount).toBe('number')
   })
 
   it('사진 없으면 hasPhoto=false', async () => {
@@ -114,5 +116,7 @@ describe('getWidgetData', () => {
     )
     expect(data?.hasPhoto).toBe(false)
     expect(data?.photoUrl).toBeNull()
+    expect(data?.photoUrls).toEqual([])
+    expect(data?.newCount).toBe(0)
   })
 })
