@@ -128,6 +128,9 @@ model Verification {
 model OidcProvider {
   id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   name                  String
+  // 'oidc' = 표준 OIDC(discovery + id_token + JWKS). 'naver' = 네이버 OAuth2 전용
+  // (discovery·id_token 없음, 고정 엔드포인트 + nid/me userinfo 언랩).
+  kind                  String   @default("oidc")
   issuer                String
   clientId              String   @map("client_id")
   clientSecretEnc       String   @map("client_secret_enc")

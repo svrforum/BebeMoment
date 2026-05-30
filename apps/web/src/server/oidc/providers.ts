@@ -7,6 +7,7 @@ export type CreateProviderInput = {
   clientId: string
   clientSecret: string
   scopes: string[]
+  kind?: string | undefined
 }
 
 export async function createProvider(
@@ -18,6 +19,7 @@ export async function createProvider(
   return prisma.oidcProvider.create({
     data: {
       name: input.name,
+      kind: input.kind === 'naver' ? 'naver' : 'oidc',
       issuer: input.issuer,
       clientId: input.clientId,
       clientSecretEnc: enc,

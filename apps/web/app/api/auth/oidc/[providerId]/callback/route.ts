@@ -9,6 +9,7 @@ import {
   verifyIdToken,
 } from '@/server/oidc/callback'
 import { fetchDiscovery } from '@/server/oidc/discovery'
+import { exchangeNaverCode, fetchNaverProfile } from '@/server/oidc/naver'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
 import { isUserFullySuspended } from '@/server/auth/suspension'
 import { acceptInvite } from '@/server/invite/accept'
@@ -47,41 +48,73 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     return NextResponse.redirect(new URL('/login?error=provider', req.url))
   }
 
-  const disc = await fetchDiscovery(provider.issuer)
   const clientSecret = await decryptSecret(provider.clientSecretEnc, env.SECRET_KEY)
   const redirectUri = `${env.PUBLIC_URL}/api/auth/oidc/${providerId}/callback`
 
   try {
-    const tokens = await exchangeCodeForTokens({
-      tokenEndpoint: disc.token_endpoint,
-      code,
-      redirectUri,
-      clientId: provider.clientId,
-      clientSecret,
-    })
+    let linkInput: {
+      providerId: string
+      subject: string
+      email?: string
+      emailVerified: boolean
+      displayName?: string
+    }
 
-    // Verify id_token signature + claims + nonce before trusting anything.
-    const idTokenPayload = await verifyIdToken(tokens.id_token, {
-      jwksUri: disc.jwks_uri,
-      issuer: provider.issuer,
-      clientId: provider.clientId,
-      nonce: expectedNonce,
-    })
+    if (provider.kind === 'naver') {
+      // 네이버: OAuth2 전용 — id_token 없음. code→token 후 nid/me 프로필 언랩.
+      const { access_token } = await exchangeNaverCode({
+        code,
+        state,
+        clientId: provider.clientId,
+        clientSecret,
+      })
+      const profile = await fetchNaverProfile(access_token)
+      linkInput = {
+        providerId,
+        subject: profile.sub,
+        emailVerified: profile.emailVerified,
+        ...(profile.email ? { email: profile.email } : {}),
+        ...(profile.displayName ? { displayName: profile.displayName } : {}),
+      }
+    } else {
+      const disc = await fetchDiscovery(provider.issuer)
+      const tokens = await exchangeCodeForTokens({
+        tokenEndpoint: disc.token_endpoint,
+        code,
+        redirectUri,
+        clientId: provider.clientId,
+        clientSecret,
+      })
 
-    const info = await fetchUserInfo(disc.userinfo_endpoint, tokens.access_token)
+      // Verify id_token signature + claims + nonce before trusting anything.
+      const idTokenPayload = await verifyIdToken(tokens.id_token, {
+        jwksUri: disc.jwks_uri,
+        issuer: provider.issuer,
+        clientId: provider.clientId,
+        nonce: expectedNonce,
+      })
 
-    // id_token is authoritative for sub and email_verified; userinfo fills display name.
-    const subject = String(idTokenPayload.sub ?? info.sub)
-    const email = (idTokenPayload.email as string | undefined) ?? info.email
-    const emailVerified =
-      (idTokenPayload.email_verified as boolean | undefined) ?? info.email_verified ?? false
+      const info = await fetchUserInfo(disc.userinfo_endpoint, tokens.access_token)
 
-    const linkInput = {
-      providerId,
-      subject,
-      ...(email !== undefined ? { email } : {}),
-      emailVerified,
-      ...(info.name !== undefined ? { displayName: info.name } : {}),
+      // id_token is authoritative for sub and email_verified; userinfo/id_token fill
+      // the display name — Kakao 등은 `name` 이 아니라 `nickname` 으로 줘서 둘 다 본다.
+      const subject = String(idTokenPayload.sub ?? info.sub)
+      const email = (idTokenPayload.email as string | undefined) ?? info.email
+      const emailVerified =
+        (idTokenPayload.email_verified as boolean | undefined) ?? info.email_verified ?? false
+      const displayName =
+        info.name ??
+        info.nickname ??
+        (idTokenPayload.nickname as string | undefined) ??
+        (idTokenPayload.name as string | undefined)
+
+      linkInput = {
+        providerId,
+        subject,
+        emailVerified,
+        ...(email !== undefined ? { email } : {}),
+        ...(displayName !== undefined ? { displayName } : {}),
+      }
     }
 
     const inviteToken = cookieStore.get('oidc_invite')?.value ?? null

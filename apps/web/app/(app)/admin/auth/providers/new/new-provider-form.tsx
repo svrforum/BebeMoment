@@ -5,13 +5,15 @@ import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useMemo, useState } from 'react'
 
-type PresetKey = 'google' | 'kakao' | 'microsoft' | 'custom'
+type PresetKey = 'google' | 'kakao' | 'naver' | 'microsoft' | 'custom'
 
 type Preset = {
   key: PresetKey
   name: string
   issuer: string
   scopes: string[]
+  // 'naver' = OAuth2 전용(issuer/discovery 불필요). 생략 시 표준 OIDC.
+  kind?: 'oidc' | 'naver'
   consoleLabel: string
   consoleUrl: string
   color: string
@@ -78,6 +80,34 @@ const PRESETS: Preset[] = [
       {
         title: '6. Client ID',
         body: '앱 키 → REST API 키 값을 아래 폼의 Client ID 에 붙여넣기.',
+      },
+    ],
+  },
+  {
+    key: 'naver',
+    name: '네이버',
+    issuer: '',
+    kind: 'naver',
+    scopes: [],
+    consoleLabel: 'Naver Developers 열기',
+    consoleUrl: 'https://developers.naver.com/apps/#/register',
+    color: 'from-[#03C75A] to-[#03C75A]',
+    steps: (uri) => [
+      {
+        title: '1. 애플리케이션 등록',
+        body: 'Naver Developers → 애플리케이션 등록 → 사용 API "네이버 로그인" 선택.',
+      },
+      {
+        title: '2. 제공 정보 선택',
+        body: '회원이름·이메일 주소를 "필수"로 설정하세요. 이메일이 없으면 계정 연결이 제한돼요.',
+      },
+      {
+        title: '3. 서비스 URL · Callback URL',
+        body: `서비스 URL 에 현재 서비스 주소, Callback URL 에 아래 값을 등록:\n${uri}`,
+      },
+      {
+        title: '4. Client ID / Secret',
+        body: '발급된 Client ID 와 Client Secret 을 아래 폼에 붙여넣기. (네이버는 OAuth2 라 Issuer 불필요)',
       },
     ],
   },
@@ -159,6 +189,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   )
 
   const preset = PRESETS.find((p) => p.key === selected) ?? null
+  const kind = preset?.kind ?? 'oidc'
 
   function pickPreset(p: Preset) {
     setSelected(p.key)
@@ -181,7 +212,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
     const r = await fetch('/api/admin/oidc', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, issuer, clientId, clientSecret, scopes }),
+      body: JSON.stringify({ name, kind, issuer, clientId, clientSecret, scopes }),
     })
     setSaving(false)
     if (r.ok) router.push('/admin/auth/providers')
@@ -238,20 +269,22 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
               className={inputCls}
             />
           </div>
-          <div>
-            <label htmlFor="issuer" className="mb-2 block text-[13px] font-medium text-base-500">
-              Issuer URL
-            </label>
-            <input
-              id="issuer"
-              type="url"
-              value={issuer}
-              onChange={(e) => setIssuer(e.target.value)}
-              required
-              placeholder="https://accounts.google.com"
-              className={inputCls}
-            />
-          </div>
+          {kind !== 'naver' && (
+            <div>
+              <label htmlFor="issuer" className="mb-2 block text-[13px] font-medium text-base-500">
+                Issuer URL
+              </label>
+              <input
+                id="issuer"
+                type="url"
+                value={issuer}
+                onChange={(e) => setIssuer(e.target.value)}
+                required
+                placeholder="https://accounts.google.com"
+                className={inputCls}
+              />
+            </div>
+          )}
           <div>
             <label htmlFor="clientId" className="mb-2 block text-[13px] font-medium text-base-500">
               Client ID

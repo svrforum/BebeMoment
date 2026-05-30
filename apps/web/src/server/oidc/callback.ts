@@ -12,6 +12,8 @@ export type UserInfo = {
   email?: string
   email_verified?: boolean
   name?: string
+  // 카카오 등 일부 IdP 는 표시이름을 `name` 이 아니라 `nickname` 으로 준다.
+  nickname?: string
   picture?: string
 }
 

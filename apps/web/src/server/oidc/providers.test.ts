@@ -31,6 +31,16 @@ describe('oidc providers', () => {
     expect(p.id).toBeTruthy()
     expect(p.clientSecretEnc).not.toBe('topsecret')
     expect(p.enabled).toBe(true)
+    expect(p.kind).toBe('oidc')
+  })
+
+  it('creates a naver (OAuth2) provider with kind=naver', async () => {
+    const p = await createProvider(
+      { name: '네이버', kind: 'naver', issuer: '', clientId: 'c', clientSecret: 's', scopes: [] },
+      SECRET,
+      db.prismaPublic,
+    )
+    expect(p.kind).toBe('naver')
   })
 
   it('lists enabled providers', async () => {
