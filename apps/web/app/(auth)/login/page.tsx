@@ -2,6 +2,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { getSetting } from '@/server/settings/get'
 import { z } from 'zod'
 import { LoginForm } from './login-form'
+import { ServerChangeLink } from './server-change-link'
 
 export const dynamic = 'force-dynamic'
 
@@ -53,6 +54,7 @@ export default async function LoginPage({
         <div className="mt-10">
           <LoginForm oidcProviders={providers} passwordEnabled={passwordEnabled} />
         </div>
+        <ServerChangeLink />
       </div>
     </main>
   )

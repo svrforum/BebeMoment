@@ -150,8 +150,25 @@
     })
   }
 
+  function removeServerUrl() {
+    var p = prefs()
+    if (!p) return Promise.resolve()
+    return p.remove({ key: KEY })
+  }
+
   function boot() {
     renderConnecting('불러오는 중…')
+    // 로그인 화면의 "서버 변경" 링크(https://localhost/?reset=1)로 들어오면 저장된
+    // 서버주소를 지우고 입력 폼을 띄운다(이전 값 프리필).
+    var sp = new URLSearchParams(window.location.search)
+    if (sp.get('reset') === '1') {
+      getServerUrl().then(function (prev) {
+        removeServerUrl().then(function () {
+          renderForm(null, prev || '')
+        })
+      })
+      return
+    }
     getServerUrl().then(function (saved) {
       if (!saved) return renderForm()
       reachable(saved).then(function (ok) {
