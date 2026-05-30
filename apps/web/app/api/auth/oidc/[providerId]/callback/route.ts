@@ -1,6 +1,8 @@
+import { getAuth } from '@/lib/auth'
 import { decryptSecret } from '@/lib/crypto'
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
+import { linkIdentityToUser } from '@/server/oidc/link'
 import {
   exchangeCodeForTokens,
   fetchUserInfo,
@@ -21,6 +23,7 @@ function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
   store.delete('oidc_state')
   store.delete('oidc_nonce')
   store.delete('oidc_invite')
+  store.delete('oidc_link')
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
@@ -115,6 +118,28 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
         ...(email !== undefined ? { email } : {}),
         ...(displayName !== undefined ? { displayName } : {}),
       }
+    }
+
+    // 계정 연동 모드: 현재 로그인 사용자에게 신원만 붙이고 끝낸다(새 로그인/가입 아님).
+    if (cookieStore.get('oidc_link')?.value === '1') {
+      const { session } = await getAuth()
+      if (!session) {
+        clearOidcCookies(cookieStore)
+        return NextResponse.redirect(new URL('/login?error=link_session', req.url))
+      }
+      const r = await linkIdentityToUser(
+        {
+          userId: session.userId,
+          providerId,
+          subject: linkInput.subject,
+          ...(linkInput.email ? { email: linkInput.email } : {}),
+        },
+        prismaPublic,
+      )
+      clearOidcCookies(cookieStore)
+      return NextResponse.redirect(
+        new URL(r.conflict ? '/settings?error=link_conflict' : '/settings?linked=1', req.url),
+      )
     }
 
     const inviteToken = cookieStore.get('oidc_invite')?.value ?? null

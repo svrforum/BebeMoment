@@ -1,3 +1,4 @@
+import { SnsLinkSection } from '@/components/settings/sns-link-section'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
@@ -119,6 +120,12 @@ export default async function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* 로그인 연동 */}
+        <section className="space-y-2">
+          <SectionTitle>SNS 계정 연동</SectionTitle>
+          <SnsLinkSection />
+        </section>
 
         {/* 가족 */}
         <section className="space-y-2">

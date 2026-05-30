@@ -27,8 +27,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
   cookieStore.set('oidc_state', state, cookieOpts)
 
-  const inviteToken = new URL(req.url).searchParams.get('invite')
+  const reqUrl = new URL(req.url)
+  const inviteToken = reqUrl.searchParams.get('invite')
   if (inviteToken) cookieStore.set('oidc_invite', inviteToken, cookieOpts)
+
+  // 계정 연동 모드 — 콜백이 이 쿠키를 보면 새 로그인 대신 현재 로그인 사용자에게
+  // 신원을 연결한다(세션은 콜백에서 검증).
+  if (reqUrl.searchParams.get('link') === '1') cookieStore.set('oidc_link', '1', cookieOpts)
 
   // 네이버: OAuth2 전용 — 고정 authorize 엔드포인트, nonce 없음.
   if (provider.kind === 'naver') {
