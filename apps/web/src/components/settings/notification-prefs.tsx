@@ -10,6 +10,7 @@ const CATEGORY_LABELS: { category: NotificationCategory; label: string }[] = [
   { category: 'comment_mention', label: '댓글·멘션' },
   { category: 'album_add', label: '앨범 추가' },
   { category: 'diary_growth_milestone', label: '스토리·성장·마일스톤' },
+  { category: 'memory', label: '추억' },
 ]
 
 type Props = {

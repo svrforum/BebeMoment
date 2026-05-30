@@ -56,6 +56,16 @@ export function buildNotification(job: NotificationJob): {
       return { title: '성장 기록', body: '새 성장 기록이 등록됐어요', url: '/timeline' }
     case 'milestone.created':
       return { title: '마일스톤', body: '새 마일스톤이 등록됐어요', url: '/timeline' }
+    case 'memory.yearly':
+    case 'memory.monthly': {
+      const interval = job.payload.interval ?? '예전'
+      const count = job.payload.count ?? ''
+      return {
+        title: '오늘의 추억',
+        body: `${interval} 전 오늘${count ? ` · 사진 ${count}장` : ''}`,
+        url: '/memories',
+      }
+    }
   }
 }
 
