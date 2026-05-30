@@ -18,6 +18,10 @@ import android.widget.Toast;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import com.getcapacitor.BridgeActivity;
+import com.google.firebase.FirebaseApp;
+import com.google.firebase.FirebaseOptions;
+import com.google.firebase.messaging.FirebaseMessaging;
+import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
 
@@ -106,6 +110,100 @@ public class MainActivity extends BridgeActivity {
         // WebView 세션 쿠키(CookieManager — 다운로드에서 검증된 방식)로 POST /api/widget/token
         // 을 직접 호출해 토큰을 저장하고 위젯을 갱신한다.
         tryRegisterWidget();
+        // FCM 기기 토큰도 같은 이유(원격 페이지에 브리지 없음)로 네이티브에서 등록한다.
+        tryRegisterFcm();
+    }
+
+    /**
+     * FCM 기기 토큰 네이티브 등록. 관리자가 Firebase 를 설정(`/api/push/fcm-config` configured)
+     * 했을 때만 동작 — 공개 config 로 2nd FirebaseApp 초기화해 토큰을 받고, 세션 쿠키로
+     * `POST /api/notifications/register-device` 한다. 미설정/실패 시 조용히 무동작.
+     */
+    private void tryRegisterFcm() {
+        final String serverUrl = readServerUrl();
+        if (serverUrl == null) return;
+        final String base = serverUrl.replaceAll("/+$", "");
+        new Thread(() -> {
+            try {
+                final String cfg = httpGet(base + "/api/push/fcm-config");
+                if (cfg == null) return;
+                final JSONObject j = new JSONObject(cfg);
+                if (!j.optBoolean("configured", false)) return;
+                final String apiKey = j.optString("apiKey", "");
+                final String appId = j.optString("appId", "");
+                final String projectId = j.optString("projectId", "");
+                final String senderId = j.optString("messagingSenderId", "");
+                if (apiKey.isEmpty() || appId.isEmpty() || projectId.isEmpty() || senderId.isEmpty()) return;
+
+                FirebaseApp app;
+                try {
+                    app = FirebaseApp.getInstance("bebe");
+                } catch (IllegalStateException e) {
+                    FirebaseOptions opts = new FirebaseOptions.Builder()
+                        .setApiKey(apiKey)
+                        .setApplicationId(appId)
+                        .setProjectId(projectId)
+                        .setGcmSenderId(senderId)
+                        .build();
+                    app = FirebaseApp.initializeApp(getApplicationContext(), opts, "bebe");
+                }
+                app.get(FirebaseMessaging.class).getToken().addOnCompleteListener(task -> {
+                    if (!task.isSuccessful() || task.getResult() == null) return;
+                    final String fcmToken = task.getResult();
+                    new Thread(() -> {
+                        try {
+                            final String cookies = CookieManager.getInstance().getCookie(serverUrl);
+                            if (cookies == null || !cookies.contains("session")) return;
+                            postJson(base + "/api/notifications/register-device", cookies,
+                                new JSONObject().put("token", fcmToken).put("platform", "android").toString());
+                        } catch (Exception ignored) {
+                        }
+                    }).start();
+                });
+            } catch (Exception ignored) {
+            }
+        }).start();
+    }
+
+    private String httpGet(String urlStr) {
+        try {
+            java.net.HttpURLConnection conn =
+                (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            if (conn.getResponseCode() != 200) return null;
+            return readBody(conn);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private void postJson(String urlStr, String cookies, String json) {
+        try {
+            java.net.HttpURLConnection conn =
+                (java.net.HttpURLConnection) new java.net.URL(urlStr).openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Cookie", cookies);
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                os.write(json.getBytes("UTF-8"));
+            }
+            conn.getResponseCode();
+        } catch (Exception ignored) {
+        }
+    }
+
+    private static String readBody(java.net.HttpURLConnection conn) throws Exception {
+        final StringBuilder sb = new StringBuilder();
+        try (java.io.InputStream is = conn.getInputStream()) {
+            final byte[] buf = new byte[2048];
+            int n;
+            while ((n = is.read(buf)) != -1) sb.append(new String(buf, 0, n, "UTF-8"));
+        }
+        return sb.toString();
     }
 
     private void tryRegisterWidget() {

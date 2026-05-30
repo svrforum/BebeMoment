@@ -20,6 +20,12 @@ public class BebeMessagingService extends FirebaseMessagingService {
         String body = n != null && n.getBody() != null ? n.getBody() : "";
         String url = msg.getData().get("url");
 
+        // 푸시가 오면(새 사진·댓글 등) 위젯도 즉시 갱신해 최신 사진·뱃지를 반영.
+        try {
+            WidgetRefreshWorker.enqueueNow(getApplicationContext());
+        } catch (Throwable ignored) {
+        }
+
         NotificationManager nm = getSystemService(NotificationManager.class);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             nm.createNotificationChannel(

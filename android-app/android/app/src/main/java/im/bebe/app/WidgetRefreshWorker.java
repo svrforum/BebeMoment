@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.view.View;
 import android.widget.RemoteViews;
 import androidx.annotation.NonNull;
 import androidx.work.Constraints;
@@ -21,38 +22,47 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.Calendar;
 import java.util.concurrent.TimeUnit;
+import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * 위젯 갱신 워커 — 서버 /api/widget/data 에서 최신 사진·아기 정보를 받아 모든 위젯
- * 인스턴스를 업데이트한다. 나이는 저장된 생일로 매번 로컬 계산(날짜만 바뀌면 자동 갱신).
- * 네트워크 실패 시 마지막 상태 유지(조용히).
+ * 위젯 갱신 워커 — /api/widget/data 에서 최신 사진들(최대 4장)·아기 정보·새 사진 수를
+ * 받아 단일/그리드 위젯을 모두 갱신한다. 나이는 저장된 생일로 매번 로컬 계산. 네트워크
+ * 실패 시 마지막 상태 유지(조용히).
  */
 public class WidgetRefreshWorker extends Worker {
 
     private static final String PERIODIC_NAME = "bebe-widget-refresh";
     private static final String KEY_BIRTHDATE = "birthDate";
     private static final String KEY_BABYNAME = "babyName";
-    private static final String KEY_IMAGE_PATH = "imagePath";
+    private static final String KEY_PHOTO_COUNT = "photoCount";
+    private static final String KEY_NEWCOUNT = "newCount";
+    private static final int MAX_PHOTOS = 4;
 
     public WidgetRefreshWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
     }
 
+    private static Constraints net() {
+        return new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build();
+    }
+
     public static void enqueueNow(Context ctx) {
-        OneTimeWorkRequest req = new OneTimeWorkRequest.Builder(WidgetRefreshWorker.class)
-            .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
-            .build();
-        WorkManager.getInstance(ctx).enqueue(req);
+        WorkManager.getInstance(ctx).enqueue(
+            new OneTimeWorkRequest.Builder(WidgetRefreshWorker.class).setConstraints(net()).build());
     }
 
     public static void ensurePeriodic(Context ctx) {
         PeriodicWorkRequest req = new PeriodicWorkRequest.Builder(
-                WidgetRefreshWorker.class, 3, TimeUnit.HOURS)
-            .setConstraints(new Constraints.Builder().setRequiredNetworkType(NetworkType.CONNECTED).build())
+                WidgetRefreshWorker.class, 1, TimeUnit.HOURS)
+            .setConstraints(net())
             .build();
         WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
-            PERIODIC_NAME, ExistingPeriodicWorkPolicy.KEEP, req);
+            PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, req);
+    }
+
+    private static String photoFile(Context ctx, int i) {
+        return new java.io.File(ctx.getFilesDir(), "widget_photo_" + i + ".jpg").getAbsolutePath();
     }
 
     @NonNull
@@ -65,16 +75,17 @@ public class WidgetRefreshWorker extends Worker {
 
         if (token != null && serverUrl != null) {
             try {
-                fetchAndCache(sp, serverUrl, token);
+                fetchAndCache(ctx, sp, serverUrl, token);
             } catch (Exception e) {
-                // 조용히 실패 — 마지막 캐시로 렌더(아래). 다음 주기 재시도.
+                // 조용히 — 마지막 캐시로 렌더.
             }
         }
         render(ctx, sp);
         return Result.success();
     }
 
-    private void fetchAndCache(SharedPreferences sp, String serverUrl, String token) throws Exception {
+    private void fetchAndCache(Context ctx, SharedPreferences sp, String serverUrl, String token)
+            throws Exception {
         URL url = new URL(serverUrl.replaceAll("/+$", "") + "/api/widget/data");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Bearer " + token);
@@ -89,30 +100,32 @@ public class WidgetRefreshWorker extends Worker {
             while ((n = is.read(buf)) != -1) body.append(new String(buf, 0, n, "UTF-8"));
         }
         JSONObject json = new JSONObject(body.toString());
-        String babyName = json.optString("babyName", "");
-        String birthDate = json.optString("birthDate", "");
-        String photoUrl = json.isNull("photoUrl") ? null : json.optString("photoUrl", null);
-
         SharedPreferences.Editor ed = sp.edit();
-        ed.putString(KEY_BABYNAME, babyName);
-        ed.putString(KEY_BIRTHDATE, birthDate);
+        ed.putString(KEY_BABYNAME, json.optString("babyName", ""));
+        ed.putString(KEY_BIRTHDATE, json.optString("birthDate", ""));
+        ed.putInt(KEY_NEWCOUNT, json.optInt("newCount", 0));
 
-        if (photoUrl != null && !photoUrl.isEmpty()) {
-            Bitmap bmp = downloadBitmap(photoUrl);
-            if (bmp != null) {
-                java.io.File f = new java.io.File(getApplicationContext().getFilesDir(), "widget_photo.jpg");
+        JSONArray urls = json.optJSONArray("photoUrls");
+        int saved = 0;
+        if (urls != null) {
+            for (int i = 0; i < urls.length() && saved < MAX_PHOTOS; i++) {
+                String u = urls.optString(i, null);
+                if (u == null || u.isEmpty()) continue;
+                Bitmap bmp = downloadBitmap(u);
+                if (bmp == null) continue;
+                java.io.File f = new java.io.File(photoFile(ctx, saved));
                 try (java.io.FileOutputStream fos = new java.io.FileOutputStream(f)) {
                     bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
                 }
-                ed.putString(KEY_IMAGE_PATH, f.getAbsolutePath());
+                saved++;
             }
         }
+        if (saved > 0) ed.putInt(KEY_PHOTO_COUNT, saved);
         ed.apply();
     }
 
     private Bitmap downloadBitmap(String photoUrl) throws Exception {
-        URL url = new URL(photoUrl);
-        HttpURLConnection conn = (HttpURLConnection) url.openConnection();
+        HttpURLConnection conn = (HttpURLConnection) new URL(photoUrl).openConnection();
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(12000);
         if (conn.getResponseCode() != 200) return null;
@@ -123,24 +136,48 @@ public class WidgetRefreshWorker extends Worker {
 
     private void render(Context ctx, SharedPreferences sp) {
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
-        int[] ids = mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class));
-        if (ids == null || ids.length == 0) return;
-
         String babyName = sp.getString(KEY_BABYNAME, "");
-        String birthDate = sp.getString(KEY_BIRTHDATE, "");
-        String imagePath = sp.getString(KEY_IMAGE_PATH, null);
-        String ageText = ageLabel(birthDate);
+        String ageText = ageLabel(sp.getString(KEY_BIRTHDATE, ""));
+        int photoCount = sp.getInt(KEY_PHOTO_COUNT, 0);
+        int newCount = sp.getInt(KEY_NEWCOUNT, 0);
 
-        for (int id : ids) {
+        // 단일 위젯
+        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class))) {
             RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
             rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
             rv.setTextViewText(R.id.widget_age, ageText);
-            if (imagePath != null) {
-                Bitmap bmp = BitmapFactory.decodeFile(imagePath);
-                if (bmp != null) rv.setImageViewBitmap(R.id.widget_photo, bmp);
+            if (photoCount > 0) {
+                Bitmap b = BitmapFactory.decodeFile(photoFile(ctx, 0));
+                if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
             }
+            applyBadge(rv, newCount);
             rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
             mgr.updateAppWidget(id, rv);
+        }
+
+        // 그리드 위젯
+        int[] gridIds = mgr.getAppWidgetIds(new ComponentName(ctx, BebeGridWidgetProvider.class));
+        int[] cells = { R.id.grid_0, R.id.grid_1, R.id.grid_2, R.id.grid_3 };
+        for (int id : gridIds) {
+            RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
+            for (int i = 0; i < cells.length; i++) {
+                if (i < photoCount) {
+                    Bitmap b = BitmapFactory.decodeFile(photoFile(ctx, i));
+                    if (b != null) rv.setImageViewBitmap(cells[i], b);
+                }
+            }
+            applyBadge(rv, newCount);
+            rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+            mgr.updateAppWidget(id, rv);
+        }
+    }
+
+    private void applyBadge(RemoteViews rv, int newCount) {
+        if (newCount > 0) {
+            rv.setViewVisibility(R.id.widget_badge, View.VISIBLE);
+            rv.setTextViewText(R.id.widget_badge, newCount > 99 ? "99+" : String.valueOf(newCount));
+        } else {
+            rv.setViewVisibility(R.id.widget_badge, View.GONE);
         }
     }
 
