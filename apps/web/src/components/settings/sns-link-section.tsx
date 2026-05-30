@@ -25,6 +25,7 @@ export function SnsLinkSection() {
     setLoading(false)
   }
 
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 마운트 1회만(목록 로드 + 콜백 결과 안내)
   useEffect(() => {
     void load()
     // 연동 콜백 결과(?linked / ?error=link_conflict) 안내.
