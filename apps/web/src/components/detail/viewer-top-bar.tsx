@@ -73,24 +73,14 @@ export function ViewerTopBar({
                 원본 다운로드
               </a>
               {compressEnabled && (
-                <>
-                  <a
-                    href={`/api/asset/${assetId}/download?q=hd`}
-                    download
-                    className="block px-4 py-2 text-sm hover:bg-base-100 dark:hover:bg-base-800"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    고화질 (1080p)
-                  </a>
-                  <a
-                    href={`/api/asset/${assetId}/download?q=sd`}
-                    download
-                    className="block px-4 py-2 text-sm hover:bg-base-100 dark:hover:bg-base-800"
-                    onClick={() => setMenuOpen(false)}
-                  >
-                    저용량 (720p)
-                  </a>
-                </>
+                <a
+                  href={`/api/asset/${assetId}/download?q=hd`}
+                  download
+                  className="block px-4 py-2 text-sm hover:bg-base-100 dark:hover:bg-base-800"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  고화질 (1080p)
+                </a>
               )}
               {onDelete && (
                 <button
