@@ -12,11 +12,15 @@
         android:scaleType="centerCrop"
         android:contentDescription="@string/app_name" />
 
-    <View
+    <!-- RemoteViews 는 일반 <View> 를 지원하지 않음(허용 목록: ImageView/TextView/…).
+         가독성용 하단 그라데이션은 ImageView 로 깐다. -->
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_gravity="bottom"
-        android:background="@drawable/widget_scrim" />
+        android:scaleType="fitXY"
+        android:src="@drawable/widget_scrim"
+        android:contentDescription="@null" />
 
     <LinearLayout
         android:layout_width="match_parent"
