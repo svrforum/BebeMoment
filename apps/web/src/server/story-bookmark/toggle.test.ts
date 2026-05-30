@@ -1,5 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
+import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createStoryEntry } from '../story/create'
 import { createFamily } from '../family/create'
@@ -16,10 +18,36 @@ beforeEach(async () => {
   await db.prismaPublic.storyBookmark.deleteMany()
   await db.prismaPublic.storyAsset.deleteMany()
   await db.prismaPublic.story.deleteMany()
+  await db.prismaMedia.assetBaby.deleteMany()
+  await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
   await db.prismaPublic.user.deleteMany()
 })
+
+let assetSeq = 0
+async function makeReadyAsset(familyId: string, userId: string) {
+  assetSeq += 1
+  const sha256 = assetSeq.toString(16).padStart(64, '0')
+  const asset = await createAsset(
+    {
+      familyId,
+      uploadedByUserId: userId,
+      kind: 'image',
+      originalKey: `o-${assetSeq}`,
+      originalFilename: 'a.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      sha256,
+      takenAt: new Date('2026-03-01'),
+      takenAtSource: 'uploaded',
+    },
+    db.prismaPublic,
+    db.prismaMedia,
+  )
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
+  return asset
+}
 
 async function setup() {
   const { user } = await signup(
@@ -35,6 +63,7 @@ async function setup() {
 }
 
 async function makeEntry(familyId: string, userId: string) {
+  const asset = await makeReadyAsset(familyId, userId)
   return createStoryEntry(
     {
       familyId,
@@ -43,7 +72,7 @@ async function makeEntry(familyId: string, userId: string) {
       entryDate: '2026-05-29',
       title: 'hi',
       body: 'hello',
-      assetIds: [],
+      assetIds: [asset.id],
     },
     db.prismaPublic,
     db.prismaMedia,

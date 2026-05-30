@@ -1,5 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
+import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -38,15 +40,43 @@ async function setup() {
   return { user, family, baby }
 }
 
+async function makeReadyAsset(
+  familyId: string,
+  userId: string,
+  sha256: string,
+  originalKey: string,
+) {
+  const asset = await createAsset(
+    {
+      familyId,
+      uploadedByUserId: userId,
+      kind: 'image',
+      originalKey,
+      originalFilename: 'a.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      sha256,
+      takenAt: new Date('2026-03-01'),
+      takenAtSource: 'uploaded',
+    },
+    db.prismaPublic,
+    db.prismaMedia,
+  )
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
+  return asset
+}
+
 describe('softDeleteStoryEntry', () => {
   it('soft-deletes own entry', async () => {
     const { user, family, baby } = await setup()
+    const asset = await makeReadyAsset(family.id, user.id, 'a'.repeat(64), 'o1')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: '본문',
+        assetIds: [asset.id],
         byUserId: user.id,
       },
       db.prismaPublic,

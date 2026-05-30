@@ -71,9 +71,16 @@ describe('listTimeline', () => {
 
   it('interleaves assets and diary by descending date', async () => {
     const { user, family } = await setup()
-    await makeAsset(family.id, user.id, new Date('2026-04-10'), 'a1')
+    const a1 = await makeAsset(family.id, user.id, new Date('2026-04-10'), 'a1')
     await createStoryEntry(
-      { familyId: family.id, babyId: null, entryDate: '2026-04-12', body: 'b', byUserId: user.id },
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-12',
+        body: 'b',
+        assetIds: [a1.id],
+        byUserId: user.id,
+      },
       db.prismaPublic,
       db.prismaMedia,
     )

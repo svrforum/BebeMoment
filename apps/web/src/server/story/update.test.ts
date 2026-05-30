@@ -1,6 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
+import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -39,9 +40,36 @@ async function setup() {
   return { user, family, baby }
 }
 
+async function makeReadyAsset(
+  familyId: string,
+  userId: string,
+  sha256: string,
+  originalKey: string,
+) {
+  const asset = await createAsset(
+    {
+      familyId,
+      uploadedByUserId: userId,
+      kind: 'image',
+      originalKey,
+      originalFilename: 'a.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      sha256,
+      takenAt: new Date('2026-03-01'),
+      takenAtSource: 'uploaded',
+    },
+    db.prismaPublic,
+    db.prismaMedia,
+  )
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
+  return asset
+}
+
 describe('updateStoryEntry', () => {
   it('updates own title and body', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'a'.repeat(64), 'upd-o1')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
@@ -49,6 +77,7 @@ describe('updateStoryEntry', () => {
         entryDate: '2026-04-01',
         title: '원제목',
         body: '원본문',
+        assetIds: [a.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -70,12 +99,14 @@ describe('updateStoryEntry', () => {
 
   it('toggles babyId to null', async () => {
     const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'b'.repeat(64), 'upd-o2')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: '본문',
+        assetIds: [a.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -96,12 +127,14 @@ describe('updateStoryEntry', () => {
 
   it('아직 처리 중(non-ready)인 새 사진도 첨부할 수 있다 — 편집 "사진 추가" 회귀', async () => {
     const { user, family } = await setup()
+    const seed = await makeReadyAsset(family.id, user.id, 'c'.repeat(64), 'upd-o3')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: null,
         entryDate: '2026-04-01',
         body: '본문',
+        assetIds: [seed.id],
         byUserId: user.id,
       },
       db.prismaPublic,

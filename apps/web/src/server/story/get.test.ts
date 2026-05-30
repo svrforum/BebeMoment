@@ -40,6 +40,32 @@ async function setup() {
   return { user, family, baby }
 }
 
+async function makeReadyAsset(
+  familyId: string,
+  userId: string,
+  sha256: string,
+  originalKey: string,
+) {
+  const asset = await createAsset(
+    {
+      familyId,
+      uploadedByUserId: userId,
+      kind: 'image',
+      originalKey,
+      originalFilename: 'a.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      sha256,
+      takenAt: new Date('2026-03-01'),
+      takenAtSource: 'uploaded',
+    },
+    db.prismaPublic,
+    db.prismaMedia,
+  )
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
+  return asset
+}
+
 describe('getStoryEntry', () => {
   it('returns entry with assets and baby', async () => {
     const { user, family, baby } = await setup()
@@ -92,12 +118,14 @@ describe('getStoryEntry', () => {
   it('returns null for entry in another family', async () => {
     const { user, family, baby } = await setup()
     const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)
+    const asset = await makeReadyAsset(family.id, user.id, 'b'.repeat(64), 'o2')
     const entry = await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: '본문',
+        assetIds: [asset.id],
         byUserId: user.id,
       },
       db.prismaPublic,

@@ -1,6 +1,8 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
+import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -38,37 +40,68 @@ async function setup() {
   return { user, family, baby }
 }
 
+let assetCounter = 0
+async function makeReadyAsset(familyId: string, userId: string) {
+  assetCounter += 1
+  const sha256 = assetCounter.toString(16).padStart(64, '0')
+  const originalKey = `o-${assetCounter}`
+  const asset = await createAsset(
+    {
+      familyId,
+      uploadedByUserId: userId,
+      kind: 'image',
+      originalKey,
+      originalFilename: 'a.jpg',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      sha256,
+      takenAt: new Date('2026-03-01'),
+      takenAtSource: 'uploaded',
+    },
+    db.prismaPublic,
+    db.prismaMedia,
+  )
+  await updateAssetStatus({ assetId: asset.id, familyId, status: 'ready' }, db.prismaMedia)
+  return asset
+}
+
 describe('listStoryEntries', () => {
   it('returns entries in desc order by entryDate', async () => {
     const { user, family, baby } = await setup()
+    const aA = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: 'A',
+        assetIds: [aA.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aB = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-10',
         body: 'B',
+        assetIds: [aB.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aC = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-05',
         body: 'C',
+        assetIds: [aC.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -91,23 +124,27 @@ describe('listStoryEntries', () => {
       { familyId: family.id, name: 'B2', birthDate: '2026-01-15', byUserId: user.id },
       db.prismaPublic,
     )
+    const aB1 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: 'for-b1',
+        assetIds: [aB1.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aB2 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby2.id,
         entryDate: '2026-04-02',
         body: 'for-b2',
+        assetIds: [aB2.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -126,6 +163,7 @@ describe('listStoryEntries', () => {
 
   it('filters by text (q) across title and body', async () => {
     const { user, family, baby } = await setup()
+    const aQ1 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
@@ -133,28 +171,33 @@ describe('listStoryEntries', () => {
         entryDate: '2026-04-01',
         title: '첫걸음',
         body: 'A',
+        assetIds: [aQ1.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aQ2 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-02',
         body: '첫걸음을 떼었다',
+        assetIds: [aQ2.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aQ3 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-03',
         body: '아무 말',
+        assetIds: [aQ3.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -181,23 +224,27 @@ describe('listStoryEntries', () => {
 
   it('filters by date (UTC day) via explicit date param', async () => {
     const { user, family, baby } = await setup()
+    const aD1 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: 'on-1',
+        assetIds: [aD1.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aD2 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-02',
         body: 'on-2',
+        assetIds: [aD2.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -215,34 +262,40 @@ describe('listStoryEntries', () => {
 
   it('combines q and date as AND', async () => {
     const { user, family, baby } = await setup()
+    const aQD1 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: '첫걸음',
+        assetIds: [aQD1.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aQD2 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-02',
         body: '첫걸음',
+        assetIds: [aQD2.id],
         byUserId: user.id,
       },
       db.prismaPublic,
       db.prismaMedia,
     )
+    const aQD3 = await makeReadyAsset(family.id, user.id)
     await createStoryEntry(
       {
         familyId: family.id,
         babyId: baby.id,
         entryDate: '2026-04-01',
         body: 'other',
+        assetIds: [aQD3.id],
         byUserId: user.id,
       },
       db.prismaPublic,
@@ -261,12 +314,14 @@ describe('listStoryEntries', () => {
   it('paginates via cursor', async () => {
     const { user, family, baby } = await setup()
     for (let i = 0; i < 5; i += 1) {
+      const a = await makeReadyAsset(family.id, user.id)
       await createStoryEntry(
         {
           familyId: family.id,
           babyId: baby.id,
           entryDate: `2026-04-0${i + 1}`,
           body: `E${i}`,
+          assetIds: [a.id],
           byUserId: user.id,
         },
         db.prismaPublic,
