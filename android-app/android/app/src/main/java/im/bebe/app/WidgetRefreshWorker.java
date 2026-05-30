@@ -147,7 +147,7 @@ public class WidgetRefreshWorker extends Worker {
             rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
             rv.setTextViewText(R.id.widget_age, ageText);
             if (photoCount > 0) {
-                Bitmap b = BitmapFactory.decodeFile(photoFile(ctx, 0));
+                Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, 0)), 48f);
                 if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
             }
             applyBadge(rv, newCount);
@@ -162,7 +162,7 @@ public class WidgetRefreshWorker extends Worker {
             RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
             for (int i = 0; i < cells.length; i++) {
                 if (i < photoCount) {
-                    Bitmap b = BitmapFactory.decodeFile(photoFile(ctx, i));
+                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, i)), 28f);
                     if (b != null) rv.setImageViewBitmap(cells[i], b);
                 }
             }
@@ -170,6 +170,27 @@ public class WidgetRefreshWorker extends Worker {
             rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
             mgr.updateAppWidget(id, rv);
         }
+    }
+
+    /** 비트맵 모서리를 둥글게 — 위젯이 깔끔해 보이게(전 버전 호환). */
+    private static Bitmap rounded(Bitmap src, float radius) {
+        if (src == null) return null;
+        // 너무 큰 원본은 위젯 표시 크기에 맞춰 다운스케일(메모리·선명도 균형).
+        int max = 900;
+        Bitmap b = src;
+        if (src.getWidth() > max || src.getHeight() > max) {
+            float s = Math.min((float) max / src.getWidth(), (float) max / src.getHeight());
+            b = Bitmap.createScaledBitmap(
+                src, Math.round(src.getWidth() * s), Math.round(src.getHeight() * s), true);
+        }
+        Bitmap out = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas canvas = new android.graphics.Canvas(out);
+        android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
+        paint.setShader(new android.graphics.BitmapShader(
+            b, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP));
+        android.graphics.RectF rect = new android.graphics.RectF(0, 0, b.getWidth(), b.getHeight());
+        canvas.drawRoundRect(rect, radius, radius, paint);
+        return out;
     }
 
     private void applyBadge(RemoteViews rv, int newCount) {
