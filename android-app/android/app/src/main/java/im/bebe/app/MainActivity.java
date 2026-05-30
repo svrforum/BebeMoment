@@ -24,6 +24,9 @@ import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
+import java.net.URLDecoder;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.json.JSONObject;
 
 public class MainActivity extends BridgeActivity {
@@ -157,7 +160,7 @@ public class MainActivity extends BridgeActivity {
         String mimeType
     ) {
         try {
-            final String filename = URLUtil.guessFileName(url, contentDisposition, mimeType);
+            final String filename = resolveDownloadFilename(url, contentDisposition, mimeType);
             final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
             // 같은 WebView 가 세션 쿠키를 들고 있으니 그대로 헤더에 실어 보내야
             // 인증이 필요한 /api/asset/.../download 같은 사설 경로도 통과한다.
@@ -182,6 +185,45 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, "다운로드 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    // 패턴: RFC 5987 의 filename*=UTF-8''<pct-encoded> 와 평문 filename="..." 둘 다 잡는다.
+    private static final Pattern CD_FILENAME_STAR =
+        Pattern.compile("filename\\*\\s*=\\s*[^']*''([^;\\r\\n]+)", Pattern.CASE_INSENSITIVE);
+    private static final Pattern CD_FILENAME =
+        Pattern.compile("filename\\s*=\\s*\"?([^\";\\r\\n]+)\"?", Pattern.CASE_INSENSITIVE);
+
+    /**
+     * 안드로이드 기본 URLUtil.guessFileName 은 Content-Disposition 정규식이 filename= 를
+     * 문자열 끝에 고정($)해, 우리 헤더처럼 `filename="..."; filename*=UTF-8''...` 형태(또는
+     * filename* 만 있는 경우)를 못 읽어 URL 마지막 조각("download")으로 떨어진다. 그래서
+     * 직접 파싱한다 — filename*(UTF-8) 우선, 없으면 평문 filename=, 그래도 없으면 guessFileName.
+     */
+    private String resolveDownloadFilename(String url, String contentDisposition, String mimeType) {
+        final String parsed = parseContentDispositionFilename(contentDisposition);
+        if (parsed != null && !parsed.isEmpty()) return parsed;
+        return URLUtil.guessFileName(url, contentDisposition, mimeType);
+    }
+
+    private String parseContentDispositionFilename(String cd) {
+        if (cd == null || cd.isEmpty()) return null;
+        final Matcher star = CD_FILENAME_STAR.matcher(cd);
+        if (star.find()) {
+            try {
+                return sanitizeFilename(URLDecoder.decode(star.group(1).trim(), "UTF-8"));
+            } catch (Exception ignored) {
+                // pct-decode 실패 시 평문 filename= 로 폴백.
+            }
+        }
+        final Matcher plain = CD_FILENAME.matcher(cd);
+        if (plain.find()) return sanitizeFilename(plain.group(1).trim());
+        return null;
+    }
+
+    private String sanitizeFilename(String name) {
+        // 경로 분리자·제어문자 제거 — DownloadManager 가 하위 경로로 새지 않게.
+        final String base = name.replaceAll("[/\\\\]", "_").replaceAll("[\\x00-\\x1f]", "").trim();
+        return base.isEmpty() ? "download" : base;
     }
 
     @Override
