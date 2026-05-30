@@ -1,4 +1,5 @@
 'use client'
+import { isOptimizeEnabled, optimizeImage } from '@/lib/image-optimize'
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
 import type { UppyFile } from '@uppy/core'
@@ -130,8 +131,40 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       u.addPreProcessor(async (fileIDs: string[]) => {
         await Promise.all(
           fileIDs.map(async (id) => {
-            const file = u.getFile(id) as unknown as FileRow | undefined
+            let file = u.getFile(id) as unknown as FileRow | undefined
             if (!file || file.meta?.uploadToken) return
+            // 클라이언트 최적화(설정 ON + 이미지) — startUpload(init) 전에 파일을 교체해
+            // init 이 줄어든 크기/타입을 받고 tus 가 최적화 바이트를 올린다.
+            if (
+              isOptimizeEnabled() &&
+              file.data instanceof Blob &&
+              (file.type ?? '').startsWith('image/')
+            ) {
+              try {
+                const asFile =
+                  file.data instanceof File
+                    ? file.data
+                    : new File([file.data], file.name ?? `upload-${id}`, { type: file.type })
+                const optimized = await optimizeImage(asFile)
+                if (
+                  optimized !== asFile &&
+                  optimized.size < (file.size ?? Number.POSITIVE_INFINITY)
+                ) {
+                  u.setFileState(id, {
+                    data: optimized,
+                    size: optimized.size,
+                    type: optimized.type,
+                    name: optimized.name,
+                  })
+                  u.setFileMeta(id, { name: optimized.name })
+                  file = u.getFile(id) as unknown as FileRow | undefined
+                  if (!file) return
+                }
+              } catch {
+                // 최적화 실패 — 원본 그대로 업로드.
+              }
+            }
+            if (!file) return
             const init = await startUpload({
               mime: file.type ?? 'application/octet-stream',
               sizeBytes: file.size ?? 0,

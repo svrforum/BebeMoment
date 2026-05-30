@@ -1,4 +1,5 @@
 'use client'
+import { isOptimizeEnabled, setOptimizeEnabled } from '@/lib/image-optimize'
 import { ImagePlus, Pencil, Plus, X } from 'lucide-react'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { UploadProgressBar } from './UploadProgressBar'
@@ -54,7 +55,12 @@ export function UploadDashboard() {
     useUploadManager()
   const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
+  const [optimize, setOptimize] = useState(true)
   const fileInputRef = useRef<HTMLInputElement>(null)
+
+  useEffect(() => {
+    setOptimize(isOptimizeEnabled())
+  }, [])
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -157,6 +163,37 @@ export function UploadDashboard() {
               <span className="text-[11px] font-medium">추가</span>
             </button>
           </div>
+          <button
+            type="button"
+            onClick={() => {
+              const next = !optimize
+              setOptimize(next)
+              setOptimizeEnabled(next)
+            }}
+            className="flex items-center justify-between rounded-2xl border border-base-200 px-4 py-3 text-left dark:border-base-700"
+          >
+            <span>
+              <span className="block text-sm font-medium text-base-900 dark:text-base-50">
+                용량 최적화
+              </span>
+              <span className="block text-[12px] text-base-400">
+                {optimize
+                  ? '화질 거의 그대로 용량↓ (긴 변 4096px·EXIF 보존)'
+                  : '원본 그대로 업로드'}
+              </span>
+            </span>
+            <span
+              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
+                optimize ? 'bg-point-500' : 'bg-base-300 dark:bg-base-600'
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
+                  optimize ? 'translate-x-[22px]' : 'translate-x-0.5'
+                }`}
+              />
+            </span>
+          </button>
           <button
             type="button"
             onClick={startStagedUploads}

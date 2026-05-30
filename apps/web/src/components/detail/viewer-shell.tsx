@@ -48,7 +48,6 @@ export function ViewerShell({
   initialTags,
   initialFilename,
   initialCaption,
-  compressEnabled,
 }: {
   initialCurrent: AssetSlim
   initialSiblings: Siblings
@@ -64,7 +63,6 @@ export function ViewerShell({
   initialTags: AssetTag[]
   initialFilename: string
   initialCaption: string | null
-  compressEnabled: boolean
 }) {
   // 핵심: current/siblings 는 STATE. SSR 페이지가 마운트되면 props 가 seed 로 들어오고,
   // 그 뒤 사용자가 스와이프하면 fetch('/api/asset/.../viewer-bundle') 결과로 state 만
@@ -290,7 +288,6 @@ export function ViewerShell({
         <ViewerTopBar
           assetId={currentSlim.id}
           visible={chromeVisible}
-          compressEnabled={compressEnabled}
           onInfo={() => {
             setSheetDetailsOpen(true)
             setSheetOpen(true)
