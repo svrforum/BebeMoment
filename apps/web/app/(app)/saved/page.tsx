@@ -9,6 +9,13 @@ import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
 import { Bookmark } from 'lucide-react'
 import { redirect } from 'next/navigation'
 
+function dateOf(...candidates: (Date | string | null | undefined)[]): number {
+  for (const c of candidates) {
+    if (c) return new Date(c).getTime()
+  }
+  return 0
+}
+
 export default async function SavedPage() {
   const ctx = await getContext()
   if (!ctx.family || !ctx.user) redirect('/onboarding')
@@ -34,13 +41,27 @@ export default async function SavedPage() {
     ),
   ])
 
-  const hasPhotos = photos.items.length > 0
-  const hasStory = stories.items.some((b) => b.entry !== null)
+  // 타임라인과 동일하게 날짜(사진 촬영일 / 스토리 날짜) 내림차순 정렬. 북마크 목록은
+  // 기본적으로 '북마크한 시각' 순이라 타임라인과 어긋나 보였다.
+  const photoItems = photos.items
+    .filter((b) => b.asset)
+    .sort(
+      (a, b) =>
+        dateOf(a.asset?.takenAt, a.asset?.createdAt) - dateOf(b.asset?.takenAt, b.asset?.createdAt),
+    )
+    .reverse()
+  const storyItems = stories.items
+    .filter((b) => b.entry)
+    .sort((a, b) => dateOf(a.entry?.entryDate) - dateOf(b.entry?.entryDate))
+    .reverse()
+
+  const hasPhotos = photoItems.length > 0
+  const hasStory = storyItems.length > 0
   const empty = !hasPhotos && !hasStory
 
   return (
     <>
-      <AppHeader title="저장함" />
+      <AppHeader title="북마크" />
       <div className="mx-auto max-w-3xl space-y-8 px-5 py-4">
         {empty ? (
           <div className="flex flex-col items-center gap-4 py-16 text-center">
@@ -64,7 +85,7 @@ export default async function SavedPage() {
                   저장한 사진
                 </h2>
                 <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                  {photos.items.map((b) => {
+                  {photoItems.map((b) => {
                     if (!b.asset) return null
                     return (
                       <AssetCard
@@ -86,7 +107,7 @@ export default async function SavedPage() {
                   저장한 스토리
                 </h2>
                 <div className="space-y-3">
-                  {stories.items.map((b) => {
+                  {storyItems.map((b) => {
                     if (!b.entry) return null
                     return <StoryCard key={b.entryId} entry={b.entry} />
                   })}
