@@ -59,14 +59,15 @@ export function ViewerImage({
   const goBack = useCallback(() => router.back(), [router])
 
   useEffect(() => {
+    // ESC(닫기)는 viewer-shell 에서 단일 처리 — 영상·사진 공통이고 중복 등록 시
+    // router.back() 이 두 번 불려 갤러리를 건너뛰고 그 이전 페이지(설정 등)로 튄다.
     const onKey = (e: KeyboardEvent) => {
       if (e.key === 'ArrowLeft') goPrev()
       if (e.key === 'ArrowRight') goNext()
-      if (e.key === 'Escape') router.back()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [goPrev, goNext, router])
+  }, [goPrev, goNext])
 
   const trio = pickDisplayTrio(current.urls)
   const fallbackUrl = pickDisplayUrl(current.urls)
