@@ -171,6 +171,16 @@ const PRESETS: Preset[] = [
   },
 ]
 
+// secure context 불필요한 RFC4122 v4 (crypto.getRandomValues 는 HTTP 에서도 동작).
+function uuidv4(): string {
+  const b = new Uint8Array(16)
+  crypto.getRandomValues(b)
+  b[6] = (b[6] & 0x0f) | 0x40
+  b[8] = (b[8] & 0x3f) | 0x80
+  const h = Array.from(b, (x) => x.toString(16).padStart(2, '0'))
+  return `${h.slice(0, 4).join('')}-${h.slice(4, 6).join('')}-${h.slice(6, 8).join('')}-${h.slice(8, 10).join('')}-${h.slice(10, 16).join('')}`
+}
+
 export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   const router = useRouter()
   const [selected, setSelected] = useState<PresetKey | null>(null)
@@ -185,7 +195,8 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
 
   // provider UUID 를 저장 전에 미리 생성해 콜백 주소에 박는다 — 그래야 개발자 콘솔에
   // 실제 Redirect URI 를 등록하고 Client ID/Secret 을 발급받을 수 있다. 저장 시 이 id 로 생성.
-  const [providerId] = useState(() => crypto.randomUUID())
+  // crypto.randomUUID 는 secure context 전용(HTTP LAN 에서 throw) → getRandomValues 로 v4 생성.
+  const [providerId] = useState(uuidv4)
   // 지금 접속한 오리진(도메인) 기준 콜백 주소 — 서버도 요청 오리진을 redirect_uri 로 쓴다.
   const [origin, setOrigin] = useState(publicUrl.replace(/\/$/, ''))
   useEffect(() => {
