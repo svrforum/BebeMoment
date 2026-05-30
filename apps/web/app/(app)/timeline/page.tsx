@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { StoryStrip, type TimelineStory } from '@/components/timeline/bucket-section'
+import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { StoryCard } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
@@ -231,11 +232,14 @@ export default async function TimelinePage({
         <AppHeader title={ctx.family.name} wide />
       )}
       {canUpload && <TimelineSortToggle value={sortMode} />}
-      {memoryGroups.length > 0 && memoryGroups[0] && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+      {/* 오늘 해당 추억이 있으면 풍부한 카드, 없으면 항상 보이는 슬림 진입점(→ /memories 보관함). */}
+      <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+        {memoryGroups.length > 0 && memoryGroups[0] ? (
           <MemoriesCard group={memoryGroups[0]} />
-        </div>
-      )}
+        ) : (
+          <MemoriesEntry count={0} />
+        )}
+      </div>
       {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
