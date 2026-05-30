@@ -1,3 +1,4 @@
+import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { AppHeader } from '@/components/shell/app-header'
 import { StoryDateFilter } from '@/components/story/story-date-filter'
 import { StoryCard } from '@/components/timeline/story-card'
@@ -6,6 +7,7 @@ import { SearchBox } from '@/components/ui/search-box'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
+import { countMemories } from '@/server/memories/list'
 import { listStoryEntries } from '@/server/story/list'
 import { BookOpen, Plus, Search, Sparkles } from 'lucide-react'
 import Link from 'next/link'
@@ -54,6 +56,11 @@ export default async function StoryPage({
     getMediaClient(),
   )
   const groups = groupByMonth(items)
+  const memoryCount = await countMemories(
+    { familyId: ctx.family.id, today: new Date(), viewerRole: ctx.membership?.role ?? 'family' },
+    prismaMedia,
+    prismaPublic,
+  )
   const canRecord = ctx.capabilities.includes('record.create')
   const emptyDescription = [query ? `"${query}"` : null, dateFilter ?? null]
     .filter(Boolean)
@@ -77,12 +84,18 @@ export default async function StoryPage({
         }
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
-        <div className="mb-4 flex items-center gap-2">
+        <div className="mb-3 flex items-center gap-2">
           <div className="min-w-0 flex-1">
             <SearchBox placeholder="스토리 검색 (제목·내용)" />
           </div>
           <StoryDateFilter />
         </div>
+
+        {!query && !dateFilter && (
+          <div className="mb-4">
+            <MemoriesEntry count={memoryCount} />
+          </div>
+        )}
 
         {items.length === 0 ? (
           query || dateFilter ? (

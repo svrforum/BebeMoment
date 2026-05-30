@@ -112,3 +112,34 @@ export async function listMemories(
     (a, b) => intervalMonths(b.interval) - intervalMonths(a.interval),
   )
 }
+
+/**
+ * 오늘의 추억 개수(사진+스토리)만 빠르게 — 진입점 뱃지·카드 노출 판단용. 미디어 URL
+ * 조회를 안 해 가볍다. 같은 일(日)·과거 후보는 항상 whole-month 추억이므로 raw count
+ * 만으로 정확하다(memoryInterval 필터가 후보를 떨구지 않음).
+ */
+export async function countMemories(
+  args: { familyId: string; today: Date; viewerRole: ViewerRole },
+  prismaMedia: PrismaMedia,
+  prismaPublic: PrismaPublic,
+): Promise<number> {
+  const { familyId, today, viewerRole } = args
+  const day = today.getUTCDate()
+  const todayStr = today.toISOString().slice(0, 10)
+
+  const assetRows = await prismaMedia.$queryRaw<{ c: number }[]>`
+    SELECT count(*)::int AS c FROM media.assets
+    WHERE family_id = ${familyId}::uuid
+      AND deleted_at IS NULL AND status = 'ready' AND duplicate_of IS NULL
+      AND EXTRACT(DAY FROM taken_at) = ${day}::int
+      AND taken_at::date < ${todayStr}::date
+  `
+  const storyRows = await prismaPublic.$queryRaw<{ c: number }[]>`
+    SELECT count(*)::int AS c FROM stories
+    WHERE family_id = ${familyId}::uuid AND deleted_at IS NULL
+      AND EXTRACT(DAY FROM entry_date) = ${day}::int
+      AND entry_date::date < ${todayStr}::date
+      AND (visibility = 'family' OR ${viewerRole}::text <> 'family')
+  `
+  return (assetRows[0]?.c ?? 0) + (storyRows[0]?.c ?? 0)
+}

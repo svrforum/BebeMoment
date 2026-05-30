@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { MemoriesCard } from '@/components/timeline/memories-card'
 import { StoryCard, StoryChip } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
@@ -10,6 +11,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
 import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
+import { listMemories } from '@/server/memories/list'
 import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft } from 'lucide-react'
@@ -157,6 +159,17 @@ export default async function TimelinePage({
   }
   const canUpload = ctx.capabilities.includes('asset.upload')
 
+  // 오늘 추억 — 태그/날짜 필터가 없는 기본 타임라인에서만 상단 카드로.
+  const memoryGroups =
+    tagSlugs.length === 0
+      ? await listMemories(
+          { familyId: ctx.family.id, today: new Date(), viewerRole },
+          prismaMedia,
+          prismaPublic,
+          getMediaClient(),
+        )
+      : []
+
   return (
     <>
       <PullToRefresh />
@@ -169,6 +182,11 @@ export default async function TimelinePage({
         value={sortMode}
         preserveParams={tagSlugs.length > 0 ? { tag: tagSlugs } : {}}
       />
+      {memoryGroups.length > 0 && memoryGroups[0] && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+          <MemoriesCard group={memoryGroups[0]} />
+        </div>
+      )}
       {features.tags && (
         <TagFilterStrip
           familyId={ctx.family.id}
