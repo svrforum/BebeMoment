@@ -13,14 +13,24 @@ import { filesRoute } from './http/routes/files'
 import { healthRoute } from './http/routes/health'
 import { sseProgressRoute } from './http/routes/sse-progress'
 import { tusRoute } from './http/routes/tus'
-import { logger } from './lib/logger'
+import { logger, sanitizeUrl } from './lib/logger'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
     logger: logger as unknown as FastifyBaseLogger,
     bodyLimit: 256 * 1024 * 1024,
-    disableRequestLogging: false,
+    // 자동 요청 로깅은 URL(서명 토큰 포함)을 그대로 찍는다 — Fastify 기본 serializer 는
+    // pino 인스턴스 serializer 를 무시하므로, 직접 끄고 아래 훅에서 마스킹해 찍는다.
+    disableRequestLogging: true,
     maxParamLength: 2048,
+  })
+
+  app.addHook('onResponse', (req, reply, done) => {
+    req.log.info(
+      { method: req.method, url: sanitizeUrl(req.url), statusCode: reply.statusCode },
+      'request completed',
+    )
+    done()
   })
 
   app.register(cors, { origin: true, credentials: true })

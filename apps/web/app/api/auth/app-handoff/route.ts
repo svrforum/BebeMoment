@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { mintSessionCookie } from '@/lib/oidc-session'
 import { exchangeAppHandoff } from '@/server/auth/app-handoff'
+import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { isUserFullySuspended } from '@/server/auth/suspension'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -11,6 +12,8 @@ import { z } from 'zod'
 const Body = z.object({ code: z.string().min(1).max(200), verifier: z.string().min(32).max(200) })
 
 export async function POST(req: Request) {
+  const rl = await rateLimit(`handoff:${clientIp(req)}`, 20, 60)
+  if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
     const { code, verifier } = Body.parse(await req.json())
     const { userId, currentFamilyId } = await exchangeAppHandoff({ code, verifier }, prismaPublic)

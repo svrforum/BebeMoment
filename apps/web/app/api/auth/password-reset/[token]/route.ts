@@ -1,10 +1,13 @@
 import { prismaPublic } from '@/lib/db-init'
 import { resetPasswordWithToken } from '@/server/auth/password-reset'
+import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
 export async function POST(req: Request, { params }: { params: Promise<{ token: string }> }) {
+  const rl = await rateLimit(`pwreset:${clientIp(req)}`, 10, 60)
+  if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
     const { token } = await params
     const body = await req.json()

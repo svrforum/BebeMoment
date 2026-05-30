@@ -2,6 +2,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { authenticate } from '@/server/auth/authenticate'
+import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { ServiceError } from '@/server/error'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
@@ -12,6 +13,8 @@ const LoginInput = z.object({
 })
 
 export async function POST(req: Request) {
+  const rl = await rateLimit(`login:${clientIp(req)}`, 10, 60)
+  if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
     const input = LoginInput.parse(await req.json())
     const user = await authenticate(input, prismaPublic)

@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
+import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
 import { signup } from '@/server/auth/signup'
 import { NextResponse } from 'next/server'
@@ -15,6 +16,8 @@ const SignupInput = z.object({
 })
 
 export async function POST(req: Request) {
+  const rl = await rateLimit(`signup:${clientIp(req)}`, 5, 60)
+  if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
     const input = SignupInput.parse(await req.json())
 
