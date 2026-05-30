@@ -37,6 +37,7 @@ public class MainActivity extends BridgeActivity {
         super.onCreate(savedInstanceState);
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
+        handleAuthDeepLink(getIntent());
         setupDownloadListener();
         setupExternalSchemeHandler();
         markUserAgent();
@@ -63,6 +64,11 @@ public class MainActivity extends BridgeActivity {
                     final String s = scheme.toLowerCase();
                     if (!s.equals("http") && !s.equals("https")) {
                         return launchExternal(uri);
+                    }
+                    // SNS 로그인(OIDC start)은 외부 브라우저(Custom Tab)로 — 인앱 웹뷰는
+                    // 카카오/네이버 앱-로그인이 막힌다. 연동(link=1)은 현재 세션이 필요해 제외.
+                    if (isOidcLoginStart(uri)) {
+                        return openOidcInCustomTab(uri);
                     }
                 }
                 return super.shouldOverrideUrlLoading(view, request);
@@ -183,6 +189,7 @@ public class MainActivity extends BridgeActivity {
         super.onNewIntent(intent);
         setIntent(intent);
         handleDeepLink(intent);
+        handleAuthDeepLink(intent);
     }
 
     @Override
@@ -344,6 +351,97 @@ public class MainActivity extends BridgeActivity {
             new String[] { Manifest.permission.POST_NOTIFICATIONS },
             REQ_POST_NOTIFICATIONS
         );
+    }
+
+    // ── SNS 앱-로그인 (Custom Tab) ───────────────────────────────────────────
+    private static final String AUTH_PREFS = "bebeAuth";
+
+    private boolean isOidcLoginStart(Uri uri) {
+        final String path = uri.getPath();
+        if (path == null) return false;
+        if (!path.matches("^/api/auth/oidc/[^/]+$")) return false; // start 만(콜백 제외)
+        return !"1".equals(uri.getQueryParameter("link")); // 연동은 세션 필요 → 웹뷰 유지
+    }
+
+    private boolean openOidcInCustomTab(Uri uri) {
+        try {
+            final byte[] vb = new byte[32];
+            new java.security.SecureRandom().nextBytes(vb);
+            final int flags =
+                android.util.Base64.URL_SAFE
+                    | android.util.Base64.NO_PADDING
+                    | android.util.Base64.NO_WRAP;
+            final String verifier = android.util.Base64.encodeToString(vb, flags);
+            final byte[] ch =
+                java.security.MessageDigest.getInstance("SHA-256").digest(verifier.getBytes("UTF-8"));
+            final String challenge = android.util.Base64.encodeToString(ch, flags);
+            getApplicationContext()
+                .getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString("verifier", verifier)
+                .apply();
+            final Uri target = uri.buildUpon().appendQueryParameter("app_challenge", challenge).build();
+            new androidx.browser.customtabs.CustomTabsIntent.Builder().build().launchUrl(this, target);
+            return true;
+        } catch (Exception e) {
+            return false; // 실패 시 super 가 웹뷰에서 로드(폴백)
+        }
+    }
+
+    private void handleAuthDeepLink(Intent intent) {
+        if (intent == null) return;
+        final Uri data = intent.getData();
+        if (data == null || !"bebe".equals(data.getScheme()) || !"auth".equals(data.getHost())) return;
+        final String code = data.getQueryParameter("code");
+        if (code == null || code.isEmpty()) return;
+        final String verifier =
+            getApplicationContext()
+                .getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+                .getString("verifier", null);
+        final String serverUrl = readServerUrl();
+        if (verifier == null || serverUrl == null) return;
+        new Thread(() -> exchangeHandoff(serverUrl, code, verifier)).start();
+    }
+
+    private void exchangeHandoff(String serverUrl, String code, String verifier) {
+        try {
+            final String base = serverUrl.replaceAll("/+$", "");
+            final java.net.HttpURLConnection conn =
+                (java.net.HttpURLConnection) new java.net.URL(base + "/api/auth/app-handoff").openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Content-Type", "application/json");
+            conn.setDoOutput(true);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            final org.json.JSONObject reqBody = new org.json.JSONObject();
+            reqBody.put("code", code);
+            reqBody.put("verifier", verifier);
+            try (java.io.OutputStream os = conn.getOutputStream()) {
+                os.write(reqBody.toString().getBytes("UTF-8"));
+            }
+            if (conn.getResponseCode() != 200) return;
+            final org.json.JSONObject cookie =
+                new org.json.JSONObject(readBody(conn)).optJSONObject("cookie");
+            if (cookie == null) return;
+            final String name = cookie.optString("name", null);
+            final String value = cookie.optString("value", null);
+            if (name == null || value == null) return;
+            runOnUiThread(
+                () -> {
+                    CookieManager.getInstance().setCookie(base, name + "=" + value + "; Path=/");
+                    CookieManager.getInstance().flush();
+                    getApplicationContext()
+                        .getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
+                        .edit()
+                        .remove("verifier")
+                        .apply();
+                    if (getBridge() != null && getBridge().getWebView() != null) {
+                        getBridge().getWebView().loadUrl(base + "/");
+                    }
+                });
+        } catch (Exception e) {
+            // 실패 — 사용자가 다시 시도.
+        }
     }
 
     private void handleDeepLink(Intent intent) {

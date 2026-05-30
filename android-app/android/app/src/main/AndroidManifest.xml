@@ -23,6 +23,14 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
 
+            <!-- SNS 앱-로그인 핸드오프 딥링크 (Custom Tab → bebe://auth?code=...) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bebe" android:host="auth" />
+            </intent-filter>
+
         </activity>
 
         <provider
