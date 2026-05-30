@@ -7,7 +7,6 @@ import { SearchBox } from '@/components/ui/search-box'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
-import { assertMenuAccess } from '@/server/permissions/nav-access'
 import { countMemories } from '@/server/memories/list'
 import { listStoryEntries } from '@/server/story/list'
 import { BookOpen, Plus, Search, Sparkles } from 'lucide-react'
@@ -39,7 +38,6 @@ export default async function StoryPage({
 }) {
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
-  await assertMenuAccess('story', ctx.membership?.role ?? null, prismaPublic)
   const { q, date } = await searchParams
   const query = typeof q === 'string' && q.trim() ? q.trim() : undefined
   const dateFilter =

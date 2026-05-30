@@ -13,7 +13,6 @@ import { listAlbumAssets } from '@/server/album/list-assets'
 import { listAlbumEntries } from '@/server/album/list-entries'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
-import { assertMenuAccess } from '@/server/permissions/nav-access'
 import { ImagePlus } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
@@ -23,7 +22,6 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   const { id } = await params
   const ctx = await getContext()
   if (!ctx.family) return null
-  await assertMenuAccess('albums', ctx.membership?.role ?? null, prismaPublic)
 
   const canCreate = ctx.capabilities.includes('album.create')
   const viewerRole = ctx.membership?.role ?? 'family'
