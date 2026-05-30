@@ -419,16 +419,23 @@ public class MainActivity extends BridgeActivity {
             try (java.io.OutputStream os = conn.getOutputStream()) {
                 os.write(reqBody.toString().getBytes("UTF-8"));
             }
-            if (conn.getResponseCode() != 200) return;
+            if (conn.getResponseCode() != 200) {
+                authFailToast();
+                return;
+            }
             final org.json.JSONObject cookie =
                 new org.json.JSONObject(readBody(conn)).optJSONObject("cookie");
-            if (cookie == null) return;
-            final String name = cookie.optString("name", null);
-            final String value = cookie.optString("value", null);
-            if (name == null || value == null) return;
+            final String name = cookie != null ? cookie.optString("name", null) : null;
+            final String value = cookie != null ? cookie.optString("value", null) : null;
+            if (name == null || value == null) {
+                authFailToast();
+                return;
+            }
+            final boolean secure = base.startsWith("https");
             runOnUiThread(
                 () -> {
-                    CookieManager.getInstance().setCookie(base, name + "=" + value + "; Path=/");
+                    CookieManager.getInstance()
+                        .setCookie(base, name + "=" + value + "; Path=/" + (secure ? "; Secure" : ""));
                     CookieManager.getInstance().flush();
                     getApplicationContext()
                         .getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
@@ -440,8 +447,18 @@ public class MainActivity extends BridgeActivity {
                     }
                 });
         } catch (Exception e) {
-            // 실패 — 사용자가 다시 시도.
+            authFailToast();
         }
+    }
+
+    private void authFailToast() {
+        runOnUiThread(
+            () ->
+                Toast.makeText(
+                        MainActivity.this,
+                        "로그인에 실패했어요. 다시 시도해주세요.",
+                        Toast.LENGTH_LONG)
+                    .show());
     }
 
     private void handleDeepLink(Intent intent) {
