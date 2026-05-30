@@ -1,3 +1,4 @@
+import { DisplayNameEditor } from '@/components/settings/display-name-editor'
 import { SnsLinkSection } from '@/components/settings/sns-link-section'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
@@ -106,9 +107,7 @@ export default async function SettingsPage() {
           )}
           <div className="min-w-0 flex-1">
             <div className="flex items-center gap-1.5">
-              <span className="truncate text-[16px] font-semibold text-base-900 dark:text-base-50">
-                {user.displayName}
-              </span>
+              <DisplayNameEditor initial={user.displayName} />
               {role && (
                 <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
                   {ROLE_LABEL[role]}

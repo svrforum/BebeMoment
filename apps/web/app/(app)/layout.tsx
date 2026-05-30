@@ -21,6 +21,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!ctx.family) redirect('/onboarding')
 
   const features = await getFeatureFlags(prismaPublic)
+  // 일반 가족 구성원(family)은 멤버·초대 관리가 없으므로 '가족' 탭을 숨긴다(설정으로 대체).
+  const role = ctx.membership?.role ?? null
+  const canManageFamily = role === 'owner' || role === 'guardian'
 
   // Unread = ready assets in the current family newer than this member's
   // lastSeenAt. Capped to 100 (badge shows "99+"). First-visit (no
@@ -42,9 +45,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   return (
     <FeaturesProvider value={features}>
       <AppShellClient capabilities={ctx.capabilities}>
-        <SideNav familyName={ctx.family.name} />
+        <SideNav familyName={ctx.family.name} canManageFamily={canManageFamily} />
         <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
-        <BottomNav unreadCounts={{ '/timeline': unreadTimeline }} />
+        <BottomNav
+          unreadCounts={{ '/timeline': unreadTimeline }}
+          canManageFamily={canManageFamily}
+        />
         <WidgetRegistrar />
       </AppShellClient>
     </FeaturesProvider>

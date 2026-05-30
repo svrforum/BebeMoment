@@ -2,33 +2,36 @@
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
-import { Calendar, Clock4, FolderOpen, NotebookPen, Users } from 'lucide-react'
+import { Calendar, Clock4, FolderOpen, NotebookPen, Settings, Users } from 'lucide-react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { UnreadBadge } from './unread-badge'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
-// 자동 조정(아래 visible + gridTemplateColumns). 설정은 /family 페이지 하단의
-// 행으로 이동했다.
-const items: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
+// 자동 조정(아래 visible + gridTemplateColumns). 마지막 칸은 권한에 따라 가족(관리
+// 가능) 또는 설정(일반 구성원) — 일반 구성원은 가족 탭 대신 설정으로 바로 간다.
+const baseItems: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
-  { href: '/family', label: '가족', icon: Users },
 ]
 
 type Props = {
   /** Optional per-route unread counts. Currently only '/timeline' is used. */
   unreadCounts?: Record<string, number>
+  canManageFamily?: boolean
 }
 
-export function BottomNav({ unreadCounts }: Props = {}) {
+export function BottomNav({ unreadCounts, canManageFamily = true }: Props = {}) {
   const pathname = usePathname()
   const features = useFeatures()
   // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
   if (pathname?.startsWith('/detail') === true) return null
-  const visible = items.filter((it) => !it.feature || features[it.feature])
+  const lastItem = canManageFamily
+    ? { href: '/family', label: '가족', icon: Users }
+    : { href: '/settings', label: '설정', icon: Settings }
+  const visible = [...baseItems.filter((it) => !it.feature || features[it.feature]), lastItem]
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
       <div

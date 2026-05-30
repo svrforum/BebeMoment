@@ -17,24 +17,33 @@ import {
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
-const items: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
+const items: {
+  href: string
+  label: string
+  icon: typeof Clock4
+  feature?: FeatureFlag
+  manageOnly?: boolean
+}[] = [
   { href: '/timeline', label: '타임라인', icon: Clock4 },
   { href: '/calendar', label: '캘린더', icon: Calendar },
   { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
   { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
-  { href: '/family', label: '가족', icon: Users },
+  { href: '/family', label: '가족', icon: Users, manageOnly: true },
   { href: '/settings', label: '설정', icon: Settings },
 ]
 
 type Props = {
   familyName: string
+  canManageFamily?: boolean
 }
 
-export function SideNav({ familyName }: Props) {
+export function SideNav({ familyName, canManageFamily = true }: Props) {
   const pathname = usePathname()
   const features = useFeatures()
   const { mode, resolved, setMode } = useTheme()
-  const visible = items.filter((it) => !it.feature || features[it.feature])
+  const visible = items.filter(
+    (it) => (!it.feature || features[it.feature]) && (!it.manageOnly || canManageFamily),
+  )
 
   const cycle = () => {
     const next = mode === 'auto' ? 'light' : mode === 'light' ? 'dark' : 'auto'

@@ -251,6 +251,23 @@ export function ViewerShell({
     }
   }, [])
 
+  // ESC 로 뷰어 닫기. 단 시트/피커가 열려 있거나(자체 ESC 로 닫힘) 텍스트 입력에
+  // 포커스가 있으면(댓글 작성 등) 가로채지 않는다.
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key !== 'Escape') return
+      if (sheetOpen || sheetDetailsOpen || albumPickerOpen) return
+      const el = document.activeElement
+      if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return
+      if (el instanceof HTMLElement && el.isContentEditable) return
+      e.preventDefault()
+      if (typeof window !== 'undefined' && window.history.length > 1) router.back()
+      else router.push('/timeline')
+    }
+    window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [sheetOpen, sheetDetailsOpen, albumPickerOpen, router])
+
   // chrome 서브트리는 re-key 하지 않는다 — 화면에 항상 보이는 상단바·하단바·우측
   // 패널이 사진 전환마다 unmount/remount 하면 그 자체가 "깜빡임"이 된다.
   // ViewerTopBar/ActionBar/InfoPanel 은 모두 prop-driven (liked·count·bookmarked·
