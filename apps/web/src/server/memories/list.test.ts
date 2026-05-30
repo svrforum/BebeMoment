@@ -24,7 +24,11 @@ beforeEach(async () => {
 
 async function setup() {
   const { user } = await signup(
-    { username: `u${Date.now()}${Math.floor(Math.random() * 1e6)}`, password: 'password123', displayName: 'T' },
+    {
+      username: `u${Date.now()}${Math.floor(Math.random() * 1e6)}`,
+      password: 'password123',
+      displayName: 'T',
+    },
     db.prismaPublic,
   )
   const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
@@ -32,7 +36,12 @@ async function setup() {
 }
 
 let shaSeq = 0
-async function makeAsset(familyId: string, userId: string, takenAt: Date, opts: { deleted?: boolean } = {}) {
+async function makeAsset(
+  familyId: string,
+  userId: string,
+  takenAt: Date,
+  opts: { deleted?: boolean } = {},
+) {
   const sha = `mem${shaSeq++}`.padEnd(64, '0')
   const a = await createAsset(
     {
@@ -59,7 +68,12 @@ async function makeAsset(familyId: string, userId: string, takenAt: Date, opts: 
 
 async function makeStory(familyId: string, userId: string, entryDate: string, body: string) {
   return db.prismaPublic.story.create({
-    data: { familyId, createdByUserId: userId, entryDate: new Date(`${entryDate}T00:00:00Z`), body },
+    data: {
+      familyId,
+      createdByUserId: userId,
+      entryDate: new Date(`${entryDate}T00:00:00Z`),
+      body,
+    },
   })
 }
 
