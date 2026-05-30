@@ -3,6 +3,7 @@ export const NOTIFICATION_CATEGORIES = [
   'comment_mention',
   'album_add',
   'diary_growth_milestone',
+  'memory',
 ] as const
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number]
 
@@ -13,6 +14,8 @@ export type NotificationEventType =
   | 'diary.created'
   | 'growth.created'
   | 'milestone.created'
+  | 'memory.yearly'
+  | 'memory.monthly'
 
 const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'asset.uploaded': 'asset_upload',
@@ -21,6 +24,8 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'diary.created': 'diary_growth_milestone',
   'growth.created': 'diary_growth_milestone',
   'milestone.created': 'diary_growth_milestone',
+  'memory.yearly': 'memory',
+  'memory.monthly': 'memory',
 }
 export function categoryForEvent(t: NotificationEventType): NotificationCategory {
   return EVENT_CATEGORY[t]

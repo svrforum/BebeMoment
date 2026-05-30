@@ -2,12 +2,13 @@ import { describe, expect, it } from 'vitest'
 import { NOTIFICATION_CATEGORIES, categoryForEvent } from './notifications'
 
 describe('notifications', () => {
-  it('4개 카테고리', () => {
+  it('5개 카테고리', () => {
     expect(NOTIFICATION_CATEGORIES).toEqual([
       'asset_upload',
       'comment_mention',
       'album_add',
       'diary_growth_milestone',
+      'memory',
     ])
   })
   it('이벤트 타입 → 카테고리 매핑', () => {
@@ -17,5 +18,7 @@ describe('notifications', () => {
     expect(categoryForEvent('diary.created')).toBe('diary_growth_milestone')
     expect(categoryForEvent('growth.created')).toBe('diary_growth_milestone')
     expect(categoryForEvent('milestone.created')).toBe('diary_growth_milestone')
+    expect(categoryForEvent('memory.yearly')).toBe('memory')
+    expect(categoryForEvent('memory.monthly')).toBe('memory')
   })
 })
