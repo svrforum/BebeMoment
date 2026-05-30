@@ -1,6 +1,8 @@
 'use client'
+import { MOODS, isMood } from '@/components/story/mood'
 import type { AssetUrls } from '@bebe/media-client'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ShieldCheck } from 'lucide-react'
+import Link from 'next/link'
 import { type CSSProperties, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
 
@@ -16,6 +18,61 @@ type AssetRow = {
   durationMs?: number | null
 }
 
+// 날짜 그룹에 끼워 넣을 스토리(글 중심 — 사진은 같은 날 그리드에 이미 나온다).
+export type TimelineStory = {
+  id: string
+  publicNo: number
+  title: string | null
+  body: string
+  mood: string | null
+  visibility: string
+}
+
+function StoryStrip({ stories }: { stories: TimelineStory[] }) {
+  return (
+    <div className="mb-3 space-y-2">
+      {stories.map((s) => {
+        const mood = isMood(s.mood) ? MOODS[s.mood] : null
+        return (
+          <Link
+            key={s.id}
+            href={`/story/${s.publicNo}`}
+            className="block rounded-2xl border border-base-200/70 bg-base-0 p-3.5 shadow-card transition-transform ease-ios active:scale-[0.99] dark:border-base-800/70 dark:bg-base-900"
+          >
+            <div className="flex items-center gap-1.5 text-[11px] font-semibold uppercase tracking-wider text-base-400">
+              <span>스토리</span>
+              {s.visibility === 'guardians' && (
+                <span className="inline-flex items-center gap-0.5 rounded-full bg-point-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-point-500">
+                  <ShieldCheck size={10} strokeWidth={2.4} />
+                  보호자만
+                </span>
+              )}
+              {mood && (
+                <span
+                  className={`inline-flex items-center gap-1 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${mood.chip}`}
+                >
+                  <span aria-hidden className="text-[11px] leading-none">
+                    {mood.emoji}
+                  </span>
+                  <span>{mood.label}</span>
+                </span>
+              )}
+            </div>
+            {s.title && (
+              <h3 className="mt-1.5 truncate text-[16px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+                {s.title}
+              </h3>
+            )}
+            <p className="mt-1 line-clamp-2 text-[14px] leading-relaxed text-base-600 dark:text-base-300">
+              {s.body}
+            </p>
+          </Link>
+        )
+      })}
+    </div>
+  )
+}
+
 type Props = {
   /** Primary header line — e.g. "2026.05.27". Falls back to the legacy
    *  age-bucket label when provided alone (back-compat). */
@@ -27,6 +84,8 @@ type Props = {
    *  numerals 로 살짝 작게. baby 가 없으면 undefined. */
   dDay?: string | null
   assets: AssetRow[]
+  /** 이 날짜의 스토리(있으면 사진 그리드 위에 글 카드로). */
+  stories?: TimelineStory[]
   index?: number
   selectionMode?: boolean
   selected?: Set<string>
@@ -40,6 +99,7 @@ export function BucketSection({
   ageLabel = null,
   dDay = null,
   assets,
+  stories,
   index = 0,
   selectionMode = false,
   selected,
@@ -78,10 +138,13 @@ export function BucketSection({
             </span>
           )}
         </div>
-        <span className="text-[12px] font-medium tabular-nums text-base-400 shrink-0">
-          {assets.length}장
-        </span>
+        {assets.length > 0 && (
+          <span className="text-[12px] font-medium tabular-nums text-base-400 shrink-0">
+            {assets.length}장
+          </span>
+        )}
       </header>
+      {stories && stories.length > 0 && <StoryStrip stories={stories} />}
       <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6">
         {visibleAssets.map((a, i) => (
           <div

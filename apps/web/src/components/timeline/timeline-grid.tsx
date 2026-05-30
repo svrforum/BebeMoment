@@ -10,7 +10,7 @@ import { FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { TapModifiers } from './asset-card'
-import { BucketSection } from './bucket-section'
+import { BucketSection, type TimelineStory } from './bucket-section'
 import { TimelineContextMenu } from './timeline-context-menu'
 
 type AssetRow = {
@@ -30,6 +30,8 @@ type BucketGroup = {
   /** Optional D-day chip (e.g. "D+97" / "D-Day"). */
   dDay?: string | null
   assets: AssetRow[]
+  /** 이 날짜의 스토리(사진 그리드 위에 글 카드로). */
+  stories?: TimelineStory[]
 }
 
 type Props = {
@@ -265,6 +267,7 @@ export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = tru
               ageLabel={g.ageLabel ?? null}
               dDay={g.dDay ?? null}
               assets={g.assets}
+              stories={g.stories ?? []}
               index={i}
               selectionMode={selectionMode}
               selected={selected}

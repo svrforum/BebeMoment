@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
+import type { TimelineStory } from '@/components/timeline/bucket-section'
 import { MemoriesCard } from '@/components/timeline/memories-card'
-import { StoryCard, StoryChip } from '@/components/timeline/story-card'
+import { StoryCard } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { TagFilterStrip } from '@/components/timeline/tag-filter-strip'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -75,6 +76,7 @@ export default async function TimelinePage({
     }),
     birthDate,
   ).map((g) => ({
+    dateKey: g.dateKey,
     label: g.dateLabel,
     ageLabel: g.bucketLabel,
     dDay: g.babyDays !== null ? formatDDay(g.babyDays) : null,
@@ -88,6 +90,36 @@ export default async function TimelinePage({
       durationMs: a.durationMs,
     })),
   }))
+
+  // 스토리를 날짜(entryDate)별로 묶어 같은 날 사진 그룹 위에 끼운다(1198). 사진이 있는
+  // 날의 스토리는 해당 그룹에, 사진 없는 옛 스토리는 orphan 으로 상단에.
+  const utcDayKey = (d: Date): string =>
+    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
+  const storiesByDate = new Map<string, TimelineStory[]>()
+  for (const it of storyItems) {
+    if (it.kind !== 'story') continue
+    const e = it.entry
+    const key = utcDayKey(e.entryDate)
+    const arr = storiesByDate.get(key) ?? []
+    arr.push({
+      id: e.id,
+      publicNo: e.publicNo,
+      title: e.title ?? null,
+      body: e.body,
+      mood: e.mood ?? null,
+      visibility: e.visibility,
+    })
+    storiesByDate.set(key, arr)
+  }
+  const mainGroups = groups.map((g) => {
+    const s = storiesByDate.get(g.dateKey)
+    if (s) storiesByDate.delete(g.dateKey)
+    return { ...g, stories: s ?? [] }
+  })
+  // 사진 그룹에 못 붙은(사진 없는 옛) 스토리만 상단에 따로.
+  const orphanStoryItems = storyItems.filter(
+    (it) => it.kind === 'story' && storiesByDate.has(utcDayKey(it.entry.entryDate)),
+  )
 
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
   // 컴포저·태그 섹션은 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
@@ -203,24 +235,16 @@ export default async function TimelinePage({
           />
         </div>
       )}
-      {storyItems.length > 0 && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-3">
-          {/* 최근 일기 1개는 글까지 큰 카드로, 나머지는 가로 스토리 행에 조그맣게. */}
-          {storyItems[0]?.kind === 'story' && (
-            <StoryCard key={`j-${storyItems[0].id}`} entry={storyItems[0].entry} />
-          )}
-          {storyItems.length > 1 && (
-            <div className="-mx-1 flex gap-3 overflow-x-auto px-1 pb-1">
-              {storyItems
-                .slice(1)
-                .map((it) =>
-                  it.kind === 'story' ? <StoryChip key={`j-${it.id}`} entry={it.entry} /> : null,
-                )}
-            </div>
+      {/* 스토리는 이제 해당 날짜의 사진 그룹 위에 끼워 보여준다(아래 TimelineGrid).
+          사진이 없어 그룹에 못 붙은 옛 스토리만 상단에 따로. */}
+      {orphanStoryItems.length > 0 && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
+          {orphanStoryItems.map((it) =>
+            it.kind === 'story' ? <StoryCard key={`j-${it.id}`} entry={it.entry} compact /> : null,
           )}
         </div>
       )}
-      <TimelineGrid initialGroups={groups} lastSeenAt={prevLastSeenAt} canUpload={canUpload} />
+      <TimelineGrid initialGroups={mainGroups} lastSeenAt={prevLastSeenAt} canUpload={canUpload} />
     </>
   )
 }
