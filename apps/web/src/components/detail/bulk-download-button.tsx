@@ -1,0 +1,55 @@
+'use client'
+import { Download } from 'lucide-react'
+import { useState } from 'react'
+
+/**
+ * 여러 사진을 한 번에 저장. ZIP 대신 개별 다운로드를 순차 트리거 — 휴대폰 갤러리에
+ * 곧바로 들어가(압축 해제 불필요), 앱의 DownloadListener 가 각각 처리한다. 원본 화질
+ * (EXIF 제거됨)로 받는다.
+ */
+export function BulkDownloadButton({
+  assetIds,
+  label = '사진 전체 저장',
+  className,
+}: {
+  assetIds: string[]
+  label?: string
+  className?: string
+}) {
+  const [busy, setBusy] = useState(false)
+
+  async function downloadAll() {
+    if (busy || assetIds.length === 0) return
+    setBusy(true)
+    try {
+      for (const id of assetIds) {
+        const a = document.createElement('a')
+        a.href = `/api/asset/${id}/download?q=original`
+        a.download = ''
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        await new Promise((r) => setTimeout(r, 450))
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (assetIds.length === 0) return null
+
+  return (
+    <button
+      type="button"
+      onClick={downloadAll}
+      disabled={busy}
+      className={
+        className ??
+        'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
+      }
+    >
+      <Download size={13} strokeWidth={2.2} />
+      <span>{busy ? `저장 중… (${assetIds.length})` : label}</span>
+    </button>
+  )
+}

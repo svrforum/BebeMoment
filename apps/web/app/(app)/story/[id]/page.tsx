@@ -3,6 +3,7 @@ import { StoryBookmarkButton } from '@/components/story/StoryBookmarkButton'
 import { StoryDeleteButton } from '@/components/story/StoryDeleteButton'
 import { StoryDetail } from '@/components/story/StoryDetail'
 import { StoryEditForm } from '@/components/story/StoryEditForm'
+import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
 import { ShareLinkButton } from '@/components/detail/share-link-button'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -10,9 +11,11 @@ import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getStoryEntry } from '@/server/story/get'
 import { getFeatureFlags } from '@/server/settings/features'
+import { getSetting } from '@/server/settings/get'
 import { ChevronLeft, Pencil } from 'lucide-react'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
+import { z } from 'zod'
 import { deleteStoryAction } from './actions'
 
 export default async function StoryDetailPage({
@@ -89,6 +92,15 @@ export default async function StoryDetailPage({
       })
     : null
 
+  // 스토리에 담긴 사진들(전체 저장용). 앨범이 일반 가족에게 숨겨졌으면 '앨범에 추가' 숨김.
+  const storyAssetIds = entry.assets.flatMap((ea) => (ea.asset ? [ea.asset.id] : []))
+  const isManager = ctx.membership?.role === 'owner' || ctx.membership?.role === 'guardian'
+  const albumsHidden =
+    !isManager &&
+    (await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)).includes(
+      'albums',
+    )
+
   return (
     <>
       <StoryDetailHeader />
@@ -98,7 +110,8 @@ export default async function StoryDetailPage({
           {features.bookmarks && (
             <StoryBookmarkButton entryId={uuid} initialBookmarked={bookmark !== null} />
           )}
-          {features.albums && <StoryAlbumButton entryId={uuid} />}
+          {features.albums && !albumsHidden && <StoryAlbumButton entryId={uuid} />}
+          <BulkDownloadButton assetIds={storyAssetIds} label="사진 저장" />
           <ShareLinkButton
             path={`/story/${publicNo}`}
             showLabel

@@ -12,11 +12,13 @@ import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
 import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
+import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
 import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
+import { z } from 'zod'
 
 export default async function TimelinePage({
   searchParams,
@@ -125,6 +127,15 @@ export default async function TimelinePage({
     (it) => it.kind === 'story' && storiesByDate.has(storyKey(it.entry)),
   )
 
+  // 멀티셀렉트 바 게이팅: 삭제 권한 / 앨범에 추가(앨범 권한 + 일반가족 앨범숨김 아님).
+  const isManager = viewerRole === 'owner' || viewerRole === 'guardian'
+  const navHidden = isManager
+    ? []
+    : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
+  const canDeleteSelection =
+    ctx.capabilities.includes('asset.delete.any') || ctx.capabilities.includes('asset.delete.own')
+  const canAddAlbum = ctx.capabilities.includes('album.create') && !navHidden.includes('albums')
+
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
   // 컴포저·태그 섹션은 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
   if (dateFilter) {
@@ -182,7 +193,11 @@ export default async function TimelinePage({
             이 날짜에 올린 게 없어요.
           </div>
         ) : photoCount > 0 ? (
-          <TimelineGrid initialGroups={groups} />
+          <TimelineGrid
+            initialGroups={groups}
+            canDeleteSelection={canDeleteSelection}
+            canAddAlbum={canAddAlbum}
+          />
         ) : null}
       </>
     )
@@ -259,7 +274,13 @@ export default async function TimelinePage({
           )}
         </div>
       )}
-      <TimelineGrid initialGroups={mainGroups} lastSeenAt={prevLastSeenAt} canUpload={canUpload} />
+      <TimelineGrid
+        initialGroups={mainGroups}
+        lastSeenAt={prevLastSeenAt}
+        canUpload={canUpload}
+        canDeleteSelection={canDeleteSelection}
+        canAddAlbum={canAddAlbum}
+      />
     </>
   )
 }

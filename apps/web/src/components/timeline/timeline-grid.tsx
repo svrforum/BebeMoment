@@ -1,5 +1,6 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
+import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useFamilySSE } from '@/lib/sse'
@@ -40,9 +41,19 @@ type Props = {
   lastSeenAt?: Date | null
   /** 업로드 권한자만 빈 상태에 + 버튼 안내. 보기 전용은 다른 카피. */
   canUpload?: boolean
+  /** 선택 항목 삭제 권한(없으면 멀티셀렉트 바에서 삭제 숨김). */
+  canDeleteSelection?: boolean
+  /** 앨범에 추가 가능(앨범 권한 + 앨범 메뉴 비숨김). 없으면 '앨범에 추가' 숨김. */
+  canAddAlbum?: boolean
 }
 
-export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = true }: Props) {
+export function TimelineGrid({
+  initialGroups,
+  lastSeenAt = null,
+  canUpload = true,
+  canDeleteSelection = true,
+  canAddAlbum = true,
+}: Props) {
   const router = useRouter()
   const toast = useToast()
 
@@ -282,6 +293,9 @@ export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = tru
       {selectionMode && (
         <SelectionBar
           count={selected.size}
+          selectedIds={Array.from(selected)}
+          canDelete={canDeleteSelection}
+          canAlbum={canAddAlbum}
           onCancel={clearSelection}
           onAlbum={() => setPickerOpen(true)}
           onDelete={() => setDeleteOpen(true)}
@@ -325,11 +339,17 @@ export function TimelineGrid({ initialGroups, lastSeenAt = null, canUpload = tru
 
 function SelectionBar({
   count,
+  selectedIds,
+  canDelete,
+  canAlbum,
   onCancel,
   onAlbum,
   onDelete,
 }: {
   count: number
+  selectedIds: string[]
+  canDelete: boolean
+  canAlbum: boolean
   onCancel: () => void
   onAlbum: () => void
   onDelete: () => void
@@ -348,22 +368,31 @@ function SelectionBar({
         <X size={18} strokeWidth={2} />
       </button>
       <span className="flex-1 px-1 text-[13px] font-medium tabular-nums">{count}장 선택됨</span>
-      <button
-        type="button"
-        onClick={onDelete}
-        aria-label="삭제"
-        className="flex h-9 w-9 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
-      >
-        <Trash2 size={18} strokeWidth={2.2} />
-      </button>
-      <button
-        type="button"
-        onClick={onAlbum}
-        className="inline-flex items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
-      >
-        <FolderPlus size={14} strokeWidth={2.4} />
-        앨범에 추가
-      </button>
+      <BulkDownloadButton
+        assetIds={selectedIds}
+        label="저장"
+        className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-base-600 transition hover:bg-base-100 disabled:opacity-60 dark:text-base-300 dark:hover:bg-base-800"
+      />
+      {canDelete && (
+        <button
+          type="button"
+          onClick={onDelete}
+          aria-label="삭제"
+          className="flex h-9 w-9 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+        >
+          <Trash2 size={18} strokeWidth={2.2} />
+        </button>
+      )}
+      {canAlbum && (
+        <button
+          type="button"
+          onClick={onAlbum}
+          className="inline-flex items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
+        >
+          <FolderPlus size={14} strokeWidth={2.4} />
+          앨범에 추가
+        </button>
+      )}
     </div>
   )
 }
