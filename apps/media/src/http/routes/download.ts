@@ -20,9 +20,12 @@ async function streamToBuffer(s: NodeJS.ReadableStream): Promise<Buffer> {
   return Buffer.concat(chunks)
 }
 
-// RFC 5987 filename* — 한글 파일명도 안전하게 attachment 로 내려준다.
+// RFC 6266: 플레인 filename="…"(ASCII 폴백) + filename*=UTF-8''(한글 정확). 안드로이드
+// URLUtil.guessFileName 은 filename* 를 못 읽고 filename= 만 보므로 둘 다 넣어야 원본
+// 파일명으로 저장된다(없으면 'download' 같은 일반 이름이 됨).
 function contentDisposition(filename: string): string {
-  return `attachment; filename*=UTF-8''${encodeURIComponent(filename)}`
+  const ascii = filename.replace(/[^\x20-\x7e]/g, '_').replace(/["\\]/g, '_') || 'download'
+  return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
 }
 
 // JPEG 다운로드 시 EXIF(촬영일 포함)를 제거하면 휴대폰 갤러리가 파일 시각(=다운로드
