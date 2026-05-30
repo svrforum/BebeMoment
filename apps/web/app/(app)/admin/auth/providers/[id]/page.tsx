@@ -15,6 +15,7 @@ export default function EditProviderPage({ params }: { params: Promise<Params> }
   const [issuer, setIssuer] = useState('')
   const [clientId, setClientId] = useState('')
   const [clientSecret, setClientSecret] = useState('')
+  const [scopes, setScopes] = useState('')
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
@@ -27,6 +28,7 @@ export default function EditProviderPage({ params }: { params: Promise<Params> }
           setName(p.name)
           setIssuer(p.issuer)
           setClientId(p.clientId)
+          setScopes((p.scopes ?? []).join(' '))
         }
       })
   }, [id])
@@ -38,6 +40,7 @@ export default function EditProviderPage({ params }: { params: Promise<Params> }
     // biome-ignore lint/suspicious/noExplicitAny: ad-hoc payload
     const payload: Record<string, any> = { name, issuer, clientId }
     if (clientSecret) payload.clientSecret = clientSecret
+    payload.scopes = scopes.split(/[\s,]+/).filter(Boolean)
     const r = await fetch(`/api/admin/oidc/${id}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
@@ -80,6 +83,19 @@ export default function EditProviderPage({ params }: { params: Promise<Params> }
                   onChange={(e) => setClientId(e.target.value)}
                   required
                 />
+              </div>
+              <div>
+                <Label htmlFor="scopes">Scope (공백/쉼표 구분)</Label>
+                <Input
+                  id="scopes"
+                  value={scopes}
+                  onChange={(e) => setScopes(e.target.value)}
+                  placeholder="openid profile_nickname"
+                />
+                <p className="mt-1 text-[12px] text-base-400">
+                  카카오는 이메일 동의항목이 비즈앱 심사를 요구해요 — account_email 을 빼면
+                  닉네임만으로 가입돼요.
+                </p>
               </div>
               <div>
                 <Label htmlFor="clientSecret">Client Secret (변경할 때만)</Label>

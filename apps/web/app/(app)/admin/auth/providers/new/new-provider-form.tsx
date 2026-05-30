@@ -52,7 +52,7 @@ const PRESETS: Preset[] = [
     key: 'kakao',
     name: '카카오',
     issuer: 'https://kauth.kakao.com',
-    scopes: ['openid', 'profile_nickname', 'account_email'],
+    scopes: ['openid', 'profile_nickname'],
     consoleLabel: 'Kakao Developers 열기',
     consoleUrl: 'https://developers.kakao.com/console/app',
     color: 'from-[#FEE500] to-[#FEE500]',
@@ -66,12 +66,12 @@ const PRESETS: Preset[] = [
         body: '앱 설정 → 플랫폼 → Web → 사이트 도메인에 현재 서비스 URL 등록.',
       },
       {
-        title: '3. 카카오 로그인 활성화',
-        body: `제품 → 카카오 로그인 → 활성화 설정 ON. Redirect URI 에 아래 값 등록:\n${uri}`,
+        title: '3. 카카오 로그인 + OpenID Connect 활성화',
+        body: `제품 → 카카오 로그인 → 활성화 ON, 그리고 같은 화면의 **OpenID Connect 활성화도 ON** (둘 다 켜야 함). Redirect URI 에 아래 값 등록:\n${uri}`,
       },
       {
         title: '4. 동의 항목 설정',
-        body: 'openid · profile_nickname · account_email 을 필수 동의 항목으로 설정하세요. account_email 이 없으면 계정 연결 불가.',
+        body: '동의항목에서 닉네임(profile_nickname) 을 사용 ON 으로. 이메일(account_email)은 비즈앱 심사가 필요해 기본 제외했어요 — 카카오는 닉네임만으로 가입돼요(이메일 없이).',
       },
       {
         title: '5. Client Secret 생성',
