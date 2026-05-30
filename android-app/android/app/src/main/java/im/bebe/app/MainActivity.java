@@ -98,6 +98,62 @@ public class MainActivity extends BridgeActivity {
         handleDeepLink(intent);
     }
 
+    @Override
+    public void onResume() {
+        super.onResume();
+        // 위젯 토큰을 네이티브에서 직접 발급받는다. 원격 서버 페이지에는 Capacitor
+        // 브리지(window.Capacitor)가 주입되지 않아 웹→네이티브 플러그인 호출이 안 되므로,
+        // WebView 세션 쿠키(CookieManager — 다운로드에서 검증된 방식)로 POST /api/widget/token
+        // 을 직접 호출해 토큰을 저장하고 위젯을 갱신한다.
+        tryRegisterWidget();
+    }
+
+    private void tryRegisterWidget() {
+        final String serverUrl = readServerUrl();
+        if (serverUrl == null) return;
+        getWindow().getDecorView().postDelayed(() -> {
+            String cookies;
+            try {
+                cookies = CookieManager.getInstance().getCookie(serverUrl);
+            } catch (Exception e) {
+                return;
+            }
+            if (cookies == null || !cookies.contains("session")) return;
+            final String c = cookies;
+            new Thread(() -> registerWidgetToken(serverUrl, c)).start();
+        }, 1500);
+    }
+
+    private void registerWidgetToken(String serverUrl, String cookies) {
+        try {
+            final String base = serverUrl.replaceAll("/+$", "");
+            final java.net.HttpURLConnection conn =
+                (java.net.HttpURLConnection) new java.net.URL(base + "/api/widget/token").openConnection();
+            conn.setRequestMethod("POST");
+            conn.setRequestProperty("Cookie", cookies);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            if (conn.getResponseCode() != 200) return;
+            final StringBuilder sb = new StringBuilder();
+            try (java.io.InputStream is = conn.getInputStream()) {
+                final byte[] buf = new byte[2048];
+                int n;
+                while ((n = is.read(buf)) != -1) sb.append(new String(buf, 0, n, "UTF-8"));
+            }
+            final String token = new org.json.JSONObject(sb.toString()).optString("token", null);
+            if (token == null || token.isEmpty()) return;
+            getApplicationContext()
+                .getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString(BebeWidgetPlugin.KEY_TOKEN, token)
+                .putString(BebeWidgetPlugin.KEY_SERVER, base)
+                .apply();
+            WidgetRefreshWorker.enqueueNow(getApplicationContext());
+        } catch (Exception e) {
+            // 다음 onResume 에서 재시도.
+        }
+    }
+
     private void requestPostNotificationsIfNeeded() {
         if (Build.VERSION.SDK_INT < 33) return;
         if (ContextCompat.checkSelfPermission(this, Manifest.permission.POST_NOTIFICATIONS)
