@@ -13,6 +13,7 @@ type AssetRow = {
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
   urls: AssetUrls | null
+  durationMs?: number | null
 }
 
 type Props = {
@@ -94,6 +95,7 @@ export function BucketSection({
               urls={a.urls}
               status={a.status}
               kind={a.kind}
+              durationMs={a.durationMs ?? null}
               selectionMode={selectionMode}
               selected={selected?.has(a.id) ?? false}
               {...(onLongPress ? { onLongPress } : {})}

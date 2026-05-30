@@ -1,6 +1,6 @@
 'use client'
 import { useToast } from '@/lib/toast'
-import { Link2, Loader2 } from 'lucide-react'
+import { Check, Link2 } from 'lucide-react'
 import { useEffect, useState } from 'react'
 
 type Provider = { id: string; name: string }
@@ -10,7 +10,6 @@ export function SnsLinkSection() {
   const [providers, setProviders] = useState<Provider[]>([])
   const [linked, setLinked] = useState<Linked[]>([])
   const [loading, setLoading] = useState(true)
-  const [pending, setPending] = useState<string | null>(null)
   const toast = useToast()
 
   async function load() {
@@ -41,22 +40,6 @@ export function SnsLinkSection() {
 
   const isLinked = (id: string) => linked.some((l) => l.providerId === id)
 
-  async function unlink(providerId: string) {
-    setPending(providerId)
-    const res = await fetch('/api/auth/oidc/unlink', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ providerId }),
-    })
-    setPending(null)
-    if (res.ok) {
-      setLinked((prev) => prev.filter((l) => l.providerId !== providerId))
-      toast({ title: '연동을 해제했어요' })
-    } else {
-      toast({ title: '해제하지 못했어요', variant: 'danger' })
-    }
-  }
-
   if (loading) {
     return <div className="h-12 animate-pulse rounded-xl bg-base-100 dark:bg-base-800" />
   }
@@ -77,15 +60,10 @@ export function SnsLinkSection() {
             <Link2 className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
             <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">{p.name}</span>
             {linkedNow ? (
-              <button
-                type="button"
-                onClick={() => unlink(p.id)}
-                disabled={pending === p.id}
-                className="flex items-center gap-1 rounded-full bg-base-100 px-3 py-1.5 text-[13px] font-medium text-base-600 transition-colors hover:bg-base-200 disabled:opacity-50 dark:bg-base-800 dark:text-base-300"
-              >
-                {pending === p.id && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
-                연동 해제
-              </button>
+              <span className="inline-flex items-center gap-1 rounded-full bg-point-500/10 px-3 py-1.5 text-[13px] font-medium text-point-600 dark:text-point-400">
+                <Check className="h-3.5 w-3.5" />
+                연동됨
+              </span>
             ) : (
               <a
                 href={`/api/auth/oidc/${p.id}?link=1`}

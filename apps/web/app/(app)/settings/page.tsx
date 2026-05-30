@@ -106,14 +106,16 @@ export default async function SettingsPage() {
             </div>
           )}
           <div className="min-w-0 flex-1">
-            <div className="flex items-center gap-1.5">
-              <DisplayNameEditor initial={user.displayName} />
-              {role && (
-                <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
-                  {ROLE_LABEL[role]}
-                </span>
-              )}
-            </div>
+            <DisplayNameEditor
+              initial={user.displayName}
+              badge={
+                role ? (
+                  <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
+                    {ROLE_LABEL[role]}
+                  </span>
+                ) : null
+              }
+            />
             <div className="truncate text-[13px] text-base-400">
               {user.username ? `@${user.username}` : (user.email ?? '')}
             </div>

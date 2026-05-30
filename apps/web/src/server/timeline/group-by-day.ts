@@ -24,6 +24,7 @@ export type DayAssetLike = {
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
   urls: AssetUrls | null
+  durationMs?: number | null
 }
 
 export type DayGroup = {

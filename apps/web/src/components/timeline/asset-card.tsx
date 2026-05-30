@@ -3,7 +3,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
-import { Check } from 'lucide-react'
+import { Check, Play } from 'lucide-react'
 import Link from 'next/link'
 import { type CSSProperties, type MouseEvent, useRef } from 'react'
 
@@ -15,6 +15,8 @@ type Props = {
   urls: AssetUrls | null
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
+  /** 영상 길이(ms) — 썸네일에 m:ss 배지로. null 이면 'VIDEO' 만. */
+  durationMs?: number | null
   /** When non-null, the card renders in selectable mode — tap toggles
    *  selection instead of navigating to detail. */
   selectionMode?: boolean
@@ -41,12 +43,20 @@ const STATUS_KO: Record<Props['status'], string> = {
 
 const LONG_PRESS_MS = 450
 
+function formatDuration(ms: number): string {
+  const total = Math.round(ms / 1000)
+  const m = Math.floor(total / 60)
+  const s = total % 60
+  return `${m}:${String(s).padStart(2, '0')}`
+}
+
 export function AssetCard({
   id,
   publicNo,
   urls,
   status,
   kind,
+  durationMs = null,
   selectionMode = false,
   selected = false,
   onLongPress,
@@ -124,8 +134,9 @@ export function AssetCard({
         </div>
       )}
       {kind === 'video' && (
-        <div className="absolute right-2 top-2 z-20 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold text-white">
-          VIDEO
+        <div className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white">
+          <Play size={9} className="fill-white" strokeWidth={0} />
+          {durationMs ? formatDuration(durationMs) : 'VIDEO'}
         </div>
       )}
       {selectionMode && (

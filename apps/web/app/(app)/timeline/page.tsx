@@ -70,6 +70,7 @@ export default async function TimelinePage({
         status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
         kind: a.kind as 'image' | 'video',
         urls: a.urls,
+        durationMs: a.durationMs ?? null,
       }
     }),
     birthDate,
@@ -84,6 +85,7 @@ export default async function TimelinePage({
       kind: a.kind,
       urls: a.urls,
       ts: a.ts,
+      durationMs: a.durationMs,
     })),
   }))
 
