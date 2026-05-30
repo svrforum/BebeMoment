@@ -31,6 +31,14 @@
                 <data android:scheme="bebe" android:host="auth" />
             </intent-filter>
 
+            <!-- 초대 링크 → 앱 이어하기 딥링크 (웹 intent:// → bebe://invite?server=&token=) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bebe" android:host="invite" />
+            </intent-filter>
+
         </activity>
 
         <provider

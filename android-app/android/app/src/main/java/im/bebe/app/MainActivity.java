@@ -41,6 +41,7 @@ public class MainActivity extends BridgeActivity {
         requestPostNotificationsIfNeeded();
         handleDeepLink(getIntent());
         handleAuthDeepLink(getIntent());
+        handleInviteDeepLink(getIntent());
         setupDownloadListener();
         setupExternalSchemeHandler();
         markUserAgent();
@@ -232,6 +233,7 @@ public class MainActivity extends BridgeActivity {
         setIntent(intent);
         handleDeepLink(intent);
         handleAuthDeepLink(intent);
+        handleInviteDeepLink(intent);
     }
 
     @Override
@@ -427,6 +429,33 @@ public class MainActivity extends BridgeActivity {
             return true;
         } catch (Exception e) {
             return false; // 실패 시 super 가 웹뷰에서 로드(폴백)
+        }
+    }
+
+    /**
+     * 초대 링크 딥링크: bebe://invite?server=<url>&token=<token>. 웹 초대 페이지의
+     * "앱에서 이어하기"(intent://)가 보낸다. 서버주소를 저장(CapacitorStorage)하고 그 서버의
+     * 초대 화면을 WebView 에 띄워, 미설치였던 신규 구성원이 앱에서 바로 합류하게 한다.
+     */
+    private void handleInviteDeepLink(Intent intent) {
+        if (intent == null) return;
+        final Uri data = intent.getData();
+        if (data == null || !"bebe".equals(data.getScheme()) || !"invite".equals(data.getHost())) return;
+        final String server = data.getQueryParameter("server");
+        final String token = data.getQueryParameter("token");
+        if (server == null || server.isEmpty() || token == null || token.isEmpty()) return;
+        final Uri s = safeParse(server);
+        final String scheme = s != null ? s.getScheme() : null;
+        if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) return;
+        final String base = server.replaceAll("/+$", "");
+        // onboarding.js 와 같은 저장소(CapacitorStorage/serverUrl) — 다음 실행부터 이 서버로.
+        getApplicationContext()
+            .getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+            .edit()
+            .putString("serverUrl", base)
+            .apply();
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().loadUrl(base + "/invite/" + Uri.encode(token));
         }
     }
 

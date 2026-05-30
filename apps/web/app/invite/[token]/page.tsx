@@ -7,6 +7,7 @@ import { Home, LinkIcon, LogIn, ShieldCheck, Users } from 'lucide-react'
 import Link from 'next/link'
 import { SignupWizard } from '../../(auth)/signup/signup-wizard'
 import { AcceptButton } from './accept-button'
+import { InviteAppButton } from './invite-app-button'
 import { InviteOidcButtons } from './invite-oidc-buttons'
 
 const ROLE_LABEL: Record<string, string> = {
@@ -109,6 +110,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     })
     return (
       <main className="mx-auto w-full max-w-[520px] px-6 py-10 md:py-16">
+        <InviteAppButton token={token} />
         <SignupWizard inviteToken={token} />
         {providers.length > 0 && <InviteOidcButtons token={token} providers={providers} />}
       </main>
