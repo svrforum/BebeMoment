@@ -14,7 +14,8 @@ import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
-import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
+import { babyDaysDiff, formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
+import { bucketLabel } from '@bebe/core'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
@@ -53,6 +54,12 @@ export default async function TimelinePage({
     ),
   ])
   const birthDate: Date | null = baby?.birthDate ?? null
+  // 가족 이름 아래 부제: "아기이름 · D+89 · 생후 2개월" (출생일 기준 D-day + 나이 버킷).
+  const babySubtitle = baby
+    ? birthDate
+      ? `${baby.name} · ${formatDDay(babyDaysDiff(birthDate, new Date()))} · ${bucketLabel(birthDate, new Date())}`
+      : baby.name
+    : null
 
   const assetItems = items.filter((it) => it.kind === 'asset')
   const storyItems = items.filter((it) => it.kind === 'story')
@@ -227,7 +234,7 @@ export default async function TimelinePage({
     <>
       <PullToRefresh />
       {baby ? (
-        <AppHeader title={ctx.family.name} subtitle={baby.name} wide />
+        <AppHeader title={ctx.family.name} subtitle={babySubtitle ?? baby.name} wide />
       ) : (
         <AppHeader title={ctx.family.name} wide />
       )}
