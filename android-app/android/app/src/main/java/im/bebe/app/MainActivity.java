@@ -1,6 +1,7 @@
 package im.bebe.app;
 
 import android.Manifest;
+import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
@@ -111,7 +112,7 @@ public class MainActivity extends BridgeActivity {
         final String server = readServerUrl();
         if (server == null || url == null) return;
         final String base = server.replaceAll("/+$", "");
-        if (!url.startsWith(base)) return; // 서버 origin 만 — 온보딩/외부는 제외
+        if (!sameOrigin(url, base)) return; // 서버 origin 만 — 온보딩/외부/유사도메인 제외
         final String html =
             "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<style>html,body{height:100%;margin:0;background:#0b0b0c;color:#e7e7ea;"
@@ -496,15 +497,45 @@ public class MainActivity extends BridgeActivity {
         final String scheme = s != null ? s.getScheme() : null;
         if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) return;
         final String base = server.replaceAll("/+$", "");
-        // onboarding.js 와 같은 저장소(CapacitorStorage/serverUrl) — 다음 실행부터 이 서버로.
-        getApplicationContext()
-            .getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
-            .edit()
-            .putString("serverUrl", base)
-            .apply();
+        final String current = readServerUrl();
+        final String currentBase = current != null ? current.replaceAll("/+$", "") : null;
+        // 이미 같은 서버면 확인 없이 초대 화면으로. 다른/새 서버면 사용자 확인을 받는다 —
+        // 외부 페이지가 intent://invite 로 앱을 임의 서버에 몰래 연결(피싱)하는 걸 막는다.
+        if (currentBase != null && sameOrigin(currentBase, base)) {
+            loadInvite(base, token);
+            return;
+        }
+        runOnUiThread(() ->
+            new AlertDialog.Builder(MainActivity.this)
+                .setTitle("이 서버에 연결할까요?")
+                .setMessage(base + "\n\n초대 링크가 가리키는 서버 주소예요. 모르는 주소라면 취소하세요.")
+                .setPositiveButton("연결", (d, w) -> {
+                    getApplicationContext()
+                        .getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("serverUrl", base)
+                        .apply();
+                    loadInvite(base, token);
+                })
+                .setNegativeButton("취소", null)
+                .show());
+    }
+
+    private void loadInvite(String base, String token) {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().loadUrl(base + "/invite/" + Uri.encode(token));
         }
+    }
+
+    /** scheme+host+port 비교(대소문자 무시). prefix startsWith 우회(server.evil.com)를 막는다. */
+    private boolean sameOrigin(String a, String b) {
+        final Uri ua = safeParse(a);
+        final Uri ub = safeParse(b);
+        if (ua == null || ub == null) return false;
+        final String sa = ua.getScheme(), sb = ub.getScheme();
+        final String ha = ua.getHost(), hb = ub.getHost();
+        if (sa == null || sb == null || ha == null || hb == null) return false;
+        return sa.equalsIgnoreCase(sb) && ha.equalsIgnoreCase(hb) && ua.getPort() == ub.getPort();
     }
 
     private void handleAuthDeepLink(Intent intent) {
