@@ -1,5 +1,5 @@
 'use client'
-import { CheckCircle2, Eye, FolderPlus, Trash2 } from 'lucide-react'
+import { CheckCircle2, Download, Eye, FolderPlus, Trash2 } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useRef } from 'react'
 
@@ -14,6 +14,10 @@ type Props = {
   /** Whether the asset is already in the selection set. Drives the
    *  "선택에 추가" / "선택에서 제거" label. */
   isSelected: boolean
+  /** 앨범에 추가 노출(앨범 권한 + 비숨김). */
+  canAlbum: boolean
+  /** 삭제 노출(asset.delete.any). */
+  canDelete: boolean
   onClose: () => void
   onToggleSelect: () => void
   onAlbum: () => void
@@ -30,6 +34,8 @@ export function TimelineContextMenu({
   x,
   y,
   isSelected,
+  canAlbum,
+  canDelete,
   onClose,
   onToggleSelect,
   onAlbum,
@@ -93,25 +99,45 @@ export function TimelineContextMenu({
         {isSelected ? '선택에서 제거' : '선택에 추가'}
       </Item>
       <Item
-        icon={<FolderPlus size={16} strokeWidth={2.2} />}
+        icon={<Download size={16} strokeWidth={2.2} />}
         onClick={() => {
-          onAlbum()
+          const a = document.createElement('a')
+          a.href = `/api/asset/${assetId}/download?q=original`
+          a.download = ''
+          document.body.appendChild(a)
+          a.click()
+          a.remove()
           onClose()
         }}
       >
-        앨범에 추가
+        저장
       </Item>
-      <Divider />
-      <Item
-        icon={<Trash2 size={16} strokeWidth={2.2} />}
-        destructive
-        onClick={() => {
-          onDelete()
-          onClose()
-        }}
-      >
-        삭제
-      </Item>
+      {canAlbum && (
+        <Item
+          icon={<FolderPlus size={16} strokeWidth={2.2} />}
+          onClick={() => {
+            onAlbum()
+            onClose()
+          }}
+        >
+          앨범에 추가
+        </Item>
+      )}
+      {canDelete && (
+        <>
+          <Divider />
+          <Item
+            icon={<Trash2 size={16} strokeWidth={2.2} />}
+            destructive
+            onClick={() => {
+              onDelete()
+              onClose()
+            }}
+          >
+            삭제
+          </Item>
+        </>
+      )}
     </div>
   )
 }

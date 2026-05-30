@@ -326,6 +326,8 @@ export function TimelineGrid({
         x={menu?.x ?? 0}
         y={menu?.y ?? 0}
         isSelected={menu ? selected.has(menu.id) : false}
+        canAlbum={canAddAlbum}
+        canDelete={canDeleteSelection}
         onClose={closeMenu}
         onToggleSelect={() => {
           if (menu) onTap(menu.id, { ctrl: true, shift: false })
