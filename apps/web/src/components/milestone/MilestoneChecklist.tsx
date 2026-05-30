@@ -1,4 +1,5 @@
 import type { MilestonePreset } from '@bebe/core'
+import { Plus } from 'lucide-react'
 import Link from 'next/link'
 
 export function MilestoneChecklist({
@@ -20,6 +21,13 @@ export function MilestoneChecklist({
   }
   return (
     <div className="space-y-6">
+      <Link
+        href={`/babies/${babyId}/milestones/new`}
+        className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-point-500 text-[15px] font-semibold text-white transition active:scale-[0.98] hover:bg-point-600"
+      >
+        <Plus size={18} strokeWidth={2.4} />
+        직접 추가
+      </Link>
       <section>
         <h2 className="mb-2 text-sm font-medium text-base-500">달성 ({achieved.length})</h2>
         {achieved.length === 0 ? (

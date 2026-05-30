@@ -1,4 +1,3 @@
-import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { AppHeader } from '@/components/shell/app-header'
 import { StoryDateFilter } from '@/components/story/story-date-filter'
 import { StoryCard } from '@/components/timeline/story-card'
@@ -7,9 +6,8 @@ import { SearchBox } from '@/components/ui/search-box'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
-import { countMemories } from '@/server/memories/list'
 import { listStoryEntries } from '@/server/story/list'
-import { BookOpen, Plus, Search, Sparkles } from 'lucide-react'
+import { Award, BookOpen, Plus, Ruler, Search, Sparkles } from 'lucide-react'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
@@ -56,11 +54,12 @@ export default async function StoryPage({
     getMediaClient(),
   )
   const groups = groupByMonth(items)
-  const memoryCount = await countMemories(
-    { familyId: ctx.family.id, today: new Date(), viewerRole: ctx.membership?.role ?? 'family' },
-    prismaMedia,
-    prismaPublic,
-  )
+  // 가장 먼저 태어난 아기 기준 — 성장기록·마일스톤 진입점에 사용.
+  const baby = await prismaPublic.baby.findFirst({
+    where: { familyId: ctx.family.id, deletedAt: null },
+    orderBy: { birthDate: 'asc' },
+    select: { id: true },
+  })
   const canRecord = ctx.capabilities.includes('record.create')
   const emptyDescription = [query ? `"${query}"` : null, dateFilter ?? null]
     .filter(Boolean)
@@ -91,9 +90,36 @@ export default async function StoryPage({
           <StoryDateFilter />
         </div>
 
-        {!query && !dateFilter && (
-          <div className="mb-4">
-            <MemoriesEntry count={memoryCount} />
+        {!query && !dateFilter && baby && (
+          <div className="mb-4 grid grid-cols-2 gap-2">
+            <Link
+              href={`/babies/${baby.id}/growth`}
+              className="flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 p-4 shadow-card transition active:scale-[0.98] hover:bg-base-50 dark:border-base-800/70 dark:bg-base-900 dark:hover:bg-base-800/60"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-point-500/10 text-point-500">
+                <Ruler size={20} strokeWidth={2.1} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[15px] font-semibold text-base-900 dark:text-base-50">
+                  성장 기록
+                </span>
+                <span className="block text-[12px] text-base-500">키 · 몸무게</span>
+              </span>
+            </Link>
+            <Link
+              href={`/babies/${baby.id}/milestones`}
+              className="flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 p-4 shadow-card transition active:scale-[0.98] hover:bg-base-50 dark:border-base-800/70 dark:bg-base-900 dark:hover:bg-base-800/60"
+            >
+              <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500/10 text-amber-500">
+                <Award size={20} strokeWidth={2.1} />
+              </span>
+              <span className="min-w-0">
+                <span className="block text-[15px] font-semibold text-base-900 dark:text-base-50">
+                  마일스톤
+                </span>
+                <span className="block text-[12px] text-base-500">발달 기록</span>
+              </span>
+            </Link>
           </div>
         )}
 
