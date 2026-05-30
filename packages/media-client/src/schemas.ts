@@ -5,11 +5,9 @@ export const VERSION = 1 as const
 // 파일 서빙 signed URL 은 기본이 **루트 상대 경로**(`/media/v1/files/<jwt>`) — 단일 포트
 // 오리진 무관 로딩(§signed-url). 미디어를 별도 호스트로 분리하면 절대 URL 일 수도 있어
 // 둘 다 허용한다.
-const mediaUrl = z
-  .string()
-  .refine((s) => s.startsWith('/') || /^https?:\/\//.test(s), {
-    message: 'absolute URL 또는 루트 상대 경로(/...) 여야 합니다',
-  })
+const mediaUrl = z.string().refine((s) => s.startsWith('/') || /^https?:\/\//.test(s), {
+  message: 'absolute URL 또는 루트 상대 경로(/...) 여야 합니다',
+})
 
 // ─── Init ────────────────────────────────────────────────────────
 export const initAssetRequest = z.object({

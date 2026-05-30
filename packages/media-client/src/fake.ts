@@ -62,7 +62,6 @@ export class FakeMediaClient implements MediaClient {
   }
 
   clearSimulatedError(): void {
-    // biome-ignore lint/performance/noDelete: exactOptionalPropertyTypes forbids `= undefined`; delete is the correct reset here
     delete this.simulated
   }
 

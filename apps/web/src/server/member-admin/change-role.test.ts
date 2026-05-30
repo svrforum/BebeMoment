@@ -52,8 +52,7 @@ describe('changeMemberRole', () => {
     const { owner, family, membership } = await setup()
     await expect(
       changeMemberRole(
-        // biome-ignore lint/suspicious/noExplicitAny: invalid role 강제 주입
-        { membershipId: membership.id, familyId: family.id, actorUserId: owner.id, role: 'owner' as any },
+        { membershipId: membership.id, familyId: family.id, actorUserId: owner.id, role: 'owner' },
         db.prismaPublic,
       ),
     ).rejects.toThrow('지정할 수 없는')

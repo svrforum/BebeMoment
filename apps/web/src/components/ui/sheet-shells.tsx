@@ -105,7 +105,6 @@ export function DesktopModalShell({
             onClick={() => onOpenChange(false)}
             aria-hidden
           />
-          {/* biome-ignore lint/a11y/useSemanticElements: custom framer-motion modal; native <dialog> conflicts with the overlay + spring animation setup */}
           <motion.div
             role="dialog"
             aria-modal="true"
