@@ -18,7 +18,7 @@ describe('buildSignedUrl', () => {
     expect(token.length).toBeGreaterThan(20)
   })
 
-  test('falls back to PUBLIC_URL when MEDIA_PUBLIC_BASE_URL unset', async () => {
+  test('returns a relative path when MEDIA_PUBLIC_BASE_URL unset (same-origin)', async () => {
     const save = process.env.MEDIA_PUBLIC_BASE_URL
     process.env.MEDIA_PUBLIC_BASE_URL = ''
     process.env.PUBLIC_URL = 'https://bebe.example'
@@ -27,7 +27,7 @@ describe('buildSignedUrl', () => {
       assetId: 'a',
       key: 'k',
     })
-    expect(url.startsWith('https://bebe.example/media/v1/files/')).toBe(true)
+    expect(url.startsWith('/media/v1/files/')).toBe(true)
     process.env.MEDIA_PUBLIC_BASE_URL = save
   })
 
