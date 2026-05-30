@@ -10,6 +10,14 @@ type Props = {
   passwordEnabled: boolean
 }
 
+// 로그인 후 돌아갈 경로. open-redirect 방지로 같은 출처의 절대경로(/...)만 허용.
+function safeNext(): string {
+  if (typeof window === 'undefined') return '/'
+  const p = new URLSearchParams(window.location.search).get('next')
+  if (p && p.startsWith('/') && !p.startsWith('//')) return p
+  return '/'
+}
+
 export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
@@ -32,7 +40,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
       setSubmitting(false)
       return
     }
-    window.location.replace('/')
+    window.location.replace(safeNext())
   }
 
   return (

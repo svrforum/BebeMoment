@@ -6,6 +6,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import { getSetting } from '@/server/settings/get'
 import { getFeatureFlags } from '@/server/settings/features'
+import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { AppShellClient } from './shell-client'
@@ -19,7 +20,13 @@ import { AppShellClient } from './shell-client'
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const ctx = await getContext()
-  if (!ctx.user) redirect('/login')
+  if (!ctx.user) {
+    // 미로그인으로 보호 페이지(공유된 /detail/52 등)에 들어오면 로그인 후 그 자리로
+    // 돌려보내도록 ?next= 를 붙인다. 경로는 미들웨어가 심은 x-pathname 에서 읽는다.
+    const path = (await headers()).get('x-pathname') ?? ''
+    const next = path.startsWith('/') && !path.startsWith('//') ? path : ''
+    redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
+  }
   if (!ctx.family) redirect('/onboarding')
 
   const features = await getFeatureFlags(prismaPublic)
