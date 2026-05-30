@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { decryptSecret } from '@/lib/crypto'
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
+import { publicOrigin } from '@/lib/request-origin'
 import { linkIdentityToUser } from '@/server/oidc/link'
 import {
   exchangeCodeForTokens,
@@ -52,7 +53,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   const clientSecret = await decryptSecret(provider.clientSecretEnc, env.SECRET_KEY)
-  const redirectUri = `${env.PUBLIC_URL}/api/auth/oidc/${providerId}/callback`
+  const redirectUri = `${publicOrigin(req, env.PUBLIC_URL)}/api/auth/oidc/${providerId}/callback`
 
   try {
     let linkInput: {

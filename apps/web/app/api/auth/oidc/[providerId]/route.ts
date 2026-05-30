@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { prismaPublic } from '@/lib/db-init'
+import { publicOrigin } from '@/lib/request-origin'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { NAVER_AUTHORIZE } from '@/server/oidc/naver'
 import { parseEnv } from '@bebe/config'
@@ -16,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   const state = crypto.randomBytes(16).toString('base64url')
-  const redirectUri = `${env.PUBLIC_URL}/api/auth/oidc/${providerId}/callback`
+  const redirectUri = `${publicOrigin(req, env.PUBLIC_URL)}/api/auth/oidc/${providerId}/callback`
   const cookieStore = await cookies()
   const cookieOpts = {
     httpOnly: true,

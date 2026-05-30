@@ -30,6 +30,28 @@ export async function setPushCategory(category: string, enabled: boolean): Promi
   await setSetting(`push.categories.${category}.enabled`, String(enabled), userId, prismaPublic)
 }
 
+const DeliverySchema = z.object({
+  mode: z.enum(['immediate', 'digest']),
+  interval: z.enum(['hourly', 'every3h', 'daily']),
+  dailyHour: z.number().int().min(0).max(23),
+  quietEnabled: z.boolean(),
+  quietStart: z.number().int().min(0).max(23),
+  quietEnd: z.number().int().min(0).max(23),
+})
+
+export async function setDeliverySettings(input: z.infer<typeof DeliverySchema>): Promise<void> {
+  const userId = await adminUserId()
+  const d = DeliverySchema.parse(input)
+  await Promise.all([
+    setSetting('push.delivery.mode', d.mode, userId, prismaPublic),
+    setSetting('push.delivery.interval', d.interval, userId, prismaPublic),
+    setSetting('push.delivery.daily_hour', String(d.dailyHour), userId, prismaPublic),
+    setSetting('push.quiet.enabled', String(d.quietEnabled), userId, prismaPublic),
+    setSetting('push.quiet.start', String(d.quietStart), userId, prismaPublic),
+    setSetting('push.quiet.end', String(d.quietEnd), userId, prismaPublic),
+  ])
+}
+
 function requireSecretKey(): string {
   const secretKey = process.env.SECRET_KEY
   if (!secretKey) throw new Error('SECRET_KEY required')

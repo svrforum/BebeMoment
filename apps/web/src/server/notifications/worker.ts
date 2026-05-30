@@ -66,6 +66,14 @@ export function buildNotification(job: NotificationJob): {
         url: '/memories',
       }
     }
+    case 'digest.summary': {
+      const count = job.payload.count ?? ''
+      return {
+        title: '새 알림',
+        body: count ? `새 사진 ${count}장이 올라왔어요` : '새 소식이 있어요',
+        url: '/timeline',
+      }
+    }
   }
 }
 

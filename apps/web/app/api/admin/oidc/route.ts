@@ -7,6 +7,7 @@ import { z } from 'zod'
 const CreateSchema = z
   .object({
     name: z.string().min(1),
+    id: z.string().uuid().optional(),
     kind: z.enum(['oidc', 'naver']).default('oidc'),
     // 네이버는 discovery 가 없어 issuer 가 의미 없다 → oidc 일 때만 URL 강제.
     issuer: z.string().default(''),

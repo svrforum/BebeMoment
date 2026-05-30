@@ -4,6 +4,12 @@ import { getMediaClient } from '@/lib/media-client'
 import { listMemories } from '@/server/memories/list'
 import { decideMemoryPush } from '@/server/memories/scan'
 import { deleteDeviceToken, listDeviceTokensForUsers } from '@/server/notifications/device-tokens'
+import {
+  DEFAULT_DELIVERY,
+  type DeliverySettings,
+  isDigestSlot,
+  shouldSendImmediate,
+} from '@/server/notifications/digest'
 import { enqueueNotification } from '@/server/notifications/enqueue'
 import {
   type FcmServiceAccount,
@@ -79,6 +85,64 @@ async function runMemoriesScan(): Promise<void> {
       })
       await settingsSet(`memory.last_monthly.${fam.id}`, todayStr)
     }
+  }
+}
+
+const DIGEST_SCAN_JOB = 'digest-scan'
+
+async function readDeliverySettings(): Promise<DeliverySettings> {
+  const num = async (key: string, def: number): Promise<number> => {
+    const v = await settingsGet(key)
+    const n = v ? Number(v) : Number.NaN
+    return Number.isFinite(n) ? n : def
+  }
+  const mode = (await settingsGet('push.delivery.mode')) === 'digest' ? 'digest' : 'immediate'
+  const intervalRaw = await settingsGet('push.delivery.interval')
+  const interval = intervalRaw === 'hourly' || intervalRaw === 'every3h' ? intervalRaw : 'daily'
+  return {
+    mode,
+    interval,
+    dailyHour: await num('push.delivery.daily_hour', DEFAULT_DELIVERY.dailyHour),
+    quietEnabled: (await settingsGet('push.quiet.enabled')) === 'true',
+    quietStart: await num('push.quiet.start', DEFAULT_DELIVERY.quietStart),
+    quietEnd: await num('push.quiet.end', DEFAULT_DELIVERY.quietEnd),
+  }
+}
+
+/**
+ * 매시간 — 다이제스트 모드면 발송 슬롯일 때 가족별 "마지막 다이제스트 이후 새 사진 수"를
+ * 묶어 한 번에 푸시(digest.summary). 슬롯/야간/중복은 digest.ts 가 판단.
+ */
+async function runDigestScan(): Promise<void> {
+  const settings = await readDeliverySettings()
+  const now = new Date()
+  const hour = now.getHours()
+  const slotKey = `${now.toISOString().slice(0, 10)}-${hour}`
+  const lastSlot = await settingsGet('push.digest.last_slot')
+  if (!isDigestSlot(settings, hour, slotKey, lastSlot)) return
+  await settingsSet('push.digest.last_slot', slotKey)
+
+  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  for (const fam of families) {
+    const since = await settingsGet(`push.digest.since.${fam.id}`)
+    const sinceDate = since ? new Date(since) : new Date(now.getTime() - 24 * 3600 * 1000)
+    const count = await prismaMedia.asset.count({
+      where: {
+        familyId: fam.id,
+        status: 'ready',
+        deletedAt: null,
+        duplicateOf: null,
+        createdAt: { gt: sinceDate },
+      },
+    })
+    await settingsSet(`push.digest.since.${fam.id}`, now.toISOString())
+    if (count <= 0) continue
+    await enqueueNotification({
+      familyId: fam.id,
+      actorUserId: '',
+      type: 'digest.summary',
+      payload: { count: String(count), visibility: 'family' },
+    })
   }
 }
 
@@ -166,6 +230,16 @@ async function main(): Promise<void> {
         await runMemoriesScan()
         return
       }
+      if (job.name === DIGEST_SCAN_JOB) {
+        await runDigestScan()
+        return
+      }
+      // 발송 방식 게이트 — memory.*·digest.summary 는 이미 예약/요약이라 면제. 그 외
+      // 개별 이벤트는 다이제스트 모드면 즉시 발송 안 하고(스캔이 모아 보냄), 야간이면 보류.
+      const t = job.data.type
+      if (t !== 'digest.summary' && !t.startsWith('memory.')) {
+        if (!shouldSendImmediate(await readDeliverySettings(), new Date().getHours())) return
+      }
       const fcm = await buildFcmDeps()
       await handleNotificationJob(job.data, {
         ...(fcm ?? {}),
@@ -218,6 +292,12 @@ async function main(): Promise<void> {
     MEMORIES_SCAN_JOB,
     {},
     { repeat: { pattern: '0 9 * * *' }, jobId: MEMORIES_SCAN_JOB, removeOnComplete: true },
+  )
+  // 매시간 정각 다이제스트 스캔(슬롯/야간 판단은 핸들러가) — 반복 작업 1개.
+  await queue.add(
+    DIGEST_SCAN_JOB,
+    {},
+    { repeat: { pattern: '0 * * * *' }, jobId: DIGEST_SCAN_JOB, removeOnComplete: true },
   )
 
   console.log('[notifications-worker] started')

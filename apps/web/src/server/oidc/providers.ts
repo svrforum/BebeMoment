@@ -8,6 +8,7 @@ export type CreateProviderInput = {
   clientSecret: string
   scopes: string[]
   kind?: string | undefined
+  id?: string | undefined
 }
 
 export async function createProvider(
@@ -18,6 +19,7 @@ export async function createProvider(
   const enc = await encryptSecret(input.clientSecret, secretKey)
   return prisma.oidcProvider.create({
     data: {
+      ...(input.id ? { id: input.id } : {}),
       name: input.name,
       kind: input.kind === 'naver' ? 'naver' : 'oidc',
       issuer: input.issuer,

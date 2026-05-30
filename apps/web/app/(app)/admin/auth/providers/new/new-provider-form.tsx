@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 type PresetKey = 'google' | 'kakao' | 'naver' | 'microsoft' | 'custom'
 
@@ -183,9 +183,17 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
+  // provider UUID 를 저장 전에 미리 생성해 콜백 주소에 박는다 — 그래야 개발자 콘솔에
+  // 실제 Redirect URI 를 등록하고 Client ID/Secret 을 발급받을 수 있다. 저장 시 이 id 로 생성.
+  const [providerId] = useState(() => crypto.randomUUID())
+  // 지금 접속한 오리진(도메인) 기준 콜백 주소 — 서버도 요청 오리진을 redirect_uri 로 쓴다.
+  const [origin, setOrigin] = useState(publicUrl.replace(/\/$/, ''))
+  useEffect(() => {
+    setOrigin(window.location.origin)
+  }, [])
   const redirectUri = useMemo(
-    () => `${publicUrl.replace(/\/$/, '')}/api/auth/oidc/<저장 후 생성되는 UUID>/callback`,
-    [publicUrl],
+    () => `${origin}/api/auth/oidc/${providerId}/callback`,
+    [origin, providerId],
   )
 
   const preset = PRESETS.find((p) => p.key === selected) ?? null
@@ -193,7 +201,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
 
   function pickPreset(p: Preset) {
     setSelected(p.key)
-    if (!name) setName(p.name)
+    setName(p.name)
     setIssuer(p.issuer)
     setScopes(p.scopes)
     setError(null)
@@ -212,7 +220,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
     const r = await fetch('/api/admin/oidc', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, kind, issuer, clientId, clientSecret, scopes }),
+      body: JSON.stringify({ id: providerId, name, kind, issuer, clientId, clientSecret, scopes }),
     })
     setSaving(false)
     if (r.ok) router.push('/admin/auth/providers')
