@@ -132,8 +132,8 @@ export default async function TimelinePage({
   const navHidden = isManager
     ? []
     : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
-  const canDeleteSelection =
-    ctx.capabilities.includes('asset.delete.any') || ctx.capabilities.includes('asset.delete.own')
+  // 멀티셀렉트 삭제는 남의 사진도 포함될 수 있어 관리자급(delete.any)만 — 일반 가족은 숨김.
+  const canDeleteSelection = ctx.capabilities.includes('asset.delete.any')
   const canAddAlbum = ctx.capabilities.includes('album.create') && !navHidden.includes('albums')
 
   // 날짜 필터 모드(캘린더에서 진입): 그 날의 스토리(일기)와 사진을 보여준다.
