@@ -1,19 +1,20 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { AssetCard } from '@/components/timeline/asset-card'
 import { StoryCard } from '@/components/timeline/story-card'
+import type { TimelineStory } from '@/components/timeline/bucket-section'
+import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
+import { getSetting } from '@/server/settings/get'
 import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
+import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { Bookmark } from 'lucide-react'
 import { redirect } from 'next/navigation'
+import { z } from 'zod'
 
-function dateOf(...candidates: (Date | string | null | undefined)[]): number {
-  for (const c of candidates) {
-    if (c) return new Date(c).getTime()
-  }
-  return 0
+function utcDayKey(d: Date): string {
+  return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
 
 export default async function SavedPage() {
@@ -21,11 +22,11 @@ export default async function SavedPage() {
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const role = ctx.membership?.role ?? 'family'
 
-  const [photos, stories] = await Promise.all([
+  const [photos, stories, baby] = await Promise.all([
     listMyBookmarks(
       ctx.family.id,
       ctx.user.id,
-      { limit: 60 },
+      { limit: 100 },
       prismaPublic,
       prismaMedia,
       getMediaClient(),
@@ -34,89 +35,122 @@ export default async function SavedPage() {
       ctx.family.id,
       ctx.user.id,
       role,
-      { limit: 30 },
+      { limit: 50 },
       prismaPublic,
       prismaMedia,
       getMediaClient(),
     ),
+    prismaPublic.baby.findFirst({
+      where: { familyId: ctx.family.id, deletedAt: null },
+      orderBy: { birthDate: 'asc' },
+    }),
   ])
+  const birthDate: Date | null = baby?.birthDate ?? null
 
-  // 타임라인과 동일하게 날짜(사진 촬영일 / 스토리 날짜) 내림차순 정렬. 북마크 목록은
-  // 기본적으로 '북마크한 시각' 순이라 타임라인과 어긋나 보였다.
-  const photoItems = photos.items
-    .filter((b) => b.asset)
-    .sort(
-      (a, b) =>
-        dateOf(a.asset?.takenAt, a.asset?.createdAt) - dateOf(b.asset?.takenAt, b.asset?.createdAt),
-    )
-    .reverse()
-  const storyItems = stories.items
-    .filter((b) => b.entry)
-    .sort((a, b) => dateOf(a.entry?.entryDate) - dateOf(b.entry?.entryDate))
-    .reverse()
+  // 타임라인과 동일한 포맷: 촬영일(takenAt) 기준 일자 그룹 + 날짜/나이/D-day 헤더.
+  const groups = groupAssetsByDay(
+    photos.items.flatMap((b) => {
+      const a = b.asset
+      if (!a) return []
+      return [
+        {
+          id: a.id,
+          publicNo: a.publicNo,
+          ts: a.takenAt ?? a.createdAt,
+          status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
+          kind: a.kind as 'image' | 'video',
+          urls: a.urls,
+          durationMs: a.durationMs ?? null,
+        },
+      ]
+    }),
+    birthDate,
+  )
 
-  const hasPhotos = photoItems.length > 0
-  const hasStory = storyItems.length > 0
-  const empty = !hasPhotos && !hasStory
+  // 북마크한 스토리도 타임라인처럼 같은 날짜 그룹 위에 끼운다. 사진 없는 날의 스토리는
+  // orphan 으로 상단에 따로(최신순).
+  const storyEntries = stories.items.flatMap((b) => (b.entry ? [b.entry] : []))
+  const groupKeys = new Set(groups.map((g) => g.dateKey))
+  const storiesByDate = new Map<string, TimelineStory[]>()
+  for (const e of storyEntries) {
+    const key = utcDayKey(e.entryDate)
+    const arr = storiesByDate.get(key) ?? []
+    arr.push({
+      id: e.id,
+      publicNo: e.publicNo,
+      title: e.title ?? null,
+      body: e.body,
+      mood: e.mood ?? null,
+      visibility: e.visibility,
+    })
+    storiesByDate.set(key, arr)
+  }
+  const mainGroups = groups.map((g) => ({
+    dateKey: g.dateKey,
+    label: g.dateLabel,
+    ageLabel: g.bucketLabel,
+    dDay: g.babyDays !== null ? formatDDay(g.babyDays) : null,
+    assets: g.assets.map((a) => ({
+      id: a.id,
+      publicNo: a.publicNo,
+      status: a.status,
+      kind: a.kind,
+      urls: a.urls,
+      ts: a.ts,
+      durationMs: a.durationMs,
+    })),
+    stories: storiesByDate.get(g.dateKey) ?? [],
+  }))
+  const orphanStories = storyEntries
+    .filter((e) => !groupKeys.has(utcDayKey(e.entryDate)))
+    .sort((a, b) => b.entryDate.getTime() - a.entryDate.getTime())
+
+  // 멀티셀렉트 게이팅 — 타임라인과 동일 기준(삭제=delete.any, 앨범=album.create+비숨김).
+  const isManager = role === 'owner' || role === 'guardian'
+  const navHidden = isManager
+    ? []
+    : await getSetting('nav.family.hidden', z.array(z.string()), [], prismaPublic)
+  const canDeleteSelection = ctx.capabilities.includes('asset.delete.any')
+  const canAddAlbum = ctx.capabilities.includes('album.create') && !navHidden.includes('albums')
+
+  const empty = mainGroups.length === 0 && orphanStories.length === 0
 
   return (
     <>
-      <AppHeader title="북마크" />
-      <div className="mx-auto max-w-3xl space-y-8 px-5 py-4">
-        {empty ? (
-          <div className="flex flex-col items-center gap-4 py-16 text-center">
-            <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
-              <Bookmark className="h-10 w-10 text-base-400" />
-            </div>
-            <div>
-              <p className="text-base font-semibold text-base-900 dark:text-base-50">
-                저장한 항목이 없어요
-              </p>
-              <p className="mt-1 text-sm text-base-500">
-                사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요
-              </p>
-            </div>
+      <AppHeader title="북마크" wide />
+      {empty ? (
+        <div className="flex flex-col items-center gap-4 py-16 text-center">
+          <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
+            <Bookmark className="h-10 w-10 text-base-400" />
           </div>
-        ) : (
-          <>
-            {hasPhotos && (
-              <section>
-                <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
-                  저장한 사진
-                </h2>
-                <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5">
-                  {photoItems.map((b) => {
-                    if (!b.asset) return null
-                    return (
-                      <AssetCard
-                        key={b.assetId}
-                        id={b.assetId}
-                        publicNo={b.asset.publicNo}
-                        urls={b.asset.urls}
-                        status={b.asset.status}
-                        kind={b.asset.kind}
-                      />
-                    )
-                  })}
-                </div>
-              </section>
-            )}
-            {hasStory && (
-              <section>
-                <h2 className="mb-3 text-[13px] font-semibold uppercase tracking-wider text-base-500 dark:text-base-400">
-                  저장한 스토리
-                </h2>
-                <div className="space-y-3">
-                  {storyItems.map((b) => {
-                    if (!b.entry) return null
-                    return <StoryCard key={b.entryId} entry={b.entry} />
-                  })}
-                </div>
-              </section>
-            )}
-          </>
-        )}
-      </div>
+          <div>
+            <p className="text-base font-semibold text-base-900 dark:text-base-50">
+              저장한 항목이 없어요
+            </p>
+            <p className="mt-1 text-sm text-base-500">
+              사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요
+            </p>
+          </div>
+        </div>
+      ) : (
+        <>
+          {orphanStories.length > 0 && (
+            <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
+              {orphanStories.map((e) => (
+                <StoryCard key={`j-${e.id}`} entry={e} compact />
+              ))}
+            </div>
+          )}
+          {mainGroups.length > 0 && (
+            <TimelineGrid
+              initialGroups={mainGroups}
+              canUpload={false}
+              canDeleteSelection={canDeleteSelection}
+              canAddAlbum={canAddAlbum}
+            />
+          )}
+        </>
+      )}
     </>
   )
 }
