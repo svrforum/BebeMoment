@@ -1,5 +1,6 @@
 'use client'
 import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
+import { useFeatures } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Download, FolderPlus } from 'lucide-react'
 import { BookmarkButton } from './bookmark-button'
@@ -59,6 +60,7 @@ export function ViewerInfoPanel({
   onAlbumTap: () => void
 }) {
   const toast = useToast()
+  const features = useFeatures()
   return (
     <div className="flex h-full flex-col">
       <div className="sticky top-0 z-10 flex items-center justify-between border-b border-base-200/70 bg-base-0/85 px-5 py-3.5 backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/85">
@@ -79,7 +81,7 @@ export function ViewerInfoPanel({
           initialTakenAtSource={meta.takenAtSource}
         />
         <MetadataSection {...meta} />
-        <TagEditor assetId={assetId} initial={initialTags} />
+        {features.tags && <TagEditor assetId={assetId} initial={initialTags} />}
         <div className="flex flex-col gap-3">
           <div className="flex items-center gap-1">
             <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
@@ -107,20 +109,22 @@ export function ViewerInfoPanel({
           </div>
           <LikerAvatars users={likers.users} />
         </div>
-        <div className="flex flex-col gap-2">
-          <h3 className="text-[13px] font-semibold tracking-tight text-base-500">
-            댓글{' '}
-            <span className="tabular-nums text-base-700 dark:text-base-300">{commentCount}</span>
-          </h3>
-          <CommentList
-            assetId={assetId}
-            currentUserId={currentUserId}
-            canDeleteAny={canDeleteAny}
-            familyMembers={familyMembers}
-            initialComments={initialComments}
-            onCountChange={onCommentCountChange}
-          />
-        </div>
+        {features.comments && (
+          <div className="flex flex-col gap-2">
+            <h3 className="text-[13px] font-semibold tracking-tight text-base-500">
+              댓글{' '}
+              <span className="tabular-nums text-base-700 dark:text-base-300">{commentCount}</span>
+            </h3>
+            <CommentList
+              assetId={assetId}
+              currentUserId={currentUserId}
+              canDeleteAny={canDeleteAny}
+              familyMembers={familyMembers}
+              initialComments={initialComments}
+              onCountChange={onCommentCountChange}
+            />
+          </div>
+        )}
       </div>
     </div>
   )

@@ -1,6 +1,7 @@
 'use client'
 import { type AssetTag, TagEditor } from '@/components/tags/tag-editor'
 import { Sheet } from '@/components/ui/sheet'
+import { useFeatures } from '@/lib/features'
 import { ChevronDown } from 'lucide-react'
 import { useEffect, useState } from 'react'
 import { BookmarkButton } from './bookmark-button'
@@ -62,6 +63,7 @@ export function ViewerBottomSheet({
   /** ⋮ "정보"로 열면 세부정보 펼친 채로, 댓글로 열면 접힌 채로. */
   initialDetailsOpen?: boolean
 }) {
+  const features = useFeatures()
   // 시트가 열릴 때마다 진입 의도(정보 vs 댓글)에 맞춰 세부정보 펼침 상태 초기화.
   const [detailsOpen, setDetailsOpen] = useState(false)
   useEffect(() => {
@@ -101,24 +103,35 @@ export function ViewerBottomSheet({
             initialTakenAtSource={meta.takenAtSource}
           />
           <MetadataSection {...meta} />
-          <TagEditor assetId={assetId} initial={initialTags} />
+          {features.tags && <TagEditor assetId={assetId} initial={initialTags} />}
         </div>
       </details>
     </div>
   )
 
+  // 댓글 기능이 꺼져 있으면 댓글 리스트·작성칸을 숨기고 시트는 '사진 정보'로만 쓴다
+  // (⋮ 정보로 진입). 켜져 있으면 기존처럼 댓글 + 헤더.
   return (
-    <Sheet open={open} onOpenChange={onOpenChange} title={`댓글 ${commentCount}`} fill>
-      <CommentList
-        assetId={assetId}
-        currentUserId={currentUserId}
-        canDeleteAny={canDeleteAny}
-        familyMembers={familyMembers}
-        initialComments={initialComments}
-        onCountChange={onCommentCountChange}
-        fill
-        header={header}
-      />
+    <Sheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={features.comments ? `댓글 ${commentCount}` : '사진 정보'}
+      fill
+    >
+      {features.comments ? (
+        <CommentList
+          assetId={assetId}
+          currentUserId={currentUserId}
+          canDeleteAny={canDeleteAny}
+          familyMembers={familyMembers}
+          initialComments={initialComments}
+          onCountChange={onCommentCountChange}
+          fill
+          header={header}
+        />
+      ) : (
+        <div className="overflow-y-auto px-0.5">{header}</div>
+      )}
     </Sheet>
   )
 }
