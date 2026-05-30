@@ -128,17 +128,19 @@ export default async function SettingsPage() {
           <SnsLinkSection />
         </section>
 
-        {/* 가족 */}
-        <section className="space-y-2">
-          <SectionTitle>가족</SectionTitle>
-          <LinkRows rows={familyRows} />
-        </section>
-
-        {/* 콘텐츠 */}
-        <section className="space-y-2">
-          <SectionTitle>콘텐츠</SectionTitle>
-          <LinkRows rows={contentRows} />
-        </section>
+        {/* 가족·콘텐츠 — 관리(owner/관리자)만. 일반 구성원은 알림·화면·SNS 만 본다. */}
+        {isAdmin && (
+          <>
+            <section className="space-y-2">
+              <SectionTitle>가족</SectionTitle>
+              <LinkRows rows={familyRows} />
+            </section>
+            <section className="space-y-2">
+              <SectionTitle>콘텐츠</SectionTitle>
+              <LinkRows rows={contentRows} />
+            </section>
+          </>
+        )}
 
         {/* 알림 */}
         <section className="space-y-2">

@@ -119,14 +119,6 @@ export default async function TimelinePage({
               <span>캘린더로</span>
             </Link>
           }
-          right={
-            <Link
-              href="/timeline"
-              className="flex h-9 items-center rounded-full px-3 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
-            >
-              전체 보기
-            </Link>
-          }
           wide
         />
         {storyItems.length > 0 && (

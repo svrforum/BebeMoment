@@ -4,7 +4,7 @@ import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
 import { Calendar, Clock4, FolderOpen, NotebookPen, Settings, Users } from 'lucide-react'
 import Link from 'next/link'
-import { usePathname } from 'next/navigation'
+import { usePathname, useSearchParams } from 'next/navigation'
 import { UnreadBadge } from './unread-badge'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
@@ -25,9 +25,12 @@ type Props = {
 
 export function BottomNav({ unreadCounts, canManageFamily = true }: Props = {}) {
   const pathname = usePathname()
+  const searchParams = useSearchParams()
   const features = useFeatures()
   // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
   if (pathname?.startsWith('/detail') === true) return null
+  // 캘린더에서 특정 날짜로 들어온 화면(/timeline?date=)은 캘린더 맥락이므로 캘린더 탭을 활성으로.
+  const inDateView = pathname === '/timeline' && searchParams.get('date') !== null
   const lastItem = canManageFamily
     ? { href: '/family', label: '가족', icon: Users }
     : { href: '/settings', label: '설정', icon: Settings }
@@ -39,7 +42,9 @@ export function BottomNav({ unreadCounts, canManageFamily = true }: Props = {}) 
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
       >
         {visible.map(({ href, label, icon: Icon }) => {
-          const active = pathname === href || pathname?.startsWith(`${href}/`) === true
+          const active = inDateView
+            ? href === '/calendar'
+            : pathname === href || pathname?.startsWith(`${href}/`) === true
           const unread = unreadCounts?.[href] ?? 0
           return (
             <Link
