@@ -7,7 +7,7 @@ import { parseEnv } from '@bebe/config'
 import { ASSET_QUEUE } from '@bebe/core'
 import { MemoryLocker, Server as TusServer, type Upload } from '@tus/server'
 import { Queue } from 'bullmq'
-import type { FastifyPluginAsync } from 'fastify'
+import type { FastifyPluginAsync, FastifyReply, FastifyRequest } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
 import { extractUploadToken } from '../middleware/upload-token'
 
@@ -61,10 +61,10 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     },
   })
 
-  app.all('/media/v1/tus/*', async (req, reply) => {
+  const handleTus = async (req: FastifyRequest, reply: FastifyReply) => {
     const token = await extractUploadToken(req)
 
-    const wildcard = (req.params as { '*': string })['*'] ?? ''
+    const wildcard = (req.params as { '*'?: string })['*'] ?? ''
     const urlAssetId = wildcard.split('/')[0] ?? ''
     if (urlAssetId && urlAssetId !== token.assetId) {
       throw new MediaHttpError({
@@ -78,5 +78,10 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
 
     reply.hijack()
     await tusServer.handle(req.raw, reply.raw)
-  })
+  }
+
+  // `/media/v1/tus` (POST = 생성, endpoint 폴백) + `/media/v1/tus/<id>` (HEAD/PATCH = resume).
+  // 둘 다 같은 핸들러로. 바ID 없는 생성 POST 가 누락돼 404 나던 것을 수정.
+  app.all('/media/v1/tus', handleTus)
+  app.all('/media/v1/tus/*', handleTus)
 }
