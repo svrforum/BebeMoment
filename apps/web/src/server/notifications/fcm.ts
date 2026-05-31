@@ -66,11 +66,14 @@ export async function sendFcm(
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
     method: 'POST',
     headers: { authorization: `Bearer ${accessToken}`, 'content-type': 'application/json' },
+    // 데이터 전용 메시지(notification 키 없음) — 그래야 앱이 백그라운드일 때도
+    // onMessageReceived 가 호출돼 ① 알림을 직접 띄우고 ② 홈 위젯을 갱신할 수 있다.
+    // (notification 키가 있으면 백그라운드에선 시스템 트레이가 가로채고 앱 코드가
+    // 안 돈다.) 트레이드오프: 앱이 강제중지 상태면 데이터 메시지가 안 올 수 있음.
     body: JSON.stringify({
       message: {
         token,
-        notification: { title: payload.title, body: payload.body },
-        data: { url: payload.url },
+        data: { title: payload.title, body: payload.body, url: payload.url },
         android: { priority: 'HIGH' },
       },
     }),

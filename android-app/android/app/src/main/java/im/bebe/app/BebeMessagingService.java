@@ -15,10 +15,19 @@ public class BebeMessagingService extends FirebaseMessagingService {
 
     @Override
     public void onMessageReceived(RemoteMessage msg) {
+        // 서버는 데이터 전용 메시지를 보낸다(백그라운드에서도 이 콜백이 돌게) — title/body 를
+        // data 에서 읽고, 혹시 모를 notification 페이로드(구버전 호환)는 폴백으로.
+        java.util.Map<String, String> data = msg.getData();
         RemoteMessage.Notification n = msg.getNotification();
-        String title = n != null && n.getTitle() != null ? n.getTitle() : "bebe";
-        String body = n != null && n.getBody() != null ? n.getBody() : "";
-        String url = msg.getData().get("url");
+        String title = data.get("title");
+        if (title == null || title.isEmpty()) {
+            title = n != null && n.getTitle() != null ? n.getTitle() : "bebe";
+        }
+        String body = data.get("body");
+        if (body == null) {
+            body = n != null && n.getBody() != null ? n.getBody() : "";
+        }
+        String url = data.get("url");
 
         // 푸시가 오면(새 사진·댓글 등) 위젯도 즉시 갱신해 최신 사진·뱃지를 반영.
         try {
