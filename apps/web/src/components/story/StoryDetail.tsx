@@ -136,6 +136,34 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         )}
       </header>
 
+      {/* 본문(텍스트)을 사진 위에 — 텍스트 → 사진 순(1371). 무드 칩 → 제목 → 본문. */}
+      {(mood || entry.title || trimmed.length > 0) && (
+        <div className="px-4 pt-1 pb-3">
+          {mood && (
+            <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
+              <span
+                className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${mood.chip}`}
+              >
+                <span className="text-[13px] leading-none">{mood.emoji}</span>
+                {mood.label}
+              </span>
+            </div>
+          )}
+
+          {entry.title && (
+            <h1 className="mb-1.5 text-[17px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
+              {entry.title}
+            </h1>
+          )}
+
+          {trimmed.length > 0 && (
+            <div className="prose prose-base max-w-none text-[15px] leading-[1.65] text-base-800 dark:text-base-200">
+              <MarkdownBody body={entry.body} />
+            </div>
+          )}
+        </div>
+      )}
+
       {/* 사진 — 슬라이드(인스타식 캐러셀) 또는 격자(갤러리) 토글. 여러 장일 때만 토글 노출.
           격자에서 탭하면 전체화면 뷰어(/detail/<publicNo>)로 연다. */}
       {sortedAssets.length > 0 && (
@@ -234,32 +262,6 @@ export function StoryDetail({ entry }: { entry: Entry }) {
           )}
         </div>
       )}
-
-      {/* 캡션 — 무드 칩 → 제목(있다면) → 본문. 인스타 캡션처럼 좌측 정렬, 적당히 빽빽한 줄 간격. */}
-      <div className="px-4 pt-3 pb-5">
-        {mood && (
-          <div className="mb-2.5 flex flex-wrap items-center gap-1.5">
-            <span
-              className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${mood.chip}`}
-            >
-              <span className="text-[13px] leading-none">{mood.emoji}</span>
-              {mood.label}
-            </span>
-          </div>
-        )}
-
-        {entry.title && (
-          <h1 className="mb-1.5 text-[17px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
-            {entry.title}
-          </h1>
-        )}
-
-        {trimmed.length > 0 && (
-          <div className="prose prose-base max-w-none text-[15px] leading-[1.65] text-base-800 dark:text-base-200">
-            <MarkdownBody body={entry.body} />
-          </div>
-        )}
-      </div>
     </article>
   )
 }
