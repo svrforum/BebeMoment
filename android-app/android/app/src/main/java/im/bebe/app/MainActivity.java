@@ -350,6 +350,38 @@ public class MainActivity extends BridgeActivity {
     private static final String CAP_PREFS = "CapacitorStorage";
     private static final String ACCOUNTS_KEY = "bebeAccounts";
 
+    /** 저장된 계정들의 base URL(끝 슬래시 제거) 목록. */
+    private java.util.List<String> readAccountBases() {
+        final java.util.List<String> out = new java.util.ArrayList<>();
+        try {
+            final SharedPreferences sp =
+                getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
+            final String raw = sp.getString(ACCOUNTS_KEY, null);
+            if (raw != null && !raw.isEmpty()) {
+                final org.json.JSONArray list = new org.json.JSONArray(raw);
+                for (int i = 0; i < list.length(); i++) {
+                    final org.json.JSONObject o = list.optJSONObject(i);
+                    final String u = o != null ? o.optString("url", "") : "";
+                    if (!u.isEmpty()) out.add(u.replaceAll("/+$", ""));
+                }
+            }
+        } catch (Exception ignored) {
+        }
+        return out;
+    }
+
+    /** 활성 서버(serverUrl) 전환 — 알림이 다른 가족 출처일 때. */
+    private void setActiveServer(String base) {
+        try {
+            getApplicationContext()
+                .getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE)
+                .edit()
+                .putString("serverUrl", base)
+                .apply();
+        } catch (Exception ignored) {
+        }
+    }
+
     /** 활성 서버를 계정 목록에 보장(마이그레이션)하고, 세션이 있으면 가족 이름을 라벨로 채운다. */
     private void tryLabelActiveFamily() {
         final String serverUrl = readServerUrl();
@@ -470,15 +502,22 @@ public class MainActivity extends BridgeActivity {
                 app.get(FirebaseMessaging.class).getToken().addOnCompleteListener(task -> {
                     if (!task.isSuccessful() || task.getResult() == null) return;
                     final String fcmToken = task.getResult();
-                    new Thread(() -> {
-                        try {
-                            final String cookies = CookieManager.getInstance().getCookie(serverUrl);
-                            if (cookies == null || !cookies.contains("session")) return;
-                            postJson(base + "/api/notifications/register-device", cookies,
-                                new JSONObject().put("token", fcmToken).put("platform", "android").toString());
-                        } catch (Exception ignored) {
-                        }
-                    }).start();
+                    // 멀티 인스턴스 — 토큰을 연결된 "모든" 가족 서버에 등록(각자 세션 쿠키로).
+                    // 인스턴스들이 같은 Firebase 프로젝트를 공유하면 모든 가족 푸시가 이 기기로
+                    // 온다. (프로젝트가 다르면 활성 가족만 — FCM 한계.)
+                    final java.util.List<String> targets = readAccountBases();
+                    if (targets.isEmpty()) targets.add(base);
+                    for (final String t : targets) {
+                        new Thread(() -> {
+                            try {
+                                final String cookies = CookieManager.getInstance().getCookie(t);
+                                if (cookies == null || !cookies.contains("session")) return;
+                                postJson(t + "/api/notifications/register-device", cookies,
+                                    new JSONObject().put("token", fcmToken).put("platform", "android").toString());
+                            } catch (Exception ignored) {
+                            }
+                        }).start();
+                    }
                 });
             } catch (Exception ignored) {
             }
@@ -843,6 +882,13 @@ public class MainActivity extends BridgeActivity {
         // "deepLink": 포그라운드에서 BebeMessagingService 가 만든 알림(커스텀 키).
         // "url": 백그라운드/종료 상태에서 시스템이 FCM notification 을 처리할 때 data
         //        페이로드(url)가 런처 인텐트 extra 로 전달되는 키. 둘 다 본다.
+        // 멀티 인스턴스 — 알림 출처 서버가 현재 활성과 다르면 먼저 그 가족으로 전환한다
+        // (등록된 계정일 때만). 그러면 아래 resolveDeepLink 가 그 서버 기준으로 해석한다.
+        final String switchServer = intent.getStringExtra("switchServer");
+        if (switchServer != null && !switchServer.isEmpty()) {
+            final String b = switchServer.replaceAll("/+$", "");
+            if (readAccountBases().contains(b)) setActiveServer(b);
+        }
         String raw = intent.getStringExtra("deepLink");
         if (raw == null) raw = intent.getStringExtra("url");
         if (raw == null) return;

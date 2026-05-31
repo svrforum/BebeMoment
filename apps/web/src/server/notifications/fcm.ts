@@ -73,7 +73,14 @@ export async function sendFcm(
     body: JSON.stringify({
       message: {
         token,
-        data: { title: payload.title, body: payload.body, url: payload.url },
+        // server = 이 인스턴스의 공개 주소. 멀티 인스턴스 앱이 알림을 탭하면 이 가족(서버)으로
+        // 전환한 뒤 url 로 딥링크한다. 한 기기가 여러 가족에 등록돼 있어도 출처를 구분.
+        data: {
+          title: payload.title,
+          body: payload.body,
+          url: payload.url,
+          server: process.env.PUBLIC_URL ?? '',
+        },
         android: { priority: 'HIGH' },
       },
     }),

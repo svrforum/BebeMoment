@@ -28,6 +28,7 @@ public class BebeMessagingService extends FirebaseMessagingService {
             body = n != null && n.getBody() != null ? n.getBody() : "";
         }
         String url = data.get("url");
+        String server = data.get("server"); // 멀티 인스턴스 — 알림 출처 가족(서버).
 
         // 푸시가 오면(새 사진·댓글 등) 위젯도 즉시 갱신해 최신 사진·뱃지를 반영.
         try {
@@ -45,8 +46,11 @@ public class BebeMessagingService extends FirebaseMessagingService {
         Intent intent = new Intent(this, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_SINGLE_TOP);
         if (url != null) intent.putExtra("deepLink", url);
+        if (server != null && !server.isEmpty()) intent.putExtra("switchServer", server);
+        // 출처 서버별로 PendingIntent 가 안 합쳐지게 requestCode 를 서버 해시로.
+        int reqCode = server != null ? server.hashCode() : 0;
         PendingIntent pi = PendingIntent.getActivity(
-            this, 0, intent,
+            this, reqCode, intent,
             PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE
         );
 
