@@ -37,7 +37,10 @@ public class WidgetRefreshWorker extends Worker {
     private static final String KEY_BABYNAME = "babyName";
     private static final String KEY_PHOTO_COUNT = "photoCount";
     private static final String KEY_NEWCOUNT = "newCount";
-    private static final int MAX_PHOTOS = 4;
+    static final String KEY_SHUFFLE_IDX = "shuffleIdx";
+    // 단일 위젯의 '랜덤(새로고침)' 버튼이 고를 수 있도록 최신 N 장을 캐시한다.
+    // 그리드 위젯은 그중 앞 4장만 쓴다.
+    private static final int MAX_PHOTOS = 10;
     // RemoteViews 비트맵 예산(바인더 트랜잭션 ~1MB) 안에 들어오도록 렌더 비트맵을
     // 작게 다운스케일한다. 과거엔 ~512px(ARGB ≈ 1MB) 원본을 그대로 넣어 특히 4장짜리
     // 그리드가 예산 초과 → updateAppWidget 예외 → 위젯 미갱신이었다.
@@ -64,6 +67,20 @@ public class WidgetRefreshWorker extends Worker {
             .build();
         WorkManager.getInstance(ctx).enqueueUniquePeriodicWork(
             PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, req);
+    }
+
+    /** 단일 위젯을 캐시된 사진들 중 (직전과 다른) 무작위 한 장으로 바꿔 다시 그린다.
+     *  네트워크 없이 즉시 — 새로고침(랜덤) 버튼이 호출. */
+    static void shuffle(Context ctx) {
+        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        int count = sp.getInt(KEY_PHOTO_COUNT, 0);
+        if (count > 1) {
+            int cur = sp.getInt(KEY_SHUFFLE_IDX, 0);
+            int next = cur;
+            for (int t = 0; t < 8 && next == cur; t++) next = (int) (Math.random() * count);
+            sp.edit().putInt(KEY_SHUFFLE_IDX, next).apply();
+        }
+        render(ctx, sp);
     }
 
     private static String photoFile(Context ctx, int i) {
@@ -132,7 +149,10 @@ public class WidgetRefreshWorker extends Worker {
                 saved++;
             }
         }
-        if (saved > 0) ed.putInt(KEY_PHOTO_COUNT, saved);
+        if (saved > 0) {
+            ed.putInt(KEY_PHOTO_COUNT, saved);
+            ed.putInt(KEY_SHUFFLE_IDX, 0); // 새 데이터를 받으면 최신 사진부터 보여준다.
+        }
         ed.apply();
     }
 
@@ -146,12 +166,15 @@ public class WidgetRefreshWorker extends Worker {
         }
     }
 
-    private void render(Context ctx, SharedPreferences sp) {
+    static void render(Context ctx, SharedPreferences sp) {
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         String babyName = sp.getString(KEY_BABYNAME, "");
         String ageText = ageLabel(sp.getString(KEY_BIRTHDATE, ""));
         int photoCount = sp.getInt(KEY_PHOTO_COUNT, 0);
         int newCount = sp.getInt(KEY_NEWCOUNT, 0);
+        // 단일 위젯은 셔플 인덱스의 사진을 보여준다(새로고침 버튼이 랜덤으로 바꿈).
+        int idx = sp.getInt(KEY_SHUFFLE_IDX, 0);
+        if (photoCount > 0) idx = Math.max(0, Math.min(idx, photoCount - 1));
 
         // 단일 위젯. 한 위젯 갱신이 실패(예: 비트맵 과다)해도 doWork 전체가 죽지 않도록
         // 위젯 단위 try/catch — 과거엔 render 예외가 doWork 를 실패시켜 위젯이 통째로
@@ -162,11 +185,18 @@ public class WidgetRefreshWorker extends Worker {
                 rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
                 rv.setTextViewText(R.id.widget_age, ageText);
                 if (photoCount > 0) {
-                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, 0)), 40f, SINGLE_MAX_PX);
+                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, idx)), 40f, SINGLE_MAX_PX);
                     if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
                 }
                 applyBadge(rv, newCount);
                 rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+                // 새로고침(랜덤) 버튼 — 사진이 2장 이상일 때만 노출·동작.
+                if (photoCount > 1) {
+                    rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
+                    rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx));
+                } else {
+                    rv.setViewVisibility(R.id.widget_refresh, View.GONE);
+                }
                 mgr.updateAppWidget(id, rv);
             } catch (Throwable ignored) {
             }
@@ -213,7 +243,7 @@ public class WidgetRefreshWorker extends Worker {
         return out;
     }
 
-    private void applyBadge(RemoteViews rv, int newCount) {
+    private static void applyBadge(RemoteViews rv, int newCount) {
         if (newCount > 0) {
             rv.setViewVisibility(R.id.widget_badge, View.VISIBLE);
             rv.setTextViewText(R.id.widget_badge, newCount > 99 ? "99+" : String.valueOf(newCount));

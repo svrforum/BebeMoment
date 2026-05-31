@@ -12,7 +12,9 @@ export type WidgetData = {
   newCount: number
 }
 
-const GRID_COUNT = 4
+// 위젯이 받아갈 최신 사진 풀. 그리드 위젯은 앞 4장만, 단일 위젯은 새로고침(랜덤)
+// 버튼이 이 풀에서 무작위로 한 장을 고른다.
+const WIDGET_PHOTO_POOL = 10
 
 /**
  * 위젯 데이터 — 사용자의 현재 가족 최신 사진들(display URL, 최대 4장) + 가장 먼저
@@ -43,7 +45,7 @@ export async function getWidgetData(
     prismaMedia.asset.findMany({
       where: baseWhere,
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-      take: GRID_COUNT,
+      take: WIDGET_PHOTO_POOL,
       select: { id: true },
     }),
     prismaPublic.baby.findFirst({

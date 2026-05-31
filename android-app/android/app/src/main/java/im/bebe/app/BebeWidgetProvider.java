@@ -9,6 +9,29 @@ import android.content.Intent;
 /** 홈 위젯 — 갱신은 WidgetRefreshWorker(WorkManager)가 담당. 탭하면 앱을 연다. */
 public class BebeWidgetProvider extends AppWidgetProvider {
 
+    static final String ACTION_SHUFFLE = "im.bebe.app.WIDGET_SHUFFLE";
+
+    @Override
+    public void onReceive(Context ctx, Intent intent) {
+        if (ACTION_SHUFFLE.equals(intent.getAction())) {
+            // 새로고침(랜덤) 버튼 — 캐시된 사진 중 무작위로 교체(네트워크 없음).
+            try {
+                WidgetRefreshWorker.shuffle(ctx);
+            } catch (Throwable ignored) {
+            }
+            return;
+        }
+        super.onReceive(ctx, intent);
+    }
+
+    /** 새로고침 버튼용 PendingIntent — 이 프로바이더로 가는 명시적 브로드캐스트. */
+    static PendingIntent shuffleIntent(Context ctx) {
+        Intent intent = new Intent(ctx, BebeWidgetProvider.class).setAction(ACTION_SHUFFLE);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (android.os.Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
+        return PendingIntent.getBroadcast(ctx, 1, intent, flags);
+    }
+
     @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         // 시스템이 부를 때마다(추가/리사이즈/주기) 즉시 1회 갱신.

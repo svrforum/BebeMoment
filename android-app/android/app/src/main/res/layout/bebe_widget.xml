@@ -57,6 +57,21 @@
             android:text="" />
     </LinearLayout>
 
+    <!-- 새로고침(랜덤) 버튼 — 탭하면 캐시된 사진 중 무작위로 바뀜. 사진 2장 이상일 때만
+         코드에서 visibility 로 노출. -->
+    <ImageView
+        android:id="@+id/widget_refresh"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="bottom|end"
+        android:layout_margin="8dp"
+        android:padding="7dp"
+        android:background="@drawable/widget_icon_bg"
+        android:src="@drawable/widget_refresh"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="@string/app_name" />
+
     <TextView
         android:id="@+id/widget_badge"
         android:layout_width="wrap_content"
