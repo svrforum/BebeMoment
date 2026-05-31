@@ -335,6 +335,17 @@ public class MainActivity extends BridgeActivity {
         tryRegisterFcm();
     }
 
+    @Override
+    public void onStop() {
+        super.onStop();
+        // 앱을 나갈 때(예: 사진 업로드 후 홈으로) 위젯을 한 번 갱신한다 — onResume(재진입)
+        // 만으로는 "올리고 바로 홈 화면 위젯 확인" 케이스를 못 잡아 갱신이 느리게 느껴졌다.
+        try {
+            WidgetRefreshWorker.enqueueNow(getApplicationContext());
+        } catch (Throwable ignored) {
+        }
+    }
+
     /**
      * FCM 기기 토큰 네이티브 등록. 관리자가 Firebase 를 설정(`/api/push/fcm-config` configured)
      * 했을 때만 동작 — 공개 config 로 2nd FirebaseApp 초기화해 토큰을 받고, 세션 쿠키로
@@ -468,6 +479,9 @@ public class MainActivity extends BridgeActivity {
                 .putString(BebeWidgetPlugin.KEY_SERVER, base)
                 .apply();
             WidgetRefreshWorker.enqueueNow(getApplicationContext());
+            // 주기 갱신도 보장 — 위젯 추가 시점(onEnabled)에만 스케줄됐다가 누락될 수 있어
+            // 토큰 등록마다 재확인(UPDATE 정책이라 중복 스케줄 없음).
+            WidgetRefreshWorker.ensurePeriodic(getApplicationContext());
         } catch (Exception e) {
             // 다음 onResume 에서 재시도.
         }

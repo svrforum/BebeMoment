@@ -38,6 +38,11 @@ public class WidgetRefreshWorker extends Worker {
     private static final String KEY_PHOTO_COUNT = "photoCount";
     private static final String KEY_NEWCOUNT = "newCount";
     private static final int MAX_PHOTOS = 4;
+    // RemoteViews 비트맵 예산(바인더 트랜잭션 ~1MB) 안에 들어오도록 렌더 비트맵을
+    // 작게 다운스케일한다. 과거엔 ~512px(ARGB ≈ 1MB) 원본을 그대로 넣어 특히 4장짜리
+    // 그리드가 예산 초과 → updateAppWidget 예외 → 위젯 미갱신이었다.
+    private static final int SINGLE_MAX_PX = 420;
+    private static final int GRID_MAX_PX = 240;
 
     public WidgetRefreshWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -141,47 +146,55 @@ public class WidgetRefreshWorker extends Worker {
         int photoCount = sp.getInt(KEY_PHOTO_COUNT, 0);
         int newCount = sp.getInt(KEY_NEWCOUNT, 0);
 
-        // 단일 위젯
+        // 단일 위젯. 한 위젯 갱신이 실패(예: 비트맵 과다)해도 doWork 전체가 죽지 않도록
+        // 위젯 단위 try/catch — 과거엔 render 예외가 doWork 를 실패시켜 위젯이 통째로
+        // 안 갱신되던 원인이었다.
         for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class))) {
-            RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
-            rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
-            rv.setTextViewText(R.id.widget_age, ageText);
-            if (photoCount > 0) {
-                Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, 0)), 48f);
-                if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
+            try {
+                RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
+                rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
+                rv.setTextViewText(R.id.widget_age, ageText);
+                if (photoCount > 0) {
+                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, 0)), 40f, SINGLE_MAX_PX);
+                    if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
+                }
+                applyBadge(rv, newCount);
+                rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+                mgr.updateAppWidget(id, rv);
+            } catch (Throwable ignored) {
             }
-            applyBadge(rv, newCount);
-            rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
-            mgr.updateAppWidget(id, rv);
         }
 
         // 그리드 위젯
         int[] gridIds = mgr.getAppWidgetIds(new ComponentName(ctx, BebeGridWidgetProvider.class));
         int[] cells = { R.id.grid_0, R.id.grid_1, R.id.grid_2, R.id.grid_3 };
         for (int id : gridIds) {
-            RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
-            for (int i = 0; i < cells.length; i++) {
-                if (i < photoCount) {
-                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, i)), 28f);
-                    if (b != null) rv.setImageViewBitmap(cells[i], b);
+            try {
+                RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
+                for (int i = 0; i < cells.length; i++) {
+                    if (i < photoCount) {
+                        Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, i)), 24f, GRID_MAX_PX);
+                        if (b != null) rv.setImageViewBitmap(cells[i], b);
+                    }
                 }
+                applyBadge(rv, newCount);
+                rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+                mgr.updateAppWidget(id, rv);
+            } catch (Throwable ignored) {
             }
-            applyBadge(rv, newCount);
-            rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
-            mgr.updateAppWidget(id, rv);
         }
     }
 
-    /** 비트맵 모서리를 둥글게 — 위젯이 깔끔해 보이게(전 버전 호환). */
-    private static Bitmap rounded(Bitmap src, float radius) {
+    /** 비트맵 모서리를 둥글게 + RemoteViews 예산에 맞춰 maxPx 로 다운스케일. */
+    private static Bitmap rounded(Bitmap src, float radius, int maxPx) {
         if (src == null) return null;
-        // 너무 큰 원본은 위젯 표시 크기에 맞춰 다운스케일(메모리·선명도 균형).
-        int max = 900;
+        // 위젯 표시 크기에 맞춰 작게 — RemoteViews 비트맵 예산 초과(→ updateAppWidget
+        // 예외)를 막는다.
         Bitmap b = src;
-        if (src.getWidth() > max || src.getHeight() > max) {
-            float s = Math.min((float) max / src.getWidth(), (float) max / src.getHeight());
+        if (src.getWidth() > maxPx || src.getHeight() > maxPx) {
+            float s = Math.min((float) maxPx / src.getWidth(), (float) maxPx / src.getHeight());
             b = Bitmap.createScaledBitmap(
-                src, Math.round(src.getWidth() * s), Math.round(src.getHeight() * s), true);
+                src, Math.max(1, Math.round(src.getWidth() * s)), Math.max(1, Math.round(src.getHeight() * s)), true);
         }
         Bitmap out = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
         android.graphics.Canvas canvas = new android.graphics.Canvas(out);
