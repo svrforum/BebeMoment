@@ -34,6 +34,13 @@ export async function softDeleteAsset(
     data: { deletedAt: new Date() },
   })
 
+  // 삭제(휴지통)된 사진은 앨범에서 빠진다 — 앨범 카운트·프리뷰가 cross-schema 라
+  // 자산의 deletedAt 을 못 봐서 삭제 사진을 계속 세던 문제 해결. (복구 시 앨범 재배치는
+  // 수동 — 앨범은 '현존 사진의 큐레이션'이라 트래시 사진이 남아있지 않는 게 자연스럽다.)
+  await prismaPublic.albumAsset.deleteMany({
+    where: { assetId: args.assetId, familyId: args.familyId },
+  })
+
   if (publisher) {
     const event: AssetEvent = {
       type: 'asset.deleted',
