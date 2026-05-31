@@ -458,6 +458,9 @@ model StoryAsset {
   entry Story @relation(fields: [entryId], references: [id], onDelete: Cascade)
 
   @@id([entryId, assetId])
+  // assetId-leading 역조회(타임라인 모델 B·캘린더가 assetId IN (...) 로 스토리 찾음)는
+  // 복합 PK 로 인덱스를 못 타 풀스캔이었다 → 단독 인덱스.
+  @@index([assetId])
   @@map("story_assets")
   @@schema("public")
 }

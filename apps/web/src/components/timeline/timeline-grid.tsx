@@ -153,16 +153,22 @@ export function TimelineGrid({
   const bulkDelete = useCallback(async () => {
     const ids = Array.from(selected)
     if (ids.length === 0) return
-    // Per-asset POST in parallel. softDelete is idempotent + cheap so the
-    // failures-allowed semantics of allSettled are fine — we surface a
-    // single toast summarising any failures.
-    const results = await Promise.allSettled(
-      ids.map((id) =>
-        fetch(`/api/asset/${id}/delete`, { method: 'POST' }).then(async (r) => {
-          if (!r.ok) throw new Error((await r.json()).error ?? `HTTP ${r.status}`)
-        }),
-      ),
-    )
+    // Per-asset POST, but capped to a small concurrency so a large selection
+    // (수백 장) doesn't fan out hundreds of simultaneous requests and saturate
+    // the connection pool. softDelete is idempotent so allSettled is fine.
+    const CONCURRENCY = 6
+    const results: PromiseSettledResult<void>[] = []
+    for (let i = 0; i < ids.length; i += CONCURRENCY) {
+      const batch = ids.slice(i, i + CONCURRENCY)
+      const settled = await Promise.allSettled(
+        batch.map((id) =>
+          fetch(`/api/asset/${id}/delete`, { method: 'POST' }).then(async (r) => {
+            if (!r.ok) throw new Error((await r.json()).error ?? `HTTP ${r.status}`)
+          }),
+        ),
+      )
+      results.push(...settled)
+    }
     const failures = results.filter((r) => r.status === 'rejected').length
     if (failures > 0) {
       toast({

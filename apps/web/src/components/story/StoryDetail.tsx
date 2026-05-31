@@ -52,6 +52,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   }, [])
   const chooseView = useCallback((v: 'slide' | 'grid') => {
     setView(v)
+    setActiveIdx(0) // 격자↔슬라이드 토글 시 Swiper 가 슬라이드 0 으로 재마운트 → 카운터도 리셋.
     try {
       localStorage.setItem('bebe.story.photoView', v)
     } catch {}

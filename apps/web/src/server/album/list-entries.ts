@@ -46,7 +46,7 @@ export async function listAlbumEntries(
   const entryAssetIds = Array.from(new Set(entries.flatMap((e) => e.assets.map((a) => a.assetId))))
   const entryAssets = entryAssetIds.length
     ? await prismaMedia.asset.findMany({
-        where: { id: { in: entryAssetIds }, familyId: args.familyId },
+        where: { id: { in: entryAssetIds }, familyId: args.familyId, deletedAt: null },
       })
     : []
   const assetById = new Map(entryAssets.map((a) => [a.id, a]))

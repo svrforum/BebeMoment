@@ -40,7 +40,9 @@ export async function listMemories(
   `
   const assetIds = assetIdRows.map((r) => r.id)
   const assets = assetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: assetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: assetIds }, familyId, deletedAt: null },
+      })
     : []
 
   const storyIdRows = await prismaPublic.$queryRaw<{ id: string }[]>`
@@ -63,7 +65,9 @@ export async function listMemories(
 
   const storyAssetIds = Array.from(new Set(stories.flatMap((s) => s.assets.map((a) => a.assetId))))
   const storyAssets = storyAssetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: storyAssetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: storyAssetIds }, familyId, deletedAt: null },
+      })
     : []
   const storyAssetById = new Map(storyAssets.map((a) => [a.id, a]))
 

@@ -90,7 +90,9 @@ export async function listStoryEntries(
 
   const allAssetIds = Array.from(new Set(page.flatMap((e) => e.assets.map((ea) => ea.assetId))))
   const assets = allAssetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: allAssetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: allAssetIds }, familyId, deletedAt: null },
+      })
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 

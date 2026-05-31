@@ -83,7 +83,9 @@ export async function listMyStoryBookmarks(
   const allAssetIds = entries.flatMap((e) => e.assets.map((a) => a.assetId))
   const uniqueAssetIds = Array.from(new Set(allAssetIds))
   const assets = uniqueAssetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: uniqueAssetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: uniqueAssetIds }, familyId, deletedAt: null },
+      })
     : []
   const assetById = new Map(assets.map((a) => [a.id, a]))
   const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)

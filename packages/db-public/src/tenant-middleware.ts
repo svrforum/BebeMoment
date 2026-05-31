@@ -144,7 +144,16 @@ function enforce(model: string | undefined, operation: string, args: unknown, mo
     (model === 'Family' && (hasKeyTopLevel(where, 'id') || hasKeyTopLevel(where, 'slug'))) ||
     (model === 'Invite' && hasKeyTopLevel(where, 'token')) ||
     (model === 'Membership' &&
-      (hasKeyTopLevel(where, 'userId') || hasKeyTopLevel(where, 'user_id')))
+      (hasKeyTopLevel(where, 'userId') || hasKeyTopLevel(where, 'user_id'))) ||
+    // StoryAsset/MilestoneAsset 는 familyId 컬럼이 없는 조인 테이블(부모 행의 familyId 로
+    // 전이 스코프)이라 familyId 로 못 거른다. entryId/assetId 는 이미 가족-스코프된 부모
+    // 스토리·자산 id 라 그 키로 거는 직접 조회는 허용한다. (관계 include 는 익스텐션을 안
+    // 타므로 무관. 키 없는 무필터 조회는 여전히 reportMissing.)
+    ((model === 'StoryAsset' || model === 'MilestoneAsset') &&
+      (hasKeyTopLevel(where, 'assetId') ||
+        hasKeyTopLevel(where, 'asset_id') ||
+        hasKeyTopLevel(where, 'entryId') ||
+        hasKeyTopLevel(where, 'entry_id')))
 
   if (!hasFilter) {
     reportMissing(model, operation, mode)

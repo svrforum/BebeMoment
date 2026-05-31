@@ -53,7 +53,9 @@ export async function listMyBookmarks(
 
   const assetIds = page.map((b) => b.assetId)
   const assets = assetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: assetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: assetIds }, familyId, deletedAt: null },
+      })
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 
