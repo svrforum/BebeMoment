@@ -174,7 +174,6 @@ public class WidgetRefreshWorker extends Worker {
     static void render(Context ctx, SharedPreferences sp) {
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         String babyName = sp.getString(KEY_BABYNAME, "");
-        String ageText = ageLabel(sp.getString(KEY_BIRTHDATE, ""));
         int photoCount = sp.getInt(KEY_PHOTO_COUNT, 0);
         int newCount = sp.getInt(KEY_NEWCOUNT, 0);
         // 단일 위젯은 셔플 인덱스의 사진을 보여준다(새로고침 버튼이 랜덤으로 바꿈).
@@ -189,7 +188,7 @@ public class WidgetRefreshWorker extends Worker {
             try {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
                 rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
-                rv.setTextViewText(R.id.widget_age, ageText);
+                rv.setViewVisibility(R.id.widget_age, View.GONE); // 나이(D±N)는 표시 안 함.
                 if (photoDate != null && !photoDate.isEmpty()) {
                     rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
                     rv.setTextViewText(R.id.widget_date, photoDate);
