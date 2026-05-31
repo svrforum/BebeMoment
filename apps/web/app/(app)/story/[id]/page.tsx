@@ -106,7 +106,9 @@ export default async function StoryDetailPage({
       <StoryDetailHeader />
       <div className="mx-auto max-w-2xl px-5 py-4">
         <StoryDetail entry={entry} />
-        <div className="mt-3 flex items-center justify-end gap-1 text-[12px]">
+        {/* 액션 바 — 버튼이 6개라 좁은 폭에서 라벨이 단어 중간에 줄바꿈되던 문제(1370):
+            버튼 단위로 줄바꿈(flex-wrap)하고 각 버튼은 안 줄어들게(shrink-0)·라벨 nowrap. */}
+        <div className="mt-3 flex flex-wrap items-center justify-end gap-x-1 gap-y-1.5 text-[12px] [&>*]:shrink-0 [&>*]:whitespace-nowrap">
           {features.bookmarks && (
             <StoryBookmarkButton entryId={uuid} initialBookmarked={bookmark !== null} />
           )}

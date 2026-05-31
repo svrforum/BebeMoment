@@ -82,6 +82,29 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const initial = entry.baby?.name?.charAt(0) ?? '·'
   const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
 
+  // 모델 B — 스토리 사진은 여러 날에 걸칠 수 있다. 올린 날짜 아래에 "사진 N장 ·
+  // 언제~언제"를 깔끔하게(takenAt 의 UTC 일자 기준).
+  const photoCount = sortedAssets.length
+  const takenDates = sortedAssets
+    .flatMap((a) => (a.asset?.takenAt ? [a.asset.takenAt] : []))
+    .sort((a, b) => a.getTime() - b.getTime())
+  const fmtMD = (x: Date): string => `${x.getUTCMonth() + 1}월 ${x.getUTCDate()}일`
+  const dayKeyOf = (x: Date): string => `${x.getUTCFullYear()}-${x.getUTCMonth()}-${x.getUTCDate()}`
+  const firstTaken = takenDates[0] ?? null
+  const lastTaken = takenDates[takenDates.length - 1] ?? null
+  const rangeLabel =
+    firstTaken && lastTaken
+      ? dayKeyOf(firstTaken) === dayKeyOf(lastTaken)
+        ? fmtMD(firstTaken)
+        : `${fmtMD(firstTaken)} – ${fmtMD(lastTaken)}`
+      : null
+  const photoMeta =
+    photoCount > 0
+      ? rangeLabel
+        ? `사진 ${photoCount}장 · ${rangeLabel}`
+        : `사진 ${photoCount}장`
+      : null
+
   return (
     <article className="overflow-hidden rounded-3xl border border-base-200 bg-base-0 shadow-card dark:border-base-800 dark:bg-base-900">
       {/* 헤더 — 아바타 · 이름 · 날짜 · 공개범위 칩. 인스타 포스트 상단과 동일한 운율. */}
@@ -99,6 +122,11 @@ export function StoryDetail({ entry }: { entry: Entry }) {
           <div className="text-[12px] tabular-nums text-base-500 dark:text-base-400">
             {dateLabel} · {day}요일
           </div>
+          {photoMeta && (
+            <div className="mt-0.5 text-[11px] tabular-nums text-base-400 dark:text-base-500">
+              {photoMeta}
+            </div>
+          )}
         </div>
         {entry.visibility === 'guardians' && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-point-500/15 px-2 py-1 text-[11px] font-semibold text-point-600 dark:text-point-400">
