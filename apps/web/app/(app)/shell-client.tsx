@@ -49,14 +49,18 @@ function FabTrigger() {
   useEffect(() => {
     const w = window as unknown as {
       bebeReceiveSharedFiles?: (
-        files: { name: string; type: string; dataUrl: string }[],
+        files: { name: string; type: string; url?: string; dataUrl?: string }[],
       ) => Promise<void>
     }
     w.bebeReceiveSharedFiles = async (files) => {
       try {
         const built: File[] = []
         for (const f of files ?? []) {
-          const blob = await (await fetch(f.dataUrl)).blob()
+          // url = 앱이 WebView 요청 가로채기로 스트리밍 제공하는 same-origin 경로
+          // (/__bebe_share/<id>) — 큰 영상도 메모리 폭증 없이. dataUrl 은 하위호환.
+          const src = f.url ?? f.dataUrl
+          if (!src) continue
+          const blob = await (await fetch(src)).blob()
           built.push(new File([blob], f.name || 'shared', { type: f.type || blob.type }))
         }
         if (built.length === 0) return

@@ -37,10 +37,11 @@ import org.json.JSONObject;
 public class MainActivity extends BridgeActivity {
 
     private static final int REQ_POST_NOTIFICATIONS = 4242;
-    // 공유 파일을 웹 스테이징으로 넘길 때 base64 주입 상한(메모리 보호) — 초과분은 직접 업로드.
-    private static final long SHARE_INJECT_MAX = 25L * 1024 * 1024;
     // /timeline 로드 완료 후 실행할 공유-주입 스크립트(타이밍 안전을 위해 onPageFinished 에서).
     private volatile String pendingShareInjectJs = null;
+    // 공유받은 파일들(id→Uri). 웹이 /__bebe_share/<id> 로 fetch 하면 shouldInterceptRequest 가
+    // 스트리밍으로 돌려준다 — base64 메모리 폭증 없이 크기 무제한 스테이징 업로드.
+    private final java.util.Map<String, Uri> shareFiles = new java.util.concurrent.ConcurrentHashMap<>();
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -86,6 +87,19 @@ public class MainActivity extends BridgeActivity {
                     }
                 }
                 return super.shouldOverrideUrlLoading(view, request);
+            }
+
+            // 공유받은 파일을 same-origin 경로(/__bebe_share/<id>)로 스트리밍 제공 — 웹이
+            // fetch 해 Blob 으로 만들어 스테이징에 넣는다(크기 무제한, 메모리 폭증 없음).
+            @Override
+            public WebResourceResponse shouldInterceptRequest(WebView view, WebResourceRequest request) {
+                final Uri uri = request != null ? request.getUrl() : null;
+                final String path = uri != null ? uri.getPath() : null;
+                if (path != null && path.startsWith("/__bebe_share/")) {
+                    final WebResourceResponse r = serveSharedFile(path.substring("/__bebe_share/".length()));
+                    if (r != null) return r;
+                }
+                return super.shouldInterceptRequest(view, request);
             }
 
             // 배포 중(컨테이너 재시작)이나 일시적 서버 다운으로 메인 페이지가 502/네트워크
@@ -565,8 +579,8 @@ public class MainActivity extends BridgeActivity {
     /**
      * 갤러리 "공유 → bebe": ACTION_SEND / SEND_MULTIPLE 로 받은 사진·영상을 기존 웹 업로드
      * 스테이징(미리보기·편집·최적화)으로 넘긴다 — 바로 안 올리고 사용자가 "업로드" 를 눌러야
-     * 시작. 작은 파일(≤25MB)은 base64 로 웹 훅(window.bebeReceiveSharedFiles)에 주입하고,
-     * 큰 영상은 메모리 보호를 위해 직접 스트리밍 업로드(shareUploadOne)로 폴백한다.
+     * 시작. 크기 제한 없음: 파일을 shareFiles 맵에 담고 메타데이터만 웹 훅에 주입하면, 웹이
+     * /__bebe_share/<id> 로 fetch → shouldInterceptRequest 가 스트리밍으로 돌려준다.
      */
     @SuppressWarnings("deprecation")
     private void handleShareIntent(Intent intent) {
@@ -588,171 +602,64 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         final String base = server.replaceAll("/+$", "");
-        Toast.makeText(this, "공유한 파일을 불러오는 중…", Toast.LENGTH_SHORT).show();
-        new Thread(() -> {
-            final org.json.JSONArray inject = new org.json.JSONArray();
-            int direct = 0;
-            for (Uri u : uris) {
-                final long size = queryShareSize(u);
-                if (size > 0 && size <= SHARE_INJECT_MAX) {
-                    final org.json.JSONObject f = readShareFile(u);
-                    if (f != null) {
-                        inject.put(f);
-                        continue;
-                    }
-                }
-                // 용량 큼 / 메타 불명 → 직접 업로드 폴백.
-                if (shareUploadOne(base, u)) direct++;
+        final android.content.ContentResolver cr = getContentResolver();
+        final org.json.JSONArray meta = new org.json.JSONArray();
+        int i = 0;
+        for (Uri u : uris) {
+            try {
+                String mime = cr.getType(u);
+                if (mime == null) mime = "application/octet-stream";
+                final String id = (i++) + "-" + android.os.SystemClock.uptimeMillis();
+                shareFiles.put(id, u);
+                final org.json.JSONObject o = new org.json.JSONObject();
+                o.put("name", shareDisplayName(u, mime));
+                o.put("type", mime);
+                o.put("url", "/__bebe_share/" + id);
+                meta.put(o);
+            } catch (Exception ignore) {
+                // 한 파일 실패는 건너뜀.
             }
-            final int directCount = direct;
-            runOnUiThread(() -> {
-                if (getBridge() == null || getBridge().getWebView() == null) return;
-                final WebView wv = getBridge().getWebView();
-                if (inject.length() > 0) {
-                    pendingShareInjectJs =
-                        "(function(){var d=" + inject.toString() + ";var t=0;function go(){"
-                            + "if(window.bebeReceiveSharedFiles){window.bebeReceiveSharedFiles(d);}"
-                            + "else if(t++<25){setTimeout(go,300);}}go();})();";
-                    wv.loadUrl(base + "/timeline");
-                } else if (directCount > 0) {
-                    wv.loadUrl(base + "/timeline");
-                }
-                if (directCount > 0) {
-                    Toast.makeText(
-                            MainActivity.this,
-                            directCount + "개는 용량이 커서 바로 업로드했어요",
-                            Toast.LENGTH_LONG)
-                        .show();
-                }
-            });
-        }).start();
+        }
+        if (meta.length() == 0) return;
+        Toast.makeText(this, "공유한 파일을 불러오는 중…", Toast.LENGTH_SHORT).show();
+        pendingShareInjectJs =
+            "(function(){var d=" + meta + ";var t=0;function go(){"
+                + "if(window.bebeReceiveSharedFiles){window.bebeReceiveSharedFiles(d);}"
+                + "else if(t++<25){setTimeout(go,300);}}go();})();";
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().loadUrl(base + "/timeline");
+        }
     }
 
-    private long queryShareSize(Uri uri) {
-        final android.content.ContentResolver cr = getContentResolver();
-        long size = -1;
-        try (Cursor c = cr.query(uri, new String[] {OpenableColumns.SIZE}, null, null, null)) {
+    private String shareDisplayName(Uri uri, String mime) {
+        try (Cursor c =
+            getContentResolver().query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
             if (c != null && c.moveToFirst()) {
-                final int si = c.getColumnIndex(OpenableColumns.SIZE);
-                if (si >= 0 && !c.isNull(si)) size = c.getLong(si);
+                final int ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                if (ni >= 0 && !c.isNull(ni)) {
+                    final String n = c.getString(ni);
+                    if (n != null && !n.isEmpty()) return n;
+                }
             }
         } catch (Exception ignore) {
-            // 메타 조회 실패는 무시 → 아래 fd 로 재시도.
+            // 이름 못 구하면 아래 폴백.
         }
-        if (size <= 0) {
-            try (android.content.res.AssetFileDescriptor afd = cr.openAssetFileDescriptor(uri, "r")) {
-                if (afd != null) size = afd.getLength();
-            } catch (Exception ignore) {
-                // 크기 불명.
-            }
-        }
-        return size;
+        return "shared-" + android.os.SystemClock.uptimeMillis() + (mime.startsWith("video/") ? ".mp4" : ".jpg");
     }
 
-    /** 공유 파일을 {name,type,dataUrl(base64)} JSON 으로 — 웹 스테이징 주입용. 실패 시 null. */
-    private org.json.JSONObject readShareFile(Uri uri) {
+    /** /__bebe_share/<id> 요청을 공유받은 파일 스트림으로 응답(크기 무제한, 메모리 안 쌓임). */
+    private WebResourceResponse serveSharedFile(String id) {
         try {
+            final Uri uri = shareFiles.get(id);
+            if (uri == null) return null;
             final android.content.ContentResolver cr = getContentResolver();
             String mime = cr.getType(uri);
             if (mime == null) mime = "application/octet-stream";
-            String name = "shared";
-            try (Cursor c = cr.query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
-                if (c != null && c.moveToFirst()) {
-                    final int ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    if (ni >= 0 && !c.isNull(ni)) name = c.getString(ni);
-                }
-            }
-            final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
-            try (java.io.InputStream in = cr.openInputStream(uri)) {
-                if (in == null) return null;
-                final byte[] buf = new byte[1 << 16];
-                int n;
-                while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
-            }
-            final String b64 = android.util.Base64.encodeToString(bos.toByteArray(), android.util.Base64.NO_WRAP);
-            final org.json.JSONObject o = new org.json.JSONObject();
-            o.put("name", name);
-            o.put("type", mime);
-            o.put("dataUrl", "data:" + mime + ";base64," + b64);
-            return o;
+            final java.io.InputStream in = cr.openInputStream(uri);
+            if (in == null) return null;
+            return new WebResourceResponse(mime, null, in);
         } catch (Exception e) {
             return null;
-        }
-    }
-
-    private boolean shareUploadOne(String base, Uri uri) {
-        try {
-            final android.content.ContentResolver cr = getContentResolver();
-            String mime = cr.getType(uri);
-            if (mime == null) mime = "application/octet-stream";
-            String name = "upload";
-            long size = -1;
-            try (Cursor c =
-                cr.query(uri, new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
-                if (c != null && c.moveToFirst()) {
-                    final int ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
-                    final int si = c.getColumnIndex(OpenableColumns.SIZE);
-                    if (ni >= 0 && !c.isNull(ni)) name = c.getString(ni);
-                    if (si >= 0 && !c.isNull(si)) size = c.getLong(si);
-                }
-            }
-            if (size <= 0) {
-                try (android.content.res.AssetFileDescriptor afd = cr.openAssetFileDescriptor(uri, "r")) {
-                    if (afd != null) size = afd.getLength();
-                } catch (Exception ignore) {
-                    // 크기를 못 구하면 tus 가 길이를 모르므로 스킵.
-                }
-            }
-            if (size <= 0) return false;
-
-            final String cookies = CookieManager.getInstance().getCookie(base);
-            // 1) init — 세션으로 업로드 토큰 + tus URL 발급
-            final org.json.JSONObject initReq = new org.json.JSONObject();
-            initReq.put("mime", mime);
-            initReq.put("sizeBytes", size);
-            initReq.put("originalName", name);
-            final java.net.HttpURLConnection ic =
-                (java.net.HttpURLConnection) new java.net.URL(base + "/api/share/init").openConnection();
-            ic.setRequestMethod("POST");
-            ic.setRequestProperty("Content-Type", "application/json");
-            if (cookies != null) ic.setRequestProperty("Cookie", cookies);
-            ic.setDoOutput(true);
-            ic.setConnectTimeout(10000);
-            ic.setReadTimeout(20000);
-            try (java.io.OutputStream os = ic.getOutputStream()) {
-                os.write(initReq.toString().getBytes("UTF-8"));
-            }
-            if (ic.getResponseCode() != 200) return false;
-            final org.json.JSONObject initRes = new org.json.JSONObject(readBody(ic));
-            final String tusUrl = initRes.optString("tusUploadUrl", null);
-            final String token = initRes.optString("uploadToken", null);
-            if (tusUrl == null || token == null) return false;
-
-            // 2) PATCH(=POST+override) 로 바이트 스트리밍(offset 0). 큰 영상도 메모리에 안 올림.
-            final java.net.HttpURLConnection pc =
-                (java.net.HttpURLConnection) new java.net.URL(tusUrl).openConnection();
-            pc.setRequestMethod("POST");
-            pc.setRequestProperty("X-HTTP-Method-Override", "PATCH");
-            pc.setRequestProperty("Tus-Resumable", "1.0.0");
-            pc.setRequestProperty("Upload-Offset", "0");
-            pc.setRequestProperty("Content-Type", "application/offset+octet-stream");
-            pc.setRequestProperty("Authorization", "Bearer " + token);
-            if (cookies != null) pc.setRequestProperty("Cookie", cookies);
-            pc.setDoOutput(true);
-            pc.setConnectTimeout(10000);
-            pc.setReadTimeout(120000);
-            pc.setFixedLengthStreamingMode(size);
-            try (java.io.InputStream in = cr.openInputStream(uri);
-                java.io.OutputStream out = pc.getOutputStream()) {
-                if (in == null) return false;
-                final byte[] buf = new byte[1 << 16];
-                int n;
-                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
-            }
-            final int code = pc.getResponseCode();
-            return code >= 200 && code < 300;
-        } catch (Exception e) {
-            return false;
         }
     }
 
