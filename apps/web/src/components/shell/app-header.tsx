@@ -2,6 +2,7 @@
 import { cn } from '@/lib/cn'
 import { ChevronDown } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
+import { FamilySwitcher } from './family-switcher'
 
 type Props = {
   title: string
@@ -88,8 +89,8 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
       <div className={cn('mx-auto px-5', maxW)}>
         <div className="flex items-end justify-between gap-3 pb-4 pt-1">
           <div className="min-w-0 flex-1">
-            {showSwitch ? (
-              // 앱에서만 — 가족 이름 탭 시 네이티브가 /__bebe/switch 를 가로채 계정 전환.
+            {switchHref && showSwitch ? (
+              // 멀티 인스턴스 지원 앱 — 가족 이름 탭 시 네이티브가 /__bebe/switch 를 가로채 전환.
               <a
                 href={switchHref}
                 className="flex max-w-full items-center gap-1.5 text-left active:opacity-70"
@@ -104,6 +105,9 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
                   aria-label="가족 전환"
                 />
               </a>
+            ) : switchHref ? (
+              // 웹/PWA — 오리진별 격리라 in-page 드롭다운으로 다른 가족 링크를 관리.
+              <FamilySwitcher currentName={title} />
             ) : (
               <h1 className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
                 {title}
