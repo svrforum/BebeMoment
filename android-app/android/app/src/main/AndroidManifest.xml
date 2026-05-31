@@ -39,6 +39,20 @@
                 <data android:scheme="bebe" android:host="invite" />
             </intent-filter>
 
+            <!-- 갤러리 "공유 → bebe" 로 사진·영상 업로드 (ACTION_SEND / SEND_MULTIPLE) -->
+            <intent-filter>
+                <action android:name="android.intent.action.SEND" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+            <intent-filter>
+                <action android:name="android.intent.action.SEND_MULTIPLE" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <data android:mimeType="image/*" />
+                <data android:mimeType="video/*" />
+            </intent-filter>
+
         </activity>
 
         <provider

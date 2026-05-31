@@ -8,7 +8,9 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
+import android.database.Cursor;
 import android.net.Uri;
+import android.provider.OpenableColumns;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -45,6 +47,7 @@ public class MainActivity extends BridgeActivity {
         handleDeepLink(getIntent());
         handleAuthDeepLink(getIntent());
         handleInviteDeepLink(getIntent());
+        handleShareIntent(getIntent());
         setupDownloadListener();
         setupExternalSchemeHandler();
         markUserAgent();
@@ -287,6 +290,7 @@ public class MainActivity extends BridgeActivity {
         handleDeepLink(intent);
         handleAuthDeepLink(intent);
         handleInviteDeepLink(intent);
+        handleShareIntent(intent);
     }
 
     @Override
@@ -540,6 +544,128 @@ public class MainActivity extends BridgeActivity {
         final String ha = ua.getHost(), hb = ub.getHost();
         if (sa == null || sb == null || ha == null || hb == null) return false;
         return sa.equalsIgnoreCase(sb) && ha.equalsIgnoreCase(hb) && ua.getPort() == ub.getPort();
+    }
+
+    /**
+     * 갤러리 "공유 → bebe": ACTION_SEND / SEND_MULTIPLE 로 받은 사진·영상을 서버에 업로드.
+     * 브라우저 흐름과 동일하게 /api/share/init(세션 쿠키)로 토큰·tus URL 을 받아 미디어로
+     * 직접 PATCH(POST+override) 한다. 끝나면 타임라인으로 이동.
+     */
+    @SuppressWarnings("deprecation")
+    private void handleShareIntent(Intent intent) {
+        if (intent == null) return;
+        final String action = intent.getAction();
+        if (!Intent.ACTION_SEND.equals(action) && !Intent.ACTION_SEND_MULTIPLE.equals(action)) return;
+        final java.util.ArrayList<Uri> uris = new java.util.ArrayList<>();
+        if (Intent.ACTION_SEND.equals(action)) {
+            final Uri u = intent.getParcelableExtra(Intent.EXTRA_STREAM);
+            if (u != null) uris.add(u);
+        } else {
+            final java.util.ArrayList<Uri> list = intent.getParcelableArrayListExtra(Intent.EXTRA_STREAM);
+            if (list != null) uris.addAll(list);
+        }
+        if (uris.isEmpty()) return;
+        final String server = readServerUrl();
+        if (server == null) {
+            Toast.makeText(this, "먼저 앱에서 로그인해주세요", Toast.LENGTH_LONG).show();
+            return;
+        }
+        final String base = server.replaceAll("/+$", "");
+        Toast.makeText(this, uris.size() + "개 업로드를 시작했어요", Toast.LENGTH_SHORT).show();
+        new Thread(() -> {
+            int ok = 0;
+            for (Uri u : uris) {
+                if (shareUploadOne(base, u)) ok++;
+            }
+            final int done = ok;
+            final int total = uris.size();
+            runOnUiThread(() -> {
+                Toast.makeText(
+                        MainActivity.this,
+                        done == total ? (done + "개 업로드 완료") : (done + "/" + total + " 업로드됨 (일부 실패)"),
+                        Toast.LENGTH_LONG)
+                    .show();
+                if (getBridge() != null && getBridge().getWebView() != null) {
+                    getBridge().getWebView().loadUrl(base + "/timeline");
+                }
+            });
+        }).start();
+    }
+
+    private boolean shareUploadOne(String base, Uri uri) {
+        try {
+            final android.content.ContentResolver cr = getContentResolver();
+            String mime = cr.getType(uri);
+            if (mime == null) mime = "application/octet-stream";
+            String name = "upload";
+            long size = -1;
+            try (Cursor c =
+                cr.query(uri, new String[] {OpenableColumns.DISPLAY_NAME, OpenableColumns.SIZE}, null, null, null)) {
+                if (c != null && c.moveToFirst()) {
+                    final int ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    final int si = c.getColumnIndex(OpenableColumns.SIZE);
+                    if (ni >= 0 && !c.isNull(ni)) name = c.getString(ni);
+                    if (si >= 0 && !c.isNull(si)) size = c.getLong(si);
+                }
+            }
+            if (size <= 0) {
+                try (android.content.res.AssetFileDescriptor afd = cr.openAssetFileDescriptor(uri, "r")) {
+                    if (afd != null) size = afd.getLength();
+                } catch (Exception ignore) {
+                    // 크기를 못 구하면 tus 가 길이를 모르므로 스킵.
+                }
+            }
+            if (size <= 0) return false;
+
+            final String cookies = CookieManager.getInstance().getCookie(base);
+            // 1) init — 세션으로 업로드 토큰 + tus URL 발급
+            final org.json.JSONObject initReq = new org.json.JSONObject();
+            initReq.put("mime", mime);
+            initReq.put("sizeBytes", size);
+            initReq.put("originalName", name);
+            final java.net.HttpURLConnection ic =
+                (java.net.HttpURLConnection) new java.net.URL(base + "/api/share/init").openConnection();
+            ic.setRequestMethod("POST");
+            ic.setRequestProperty("Content-Type", "application/json");
+            if (cookies != null) ic.setRequestProperty("Cookie", cookies);
+            ic.setDoOutput(true);
+            ic.setConnectTimeout(10000);
+            ic.setReadTimeout(20000);
+            try (java.io.OutputStream os = ic.getOutputStream()) {
+                os.write(initReq.toString().getBytes("UTF-8"));
+            }
+            if (ic.getResponseCode() != 200) return false;
+            final org.json.JSONObject initRes = new org.json.JSONObject(readBody(ic));
+            final String tusUrl = initRes.optString("tusUploadUrl", null);
+            final String token = initRes.optString("uploadToken", null);
+            if (tusUrl == null || token == null) return false;
+
+            // 2) PATCH(=POST+override) 로 바이트 스트리밍(offset 0). 큰 영상도 메모리에 안 올림.
+            final java.net.HttpURLConnection pc =
+                (java.net.HttpURLConnection) new java.net.URL(tusUrl).openConnection();
+            pc.setRequestMethod("POST");
+            pc.setRequestProperty("X-HTTP-Method-Override", "PATCH");
+            pc.setRequestProperty("Tus-Resumable", "1.0.0");
+            pc.setRequestProperty("Upload-Offset", "0");
+            pc.setRequestProperty("Content-Type", "application/offset+octet-stream");
+            pc.setRequestProperty("Authorization", "Bearer " + token);
+            if (cookies != null) pc.setRequestProperty("Cookie", cookies);
+            pc.setDoOutput(true);
+            pc.setConnectTimeout(10000);
+            pc.setReadTimeout(120000);
+            pc.setFixedLengthStreamingMode(size);
+            try (java.io.InputStream in = cr.openInputStream(uri);
+                java.io.OutputStream out = pc.getOutputStream()) {
+                if (in == null) return false;
+                final byte[] buf = new byte[1 << 16];
+                int n;
+                while ((n = in.read(buf)) != -1) out.write(buf, 0, n);
+            }
+            final int code = pc.getResponseCode();
+            return code >= 200 && code < 300;
+        } catch (Exception e) {
+            return false;
+        }
     }
 
     private void handleAuthDeepLink(Intent intent) {

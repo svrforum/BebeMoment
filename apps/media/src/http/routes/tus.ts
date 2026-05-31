@@ -80,6 +80,14 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     }
     ;(req.raw as unknown as NodeReqWithToken).__bebeUploadToken = token
 
+    // PATCH 를 못 보내는 클라이언트(안드로이드 HttpURLConnection 등)를 위한 표준 tus
+    // 우회 — POST + X-HTTP-Method-Override: PATCH. 토큰 검증 뒤 raw 메서드를 바꿔 tus 가
+    // 올바른 핸들러로 보내게 한다.
+    const override = (req.headers['x-http-method-override'] as string | undefined)?.toUpperCase()
+    if (override === 'PATCH' || override === 'HEAD' || override === 'DELETE') {
+      ;(req.raw as unknown as { method: string }).method = override
+    }
+
     reply.hijack()
     await tusServer.handle(req.raw, reply.raw)
   }
