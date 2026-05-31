@@ -7,6 +7,9 @@ export type WidgetData = {
   hasPhoto: boolean
   photoUrl: string | null
   photoUrls: string[]
+  /** photoUrls 와 같은 순서의 촬영일(YYYY-MM-DD, takenAt UTC 일자). 위젯이 현재
+   *  보여주는 사진의 날짜를 표시하는 데 쓴다. */
+  photoDates: string[]
   babyName: string | null
   birthDate: string | null
   newCount: number
@@ -46,7 +49,7 @@ export async function getWidgetData(
       where: baseWhere,
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: WIDGET_PHOTO_POOL,
-      select: { id: true },
+      select: { id: true, takenAt: true },
     }),
     prismaPublic.baby.findFirst({
       where: { familyId, deletedAt: null },
@@ -62,14 +65,18 @@ export async function getWidgetData(
 
   const ids = assets.map((a) => a.id)
   const urlsMap = ids.length ? await media.getAssetUrlsBatch(familyId, ids) : {}
-  const photoUrls = ids
-    .map((id) => pickDisplayUrl(urlsMap[id] ?? null))
-    .filter((u): u is string => Boolean(u))
+  // url·date 를 같은 순서로 — url 없는 자산은 함께 걸러 인덱스 정합을 유지한다.
+  const photos = assets
+    .map((a) => ({ url: pickDisplayUrl(urlsMap[a.id] ?? null), date: a.takenAt }))
+    .filter((p): p is { url: string; date: Date } => Boolean(p.url))
+  const photoUrls = photos.map((p) => p.url)
+  const photoDates = photos.map((p) => p.date.toISOString().slice(0, 10))
 
   return {
     hasPhoto: photoUrls.length > 0,
     photoUrl: photoUrls[0] ?? null,
     photoUrls,
+    photoDates,
     babyName: baby?.name ?? null,
     birthDate: baby ? baby.birthDate.toISOString().slice(0, 10) : null,
     newCount,

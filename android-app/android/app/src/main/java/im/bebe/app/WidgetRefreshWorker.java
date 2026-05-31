@@ -38,6 +38,7 @@ public class WidgetRefreshWorker extends Worker {
     private static final String KEY_PHOTO_COUNT = "photoCount";
     private static final String KEY_NEWCOUNT = "newCount";
     static final String KEY_SHUFFLE_IDX = "shuffleIdx";
+    private static final String KEY_PHOTO_DATES = "photoDates";
     // 단일 위젯의 '랜덤(새로고침)' 버튼이 고를 수 있도록 최신 N 장을 캐시한다.
     // 그리드 위젯은 그중 앞 4장만 쓴다.
     private static final int MAX_PHOTOS = 10;
@@ -132,6 +133,8 @@ public class WidgetRefreshWorker extends Worker {
         // 안 붙이면 `new URL("/media/...")` 가 던져 사진이 전혀 안 받아져 위젯이 빈칸이었다.
         final String base = serverUrl.replaceAll("/+$", "");
         JSONArray urls = json.optJSONArray("photoUrls");
+        JSONArray dates = json.optJSONArray("photoDates");
+        JSONArray savedDates = new JSONArray(); // 저장된 사진과 같은 순서의 촬영일.
         int saved = 0;
         if (urls != null) {
             for (int i = 0; i < urls.length() && saved < MAX_PHOTOS; i++) {
@@ -146,12 +149,14 @@ public class WidgetRefreshWorker extends Worker {
                 try (java.io.FileOutputStream fos = new java.io.FileOutputStream(f)) {
                     bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
                 }
+                savedDates.put(dates != null ? dates.optString(i, "") : "");
                 saved++;
             }
         }
         if (saved > 0) {
             ed.putInt(KEY_PHOTO_COUNT, saved);
             ed.putInt(KEY_SHUFFLE_IDX, 0); // 새 데이터를 받으면 최신 사진부터 보여준다.
+            ed.putString(KEY_PHOTO_DATES, savedDates.toString());
         }
         ed.apply();
     }
@@ -175,6 +180,7 @@ public class WidgetRefreshWorker extends Worker {
         // 단일 위젯은 셔플 인덱스의 사진을 보여준다(새로고침 버튼이 랜덤으로 바꿈).
         int idx = sp.getInt(KEY_SHUFFLE_IDX, 0);
         if (photoCount > 0) idx = Math.max(0, Math.min(idx, photoCount - 1));
+        String photoDate = photoDateLabel(sp.getString(KEY_PHOTO_DATES, ""), idx);
 
         // 단일 위젯. 한 위젯 갱신이 실패(예: 비트맵 과다)해도 doWork 전체가 죽지 않도록
         // 위젯 단위 try/catch — 과거엔 render 예외가 doWork 를 실패시켜 위젯이 통째로
@@ -184,6 +190,12 @@ public class WidgetRefreshWorker extends Worker {
                 RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
                 rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
                 rv.setTextViewText(R.id.widget_age, ageText);
+                if (photoDate != null && !photoDate.isEmpty()) {
+                    rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
+                    rv.setTextViewText(R.id.widget_date, photoDate);
+                } else {
+                    rv.setViewVisibility(R.id.widget_date, View.GONE);
+                }
                 if (photoCount > 0) {
                     Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, idx)), 40f, SINGLE_MAX_PX);
                     if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
@@ -249,6 +261,25 @@ public class WidgetRefreshWorker extends Worker {
             rv.setTextViewText(R.id.widget_badge, newCount > 99 ? "99+" : String.valueOf(newCount));
         } else {
             rv.setViewVisibility(R.id.widget_badge, View.GONE);
+        }
+    }
+
+    /** 캐시된 촬영일 JSON(`["2026-05-12",…]`) 의 idx 번째를 "5월 12일"(올해면) 또는
+     *  "2026.5.12" 로 포맷. 없으면 빈 문자열. */
+    static String photoDateLabel(String datesJson, int idx) {
+        if (datesJson == null || datesJson.isEmpty()) return "";
+        try {
+            JSONArray arr = new JSONArray(datesJson);
+            if (idx < 0 || idx >= arr.length()) return "";
+            String d = arr.optString(idx, "");
+            if (d.length() < 10) return "";
+            int y = Integer.parseInt(d.substring(0, 4));
+            int m = Integer.parseInt(d.substring(5, 7));
+            int day = Integer.parseInt(d.substring(8, 10));
+            int curYear = Calendar.getInstance().get(Calendar.YEAR);
+            return y == curYear ? (m + "월 " + day + "일") : (y + "." + m + "." + day);
+        } catch (Exception e) {
+            return "";
         }
     }
 

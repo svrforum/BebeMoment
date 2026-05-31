@@ -90,4 +90,22 @@
         android:textStyle="bold"
         android:visibility="gone"
         android:text="" />
+
+    <!-- 현재 보여주는 사진의 촬영일(좌상단). 코드에서 visibility 제어. -->
+    <TextView
+        android:id="@+id/widget_date"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_gravity="top|start"
+        android:layout_margin="10dp"
+        android:textColor="#FFFFFF"
+        android:textSize="12sp"
+        android:textStyle="bold"
+        android:shadowColor="#A0000000"
+        android:shadowDx="0"
+        android:shadowDy="1"
+        android:shadowRadius="4"
+        android:singleLine="true"
+        android:visibility="gone"
+        android:text="" />
 </FrameLayout>
