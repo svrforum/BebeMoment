@@ -58,9 +58,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       })
     : 0
 
+  // 업로드 시트의 '스토리로 올리기' 옵션 게이팅 + 새 스토리에 붙일 기본 아기.
+  const canCreateStory = features.diary && ctx.capabilities.includes('record.create')
+  const storyBaby = canCreateStory
+    ? await prismaPublic.baby.findFirst({
+        where: { familyId: ctx.family.id, deletedAt: null },
+        orderBy: { birthDate: 'asc' },
+        select: { id: true },
+      })
+    : null
+
   return (
     <FeaturesProvider value={features}>
-      <AppShellClient capabilities={ctx.capabilities}>
+      <AppShellClient
+        capabilities={ctx.capabilities}
+        canCreateStory={canCreateStory}
+        storyBabyId={storyBaby?.id ?? null}
+      >
         <SideNav
           familyName={ctx.family.name}
           canManageFamily={canManageFamily}

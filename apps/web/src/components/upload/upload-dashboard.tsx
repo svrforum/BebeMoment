@@ -1,7 +1,10 @@
 'use client'
 import { isOptimizeEnabled, setOptimizeEnabled } from '@/lib/image-optimize'
-import { ImagePlus, Pencil, Plus, X } from 'lucide-react'
+import { useToast } from '@/lib/toast'
+import { ImagePlus, Images, Pencil, PencilLine, Plus, X } from 'lucide-react'
+import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { useUploadSheet } from './upload-sheet'
 import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
 import { type FileRow, useUploadManager } from './upload-manager'
@@ -50,17 +53,87 @@ function Thumb({ file }: { file: FileRow }) {
   )
 }
 
-export function UploadDashboard() {
+export function UploadDashboard({
+  canCreateStory = false,
+  storyBabyId = null,
+}: {
+  canCreateStory?: boolean
+  storyBabyId?: string | null
+}) {
   const { files, addFiles, removeFile, markAssetDone, startStagedUploads, replaceFileData } =
     useUploadManager()
+  const router = useRouter()
+  const toast = useToast()
+  const { close } = useUploadSheet()
   const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
   const [optimize, setOptimize] = useState(true)
+  // 업로드 대상: 'photos'(개별 사진으로) | 'story'(한 스토리로 묶기).
+  const [dest, setDest] = useState<'photos' | 'story'>('photos')
+  const [storyBody, setStoryBody] = useState('')
+  const [submittingStory, setSubmittingStory] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  // 스토리 제출의 async 폴링이 신선한 assetId 를 읽도록 최신 files 를 ref 로.
+  const filesRef = useRef(files)
+  filesRef.current = files
 
   useEffect(() => {
     setOptimize(isOptimizeEnabled())
   }, [])
+
+  // 스테이징한 사진들을 업로드한 뒤, 준비된 assetId 로 스토리 1건을 만든다.
+  // (타임라인 컴포저와 동일 메커니즘 — 업로드 시작 후 meta.assetId 를 폴링.)
+  const submitStory = useCallback(async () => {
+    const stagedFiles = filesRef.current.filter((f) => !f.progress?.uploadStarted)
+    if (stagedFiles.length === 0) {
+      toast({ title: '사진을 최소 1장 추가해주세요', variant: 'danger' })
+      return
+    }
+    if (submittingStory) return
+    setSubmittingStory(true)
+    try {
+      const fileIds = stagedFiles.map((f) => f.id)
+      startStagedUploads()
+      const resolveIds = () =>
+        fileIds
+          .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
+          .filter((id): id is string => typeof id === 'string')
+
+      const deadline = Date.now() + 30_000
+      while (Date.now() < deadline && resolveIds().length < fileIds.length) {
+        await new Promise((r) => setTimeout(r, 200))
+      }
+      const assetIds = resolveIds()
+      if (assetIds.length !== fileIds.length) {
+        throw new Error('사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.')
+      }
+
+      const today = new Date().toISOString().slice(0, 10)
+      const res = await fetch('/api/story', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          babyId: storyBabyId,
+          entryDate: today,
+          body: storyBody.trim() || ' ',
+          assetIds,
+        }),
+      })
+      if (!res.ok) {
+        const err = (await res.json().catch(() => ({}))) as { error?: string }
+        throw new Error(err.error ?? '스토리 등록 실패')
+      }
+      const { id } = (await res.json()) as { id: string }
+      setStoryBody('')
+      setDest('photos')
+      close()
+      router.push(`/story/${id}`)
+    } catch (e) {
+      toast({ title: (e as Error).message, variant: 'danger' })
+    } finally {
+      setSubmittingStory(false)
+    }
+  }, [storyBody, storyBabyId, submittingStory, startStagedUploads, close, router, toast])
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -163,6 +236,44 @@ export function UploadDashboard() {
               <span className="text-[11px] font-medium">추가</span>
             </button>
           </div>
+          {canCreateStory && (
+            <div className="grid grid-cols-2 gap-1 rounded-2xl bg-base-100 p-1 dark:bg-base-800">
+              <button
+                type="button"
+                onClick={() => setDest('photos')}
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-[13px] font-semibold transition ${
+                  dest === 'photos'
+                    ? 'bg-base-0 text-base-900 shadow-sm dark:bg-base-900 dark:text-base-50'
+                    : 'text-base-500'
+                }`}
+              >
+                <Images size={15} strokeWidth={2.2} />
+                사진으로
+              </button>
+              <button
+                type="button"
+                onClick={() => setDest('story')}
+                className={`flex items-center justify-center gap-1.5 rounded-xl py-2 text-[13px] font-semibold transition ${
+                  dest === 'story'
+                    ? 'bg-base-0 text-base-900 shadow-sm dark:bg-base-900 dark:text-base-50'
+                    : 'text-base-500'
+                }`}
+              >
+                <PencilLine size={15} strokeWidth={2.2} />
+                스토리로
+              </button>
+            </div>
+          )}
+          {dest === 'story' && (
+            <textarea
+              value={storyBody}
+              onChange={(e) => setStoryBody(e.target.value)}
+              placeholder="오늘 어떤 이야기가 있었어요? (선택)"
+              rows={3}
+              maxLength={20000}
+              className="w-full resize-none rounded-2xl border border-base-200 bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-base-400 focus:border-point-400 dark:border-base-700"
+            />
+          )}
           <button
             type="button"
             onClick={() => {
@@ -196,10 +307,15 @@ export function UploadDashboard() {
           </button>
           <button
             type="button"
-            onClick={startStagedUploads}
-            className="rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95"
+            onClick={dest === 'story' ? submitStory : startStagedUploads}
+            disabled={submittingStory}
+            className="rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
           >
-            {staged.length}개 업로드
+            {dest === 'story'
+              ? submittingStory
+                ? '스토리 올리는 중…'
+                : `사진 ${staged.length}장으로 스토리 올리기`
+              : `${staged.length}개 업로드`}
           </button>
         </>
       )}

@@ -95,9 +95,13 @@ function FabTrigger() {
 export function AppShellClient({
   children,
   capabilities,
+  canCreateStory,
+  storyBabyId,
 }: {
   children: ReactNode
   capabilities: Capability[]
+  canCreateStory: boolean
+  storyBabyId: string | null
 }) {
   // FAB is single-purpose (photo/video upload). Hide it entirely when the
   // viewer lacks upload permission — they can still comment/view.
@@ -106,7 +110,7 @@ export function AppShellClient({
     <ToastProvider swipeDirection="down">
       <ToastEmitterProvider>
         <FamilySSEProvider>
-          <UploadSheetProvider>
+          <UploadSheetProvider canCreateStory={canCreateStory} storyBabyId={storyBabyId}>
             {children}
             {canUpload && <FabTrigger />}
           </UploadSheetProvider>

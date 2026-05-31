@@ -30,7 +30,15 @@ export function useUploadSheet(): UploadSheetContextType {
   return ctx
 }
 
-export function UploadSheetProvider({ children }: { children: ReactNode }) {
+export function UploadSheetProvider({
+  children,
+  canCreateStory = false,
+  storyBabyId = null,
+}: {
+  children: ReactNode
+  canCreateStory?: boolean
+  storyBabyId?: string | null
+}) {
   const [isOpen, setOpen] = useState(false)
 
   const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
@@ -40,7 +48,9 @@ export function UploadSheetProvider({ children }: { children: ReactNode }) {
       <UploadSheetContext.Provider value={value}>
         {children}
         <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
-          {isOpen && <LazyUploadDashboard />}
+          {isOpen && (
+            <LazyUploadDashboard canCreateStory={canCreateStory} storyBabyId={storyBabyId} />
+          )}
         </Sheet>
         <UploadStatusPill onClick={() => setOpen(true)} />
       </UploadSheetContext.Provider>
