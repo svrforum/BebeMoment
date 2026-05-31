@@ -1,12 +1,14 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
-import { resolveCan } from '@bebe/core'
+import { type AssetEvent, channelForFamily, resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type IORedis from 'ioredis'
 
 export async function softDeleteAsset(
   args: { assetId: string; familyId: string; byUserId: string },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
+  publisher?: IORedis,
 ): Promise<void> {
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: args.familyId, userId: args.byUserId } },
@@ -31,4 +33,13 @@ export async function softDeleteAsset(
     where: { id: args.assetId, familyId: args.familyId },
     data: { deletedAt: new Date() },
   })
+
+  if (publisher) {
+    const event: AssetEvent = {
+      type: 'asset.deleted',
+      familyId: args.familyId,
+      assetId: args.assetId,
+    }
+    await publisher.publish(channelForFamily(args.familyId), JSON.stringify(event)).catch(() => {})
+  }
 }

@@ -1,8 +1,11 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { useFamilySSE } from '@/lib/sse'
+import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
-import { useMemo, useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { useCallback, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
 
 type Asset = { id: string; takenAtISO: string; urls: AssetUrls | null }
@@ -37,6 +40,24 @@ function daysInMonth(year: number, month: number): Date[] {
 export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
+  const router = useRouter()
+
+  // 업로드·삭제 등 자산 변화 시 캘린더도 새로고침(타임라인처럼) — 삭제한 사진이 남아
+  // 보이던 문제 해결. 다중 이벤트 디바운스.
+  const refreshTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const onEvent = useCallback(
+    (event: AssetEvent) => {
+      if (
+        event.type === 'asset.deleted' ||
+        (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed'))
+      ) {
+        if (refreshTimer.current) clearTimeout(refreshTimer.current)
+        refreshTimer.current = setTimeout(() => router.refresh(), 800)
+      }
+    },
+    [router],
+  )
+  useFamilySSE(onEvent)
 
   const today = useMemo(() => new Date(), [])
   const days = daysInMonth(year, month)

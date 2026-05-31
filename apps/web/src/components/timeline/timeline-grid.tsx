@@ -90,8 +90,8 @@ export function TimelineGrid({
   const handleEvent = useCallback(
     (event: AssetEvent) => {
       if (
-        event.type === 'asset.updated' &&
-        (event.status === 'ready' || event.status === 'failed')
+        event.type === 'asset.deleted' ||
+        (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed'))
       ) {
         if (refreshTimer.current) clearTimeout(refreshTimer.current)
         refreshTimer.current = setTimeout(() => router.refresh(), 800)

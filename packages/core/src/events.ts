@@ -8,6 +8,7 @@ export type AssetEvent =
       status: 'processing' | 'ready' | 'failed'
       derivatives?: Record<string, string>
     }
+  | { type: 'asset.deleted'; familyId: string; assetId: string }
   | { type: 'like.changed'; familyId: string; assetId: string; userId: string; liked: boolean }
   | { type: 'comment.added'; familyId: string; assetId: string; commentId: string }
   | { type: 'comment.updated'; familyId: string; assetId: string; commentId: string }
