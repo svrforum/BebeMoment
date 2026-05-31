@@ -9,7 +9,9 @@ import { listAlbums } from '@/server/album/list'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
-import { FolderHeart, FolderPlus, Search } from 'lucide-react'
+import { getFeatureFlags } from '@/server/settings/features'
+import { Bookmark, FolderHeart, FolderPlus, Search } from 'lucide-react'
+import Link from 'next/link'
 
 const PREVIEW_PER_ALBUM = 4
 
@@ -23,6 +25,8 @@ export default async function AlbumsRootPage({
 
   const canCreate = ctx.capabilities.includes('album.create')
   const viewerRole = ctx.membership?.role ?? 'family'
+  // 관리자(owner/guardian)는 북마크 전용 하단탭이 없어서 앨범 탭 헤더에서 북마크로 진입.
+  const features = await getFeatureFlags(prismaPublic)
   const { q } = await searchParams
   const query = typeof q === 'string' && q.trim() ? q.trim() : undefined
 
@@ -61,7 +65,24 @@ export default async function AlbumsRootPage({
 
   return (
     <>
-      <AppHeader title="앨범" right={canCreate ? <AlbumCreateButton /> : null} wide />
+      <AppHeader
+        title="앨범"
+        right={
+          <div className="flex items-center gap-1">
+            {features.bookmarks && (
+              <Link
+                href="/saved"
+                aria-label="북마크"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+              >
+                <Bookmark size={19} strokeWidth={2.1} />
+              </Link>
+            )}
+            {canCreate && <AlbumCreateButton />}
+          </div>
+        }
+        wide
+      />
       <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
         <div className="mb-5">
           <SearchBox placeholder="앨범 이름 검색" />
