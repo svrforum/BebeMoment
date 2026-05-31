@@ -74,6 +74,12 @@ public class MainActivity extends BridgeActivity {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 final Uri uri = request != null ? request.getUrl() : null;
+                // 멀티 인스턴스 — 원격 웹의 "가족 이름" 탭이 /__bebe/switch 로 오면 로컬
+                // 계정 페이지를 띄운다(원격엔 브리지가 없어 직접 못 부르므로 URL 가로채기).
+                if (uri != null && "/__bebe/switch".equals(uri.getPath())) {
+                    view.loadUrl("https://localhost/accounts.html");
+                    return true;
+                }
                 final String scheme = uri != null ? uri.getScheme() : null;
                 if (scheme != null) {
                     final String s = scheme.toLowerCase();
@@ -207,7 +213,11 @@ public class MainActivity extends BridgeActivity {
         try {
             final android.webkit.WebSettings s = wv.getSettings();
             final String ua = s.getUserAgentString();
-            if (ua != null && !ua.contains("bebeApp")) s.setUserAgentString(ua + " bebeApp");
+            // bebeApp = 앱 일반 마커, bebeAppMulti = 멀티 인스턴스(가족 전환) 지원 마커.
+            if (ua != null && !ua.contains("bebeAppMulti")) {
+                final String withApp = ua.contains("bebeApp") ? ua : ua + " bebeApp";
+                s.setUserAgentString(withApp + " bebeAppMulti");
+            }
         } catch (Exception ignored) {
         }
     }
@@ -333,6 +343,84 @@ public class MainActivity extends BridgeActivity {
         tryRegisterWidget();
         // FCM 기기 토큰도 같은 이유(원격 페이지에 브리지 없음)로 네이티브에서 등록한다.
         tryRegisterFcm();
+        // 멀티 인스턴스 — 현재 서버를 계정 목록에 보장하고, 로그인됐으면 가족 이름을 라벨로.
+        tryLabelActiveFamily();
+    }
+
+    private static final String CAP_PREFS = "CapacitorStorage";
+    private static final String ACCOUNTS_KEY = "bebeAccounts";
+
+    /** 활성 서버를 계정 목록에 보장(마이그레이션)하고, 세션이 있으면 가족 이름을 라벨로 채운다. */
+    private void tryLabelActiveFamily() {
+        final String serverUrl = readServerUrl();
+        if (serverUrl == null) return;
+        final String base = serverUrl.replaceAll("/+$", "");
+        final SharedPreferences sp =
+            getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
+        try {
+            final String raw = sp.getString(ACCOUNTS_KEY, null);
+            final org.json.JSONArray list =
+                (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
+            boolean found = false;
+            for (int i = 0; i < list.length(); i++) {
+                final org.json.JSONObject o = list.optJSONObject(i);
+                if (o != null && base.equals(o.optString("url"))) { found = true; break; }
+            }
+            if (!found) {
+                final org.json.JSONObject o = new org.json.JSONObject();
+                o.put("url", base);
+                o.put("name", "");
+                list.put(o);
+                sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
+            }
+        } catch (Exception ignored) {
+        }
+        String cookies;
+        try {
+            cookies = CookieManager.getInstance().getCookie(base);
+        } catch (Exception e) {
+            return;
+        }
+        if (cookies == null || !cookies.contains("session")) return;
+        final String c = cookies;
+        new Thread(() -> labelFamily(base, c)).start();
+    }
+
+    private void labelFamily(String base, String cookies) {
+        try {
+            final java.net.HttpURLConnection conn =
+                (java.net.HttpURLConnection) new java.net.URL(base + "/api/family/name").openConnection();
+            conn.setRequestProperty("Cookie", cookies);
+            conn.setConnectTimeout(8000);
+            conn.setReadTimeout(8000);
+            if (conn.getResponseCode() != 200) return;
+            final StringBuilder sb = new StringBuilder();
+            try (java.io.InputStream is = conn.getInputStream()) {
+                final byte[] buf = new byte[2048];
+                int n;
+                while ((n = is.read(buf)) != -1) sb.append(new String(buf, 0, n, "UTF-8"));
+            }
+            final String name = new org.json.JSONObject(sb.toString()).optString("name", "");
+            if (name.isEmpty()) return;
+            final SharedPreferences sp =
+                getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
+            final String raw = sp.getString(ACCOUNTS_KEY, null);
+            final org.json.JSONArray list =
+                (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
+            boolean changed = false;
+            for (int i = 0; i < list.length(); i++) {
+                final org.json.JSONObject o = list.optJSONObject(i);
+                if (o != null && base.equals(o.optString("url"))) {
+                    if (!name.equals(o.optString("name"))) {
+                        o.put("name", name);
+                        changed = true;
+                    }
+                    break;
+                }
+            }
+            if (changed) sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
+        } catch (Exception ignored) {
+        }
     }
 
     @Override

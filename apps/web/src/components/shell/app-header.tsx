@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { ChevronDown } from 'lucide-react'
 import { type ReactNode, useEffect, useState } from 'react'
 
 type Props = {
@@ -9,6 +10,9 @@ type Props = {
   right?: ReactNode
   /** 사진 그리드 등 넓은 화면에서 데스크탑 공간을 활용하는 페이지 */
   wide?: boolean
+  /** 설정 시 + 앱(WebView)일 때만 제목을 이 경로로 가는 전환 버튼(▾)으로 렌더한다.
+   *  멀티 인스턴스 — 가족 이름 탭 → 네이티브 계정 전환(`/__bebe/switch`). 웹에선 평범한 제목. */
+  switchHref?: string
 }
 
 /**
@@ -18,8 +22,9 @@ type Props = {
  * 짧은 페이지(예: 사진 몇 장)에선 맨 아래에서 compact↔펼침이 진동(깜빡임)했다. 바 높이를
  * 고정하면 그 오실레이션이 사라진다.
  */
-export function AppHeader({ title, subtitle, left, right, wide = false }: Props) {
+export function AppHeader({ title, subtitle, left, right, wide = false, switchHref }: Props) {
   const [compact, setCompact] = useState(false)
+  const [isApp, setIsApp] = useState(false)
 
   useEffect(() => {
     // 큰 제목이 거의 스크롤되어 나간 시점부터 컴팩트 바 제목을 보여준다.
@@ -28,6 +33,14 @@ export function AppHeader({ title, subtitle, left, right, wide = false }: Props)
     window.addEventListener('scroll', onScroll, { passive: true })
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
+
+  useEffect(() => {
+    // 멀티 인스턴스 지원 앱만 'bebeAppMulti' 마커를 단다 — 구버전 앱(전환 가로채기 없음)에선
+    // 버튼을 숨겨 /__bebe/switch 404 를 막는다.
+    setIsApp(navigator.userAgent.includes('bebeAppMulti'))
+  }, [])
+
+  const showSwitch = Boolean(switchHref) && isApp
 
   const maxW = wide ? 'max-w-3xl lg:max-w-5xl' : 'max-w-3xl'
 
@@ -75,9 +88,27 @@ export function AppHeader({ title, subtitle, left, right, wide = false }: Props)
       <div className={cn('mx-auto px-5', maxW)}>
         <div className="flex items-end justify-between gap-3 pb-4 pt-1">
           <div className="min-w-0 flex-1">
-            <h1 className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
-              {title}
-            </h1>
+            {showSwitch ? (
+              // 앱에서만 — 가족 이름 탭 시 네이티브가 /__bebe/switch 를 가로채 계정 전환.
+              <a
+                href={switchHref}
+                className="flex max-w-full items-center gap-1.5 text-left active:opacity-70"
+              >
+                <span className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
+                  {title}
+                </span>
+                <ChevronDown
+                  size={26}
+                  strokeWidth={2.4}
+                  className="mt-1 shrink-0 text-base-400"
+                  aria-label="가족 전환"
+                />
+              </a>
+            ) : (
+              <h1 className="truncate text-[34px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
+                {title}
+              </h1>
+            )}
             {subtitle && <p className="mt-1 truncate text-[15px] text-base-500">{subtitle}</p>}
           </div>
           {right && !compact && (

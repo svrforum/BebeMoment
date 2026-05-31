@@ -213,9 +213,14 @@ export default async function TimelinePage({
     <>
       <PullToRefresh />
       {baby ? (
-        <AppHeader title={ctx.family.name} subtitle={babySubtitle ?? baby.name} wide />
+        <AppHeader
+          title={ctx.family.name}
+          subtitle={babySubtitle ?? baby.name}
+          switchHref="/__bebe/switch"
+          wide
+        />
       ) : (
-        <AppHeader title={ctx.family.name} wide />
+        <AppHeader title={ctx.family.name} switchHref="/__bebe/switch" wide />
       )}
       {/* 정렬(촬영일/업로드)은 보기 설정일 뿐이라 일반 가족도 쓸 수 있게 항상 노출. */}
       <TimelineSortToggle value={sortMode} />
