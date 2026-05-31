@@ -110,12 +110,19 @@ public class WidgetRefreshWorker extends Worker {
         ed.putString(KEY_BIRTHDATE, json.optString("birthDate", ""));
         ed.putInt(KEY_NEWCOUNT, json.optInt("newCount", 0));
 
+        // 미디어 URL 은 루트-상대(`/media/v1/files/...`)로 온다(브라우저 동일출처용,
+        // mixed-content 회피). 네이티브 워커는 절대 URL 이 필요하므로 서버 베이스를 붙인다 —
+        // 안 붙이면 `new URL("/media/...")` 가 던져 사진이 전혀 안 받아져 위젯이 빈칸이었다.
+        final String base = serverUrl.replaceAll("/+$", "");
         JSONArray urls = json.optJSONArray("photoUrls");
         int saved = 0;
         if (urls != null) {
             for (int i = 0; i < urls.length() && saved < MAX_PHOTOS; i++) {
                 String u = urls.optString(i, null);
                 if (u == null || u.isEmpty()) continue;
+                if (!u.startsWith("http://") && !u.startsWith("https://")) {
+                    u = base + (u.startsWith("/") ? u : "/" + u);
+                }
                 Bitmap bmp = downloadBitmap(u);
                 if (bmp == null) continue;
                 java.io.File f = new java.io.File(photoFile(ctx, saved));
