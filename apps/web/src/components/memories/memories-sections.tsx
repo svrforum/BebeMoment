@@ -1,4 +1,4 @@
-import { StoryCard } from '@/components/timeline/story-card'
+import { StoryCard, storyCardDataFromEntry } from '@/components/story/story-card'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { MemoryGroup } from '@/server/memories/list'
@@ -46,7 +46,7 @@ export function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
             <ul className="mt-3 space-y-3">
               {g.stories.map((s) => (
                 <li key={s.id}>
-                  <StoryCard entry={s} />
+                  <StoryCard data={storyCardDataFromEntry(s)} />
                 </li>
               ))}
             </ul>

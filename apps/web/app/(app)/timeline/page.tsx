@@ -1,5 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { StoryStrip, type TimelineStory } from '@/components/timeline/bucket-section'
+import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
+import { StoryStrip } from '@/components/timeline/bucket-section'
 import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
@@ -15,7 +16,7 @@ import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
 import { babyDaysDiff, formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { bucketLabel } from '@bebe/core'
-import { type TimelineItem, listTimeline } from '@/server/timeline/merged-list'
+import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { z } from 'zod'
@@ -100,34 +101,19 @@ export default async function TimelinePage({
   const utcDayKey = (d: Date): string =>
     `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
   // 모델 B — 스토리는 entryDate 가 아니라 "안에 든 사진이 찍힌 날(takenAt)"마다
-  // 등장한다. 사진별 날짜로 흩뿌려 같은 날 그리드 위에 얹고, 그 날짜의 사진을
-  // 카드 썸네일로 보여준다(여러 날에 걸친 스토리면 각 날엔 그 날 사진만).
-  type StoryEntry = Extract<TimelineItem, { kind: 'story' }>['entry']
+  // 등장한다. 사진별 날짜로 흩뿌려 같은 날 그리드 위에 얹는다. 카드 대표 썸네일은
+  // (어느 날 버킷이든) 스토리의 첫 사진 1장.
   const dayOfAsset = (a: { takenAt: Date; createdAt: Date }): string =>
     utcDayKey(sortMode === 'uploaded' ? a.createdAt : a.takenAt)
-  const buildStory = (e: StoryEntry, dayKey: string | null): TimelineStory => {
-    const resolved = e.assets.flatMap((ea) => (ea.asset ? [ea.asset] : []))
-    const dayAssets = dayKey ? resolved.filter((a) => dayOfAsset(a) === dayKey) : resolved
-    return {
-      id: e.id,
-      publicNo: e.publicNo,
-      title: e.title ?? null,
-      body: e.body,
-      mood: e.mood ?? null,
-      visibility: e.visibility,
-      thumbs: dayAssets.map((a) => ({ id: a.id, urls: a.urls })),
-      totalCount: resolved.length,
-    }
-  }
-  // dateKey -> (storyId -> TimelineStory). 같은 날 같은 스토리는 1장(중복 방지).
-  const storiesByDate = new Map<string, Map<string, TimelineStory>>()
+  // dateKey -> (storyId -> StoryCardData). 같은 날 같은 스토리는 1장(중복 방지).
+  const storiesByDate = new Map<string, Map<string, StoryCardData>>()
   for (const it of storyItems) {
     if (it.kind !== 'story') continue
     const e = it.entry
     const days = new Set(e.assets.flatMap((ea) => (ea.asset ? [dayOfAsset(ea.asset)] : [])))
     for (const dk of days) {
-      const dayMap = storiesByDate.get(dk) ?? new Map<string, TimelineStory>()
-      if (!dayMap.has(e.id)) dayMap.set(e.id, buildStory(e, dk))
+      const dayMap = storiesByDate.get(dk) ?? new Map<string, StoryCardData>()
+      if (!dayMap.has(e.id)) dayMap.set(e.id, storyCardDataFromEntry(e))
       storiesByDate.set(dk, dayMap)
     }
   }
@@ -181,7 +167,7 @@ export default async function TimelinePage({
           <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
             <StoryStrip
               stories={storyItems.flatMap((it) =>
-                it.kind === 'story' ? [buildStory(it.entry, dateFilter)] : [],
+                it.kind === 'story' ? [storyCardDataFromEntry(it.entry)] : [],
               )}
             />
           </div>

@@ -1,6 +1,9 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { StoryCard } from '@/components/timeline/story-card'
-import type { TimelineStory } from '@/components/timeline/bucket-section'
+import {
+  StoryCard,
+  type StoryCardData,
+  storyCardDataFromEntry,
+} from '@/components/story/story-card'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -71,21 +74,11 @@ export default async function SavedPage() {
   // orphan 으로 상단에 따로(최신순).
   const storyEntries = stories.items.flatMap((b) => (b.entry ? [b.entry] : []))
   const groupKeys = new Set(groups.map((g) => g.dateKey))
-  const storiesByDate = new Map<string, TimelineStory[]>()
+  const storiesByDate = new Map<string, StoryCardData[]>()
   for (const e of storyEntries) {
     const key = utcDayKey(e.entryDate)
     const arr = storiesByDate.get(key) ?? []
-    const resolved = e.assets.flatMap((ea) => (ea.asset ? [ea.asset] : []))
-    arr.push({
-      id: e.id,
-      publicNo: e.publicNo,
-      title: e.title ?? null,
-      body: e.body,
-      mood: e.mood ?? null,
-      visibility: e.visibility,
-      thumbs: resolved.map((a) => ({ id: a.id, urls: a.urls })),
-      totalCount: resolved.length,
-    })
+    arr.push(storyCardDataFromEntry(e))
     storiesByDate.set(key, arr)
   }
   const mainGroups = groups.map((g) => ({
@@ -140,7 +133,7 @@ export default async function SavedPage() {
           {orphanStories.length > 0 && (
             <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
               {orphanStories.map((e) => (
-                <StoryCard key={`j-${e.id}`} entry={e} compact />
+                <StoryCard key={`j-${e.id}`} data={storyCardDataFromEntry(e)} />
               ))}
             </div>
           )}

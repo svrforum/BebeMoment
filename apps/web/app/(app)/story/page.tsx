@@ -1,6 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { StoryDateFilter } from '@/components/story/story-date-filter'
-import { StoryCard } from '@/components/timeline/story-card'
+import { StoryCard, storyCardDataFromEntry } from '@/components/story/story-card'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SearchBox } from '@/components/ui/search-box'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -165,7 +165,7 @@ export default async function StoryPage({
                 <ul className="space-y-3">
                   {g.entries.map((e) => (
                     <li key={e.id}>
-                      <StoryCard entry={e} />
+                      <StoryCard data={storyCardDataFromEntry(e)} />
                     </li>
                   ))}
                 </ul>

@@ -10,8 +10,9 @@ import type { AssetUrls } from '@bebe/media-client'
 import { FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import type { StoryCardData } from '@/components/story/story-card'
 import type { TapModifiers } from './asset-card'
-import { BucketSection, type TimelineStory } from './bucket-section'
+import { BucketSection } from './bucket-section'
 import { TimelineContextMenu } from './timeline-context-menu'
 
 type AssetRow = {
@@ -32,7 +33,7 @@ type BucketGroup = {
   dDay?: string | null
   assets: AssetRow[]
   /** 이 날짜의 스토리(사진 그리드 위에 글 카드로). */
-  stories?: TimelineStory[]
+  stories?: StoryCardData[]
 }
 
 type Props = {
