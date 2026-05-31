@@ -1,4 +1,5 @@
 import { MonthGrid } from '@/components/calendar/month-grid'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { AppHeader } from '@/components/shell/app-header'
 import { prismaMedia } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -40,6 +41,7 @@ export default async function CalendarPage() {
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader title="캘린더" />
       <div className="section-enter">
         <MonthGrid
