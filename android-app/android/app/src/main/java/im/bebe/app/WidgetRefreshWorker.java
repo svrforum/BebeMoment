@@ -120,13 +120,16 @@ public class WidgetRefreshWorker extends Worker {
         conn.setRequestProperty("Authorization", "Bearer " + token);
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(8000);
-        if (conn.getResponseCode() != 200) return;
-
         StringBuilder body = new StringBuilder();
-        try (InputStream is = conn.getInputStream()) {
-            byte[] buf = new byte[4096];
-            int n;
-            while ((n = is.read(buf)) != -1) body.append(new String(buf, 0, n, "UTF-8"));
+        try {
+            if (conn.getResponseCode() != 200) return;
+            try (InputStream is = conn.getInputStream()) {
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = is.read(buf)) != -1) body.append(new String(buf, 0, n, "UTF-8"));
+            }
+        } finally {
+            conn.disconnect();
         }
         JSONObject json = new JSONObject(body.toString());
         SharedPreferences.Editor ed = sp.edit();
@@ -167,10 +170,53 @@ public class WidgetRefreshWorker extends Worker {
         HttpURLConnection conn = (HttpURLConnection) new URL(photoUrl).openConnection();
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(12000);
-        if (conn.getResponseCode() != 200) return null;
-        try (InputStream is = conn.getInputStream()) {
-            return BitmapFactory.decodeStream(is);
+        try {
+            if (conn.getResponseCode() != 200) return null;
+            java.io.ByteArrayOutputStream bout = new java.io.ByteArrayOutputStream();
+            try (InputStream is = conn.getInputStream()) {
+                byte[] buf = new byte[8192];
+                int n;
+                while ((n = is.read(buf)) != -1) bout.write(buf, 0, n);
+            }
+            byte[] data = bout.toByteArray();
+            // 위젯 표시 크기(≤단일 420px)에 맞춰 다운샘플 디코드 — 풀해상도 비트맵을
+            // 메모리에 안 올린다(저사양 기기 OOM 방지).
+            BitmapFactory.Options bounds = new BitmapFactory.Options();
+            bounds.inJustDecodeBounds = true;
+            BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
+            BitmapFactory.Options opts = new BitmapFactory.Options();
+            opts.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, SINGLE_MAX_PX);
+            return BitmapFactory.decodeByteArray(data, 0, data.length, opts);
+        } finally {
+            conn.disconnect();
         }
+    }
+
+    private static int sampleSize(int w, int h, int target) {
+        int s = 1;
+        final int max = Math.max(w, h);
+        // target*2 여유로 둬 화질을 유지하면서 메모리만 절감(2의 거듭제곱).
+        while (max > 0 && max / s > target * 2) s *= 2;
+        return s;
+    }
+
+    /** 위젯이 제거되면 그 위젯의 캐시(설정 키 + 사진 파일)를 정리 — 디스크 누수 방지. */
+    static void onWidgetsDeleted(Context ctx, int[] ids) {
+        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        SharedPreferences.Editor ed = sp.edit();
+        final String[] suffixes = {
+            "server", "token", "babyName", "newCount", "photoCount", "shuffleIdx", "photoDates"
+        };
+        for (int id : ids) {
+            for (String s : suffixes) ed.remove(wk(id, s));
+            for (int i = 0; i < MAX_PHOTOS; i++) {
+                try {
+                    new java.io.File(photoFile(ctx, id, i)).delete();
+                } catch (Exception ignored) {
+                }
+            }
+        }
+        ed.apply();
     }
 
     /** 새로고침(랜덤) 버튼 — 해당 위젯을 캐시된 사진 중 직전과 다른 무작위 한 장으로. */

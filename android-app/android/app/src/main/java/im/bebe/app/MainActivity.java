@@ -349,6 +349,9 @@ public class MainActivity extends BridgeActivity {
 
     private static final String CAP_PREFS = "CapacitorStorage";
     private static final String ACCOUNTS_KEY = "bebeAccounts";
+    // bebeAccounts 는 UI 스레드(시드)·워커 스레드(라벨)에서 read-modify-write 되므로
+    // 동시 기록이 서로를 덮어쓰지(유실) 않게 한 락으로 직렬화한다.
+    private static final Object ACCOUNTS_LOCK = new Object();
 
     /** 저장된 계정들의 base URL(끝 슬래시 제거) 목록. */
     private java.util.List<String> readAccountBases() {
@@ -389,23 +392,25 @@ public class MainActivity extends BridgeActivity {
         final String base = serverUrl.replaceAll("/+$", "");
         final SharedPreferences sp =
             getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
-        try {
-            final String raw = sp.getString(ACCOUNTS_KEY, null);
-            final org.json.JSONArray list =
-                (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
-            boolean found = false;
-            for (int i = 0; i < list.length(); i++) {
-                final org.json.JSONObject o = list.optJSONObject(i);
-                if (o != null && base.equals(o.optString("url"))) { found = true; break; }
+        synchronized (ACCOUNTS_LOCK) {
+            try {
+                final String raw = sp.getString(ACCOUNTS_KEY, null);
+                final org.json.JSONArray list =
+                    (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
+                boolean found = false;
+                for (int i = 0; i < list.length(); i++) {
+                    final org.json.JSONObject o = list.optJSONObject(i);
+                    if (o != null && base.equals(o.optString("url"))) { found = true; break; }
+                }
+                if (!found) {
+                    final org.json.JSONObject o = new org.json.JSONObject();
+                    o.put("url", base);
+                    o.put("name", "");
+                    list.put(o);
+                    sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
+                }
+            } catch (Exception ignored) {
             }
-            if (!found) {
-                final org.json.JSONObject o = new org.json.JSONObject();
-                o.put("url", base);
-                o.put("name", "");
-                list.put(o);
-                sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
-            }
-        } catch (Exception ignored) {
         }
         String cookies;
         try {
@@ -419,9 +424,10 @@ public class MainActivity extends BridgeActivity {
     }
 
     private void labelFamily(String base, String cookies) {
+        java.net.HttpURLConnection conn = null;
+        final String name;
         try {
-            final java.net.HttpURLConnection conn =
-                (java.net.HttpURLConnection) new java.net.URL(base + "/api/family/name").openConnection();
+            conn = (java.net.HttpURLConnection) new java.net.URL(base + "/api/family/name").openConnection();
             conn.setRequestProperty("Cookie", cookies);
             conn.setConnectTimeout(8000);
             conn.setReadTimeout(8000);
@@ -432,26 +438,34 @@ public class MainActivity extends BridgeActivity {
                 int n;
                 while ((n = is.read(buf)) != -1) sb.append(new String(buf, 0, n, "UTF-8"));
             }
-            final String name = new org.json.JSONObject(sb.toString()).optString("name", "");
-            if (name.isEmpty()) return;
-            final SharedPreferences sp =
-                getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
-            final String raw = sp.getString(ACCOUNTS_KEY, null);
-            final org.json.JSONArray list =
-                (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
-            boolean changed = false;
-            for (int i = 0; i < list.length(); i++) {
-                final org.json.JSONObject o = list.optJSONObject(i);
-                if (o != null && base.equals(o.optString("url"))) {
-                    if (!name.equals(o.optString("name"))) {
-                        o.put("name", name);
-                        changed = true;
+            name = new org.json.JSONObject(sb.toString()).optString("name", "");
+        } catch (Exception e) {
+            return;
+        } finally {
+            if (conn != null) conn.disconnect();
+        }
+        if (name.isEmpty()) return;
+        synchronized (ACCOUNTS_LOCK) {
+            try {
+                final SharedPreferences sp =
+                    getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
+                final String raw = sp.getString(ACCOUNTS_KEY, null);
+                final org.json.JSONArray list =
+                    (raw != null && !raw.isEmpty()) ? new org.json.JSONArray(raw) : new org.json.JSONArray();
+                boolean changed = false;
+                for (int i = 0; i < list.length(); i++) {
+                    final org.json.JSONObject o = list.optJSONObject(i);
+                    if (o != null && base.equals(o.optString("url"))) {
+                        if (!name.equals(o.optString("name"))) {
+                            o.put("name", name);
+                            changed = true;
+                        }
+                        break;
                     }
-                    break;
                 }
+                if (changed) sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
+            } catch (Exception ignored) {
             }
-            if (changed) sp.edit().putString(ACCOUNTS_KEY, list.toString()).apply();
-        } catch (Exception ignored) {
         }
     }
 

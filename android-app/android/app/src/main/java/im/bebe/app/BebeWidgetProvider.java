@@ -57,6 +57,14 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    @Override
+    public void onDeleted(Context ctx, int[] ids) {
+        try {
+            WidgetRefreshWorker.onWidgetsDeleted(ctx, ids);
+        } catch (Throwable ignored) {
+        }
+    }
+
     static PendingIntent tapIntent(Context ctx) {
         Intent intent = new Intent(ctx, MainActivity.class);
         intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);

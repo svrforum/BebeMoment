@@ -23,4 +23,12 @@ public class BebeGridWidgetProvider extends AppWidgetProvider {
         } catch (Throwable ignored) {
         }
     }
+
+    @Override
+    public void onDeleted(Context ctx, int[] ids) {
+        try {
+            WidgetRefreshWorker.onWidgetsDeleted(ctx, ids);
+        } catch (Throwable ignored) {
+        }
+    }
 }
