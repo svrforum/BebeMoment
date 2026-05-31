@@ -37,6 +37,10 @@ import org.json.JSONObject;
 public class MainActivity extends BridgeActivity {
 
     private static final int REQ_POST_NOTIFICATIONS = 4242;
+    // 공유 파일을 웹 스테이징으로 넘길 때 base64 주입 상한(메모리 보호) — 초과분은 직접 업로드.
+    private static final long SHARE_INJECT_MAX = 25L * 1024 * 1024;
+    // /timeline 로드 완료 후 실행할 공유-주입 스크립트(타이밍 안전을 위해 onPageFinished 에서).
+    private volatile String pendingShareInjectJs = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -106,6 +110,18 @@ public class MainActivity extends BridgeActivity {
                     return;
                 }
                 super.onReceivedHttpError(view, request, errorResponse);
+            }
+
+            // 공유 인텐트로 /timeline 로 이동한 뒤, 페이지 로드가 끝나면 대기 중인 공유-주입
+            // 스크립트를 실행한다(웹 훅이 준비될 때까지 스크립트 자체가 재시도).
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                super.onPageFinished(view, url);
+                final String js = pendingShareInjectJs;
+                if (js != null) {
+                    pendingShareInjectJs = null;
+                    view.evaluateJavascript(js, null);
+                }
             }
         });
     }
@@ -547,9 +563,10 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * 갤러리 "공유 → bebe": ACTION_SEND / SEND_MULTIPLE 로 받은 사진·영상을 서버에 업로드.
-     * 브라우저 흐름과 동일하게 /api/share/init(세션 쿠키)로 토큰·tus URL 을 받아 미디어로
-     * 직접 PATCH(POST+override) 한다. 끝나면 타임라인으로 이동.
+     * 갤러리 "공유 → bebe": ACTION_SEND / SEND_MULTIPLE 로 받은 사진·영상을 기존 웹 업로드
+     * 스테이징(미리보기·편집·최적화)으로 넘긴다 — 바로 안 올리고 사용자가 "업로드" 를 눌러야
+     * 시작. 작은 파일(≤25MB)은 base64 로 웹 훅(window.bebeReceiveSharedFiles)에 주입하고,
+     * 큰 영상은 메모리 보호를 위해 직접 스트리밍 업로드(shareUploadOne)로 폴백한다.
      */
     @SuppressWarnings("deprecation")
     private void handleShareIntent(Intent intent) {
@@ -571,25 +588,96 @@ public class MainActivity extends BridgeActivity {
             return;
         }
         final String base = server.replaceAll("/+$", "");
-        Toast.makeText(this, uris.size() + "개 업로드를 시작했어요", Toast.LENGTH_SHORT).show();
+        Toast.makeText(this, "공유한 파일을 불러오는 중…", Toast.LENGTH_SHORT).show();
         new Thread(() -> {
-            int ok = 0;
+            final org.json.JSONArray inject = new org.json.JSONArray();
+            int direct = 0;
             for (Uri u : uris) {
-                if (shareUploadOne(base, u)) ok++;
+                final long size = queryShareSize(u);
+                if (size > 0 && size <= SHARE_INJECT_MAX) {
+                    final org.json.JSONObject f = readShareFile(u);
+                    if (f != null) {
+                        inject.put(f);
+                        continue;
+                    }
+                }
+                // 용량 큼 / 메타 불명 → 직접 업로드 폴백.
+                if (shareUploadOne(base, u)) direct++;
             }
-            final int done = ok;
-            final int total = uris.size();
+            final int directCount = direct;
             runOnUiThread(() -> {
-                Toast.makeText(
-                        MainActivity.this,
-                        done == total ? (done + "개 업로드 완료") : (done + "/" + total + " 업로드됨 (일부 실패)"),
-                        Toast.LENGTH_LONG)
-                    .show();
-                if (getBridge() != null && getBridge().getWebView() != null) {
-                    getBridge().getWebView().loadUrl(base + "/timeline");
+                if (getBridge() == null || getBridge().getWebView() == null) return;
+                final WebView wv = getBridge().getWebView();
+                if (inject.length() > 0) {
+                    pendingShareInjectJs =
+                        "(function(){var d=" + inject.toString() + ";var t=0;function go(){"
+                            + "if(window.bebeReceiveSharedFiles){window.bebeReceiveSharedFiles(d);}"
+                            + "else if(t++<25){setTimeout(go,300);}}go();})();";
+                    wv.loadUrl(base + "/timeline");
+                } else if (directCount > 0) {
+                    wv.loadUrl(base + "/timeline");
+                }
+                if (directCount > 0) {
+                    Toast.makeText(
+                            MainActivity.this,
+                            directCount + "개는 용량이 커서 바로 업로드했어요",
+                            Toast.LENGTH_LONG)
+                        .show();
                 }
             });
         }).start();
+    }
+
+    private long queryShareSize(Uri uri) {
+        final android.content.ContentResolver cr = getContentResolver();
+        long size = -1;
+        try (Cursor c = cr.query(uri, new String[] {OpenableColumns.SIZE}, null, null, null)) {
+            if (c != null && c.moveToFirst()) {
+                final int si = c.getColumnIndex(OpenableColumns.SIZE);
+                if (si >= 0 && !c.isNull(si)) size = c.getLong(si);
+            }
+        } catch (Exception ignore) {
+            // 메타 조회 실패는 무시 → 아래 fd 로 재시도.
+        }
+        if (size <= 0) {
+            try (android.content.res.AssetFileDescriptor afd = cr.openAssetFileDescriptor(uri, "r")) {
+                if (afd != null) size = afd.getLength();
+            } catch (Exception ignore) {
+                // 크기 불명.
+            }
+        }
+        return size;
+    }
+
+    /** 공유 파일을 {name,type,dataUrl(base64)} JSON 으로 — 웹 스테이징 주입용. 실패 시 null. */
+    private org.json.JSONObject readShareFile(Uri uri) {
+        try {
+            final android.content.ContentResolver cr = getContentResolver();
+            String mime = cr.getType(uri);
+            if (mime == null) mime = "application/octet-stream";
+            String name = "shared";
+            try (Cursor c = cr.query(uri, new String[] {OpenableColumns.DISPLAY_NAME}, null, null, null)) {
+                if (c != null && c.moveToFirst()) {
+                    final int ni = c.getColumnIndex(OpenableColumns.DISPLAY_NAME);
+                    if (ni >= 0 && !c.isNull(ni)) name = c.getString(ni);
+                }
+            }
+            final java.io.ByteArrayOutputStream bos = new java.io.ByteArrayOutputStream();
+            try (java.io.InputStream in = cr.openInputStream(uri)) {
+                if (in == null) return null;
+                final byte[] buf = new byte[1 << 16];
+                int n;
+                while ((n = in.read(buf)) != -1) bos.write(buf, 0, n);
+            }
+            final String b64 = android.util.Base64.encodeToString(bos.toByteArray(), android.util.Base64.NO_WRAP);
+            final org.json.JSONObject o = new org.json.JSONObject();
+            o.put("name", name);
+            o.put("type", mime);
+            o.put("dataUrl", "data:" + mime + ";base64," + b64);
+            return o;
+        } catch (Exception e) {
+            return null;
+        }
     }
 
     private boolean shareUploadOne(String base, Uri uri) {

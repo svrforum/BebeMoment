@@ -8,7 +8,7 @@ import { FamilySSEProvider } from '@/lib/sse'
 import { ToastEmitterProvider } from '@/lib/toast'
 import type { Capability } from '@bebe/core'
 import { usePathname } from 'next/navigation'
-import { type ChangeEvent, type ReactNode, useCallback, useRef } from 'react'
+import { type ChangeEvent, type ReactNode, useCallback, useEffect, useRef } from 'react'
 
 // FAB shows only on pages where adding content from the library makes sense.
 // Hidden on content creation / edit / detail screens to avoid confusion.
@@ -42,6 +42,34 @@ function FabTrigger() {
     },
     [addFiles, open],
   )
+
+  // 안드로이드 "갤러리 → 공유 → bebe" 가 네이티브에서 호출하는 훅. 공유 파일(data URL)을
+  // File 로 만들어 기존 업로드 스테이징(미리보기·편집·최적화)으로 넣는다 — 바로 안 올리고
+  // 사용자가 "업로드" 를 눌러야 시작. (이 effect 는 라우트 무관하게 등록됨)
+  useEffect(() => {
+    const w = window as unknown as {
+      bebeReceiveSharedFiles?: (
+        files: { name: string; type: string; dataUrl: string }[],
+      ) => Promise<void>
+    }
+    w.bebeReceiveSharedFiles = async (files) => {
+      try {
+        const built: File[] = []
+        for (const f of files ?? []) {
+          const blob = await (await fetch(f.dataUrl)).blob()
+          built.push(new File([blob], f.name || 'shared', { type: f.type || blob.type }))
+        }
+        if (built.length === 0) return
+        const ids = await addFiles(built)
+        if (ids.length > 0) open()
+      } catch {
+        // 주입 실패 시 무시 — 사용자는 + 버튼으로 수동 업로드 가능.
+      }
+    }
+    return () => {
+      delete w.bebeReceiveSharedFiles
+    }
+  }, [addFiles, open])
 
   const show = FAB_ROUTES.some((r) => pathname === r)
   if (!show) return null
