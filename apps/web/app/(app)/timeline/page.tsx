@@ -2,7 +2,6 @@ import { AppHeader } from '@/components/shell/app-header'
 import { StoryStrip, type TimelineStory } from '@/components/timeline/bucket-section'
 import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { MemoriesCard } from '@/components/timeline/memories-card'
-import { StoryCard } from '@/components/timeline/story-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { TimelineComposer } from '@/components/timeline/timeline-composer'
@@ -16,7 +15,7 @@ import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
 import { babyDaysDiff, formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { bucketLabel } from '@bebe/core'
-import { listTimeline } from '@/server/timeline/merged-list'
+import { type TimelineItem, listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 import { z } from 'zod'
@@ -98,39 +97,44 @@ export default async function TimelinePage({
     })),
   }))
 
-  // 스토리를 날짜(entryDate)별로 묶어 같은 날 사진 그룹 위에 끼운다(1198). 사진이 있는
-  // 날의 스토리는 해당 그룹에, 사진 없는 옛 스토리는 orphan 으로 상단에.
   const utcDayKey = (d: Date): string =>
     `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-  const storiesByDate = new Map<string, TimelineStory[]>()
-  for (const it of storyItems) {
-    if (it.kind !== 'story') continue
-    const e = it.entry
-    // 그룹과 같은 축으로 키를 잡아야 같은 날에 붙는다 — uploaded 정렬에선 사진 그룹이
-    // createdAt 기준이므로 스토리도 createdAt(작성 시각)로. taken 정렬은 entryDate.
-    const key = utcDayKey(sortMode === 'uploaded' ? e.createdAt : e.entryDate)
-    const arr = storiesByDate.get(key) ?? []
-    arr.push({
+  // 모델 B — 스토리는 entryDate 가 아니라 "안에 든 사진이 찍힌 날(takenAt)"마다
+  // 등장한다. 사진별 날짜로 흩뿌려 같은 날 그리드 위에 얹고, 그 날짜의 사진을
+  // 카드 썸네일로 보여준다(여러 날에 걸친 스토리면 각 날엔 그 날 사진만).
+  type StoryEntry = Extract<TimelineItem, { kind: 'story' }>['entry']
+  const dayOfAsset = (a: { takenAt: Date; createdAt: Date }): string =>
+    utcDayKey(sortMode === 'uploaded' ? a.createdAt : a.takenAt)
+  const buildStory = (e: StoryEntry, dayKey: string | null): TimelineStory => {
+    const resolved = e.assets.flatMap((ea) => (ea.asset ? [ea.asset] : []))
+    const dayAssets = dayKey ? resolved.filter((a) => dayOfAsset(a) === dayKey) : resolved
+    return {
       id: e.id,
       publicNo: e.publicNo,
       title: e.title ?? null,
       body: e.body,
       mood: e.mood ?? null,
       visibility: e.visibility,
-    })
-    storiesByDate.set(key, arr)
+      thumbs: dayAssets.map((a) => ({ id: a.id, urls: a.urls })),
+      totalCount: resolved.length,
+    }
   }
-  const mainGroups = groups.map((g) => {
-    const s = storiesByDate.get(g.dateKey)
-    if (s) storiesByDate.delete(g.dateKey)
-    return { ...g, stories: s ?? [] }
-  })
-  // 사진 그룹에 못 붙은(사진 없는 옛) 스토리만 상단에 따로.
-  const storyKey = (e: { entryDate: Date; createdAt: Date }): string =>
-    utcDayKey(sortMode === 'uploaded' ? e.createdAt : e.entryDate)
-  const orphanStoryItems = storyItems.filter(
-    (it) => it.kind === 'story' && storiesByDate.has(storyKey(it.entry)),
-  )
+  // dateKey -> (storyId -> TimelineStory). 같은 날 같은 스토리는 1장(중복 방지).
+  const storiesByDate = new Map<string, Map<string, TimelineStory>>()
+  for (const it of storyItems) {
+    if (it.kind !== 'story') continue
+    const e = it.entry
+    const days = new Set(e.assets.flatMap((ea) => (ea.asset ? [dayOfAsset(ea.asset)] : [])))
+    for (const dk of days) {
+      const dayMap = storiesByDate.get(dk) ?? new Map<string, TimelineStory>()
+      if (!dayMap.has(e.id)) dayMap.set(e.id, buildStory(e, dk))
+      storiesByDate.set(dk, dayMap)
+    }
+  }
+  const mainGroups = groups.map((g) => ({
+    ...g,
+    stories: Array.from(storiesByDate.get(g.dateKey)?.values() ?? []),
+  }))
 
   // 멀티셀렉트 바 게이팅: 삭제 권한 / 앨범에 추가(앨범 권한 + 일반가족 앨범숨김 아님).
   const isManager = viewerRole === 'owner' || viewerRole === 'guardian'
@@ -177,18 +181,7 @@ export default async function TimelinePage({
           <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
             <StoryStrip
               stories={storyItems.flatMap((it) =>
-                it.kind === 'story'
-                  ? [
-                      {
-                        id: it.entry.id,
-                        publicNo: it.entry.publicNo,
-                        title: it.entry.title ?? null,
-                        body: it.entry.body,
-                        mood: it.entry.mood ?? null,
-                        visibility: it.entry.visibility,
-                      },
-                    ]
-                  : [],
+                it.kind === 'story' ? [buildStory(it.entry, dateFilter)] : [],
               )}
             />
           </div>
@@ -238,7 +231,8 @@ export default async function TimelinePage({
       ) : (
         <AppHeader title={ctx.family.name} wide />
       )}
-      {canUpload && <TimelineSortToggle value={sortMode} />}
+      {/* 정렬(촬영일/업로드)은 보기 설정일 뿐이라 일반 가족도 쓸 수 있게 항상 노출. */}
+      <TimelineSortToggle value={sortMode} />
       {/* 오늘 해당 추억이 있으면 풍부한 카드, 없으면 항상 보이는 슬림 진입점(→ /memories 보관함). */}
       <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
         {memoryGroups.length > 0 && memoryGroups[0] ? (
@@ -258,15 +252,8 @@ export default async function TimelinePage({
           />
         </div>
       )}
-      {/* 스토리는 이제 해당 날짜의 사진 그룹 위에 끼워 보여준다(아래 TimelineGrid).
-          사진이 없어 그룹에 못 붙은 옛 스토리만 상단에 따로. */}
-      {orphanStoryItems.length > 0 && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
-          {orphanStoryItems.map((it) =>
-            it.kind === 'story' ? <StoryCard key={`j-${it.id}`} entry={it.entry} compact /> : null,
-          )}
-        </div>
-      )}
+      {/* 스토리(모델 B)는 안에 든 사진이 찍힌 날짜 그룹마다 그 날 사진 위에
+          얹혀 보인다(아래 TimelineGrid → BucketSection 의 StoryStrip). */}
       <TimelineGrid
         initialGroups={mainGroups}
         lastSeenAt={prevLastSeenAt}

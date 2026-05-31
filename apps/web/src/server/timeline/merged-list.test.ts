@@ -69,9 +69,10 @@ describe('listTimeline', () => {
     expect(nextCursor).toBeNull()
   })
 
-  it('interleaves assets and diary by descending date', async () => {
+  it('anchors a story to its photo takenAt day, not entryDate (model B)', async () => {
     const { user, family } = await setup()
     const a1 = await makeAsset(family.id, user.id, new Date('2026-04-10'), 'a1')
+    // entryDate 04-12 인데 사진은 04-10 — 스토리는 04-10(사진 날)을 따라야 한다.
     await createStoryEntry(
       {
         familyId: family.id,
@@ -94,8 +95,49 @@ describe('listTimeline', () => {
     )
     const kinds = items.map((i) => i.kind)
     const dates = items.map((i) => i.ts.toISOString().slice(0, 10))
+    // 04-15 사진 → 04-10 그룹(스토리 + 사진). 스토리 ts 는 entryDate(04-12)가 아닌
+    // 사진의 takenAt(04-10). 같은 날 동률은 createdAt 최신순(스토리가 a1 뒤 생성).
     expect(kinds).toEqual(['asset', 'story', 'asset'])
-    expect(dates).toEqual(['2026-04-15', '2026-04-12', '2026-04-10'])
+    expect(dates).toEqual(['2026-04-15', '2026-04-10', '2026-04-10'])
+  })
+
+  it('shows a multi-date story on each of its photo days', async () => {
+    const { user, family } = await setup()
+    const early = await makeAsset(family.id, user.id, new Date('2026-05-12'), 'early')
+    const late = await makeAsset(family.id, user.id, new Date('2026-05-31'), 'late')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-06-01',
+        body: 'trip recap',
+        assetIds: [early.id, late.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const { items } = await listTimeline(
+      family.id,
+      { limit: 20 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    // 스토리 1개가 05/12·05/31 사진 양쪽을 끌고 와 두 날짜에 모두 묶일 수 있도록
+    // entry.assets 에 두 사진이 모두 실려야 한다(페이지 밖 사진도 해석).
+    const story = items.find((i) => i.kind === 'story')
+    expect(story?.kind).toBe('story')
+    if (story?.kind === 'story') {
+      const days = story.entry.assets
+        .map((ea) => ea.asset?.takenAt?.toISOString().slice(0, 10))
+        .filter(Boolean)
+        .sort()
+      expect(days).toEqual(['2026-05-12', '2026-05-31'])
+    }
+    // 06/01(올린 날)엔 스토리가 뜨지 않는다 — 사진이 없으므로.
+    const dates = items.map((i) => i.ts.toISOString().slice(0, 10))
+    expect(dates).not.toContain('2026-06-01')
   })
 
   it('sort=uploaded orders by createdAt regardless of takenAt', async () => {

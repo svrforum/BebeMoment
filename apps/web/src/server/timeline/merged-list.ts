@@ -81,113 +81,114 @@ export async function listTimeline(
     dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
   }
 
-  // The "?date=" calendar filter always pins to the wall-clock day the
-  // moment was experienced (takenAt / entryDate), regardless of sort mode.
-  // The sort toggle only changes ordering — not which day a moment "is".
-  const [assets, entries] = await Promise.all([
-    prismaMedia.asset.findMany({
-      where: {
-        familyId,
-        status: 'ready',
-        deletedAt: null,
-        duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
-        ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
-        ...(cursorTs && cur
-          ? sort === 'uploaded'
-            ? {
-                OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }],
-              }
-            : {
-                OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }],
-              }
-          : {}),
-      },
-      orderBy:
-        sort === 'uploaded'
-          ? [{ createdAt: 'desc' }, { id: 'desc' }]
-          : [{ takenAt: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    }),
-    prismaPublic.story.findMany({
-      where: {
-        familyId,
-        deletedAt: null,
-        // Family viewer sees only family-visible entries; owner /
-        // guardian see everything.
-        ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
-        ...(dayStart && dayEnd ? { entryDate: { gte: dayStart, lt: dayEnd } } : {}),
-        ...(cursorTs && cur
-          ? sort === 'uploaded'
-            ? {
-                OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }],
-              }
-            : {
-                OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],
-              }
-          : {}),
-      },
-      include: { assets: true },
-      orderBy:
-        sort === 'uploaded'
-          ? [{ createdAt: 'desc' }, { id: 'desc' }]
-          : [{ entryDate: 'desc' }, { id: 'desc' }],
-      take: limit + 1,
-    }),
-  ])
+  // Model B — 사진(자산)이 페이지네이션을 주도하고, 스토리는 "안에 든 사진이
+  // 찍힌 날"을 따라간다(스토리 자신의 entryDate/작성일이 아니라). 그래서 자산을
+  // 먼저 페이징한 뒤, 그 페이지 자산을 소유한 스토리를 역으로 찾아 같이 싣는다.
+  // (StoryAsset 은 cross-schema 라 한 쿼리 조인 불가 — assetId in 으로 멤버십만
+  // 끌어와 storyId 해석.)
+  const assetRows = await prismaMedia.asset.findMany({
+    where: {
+      familyId,
+      status: 'ready',
+      deletedAt: null,
+      duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
+      ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
+      ...(cursorTs && cur
+        ? sort === 'uploaded'
+          ? { OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }] }
+          : { OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }] }
+        : {}),
+    },
+    orderBy:
+      sort === 'uploaded'
+        ? [{ createdAt: 'desc' }, { id: 'desc' }]
+        : [{ takenAt: 'desc' }, { id: 'desc' }],
+    take: limit + 1,
+  })
+  const hasMore = assetRows.length > limit
+  const pageAssets = hasMore ? assetRows.slice(0, limit) : assetRows
+  const pageAssetIds = pageAssets.map((a) => a.id)
 
-  const entryAssetIds = Array.from(
-    new Set(entries.flatMap((e) => e.assets.map((ea) => ea.assetId))),
-  )
-  const entryAssets = entryAssetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: entryAssetIds }, familyId } })
+  // 페이지 자산을 소유한 스토리 멤버십 → 스토리 본문(가시성 필터).
+  const memberships = pageAssetIds.length
+    ? await prismaPublic.storyAsset.findMany({
+        where: { assetId: { in: pageAssetIds } },
+        select: { entryId: true },
+      })
     : []
-  const entryAssetById = new Map(entryAssets.map((a) => [a.id, a]))
+  const storyIds = Array.from(new Set(memberships.map((m) => m.entryId)))
+  const entries = storyIds.length
+    ? await prismaPublic.story.findMany({
+        where: {
+          id: { in: storyIds },
+          familyId,
+          deletedAt: null,
+          // Family viewer sees only family-visible entries; owner /
+          // guardian see everything.
+          ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
+        },
+        include: { assets: true },
+      })
+    : []
+
+  // 스토리 썸네일을 위해 페이지 밖 자산(다른 날에 찍힌 같은 스토리 사진)도 해석.
+  const extraIds = Array.from(
+    new Set(
+      entries
+        .flatMap((e) => e.assets.map((ea) => ea.assetId))
+        .filter((id) => !pageAssetIds.includes(id)),
+    ),
+  )
+  const extraAssets = extraIds.length
+    ? await prismaMedia.asset.findMany({ where: { id: { in: extraIds }, familyId } })
+    : []
+  const assetById = new Map([...pageAssets, ...extraAssets].map((a) => [a.id, a]))
 
   const allIds = Array.from(
-    new Set<string>([
-      ...assets.filter((a) => a.status === 'ready').map((a) => a.id),
-      ...entryAssets.filter((a) => a.status === 'ready').map((a) => a.id),
-    ]),
+    new Set<string>(
+      [...pageAssets, ...extraAssets].filter((a) => a.status === 'ready').map((a) => a.id),
+    ),
   )
   const urlsMap = allIds.length ? await media.getAssetUrlsBatch(familyId, allIds) : {}
 
-  const assetsWithUrls: AssetWithUrls[] = assets.map((a) => ({
+  const withUrls = (a: (typeof pageAssets)[number]): AssetWithUrls => ({
     ...a,
-    urls: urlsMap[a.id] ?? null,
-  }))
+    urls: a.status === 'ready' ? (urlsMap[a.id] ?? null) : null,
+  })
 
   const joinedEntries = entries.map((e) => ({
     ...e,
-    assets: e.assets.map((ea) => {
-      const base = entryAssetById.get(ea.assetId) ?? null
-      const withUrls: AssetWithUrls | null = base
-        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
-        : null
-      return { ...ea, asset: withUrls }
-    }),
+    assets: e.assets
+      .slice()
+      .sort((x, y) => x.order - y.order)
+      .map((ea) => {
+        const base = assetById.get(ea.assetId) ?? null
+        return { ...ea, asset: base ? withUrls(base) : null }
+      }),
   }))
 
-  // `ts` is the sort axis — also what the UI groups by (per-UTC-day
-  // header). In 'uploaded' mode that's createdAt; in 'taken' it's
-  // takenAt / entryDate.
-  const merged: TimelineItem[] = [
-    ...assetsWithUrls.map<TimelineItem>((a) => ({
+  // `ts` 는 정렬·그룹 축(UTC 일자 헤더). asset=takenAt/createdAt. 스토리는 페이지에
+  // 든 자기 사진들 중 가장 최근 날을 대표 ts 로(페이지 그룹핑이 사진별 날짜로 다시
+  // 흩뿌리므로 정렬 안정화용일 뿐).
+  const tsOf = (a: (typeof pageAssets)[number]): Date =>
+    sort === 'uploaded' ? a.createdAt : a.takenAt
+  const items: TimelineItem[] = [
+    ...pageAssets.map<TimelineItem>((a) => ({
       kind: 'asset',
-      ts: sort === 'uploaded' ? a.createdAt : a.takenAt,
+      ts: tsOf(a),
       id: a.id,
-      asset: a,
+      asset: withUrls(a),
     })),
-    ...joinedEntries.map<TimelineItem>((e) => ({
-      kind: 'story',
-      ts: sort === 'uploaded' ? e.createdAt : e.entryDate,
-      id: e.id,
-      entry: e,
-    })),
+    ...joinedEntries.map<TimelineItem>((e) => {
+      const onPage = e.assets
+        .map((ea) => (ea.asset && pageAssetIds.includes(ea.asset.id) ? ea.asset : null))
+        .filter((a): a is AssetWithUrls => a !== null)
+      const ts = onPage.length
+        ? new Date(Math.max(...onPage.map((a) => tsOf(a).getTime())))
+        : e.entryDate
+      return { kind: 'story', ts, id: e.id, entry: e }
+    }),
   ].sort((a, b) => {
-    // 1차: 표시 시각(takenAt / entryDate 또는 createdAt) 최신순. entryDate 는
-    // 날짜만이라 같은 날 글이 여러 개면 동률 → 2차로 createdAt(작성 시각)
-    // 최신순으로 깨야 "최신 글이 맨 위"가 보장된다(과거엔 UUID 비교라 작성순과
-    // 무관했다). 'uploaded' 모드에선 ts==createdAt 이라 2차는 보통 동률 회피용.
     const d = b.ts.getTime() - a.ts.getTime()
     if (d !== 0) return d
     const ca = (a.kind === 'asset' ? a.asset.createdAt : a.entry.createdAt).getTime()
@@ -196,13 +197,13 @@ export async function listTimeline(
     return b.id.localeCompare(a.id)
   })
 
-  const page = merged.slice(0, limit)
-  const hasMore = merged.length > limit
-  const last = page[page.length - 1]
+  // 페이지네이션은 자산만으로 — 스토리는 그 사진을 따라 같이 실린 파생물이라 커서에
+  // 영향 주지 않는다(같은 스토리가 사진이 걸친 여러 페이지에 각각 등장).
+  const lastAsset = pageAssets[pageAssets.length - 1]
   const nextCursor =
-    hasMore && last
-      ? encodeCursor({ ts: last.ts.toISOString(), id: last.id, kind: last.kind, sort })
+    hasMore && lastAsset
+      ? encodeCursor({ ts: tsOf(lastAsset).toISOString(), id: lastAsset.id, kind: 'asset', sort })
       : null
 
-  return { items: page, nextCursor }
+  return { items, nextCursor }
 }

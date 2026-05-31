@@ -1,5 +1,7 @@
 'use client'
 import { MOODS, isMood } from '@/components/story/mood'
+import { PictureImage } from '@/components/ui/picture-image'
+import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronRight, ShieldCheck } from 'lucide-react'
 import Link from 'next/link'
@@ -18,7 +20,8 @@ type AssetRow = {
   durationMs?: number | null
 }
 
-// 날짜 그룹에 끼워 넣을 스토리(글 중심 — 사진은 같은 날 그리드에 이미 나온다).
+// 날짜 그룹에 끼워 넣을 스토리. thumbs = 그 날짜에 든 스토리 사진들(모델 B —
+// 스토리는 사진이 찍힌 날마다 등장). totalCount = 스토리 전체 사진 수(+N 표기).
 export type TimelineStory = {
   id: string
   publicNo: number
@@ -26,44 +29,112 @@ export type TimelineStory = {
   body: string
   mood: string | null
   visibility: string
+  thumbs: { id: string; urls: AssetUrls | null }[]
+  totalCount: number
 }
 
-// 인스타 스토리처럼 절제된 표현 — 사진은 아래 그리드에 있으니 스토리는 한 줄짜리
-// 미니멀 리스트로(이모지 + 제목/본문 한 줄). 3개 이상이면 2개만 보이고 '…더보기'로 펼침.
+// 3개 이상이면 2개만 보이고 '…더보기'로 펼침.
 const STORY_COLLAPSE = 2
+// 카드에 보일 썸네일 최대 개수 — 넘으면 마지막 칸에 +N.
+const THUMB_MAX = 4
+
+function StoryThumb({ urls }: { urls: AssetUrls | null }) {
+  const trio = pickThumbTrio(urls)
+  const fallbackUrl = pickThumbUrl(urls)
+  if (!trio && !fallbackUrl) {
+    return <div className="h-14 w-14 shrink-0 rounded-xl bg-base-100 dark:bg-base-800" />
+  }
+  return (
+    <PictureImage
+      trio={trio}
+      fallbackUrl={fallbackUrl}
+      alt=""
+      aspectRatio={1}
+      dominantColor={urls?.dominantColor ?? null}
+      blurhash={pickBlurhash(urls)}
+      className="h-14 w-14 shrink-0 rounded-xl"
+      loading="lazy"
+    />
+  )
+}
+
+function StoryRow({ s }: { s: TimelineStory }) {
+  const mood = isMood(s.mood) ? MOODS[s.mood] : null
+  const shown = s.thumbs.slice(0, THUMB_MAX)
+  const overflow = s.totalCount - shown.length
+  return (
+    <Link
+      href={`/story/${s.publicNo}`}
+      className="group flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 p-2.5 shadow-card transition-all duration-200 active:scale-[0.99] md:hover:-translate-y-0.5 md:hover:shadow-elevated dark:border-base-800/70 dark:bg-base-900"
+    >
+      {shown.length > 0 && (
+        <div className="flex shrink-0 gap-1">
+          {shown.map((t, i) => (
+            <div key={t.id} className="relative">
+              <StoryThumb urls={t.urls} />
+              {overflow > 0 && i === shown.length - 1 && (
+                <div className="absolute inset-0 flex items-center justify-center rounded-xl bg-black/45 text-[13px] font-semibold text-white">
+                  +{overflow}
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      )}
+      <div className="min-w-0 flex-1">
+        <div className="flex items-center gap-1.5">
+          <span className="text-[10.5px] font-semibold uppercase tracking-wider text-base-400">
+            스토리
+          </span>
+          {s.visibility === 'guardians' && (
+            <ShieldCheck size={12} className="shrink-0 text-point-500" strokeWidth={2.4} />
+          )}
+          {mood && (
+            <span
+              className={`inline-flex items-center gap-0.5 rounded-full px-1.5 py-0.5 text-[10px] font-semibold ${mood.chip}`}
+            >
+              <span aria-hidden className="text-[11px] leading-none">
+                {mood.emoji}
+              </span>
+              {mood.label}
+            </span>
+          )}
+        </div>
+        {s.title && (
+          <div className="mt-0.5 truncate text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+            {s.title}
+          </div>
+        )}
+        <p
+          className={`text-[13px] leading-snug text-base-600 dark:text-base-300 ${
+            s.title ? 'mt-0.5 line-clamp-1' : 'mt-0.5 line-clamp-2'
+          }`}
+        >
+          {s.body}
+        </p>
+      </div>
+      <ChevronRight
+        size={16}
+        className="shrink-0 text-base-300 transition-colors group-hover:text-base-400 dark:text-base-600"
+      />
+    </Link>
+  )
+}
 
 export function StoryStrip({ stories }: { stories: TimelineStory[] }) {
   const [expanded, setExpanded] = useState(false)
   const collapsible = stories.length > STORY_COLLAPSE
   const visible = collapsible && !expanded ? stories.slice(0, STORY_COLLAPSE) : stories
   return (
-    <div className="mb-2.5 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
-      {visible.map((s) => {
-        const mood = isMood(s.mood) ? MOODS[s.mood] : null
-        return (
-          <Link
-            key={s.id}
-            href={`/story/${s.publicNo}`}
-            className="flex items-center gap-2 px-3.5 py-2.5 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
-          >
-            <span aria-hidden className="text-[14px] leading-none">
-              {mood ? mood.emoji : '📝'}
-            </span>
-            <span className="min-w-0 flex-1 truncate text-[13.5px] text-base-700 dark:text-base-300">
-              {s.title || s.body}
-            </span>
-            {s.visibility === 'guardians' && (
-              <ShieldCheck size={13} className="shrink-0 text-point-500" strokeWidth={2.2} />
-            )}
-            <ChevronRight size={15} className="shrink-0 text-base-300 dark:text-base-600" />
-          </Link>
-        )
-      })}
+    <div className="mb-3 flex flex-col gap-2">
+      {visible.map((s) => (
+        <StoryRow key={s.id} s={s} />
+      ))}
       {collapsible && !expanded && (
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          className="flex w-full items-center justify-center gap-1 px-3.5 py-2 text-[12.5px] font-medium text-base-500 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:text-base-400 dark:active:bg-base-800"
+          className="flex w-full items-center justify-center gap-1 rounded-2xl border border-base-200/70 py-2 text-[12.5px] font-medium text-base-500 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:border-base-800/70 dark:text-base-400 dark:active:bg-base-800"
         >
           스토리 {stories.length - STORY_COLLAPSE}개 더보기
           <ChevronDown size={14} strokeWidth={2.2} />

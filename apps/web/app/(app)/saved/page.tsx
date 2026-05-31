@@ -75,6 +75,7 @@ export default async function SavedPage() {
   for (const e of storyEntries) {
     const key = utcDayKey(e.entryDate)
     const arr = storiesByDate.get(key) ?? []
+    const resolved = e.assets.flatMap((ea) => (ea.asset ? [ea.asset] : []))
     arr.push({
       id: e.id,
       publicNo: e.publicNo,
@@ -82,6 +83,8 @@ export default async function SavedPage() {
       body: e.body,
       mood: e.mood ?? null,
       visibility: e.visibility,
+      thumbs: resolved.map((a) => ({ id: a.id, urls: a.urls })),
+      totalCount: resolved.length,
     })
     storiesByDate.set(key, arr)
   }
