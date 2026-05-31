@@ -14,6 +14,8 @@ type Props = {
   initialYear: number
   initialMonth: number
   assets: Asset[]
+  /** 스토리가 있는 UTC 일자 키(`${y}-${m0}-${d}`, m0=0-based). 모델 B. */
+  storyDays?: string[]
 }
 
 // 날짜는 전부 UTC 로 다룬다 — takenAt 은 촬영 벽시계 시각을 UTC 로 저장하므로,
@@ -37,10 +39,11 @@ function daysInMonth(year: number, month: number): Date[] {
   return days
 }
 
-export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
+export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }: Props) {
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
   const router = useRouter()
+  const storySet = useMemo(() => new Set(storyDays), [storyDays])
 
   // 업로드·삭제 등 자산 변화 시 캘린더도 새로고침(타임라인처럼) — 삭제한 사진이 남아
   // 보이던 문제 해결. 다중 이벤트 디바운스.
@@ -174,6 +177,7 @@ export function MonthGrid({ initialYear, initialMonth, assets }: Props) {
               assets={dayAssets.map((a) => ({ id: a.id, urls: a.urls }))}
               isCurrentMonth={d.getUTCMonth() === month}
               isToday={isTodayCell}
+              hasStory={storySet.has(key)}
             />
           )
         })}

@@ -2,6 +2,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
+import { PencilLine } from 'lucide-react'
 import Link from 'next/link'
 
 type Asset = { id: string; urls: AssetUrls | null }
@@ -11,9 +12,17 @@ type Props = {
   assets: Asset[]
   isCurrentMonth: boolean
   isToday?: boolean
+  /** 그 날 사진 중 스토리에 속한 게 있으면 우상단 스토리 뱃지(모델 B). */
+  hasStory?: boolean
 }
 
-export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props) {
+export function DayCell({
+  date,
+  assets,
+  isCurrentMonth,
+  isToday = false,
+  hasStory = false,
+}: Props) {
   const hasAssets = assets.length > 0
   const dayNum = date.getUTCDate()
   const dateParam = date.toISOString().slice(0, 10)
@@ -61,6 +70,19 @@ export function DayCell({ date, assets, isCurrentMonth, isToday = false }: Props
       >
         {dayNum}
       </span>
+      {hasStory && (
+        <span
+          aria-label="스토리 있음"
+          className={cn(
+            'absolute right-1.5 top-1.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full',
+            hasAssets
+              ? 'bg-black/55 text-white backdrop-blur-sm'
+              : 'bg-point-500/15 text-point-500',
+          )}
+        >
+          <PencilLine size={10} strokeWidth={2.6} />
+        </span>
+      )}
     </Link>
   )
 }
