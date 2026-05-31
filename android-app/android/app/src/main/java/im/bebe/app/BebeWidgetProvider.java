@@ -14,22 +14,28 @@ public class BebeWidgetProvider extends AppWidgetProvider {
     @Override
     public void onReceive(Context ctx, Intent intent) {
         if (ACTION_SHUFFLE.equals(intent.getAction())) {
-            // 새로고침(랜덤) 버튼 — 캐시된 사진 중 무작위로 교체(네트워크 없음).
-            try {
-                WidgetRefreshWorker.shuffle(ctx);
-            } catch (Throwable ignored) {
+            // 새로고침(랜덤) 버튼 — 그 위젯을 캐시된 사진 중 무작위로 교체(네트워크 없음).
+            final int id = intent.getIntExtra(
+                WidgetRefreshWorker.EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
+            if (id != AppWidgetManager.INVALID_APPWIDGET_ID) {
+                try {
+                    WidgetRefreshWorker.shuffle(ctx, id);
+                } catch (Throwable ignored) {
+                }
             }
             return;
         }
         super.onReceive(ctx, intent);
     }
 
-    /** 새로고침 버튼용 PendingIntent — 이 프로바이더로 가는 명시적 브로드캐스트. */
-    static PendingIntent shuffleIntent(Context ctx) {
-        Intent intent = new Intent(ctx, BebeWidgetProvider.class).setAction(ACTION_SHUFFLE);
+    /** 위젯ID별 새로고침 PendingIntent — requestCode=id 로 위젯마다 구분(extras 보존). */
+    static PendingIntent shuffleIntent(Context ctx, int id) {
+        Intent intent = new Intent(ctx, BebeWidgetProvider.class)
+            .setAction(ACTION_SHUFFLE)
+            .putExtra(WidgetRefreshWorker.EXTRA_WIDGET_ID, id);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (android.os.Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
-        return PendingIntent.getBroadcast(ctx, 1, intent, flags);
+        return PendingIntent.getBroadcast(ctx, id, intent, flags);
     }
 
     @Override

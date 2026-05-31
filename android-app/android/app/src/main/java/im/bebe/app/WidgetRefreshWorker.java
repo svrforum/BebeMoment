@@ -26,25 +26,16 @@ import org.json.JSONArray;
 import org.json.JSONObject;
 
 /**
- * 위젯 갱신 워커 — /api/widget/data 에서 최신 사진들(최대 4장)·아기 정보·새 사진 수를
- * 받아 단일/그리드 위젯을 모두 갱신한다. 나이는 저장된 생일로 매번 로컬 계산. 네트워크
- * 실패 시 마지막 상태 유지(조용히).
+ * 위젯 갱신 워커 — 멀티 인스턴스(가족별 위젯). 각 위젯 인스턴스(appWidgetId)는 추가된
+ * 시점의 "활성 가족" 서버/토큰에 1회 고정(bind)되고, 이후 그 가족의 데이터를 위젯ID별로
+ * 캐시·렌더한다. 다른 가족 위젯을 원하면 앱에서 그 가족으로 전환한 뒤 위젯을 추가한다.
+ * (전역 토큰/서버는 bind 안 된 위젯의 폴백 — 구버전 위젯 호환.)
  */
 public class WidgetRefreshWorker extends Worker {
 
     private static final String PERIODIC_NAME = "bebe-widget-refresh";
-    private static final String KEY_BIRTHDATE = "birthDate";
-    private static final String KEY_BABYNAME = "babyName";
-    private static final String KEY_PHOTO_COUNT = "photoCount";
-    private static final String KEY_NEWCOUNT = "newCount";
-    static final String KEY_SHUFFLE_IDX = "shuffleIdx";
-    private static final String KEY_PHOTO_DATES = "photoDates";
-    // 단일 위젯의 '랜덤(새로고침)' 버튼이 고를 수 있도록 최신 N 장을 캐시한다.
-    // 그리드 위젯은 그중 앞 4장만 쓴다.
+    static final String EXTRA_WIDGET_ID = "widgetId";
     private static final int MAX_PHOTOS = 10;
-    // RemoteViews 비트맵 예산(바인더 트랜잭션 ~1MB) 안에 들어오도록 렌더 비트맵을
-    // 작게 다운스케일한다. 과거엔 ~512px(ARGB ≈ 1MB) 원본을 그대로 넣어 특히 4장짜리
-    // 그리드가 예산 초과 → updateAppWidget 예외 → 위젯 미갱신이었다.
     private static final int SINGLE_MAX_PX = 420;
     private static final int GRID_MAX_PX = 240;
 
@@ -70,22 +61,12 @@ public class WidgetRefreshWorker extends Worker {
             PERIODIC_NAME, ExistingPeriodicWorkPolicy.UPDATE, req);
     }
 
-    /** 단일 위젯을 캐시된 사진들 중 (직전과 다른) 무작위 한 장으로 바꿔 다시 그린다.
-     *  네트워크 없이 즉시 — 새로고침(랜덤) 버튼이 호출. */
-    static void shuffle(Context ctx) {
-        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
-        int count = sp.getInt(KEY_PHOTO_COUNT, 0);
-        if (count > 1) {
-            int cur = sp.getInt(KEY_SHUFFLE_IDX, 0);
-            int next = cur;
-            for (int t = 0; t < 8 && next == cur; t++) next = (int) (Math.random() * count);
-            sp.edit().putInt(KEY_SHUFFLE_IDX, next).apply();
-        }
-        render(ctx, sp);
+    // ── per-widget 키/파일 ──────────────────────────────────────────────
+    private static String wk(int id, String suffix) {
+        return "w" + id + "_" + suffix;
     }
-
-    private static String photoFile(Context ctx, int i) {
-        return new java.io.File(ctx.getFilesDir(), "widget_photo_" + i + ".jpg").getAbsolutePath();
+    private static String photoFile(Context ctx, int id, int i) {
+        return new java.io.File(ctx.getFilesDir(), "w" + id + "_photo_" + i + ".jpg").getAbsolutePath();
     }
 
     @NonNull
@@ -93,23 +74,48 @@ public class WidgetRefreshWorker extends Worker {
     public Result doWork() {
         Context ctx = getApplicationContext();
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
-        String token = sp.getString(BebeWidgetPlugin.KEY_TOKEN, null);
-        String serverUrl = sp.getString(BebeWidgetPlugin.KEY_SERVER, null);
+        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
+        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class))) {
+            processWidget(ctx, sp, mgr, id, false);
+        }
+        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeGridWidgetProvider.class))) {
+            processWidget(ctx, sp, mgr, id, true);
+        }
+        return Result.success();
+    }
 
-        if (token != null && serverUrl != null) {
+    /** 위젯 1개: 서버/토큰 해석(필요 시 활성 가족으로 bind) → fetch → render. */
+    private void processWidget(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id, boolean grid) {
+        String server = sp.getString(wk(id, "server"), null);
+        String token = sp.getString(wk(id, "token"), null);
+        if (server == null || token == null) {
+            // 아직 bind 안 됨(새로 추가/구버전) → 현재 활성 가족으로 고정.
+            final String gServer = sp.getString(BebeWidgetPlugin.KEY_SERVER, null);
+            final String gToken = sp.getString(BebeWidgetPlugin.KEY_TOKEN, null);
+            if (server == null) server = gServer;
+            if (token == null) token = gToken;
+            if (server != null && token != null) {
+                sp.edit().putString(wk(id, "server"), server).putString(wk(id, "token"), token).apply();
+            }
+        }
+        if (server != null && token != null) {
             try {
-                fetchAndCache(ctx, sp, serverUrl, token);
+                fetchAndCache(ctx, sp, id, server, token);
             } catch (Exception e) {
                 // 조용히 — 마지막 캐시로 렌더.
             }
         }
-        render(ctx, sp);
-        return Result.success();
+        try {
+            if (grid) renderGrid(ctx, sp, mgr, id);
+            else renderSingle(ctx, sp, mgr, id);
+        } catch (Throwable ignored) {
+        }
     }
 
-    private void fetchAndCache(Context ctx, SharedPreferences sp, String serverUrl, String token)
+    private void fetchAndCache(Context ctx, SharedPreferences sp, int id, String serverUrl, String token)
             throws Exception {
-        URL url = new URL(serverUrl.replaceAll("/+$", "") + "/api/widget/data");
+        final String base = serverUrl.replaceAll("/+$", "");
+        URL url = new URL(base + "/api/widget/data");
         HttpURLConnection conn = (HttpURLConnection) url.openConnection();
         conn.setRequestProperty("Authorization", "Bearer " + token);
         conn.setConnectTimeout(8000);
@@ -124,17 +130,13 @@ public class WidgetRefreshWorker extends Worker {
         }
         JSONObject json = new JSONObject(body.toString());
         SharedPreferences.Editor ed = sp.edit();
-        ed.putString(KEY_BABYNAME, json.optString("babyName", ""));
-        ed.putString(KEY_BIRTHDATE, json.optString("birthDate", ""));
-        ed.putInt(KEY_NEWCOUNT, json.optInt("newCount", 0));
+        ed.putString(wk(id, "babyName"), json.optString("babyName", ""));
+        ed.putInt(wk(id, "newCount"), json.optInt("newCount", 0));
 
-        // 미디어 URL 은 루트-상대(`/media/v1/files/...`)로 온다(브라우저 동일출처용,
-        // mixed-content 회피). 네이티브 워커는 절대 URL 이 필요하므로 서버 베이스를 붙인다 —
-        // 안 붙이면 `new URL("/media/...")` 가 던져 사진이 전혀 안 받아져 위젯이 빈칸이었다.
-        final String base = serverUrl.replaceAll("/+$", "");
+        // 미디어 URL 은 루트-상대(/media/...)라 네이티브는 절대 URL 로 만들어 받아야 한다.
         JSONArray urls = json.optJSONArray("photoUrls");
         JSONArray dates = json.optJSONArray("photoDates");
-        JSONArray savedDates = new JSONArray(); // 저장된 사진과 같은 순서의 촬영일.
+        JSONArray savedDates = new JSONArray();
         int saved = 0;
         if (urls != null) {
             for (int i = 0; i < urls.length() && saved < MAX_PHOTOS; i++) {
@@ -145,7 +147,7 @@ public class WidgetRefreshWorker extends Worker {
                 }
                 Bitmap bmp = downloadBitmap(u);
                 if (bmp == null) continue;
-                java.io.File f = new java.io.File(photoFile(ctx, saved));
+                java.io.File f = new java.io.File(photoFile(ctx, id, saved));
                 try (java.io.FileOutputStream fos = new java.io.FileOutputStream(f)) {
                     bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
                 }
@@ -154,9 +156,9 @@ public class WidgetRefreshWorker extends Worker {
             }
         }
         if (saved > 0) {
-            ed.putInt(KEY_PHOTO_COUNT, saved);
-            ed.putInt(KEY_SHUFFLE_IDX, 0); // 새 데이터를 받으면 최신 사진부터 보여준다.
-            ed.putString(KEY_PHOTO_DATES, savedDates.toString());
+            ed.putInt(wk(id, "photoCount"), saved);
+            ed.putInt(wk(id, "shuffleIdx"), 0);
+            ed.putString(wk(id, "photoDates"), savedDates.toString());
         }
         ed.apply();
     }
@@ -171,73 +173,73 @@ public class WidgetRefreshWorker extends Worker {
         }
     }
 
-    static void render(Context ctx, SharedPreferences sp) {
-        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
-        String babyName = sp.getString(KEY_BABYNAME, "");
-        int photoCount = sp.getInt(KEY_PHOTO_COUNT, 0);
-        int newCount = sp.getInt(KEY_NEWCOUNT, 0);
-        // 단일 위젯은 셔플 인덱스의 사진을 보여준다(새로고침 버튼이 랜덤으로 바꿈).
-        int idx = sp.getInt(KEY_SHUFFLE_IDX, 0);
+    /** 새로고침(랜덤) 버튼 — 해당 위젯을 캐시된 사진 중 직전과 다른 무작위 한 장으로. */
+    static void shuffle(Context ctx, int id) {
+        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        int count = sp.getInt(wk(id, "photoCount"), 0);
+        if (count > 1) {
+            int cur = sp.getInt(wk(id, "shuffleIdx"), 0);
+            int next = cur;
+            for (int t = 0; t < 8 && next == cur; t++) next = (int) (Math.random() * count);
+            sp.edit().putInt(wk(id, "shuffleIdx"), next).apply();
+        }
+        try {
+            renderSingle(ctx, sp, AppWidgetManager.getInstance(ctx), id);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    private static void renderSingle(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
+        String babyName = sp.getString(wk(id, "babyName"), "");
+        int photoCount = sp.getInt(wk(id, "photoCount"), 0);
+        int newCount = sp.getInt(wk(id, "newCount"), 0);
+        int idx = sp.getInt(wk(id, "shuffleIdx"), 0);
         if (photoCount > 0) idx = Math.max(0, Math.min(idx, photoCount - 1));
-        String photoDate = photoDateLabel(sp.getString(KEY_PHOTO_DATES, ""), idx);
+        String photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx);
 
-        // 단일 위젯. 한 위젯 갱신이 실패(예: 비트맵 과다)해도 doWork 전체가 죽지 않도록
-        // 위젯 단위 try/catch — 과거엔 render 예외가 doWork 를 실패시켜 위젯이 통째로
-        // 안 갱신되던 원인이었다.
-        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class))) {
-            try {
-                RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
-                rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
-                rv.setViewVisibility(R.id.widget_age, View.GONE); // 나이(D±N)는 표시 안 함.
-                if (photoDate != null && !photoDate.isEmpty()) {
-                    rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
-                    rv.setTextViewText(R.id.widget_date, photoDate);
-                } else {
-                    rv.setViewVisibility(R.id.widget_date, View.GONE);
-                }
-                if (photoCount > 0) {
-                    Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, idx)), 40f, SINGLE_MAX_PX);
-                    if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
-                }
-                applyBadge(rv, newCount);
-                rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
-                // 새로고침(랜덤) 버튼 — 사진이 2장 이상일 때만 노출·동작.
-                if (photoCount > 1) {
-                    rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
-                    rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx));
-                } else {
-                    rv.setViewVisibility(R.id.widget_refresh, View.GONE);
-                }
-                mgr.updateAppWidget(id, rv);
-            } catch (Throwable ignored) {
-            }
+        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
+        rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
+        rv.setViewVisibility(R.id.widget_age, View.GONE);
+        if (photoDate != null && !photoDate.isEmpty()) {
+            rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
+            rv.setTextViewText(R.id.widget_date, photoDate);
+        } else {
+            rv.setViewVisibility(R.id.widget_date, View.GONE);
         }
+        if (photoCount > 0) {
+            Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, id, idx)), 40f, SINGLE_MAX_PX);
+            if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
+        }
+        applyBadge(rv, newCount);
+        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+        if (photoCount > 1) {
+            rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
+            rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
+        } else {
+            rv.setViewVisibility(R.id.widget_refresh, View.GONE);
+        }
+        mgr.updateAppWidget(id, rv);
+    }
 
-        // 그리드 위젯
-        int[] gridIds = mgr.getAppWidgetIds(new ComponentName(ctx, BebeGridWidgetProvider.class));
+    private static void renderGrid(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
+        int photoCount = sp.getInt(wk(id, "photoCount"), 0);
+        int newCount = sp.getInt(wk(id, "newCount"), 0);
         int[] cells = { R.id.grid_0, R.id.grid_1, R.id.grid_2, R.id.grid_3 };
-        for (int id : gridIds) {
-            try {
-                RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
-                for (int i = 0; i < cells.length; i++) {
-                    if (i < photoCount) {
-                        Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, i)), 24f, GRID_MAX_PX);
-                        if (b != null) rv.setImageViewBitmap(cells[i], b);
-                    }
-                }
-                applyBadge(rv, newCount);
-                rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
-                mgr.updateAppWidget(id, rv);
-            } catch (Throwable ignored) {
+        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
+        for (int i = 0; i < cells.length; i++) {
+            if (i < photoCount) {
+                Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, id, i)), 24f, GRID_MAX_PX);
+                if (b != null) rv.setImageViewBitmap(cells[i], b);
             }
         }
+        applyBadge(rv, newCount);
+        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+        mgr.updateAppWidget(id, rv);
     }
 
     /** 비트맵 모서리를 둥글게 + RemoteViews 예산에 맞춰 maxPx 로 다운스케일. */
     private static Bitmap rounded(Bitmap src, float radius, int maxPx) {
         if (src == null) return null;
-        // 위젯 표시 크기에 맞춰 작게 — RemoteViews 비트맵 예산 초과(→ updateAppWidget
-        // 예외)를 막는다.
         Bitmap b = src;
         if (src.getWidth() > maxPx || src.getHeight() > maxPx) {
             float s = Math.min((float) maxPx / src.getWidth(), (float) maxPx / src.getHeight());
@@ -263,8 +265,7 @@ public class WidgetRefreshWorker extends Worker {
         }
     }
 
-    /** 캐시된 촬영일 JSON(`["2026-05-12",…]`) 의 idx 번째를 "5월 12일"(올해면) 또는
-     *  "2026.5.12" 로 포맷. 없으면 빈 문자열. */
+    /** 촬영일 JSON 의 idx 번째를 "5월 12일"(올해) / "2026.5.12" 로. */
     static String photoDateLabel(String datesJson, int idx) {
         if (datesJson == null || datesJson.isEmpty()) return "";
         try {
@@ -277,34 +278,6 @@ public class WidgetRefreshWorker extends Worker {
             int day = Integer.parseInt(d.substring(8, 10));
             int curYear = Calendar.getInstance().get(Calendar.YEAR);
             return y == curYear ? (m + "월 " + day + "일") : (y + "." + m + "." + day);
-        } catch (Exception e) {
-            return "";
-        }
-    }
-
-    /** 생일 기준 나이 문자열. 태어났으면 "D+123 · 4개월", 출산 전이면 "D-89". */
-    static String ageLabel(String birthDate) {
-        if (birthDate == null || birthDate.length() < 10) return "";
-        try {
-            int by = Integer.parseInt(birthDate.substring(0, 4));
-            int bm = Integer.parseInt(birthDate.substring(5, 7));
-            int bd = Integer.parseInt(birthDate.substring(8, 10));
-            Calendar birth = Calendar.getInstance();
-            birth.clear();
-            birth.set(by, bm - 1, bd);
-            Calendar today = Calendar.getInstance();
-            Calendar todayMid = Calendar.getInstance();
-            todayMid.clear();
-            todayMid.set(today.get(Calendar.YEAR), today.get(Calendar.MONTH), today.get(Calendar.DAY_OF_MONTH));
-
-            long days = Math.round((todayMid.getTimeInMillis() - birth.getTimeInMillis()) / 86400000.0);
-            if (days < 0) return "D-" + (-days);
-
-            int months = (todayMid.get(Calendar.YEAR) - by) * 12 + (todayMid.get(Calendar.MONTH) - (bm - 1));
-            if (todayMid.get(Calendar.DAY_OF_MONTH) < bd) months -= 1;
-            String s = "D+" + days;
-            if (months > 0) s += " · " + months + "개월";
-            return s;
         } catch (Exception e) {
             return "";
         }
