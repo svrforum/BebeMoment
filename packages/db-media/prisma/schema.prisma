@@ -63,12 +63,55 @@ model Asset {
   deletedAt               DateTime? @map("deleted_at")
 
   assetBabies    AssetBaby[]
+  faces          Face[]
 
   @@unique([familyId, sha256])
   @@index([familyId, takenAt])
   @@index([familyId, status])
   @@index([familyId, status, takenAt, id], map: "assets_timeline_idx")
   @@map("assets")
+  @@schema("media")
+}
+
+// 얼굴 인식(옵트인). 임베딩은 pgvector `vector(512)` — Prisma 미지원이라 Unsupported 로
+// 두고 삽입·검색은 raw SQL($executeRaw/$queryRaw)로 한다. bbox 는 0..1 정규화.
+model Face {
+  id        String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId  String  @map("family_id") @db.Uuid
+  assetId   String  @map("asset_id") @db.Uuid
+  personId  String? @map("person_id") @db.Uuid
+  bboxX     Float   @map("bbox_x")
+  bboxY     Float   @map("bbox_y")
+  bboxW     Float   @map("bbox_w")
+  bboxH     Float   @map("bbox_h")
+  detScore  Float   @map("det_score")
+  embedding Unsupported("vector(512)")?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  asset  Asset   @relation(fields: [assetId], references: [id], onDelete: Cascade)
+  person Person? @relation(fields: [personId], references: [id], onDelete: SetNull)
+
+  @@index([familyId])
+  @@index([assetId])
+  @@index([personId])
+  @@map("faces")
+  @@schema("media")
+}
+
+// 같은 얼굴 군집 = 한 "사람". 사용자가 이름을 붙인다(없으면 미명).
+model Person {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId    String   @map("family_id") @db.Uuid
+  name        String?
+  coverFaceId String?  @map("cover_face_id") @db.Uuid
+  faceCount   Int      @default(0) @map("face_count")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @default(now()) @updatedAt @map("updated_at")
+
+  faces Face[]
+
+  @@index([familyId])
+  @@map("persons")
   @@schema("media")
 }
 

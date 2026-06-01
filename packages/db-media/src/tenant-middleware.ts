@@ -1,11 +1,11 @@
 import type { PrismaClient } from '../prisma/generated/client/client'
 
-const TENANT_SCOPED_MODELS = new Set(['Asset', 'AssetBaby'])
+const TENANT_SCOPED_MODELS = new Set(['Asset', 'AssetBaby', 'Face', 'Person'])
 
 // Models that carry a direct `familyId` column. Inserts on these MUST include
 // it in the create payload. AssetBaby is a transitive join table scoped
-// through `assetId` — it has no direct column.
-const MODELS_WITH_FAMILY_ID_COLUMN = new Set(['Asset'])
+// through `assetId` — it has no direct column. Face/Person 은 family_id 직접 보유.
+const MODELS_WITH_FAMILY_ID_COLUMN = new Set(['Asset', 'Face', 'Person'])
 
 const READ_LIKE_OPERATIONS = new Set([
   'findMany',
