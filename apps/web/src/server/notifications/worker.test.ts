@@ -3,15 +3,37 @@ import { buildNotification, handleNotificationJob } from './worker'
 
 it('digest.summary 는 사진과 기타 소식을 합산해 보여준다', () => {
   const base = { familyId: 'f', actorUserId: '', type: 'digest.summary' as const }
-  expect(buildNotification({ ...base, payload: { photos: '3', others: '2' } }).body).toBe(
-    '새 사진 3장과 새 소식 2개가 있어요',
+  const ctx = { familyName: '복덕이' }
+  expect(buildNotification({ ...base, payload: { photos: '3', others: '2' } }, ctx).body).toBe(
+    '새 사진 3장과 새 소식 2개가 있어요 💌',
   )
-  expect(buildNotification({ ...base, payload: { photos: '3', others: '0' } }).body).toBe(
-    '새 사진 3장이 올라왔어요',
+  expect(buildNotification({ ...base, payload: { photos: '3', others: '0' } }, ctx).body).toBe(
+    '새 사진 3장이 올라왔어요 📷',
   )
-  expect(buildNotification({ ...base, payload: { photos: '0', others: '2' } }).body).toBe(
-    '새 소식 2개가 있어요',
+  expect(buildNotification({ ...base, payload: { photos: '0', others: '2' } }, ctx).body).toBe(
+    '새 소식 2개가 있어요 💌',
   )
+})
+
+it('제목은 가족명, 본문은 구체 정보로 채운다', () => {
+  const fam = { familyName: '복덕이튼튼딸기' }
+  const photo = buildNotification(
+    { familyId: 'f', actorUserId: 'a', type: 'asset.uploaded', payload: { assetId: 'x' } },
+    fam,
+  )
+  expect(photo.title).toBe('복덕이튼튼딸기')
+  expect(photo.body).toContain('새 사진')
+  const ms = buildNotification(
+    {
+      familyId: 'f',
+      actorUserId: 'a',
+      type: 'milestone.created',
+      payload: { milestoneId: 'm', babyId: 'b' },
+    },
+    { familyName: '복덕이튼튼딸기', babyName: '복덕이', milestoneLabel: '첫 웃음' },
+  )
+  expect(ms.body).toContain('복덕이')
+  expect(ms.body).toContain('첫 웃음')
 })
 
 it('마스터 off 면 발송 안 함', async () => {
@@ -58,7 +80,7 @@ it('게이트 통과 시 수신자 구독에 발송, 410 구독 삭제', async (
     },
   )
   expect(send).toHaveBeenCalledTimes(2)
-  expect(deleteSub).toHaveBeenCalledWith('dead')
+  expect(deleteSub).toHaveBeenCalledWith({ endpoint: 'dead', userId: 'b' })
 })
 
 it('FCM 디바이스 토큰에도 발송, expired 토큰 삭제', async () => {

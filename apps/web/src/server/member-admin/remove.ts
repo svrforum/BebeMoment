@@ -27,6 +27,10 @@ export async function removeMember(
       data: { deletedAt: new Date() },
     })
     await tx.session.deleteMany({ where: { userId: membership.userId } })
+    // 제외된 멤버의 푸시 구독·기기 토큰도 정리 — 안 그러면 기기에 가족 푸시가 계속 간다
+    // (단일 가족 모델이라 user-scoped 전체 삭제 = 이 가족 구독 전체).
+    await tx.pushSubscription.deleteMany({ where: { userId: membership.userId } })
+    await tx.devicePushToken.deleteMany({ where: { userId: membership.userId } })
   })
   return { ok: true }
 }

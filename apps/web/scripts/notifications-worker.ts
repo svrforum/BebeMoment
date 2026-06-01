@@ -30,7 +30,9 @@ import {
   FACE_CLUSTER_DISTANCE_MIN,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
+  getPreset,
 } from '@bebe/core'
+import type { NotifContext } from '@/server/notifications/worker'
 import { createRedisConnection, enqueueFaceDetect } from '@bebe/queue'
 import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
@@ -46,6 +48,53 @@ async function settingsGet(key: string): Promise<string | null> {
 
 async function settingsSet(key: string, value: string): Promise<void> {
   await setSetting(key, value, null, prismaPublic)
+}
+
+/**
+ * 푸시 문구용 컨텍스트 조회 — 제목엔 가족명, 본문엔 아기명·앨범명·마일스톤 항목·댓글 일부.
+ * 모든 조회는 best-effort(실패해도 generic 문구로 폴백, 푸시는 계속).
+ */
+async function resolveNotifContext(job: NotificationJob): Promise<NotifContext> {
+  const ctx: NotifContext = { familyName: '우리 가족' }
+  try {
+    const fam = await prismaPublic.family.findUnique({
+      where: { id: job.familyId },
+      select: { name: true },
+    })
+    if (fam?.name) ctx.familyName = fam.name
+  } catch {}
+
+  try {
+    const p = job.payload
+    if (job.type === 'comment.created' && p.commentId) {
+      const c = await prismaPublic.assetComment.findUnique({
+        where: { id: p.commentId },
+        select: { body: true },
+      })
+      if (c?.body) ctx.commentSnippet = c.body.length > 30 ? `${c.body.slice(0, 30)}…` : c.body
+    } else if (job.type === 'album.asset_added' && p.albumId) {
+      const a = await prismaPublic.album.findUnique({
+        where: { id: p.albumId },
+        select: { name: true },
+      })
+      if (a?.name) ctx.albumName = a.name
+    } else if ((job.type === 'growth.created' || job.type === 'milestone.created') && p.babyId) {
+      const baby = await prismaPublic.baby.findFirst({
+        where: { id: p.babyId, familyId: job.familyId },
+        select: { name: true },
+      })
+      if (baby?.name) ctx.babyName = baby.name
+      if (job.type === 'milestone.created' && p.milestoneId) {
+        const m = await prismaPublic.milestone.findUnique({
+          where: { id: p.milestoneId },
+          select: { presetKey: true, customLabel: true },
+        })
+        const label = m?.customLabel || (m?.presetKey ? getPreset(m.presetKey)?.labelKo : undefined)
+        if (label) ctx.milestoneLabel = label
+      }
+    }
+  } catch {}
+  return ctx
 }
 
 /**
@@ -326,9 +375,12 @@ async function main(): Promise<void> {
       await handleNotificationJob(job.data, {
         ...(fcm ?? {}),
         settingsGet,
+        enrich: resolveNotifContext,
         loadFamily: async (familyId) => {
+          // 제외(deletedAt)·정지(suspendedAt)된 멤버는 수신자에서 빼야 한다 — 안 그러면
+          // 가족에서 내보낸 사람도 계속 푸시를 받는다.
           const rows = await prismaPublic.membership.findMany({
-            where: { familyId },
+            where: { familyId, deletedAt: null, suspendedAt: null },
             select: { userId: true, role: true },
           })
           const visibility = job.data.payload.visibility === 'guardians' ? 'guardians' : 'family'
@@ -356,8 +408,8 @@ async function main(): Promise<void> {
               payload,
             )
             .then(() => undefined),
-        deleteSub: async (endpoint) => {
-          await prismaPublic.pushSubscription.deleteMany({ where: { endpoint } })
+        deleteSub: async ({ endpoint, userId }) => {
+          await prismaPublic.pushSubscription.deleteMany({ where: { endpoint, userId } })
         },
       })
     },
