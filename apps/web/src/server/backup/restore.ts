@@ -10,6 +10,18 @@ const runFile = promisify(execFile)
 
 type Logger = (msg: string) => void
 
+/**
+ * pg_restore stderr 가 "치명적 실패"인지. --clean --if-exists 면 "does not exist"류
+ * 양성 노이즈는 출력되지 않으므로, 실제 실패는 `pg_restore: error:` 라인이나
+ * "errors ignored on restore: N>0" 요약으로 드러난다. 이게 true 면 반쪽 복구이므로
+ * 성공으로 보고하면 안 된다(조용한 실패 금지).
+ */
+export function isFatalPgRestoreError(stderr: string): boolean {
+  if (/pg_restore:\s*error:/i.test(stderr)) return true
+  const m = stderr.match(/errors ignored on restore:\s*(\d+)/i)
+  return m ? Number(m[1]) > 0 : false
+}
+
 /** target 부터 부모(parentId)를 따라 full 베이스까지 거슬러 올라간 체인(베이스→target 순). */
 async function resolveChain(dir: string, targetId: string): Promise<BackupManifest[]> {
   const chain: BackupManifest[] = []
@@ -133,10 +145,16 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
         path.join(work, 'db.dump'),
       ],
       { maxBuffer: 1024 * 1024 * 64 },
-    ).catch((e) => {
+    ).catch((e: unknown) => {
       // pg_restore 는 --clean 의 일부 DROP 누락을 비치명적 경고로 내며 비-0 종료할 수 있다.
-      // 치명/비치명 구분이 어려워 경고는 로그만 — 심각하면 이후 앱이 드러낸다.
-      log(`pg_restore 경고: ${(e as Error).message.slice(0, 500)}`)
+      // stderr 를 분류해 진짜 에러면 throw(→ 라우트가 500, 컨테이너 재시작 안 함), 양성
+      // 경고면 로그만. 과거엔 전부 삼켜 반쪽 복구도 "완료"로 보고했다.
+      const err = e as { stderr?: string; message?: string }
+      const stderr = `${err.stderr ?? ''}\n${err.message ?? ''}`
+      if (isFatalPgRestoreError(stderr)) {
+        throw new Error(`DB 복원 실패: ${stderr.trim().slice(-800)}`)
+      }
+      log(`pg_restore 경고: ${stderr.trim().slice(0, 500)}`)
     })
     log('DB 복원 완료')
 
