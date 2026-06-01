@@ -3,6 +3,7 @@ import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/s
 import { StoryStrip } from '@/components/timeline/bucket-section'
 import { MemoriesEntry } from '@/components/memories/memories-entry'
 import { PeopleEntry } from '@/components/people/people-entry'
+import { countPeople } from '@/server/people/list'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -210,11 +211,9 @@ export default async function TimelinePage({
     getMediaClient(),
   )
 
-  // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 군집 개수를 뱃지로.
+  // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 살아있는 사진 기준 군집 수.
   const peopleCount = features.faces
-    ? await prismaMedia.person.count({
-        where: { familyId: ctx.family.id, faceCount: { gt: 0 } },
-      })
+    ? await countPeople({ familyId: ctx.family.id }, prismaMedia)
     : 0
 
   return (

@@ -10,6 +10,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
+import { countPeople } from '@/server/people/list'
 import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
@@ -116,7 +117,7 @@ export default async function SavedPage() {
   // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 북마크 탭에서도 사람으로 진입.
   const features = await getFeatureFlags(prismaPublic)
   const peopleCount = features.faces
-    ? await prismaMedia.person.count({ where: { familyId: ctx.family.id, faceCount: { gt: 0 } } })
+    ? await countPeople({ familyId: ctx.family.id }, prismaMedia)
     : 0
 
   return (

@@ -13,10 +13,21 @@ export type PersonSummary = {
   cover: PersonCover | null
 }
 
+type LiveFaceRow = {
+  person_id: string
+  asset_id: string
+  bbox_x: number
+  bbox_y: number
+  bbox_w: number
+  bbox_h: number
+  det_score: number
+}
+
 /**
- * 가족의 사람(군집) 목록 — 얼굴 수 많은 순. 각 사람의 대표 얼굴(coverFaceId)을 thumb URL +
- * bbox 와 함께 돌려준다(UI 가 bbox 중심으로 CSS 크롭). 대표 얼굴의 자산이 삭제/미준비면
- * cover=null. 얼굴 0개인 사람(전부 다른 자산으로 이동·삭제)은 제외.
+ * 가족의 사람(군집) 목록 — **살아있는(미삭제·ready) 자산의 얼굴만** 기준으로 집계한다.
+ * 그래서 사진을 지우면 그 사람의 장수가 줄고, 마지막 사진까지 지우면 목록에서 사라진다
+ * (얼굴 행 자체는 남겨 둬 사진을 복원하면 다시 나타난다). 대표 얼굴은 살아있는 얼굴 중
+ * 점수가 가장 높은 것을 골라 thumb URL + bbox 로 — bbox 중심 CSS 크롭에 쓴다.
  */
 export async function listPeople(
   args: { familyId: string },
@@ -24,45 +35,66 @@ export async function listPeople(
   media: MediaClient,
 ): Promise<PersonSummary[]> {
   const { familyId } = args
+
+  const rows = await prismaMedia.$queryRawUnsafe<LiveFaceRow[]>(
+    `SELECT f.person_id, f.asset_id, f.bbox_x, f.bbox_y, f.bbox_w, f.bbox_h, f.det_score
+       FROM media.faces f
+       JOIN media.assets a ON a.id = f.asset_id
+      WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
+        AND a.deleted_at IS NULL AND a.status = 'ready'`,
+    familyId,
+  )
+  if (rows.length === 0) return []
+
+  type Agg = { count: number; best: LiveFaceRow }
+  const byPerson = new Map<string, Agg>()
+  for (const r of rows) {
+    const cur = byPerson.get(r.person_id)
+    if (!cur) byPerson.set(r.person_id, { count: 1, best: r })
+    else {
+      cur.count += 1
+      if (r.det_score > cur.best.det_score) cur.best = r
+    }
+  }
+
+  const personIds = [...byPerson.keys()]
   const persons = await prismaMedia.person.findMany({
-    where: { familyId, faceCount: { gt: 0 } },
-    orderBy: [{ faceCount: 'desc' }, { createdAt: 'asc' }],
+    where: { id: { in: personIds }, familyId },
+    select: { id: true, name: true },
   })
-  if (persons.length === 0) return []
+  const nameById = new Map(persons.map((p) => [p.id, p.name]))
 
-  const coverIds = persons.map((p) => p.coverFaceId).filter((x): x is string => x !== null)
-  const coverFaces = coverIds.length
-    ? await prismaMedia.face.findMany({
-        where: { id: { in: coverIds }, familyId },
-        select: { id: true, assetId: true, bboxX: true, bboxY: true, bboxW: true, bboxH: true },
-      })
-    : []
-  const faceById = new Map(coverFaces.map((f) => [f.id, f]))
+  const coverAssetIds = Array.from(new Set([...byPerson.values()].map((a) => a.best.asset_id)))
+  const urls = coverAssetIds.length ? await media.getAssetUrlsBatch(familyId, coverAssetIds) : {}
 
-  const coverAssetIds = Array.from(new Set(coverFaces.map((f) => f.assetId)))
-  const readyAssets = coverAssetIds.length
-    ? await prismaMedia.asset.findMany({
-        where: { id: { in: coverAssetIds }, familyId, status: 'ready', deletedAt: null },
-        select: { id: true },
-      })
-    : []
-  const readySet = new Set(readyAssets.map((a) => a.id))
+  return [...byPerson.entries()]
+    .map(([personId, agg]) => ({
+      id: personId,
+      name: nameById.get(personId) ?? null,
+      faceCount: agg.count,
+      cover: {
+        assetId: agg.best.asset_id,
+        urls: urls[agg.best.asset_id] ?? null,
+        bbox: { x: agg.best.bbox_x, y: agg.best.bbox_y, w: agg.best.bbox_w, h: agg.best.bbox_h },
+      } satisfies PersonCover,
+    }))
+    .sort((a, b) => b.faceCount - a.faceCount || a.id.localeCompare(b.id))
+}
 
-  const urlAssetIds = coverAssetIds.filter((id) => readySet.has(id))
-  const urls = urlAssetIds.length ? await media.getAssetUrlsBatch(familyId, urlAssetIds) : {}
-
-  return persons.map((p) => {
-    const f = p.coverFaceId ? faceById.get(p.coverFaceId) : undefined
-    const cover: PersonCover | null =
-      f && readySet.has(f.assetId)
-        ? {
-            assetId: f.assetId,
-            urls: urls[f.assetId] ?? null,
-            bbox: { x: f.bboxX, y: f.bboxY, w: f.bboxW, h: f.bboxH },
-          }
-        : null
-    return { id: p.id, name: p.name, faceCount: p.faceCount, cover }
-  })
+/** 살아있는 얼굴이 1개 이상인 사람 수 — 진입점 뱃지용(목록과 같은 기준). */
+export async function countPeople(
+  args: { familyId: string },
+  prismaMedia: PrismaMedia,
+): Promise<number> {
+  const rows = await prismaMedia.$queryRawUnsafe<{ c: number }[]>(
+    `SELECT count(DISTINCT f.person_id)::int AS c
+       FROM media.faces f
+       JOIN media.assets a ON a.id = f.asset_id
+      WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
+        AND a.deleted_at IS NULL AND a.status = 'ready'`,
+    args.familyId,
+  )
+  return rows[0]?.c ?? 0
 }
 
 export type PersonDetail = {
