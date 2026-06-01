@@ -73,7 +73,9 @@ services:
     profiles: ["faces"]
     environment:
       FACE_MODEL_PACK: ${FACE_MODEL_PACK:-buffalo_l}
-      FACE_DET_SIZE: ${FACE_DET_SIZE:-640}
+      # 아기 얼굴 탐지율 ↑ — det_size 크게 + det_thresh 낮게(apps/ml/main.py 참조).
+      FACE_DET_SIZE: ${FACE_DET_SIZE:-800}
+      FACE_DET_THRESH: ${FACE_DET_THRESH:-0.3}
     volumes:
       - ${ML_MODELS_DIR:-./ml-models}:/data/insightface
     restart: unless-stopped

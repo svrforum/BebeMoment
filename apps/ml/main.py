@@ -10,7 +10,11 @@ from fastapi import FastAPI, File, HTTPException, UploadFile
 
 PACK = os.environ.get("FACE_MODEL_PACK", "buffalo_l")
 ROOT = os.environ.get("FACE_MODEL_ROOT", "/data/insightface")
-DET_SIZE = int(os.environ.get("FACE_DET_SIZE", "640"))
+# 아기 사진 튜닝: buffalo_l(SCRFD, 성인 학습)은 클로즈업 아기 얼굴을 자주 놓친다.
+# det_size 키워(작은/다양한 포즈) + det_thresh 낮춰(저신뢰 아기 얼굴까지) 탐지율을 올린다.
+# 오탐이 늘면 호출자(미디어 워커)에서 score 로 거를 수 있으나, 우선 recall 우선.
+DET_SIZE = int(os.environ.get("FACE_DET_SIZE", "800"))
+DET_THRESH = float(os.environ.get("FACE_DET_THRESH", "0.3"))
 
 app = FastAPI(title="bebe-ml")
 _model = None
@@ -25,14 +29,20 @@ def get_model():
                 from insightface.app import FaceAnalysis
 
                 m = FaceAnalysis(name=PACK, root=ROOT, providers=["CPUExecutionProvider"])
-                m.prepare(ctx_id=-1, det_size=(DET_SIZE, DET_SIZE))
+                m.prepare(ctx_id=-1, det_size=(DET_SIZE, DET_SIZE), det_thresh=DET_THRESH)
                 _model = m
     return _model
 
 
 @app.get("/health")
 def health():
-    return {"ok": True, "modelLoaded": _model is not None, "pack": PACK}
+    return {
+        "ok": True,
+        "modelLoaded": _model is not None,
+        "pack": PACK,
+        "detSize": DET_SIZE,
+        "detThresh": DET_THRESH,
+    }
 
 
 @app.post("/warmup")
