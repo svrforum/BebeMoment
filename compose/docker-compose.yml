@@ -24,6 +24,9 @@ services:
       LOG_LEVEL: ${LOG_LEVEL:-info}
       BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
+      # 얼굴 인식(옵트인) ML 사이드카 주소. faces 프로파일을 안 켜면 ml 컨테이너가 없어
+      # 호출도 없다(잡 자체가 features.faces 켜졌을 때만 enqueue 됨).
+      FACE_ML_URL: ${FACE_ML_URL:-http://ml:8000}
     volumes:
       - ${DATA_DIR:-./data}:/data
     depends_on:
@@ -61,6 +64,23 @@ services:
       resources:
         limits:
           memory: ${PG_MEMORY_LIMIT:-512m}
+
+  # 얼굴 인식 ML 사이드카 — **옵트인**. `docker compose --profile faces up -d` 로만 기동한다.
+  # features.faces 끈 인스턴스는 이 컨테이너를 안 띄우므로 부담 0. insightface 모델팩은
+  # 첫 기동 때 받아 ml-models 볼륨에 캐시(이후 오프라인). amd64 CPU 추론, 8GB 면 여유.
+  ml:
+    image: ghcr.io/${GITHUB_REPO:-svrforum/bebe-moment}/ml:${TAG:-latest}
+    profiles: ["faces"]
+    environment:
+      FACE_MODEL_PACK: ${FACE_MODEL_PACK:-buffalo_l}
+      FACE_DET_SIZE: ${FACE_DET_SIZE:-640}
+    volumes:
+      - ${ML_MODELS_DIR:-./ml-models}:/data/insightface
+    restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: ${ML_MEMORY_LIMIT:-3g}
 
   redis:
     image: redis:7-alpine

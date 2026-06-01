@@ -80,6 +80,36 @@ jobs:
           provenance: true
           sbom: true
 
+  # 얼굴 인식 ML 사이드카(옵트인). app 과 별개 이미지로 발행 — faces 켠 인스턴스만 pull.
+  ml:
+    needs: [verify]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v5
+        id: meta
+        with:
+          images: ghcr.io/${{ github.repository }}/ml
+          tags: |
+            type=ref,event=tag
+            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+      - uses: docker/build-push-action@v6
+        with:
+          context: apps/ml
+          file: apps/ml/Dockerfile
+          platforms: linux/amd64
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=ml
+          cache-to: type=gha,scope=ml,mode=max
+
   android:
     needs: [verify]
     runs-on: ubuntu-latest
