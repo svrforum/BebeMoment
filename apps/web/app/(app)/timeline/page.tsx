@@ -232,19 +232,23 @@ export default async function TimelinePage({
       )}
       {/* 정렬(촬영일/업로드)은 보기 설정일 뿐이라 일반 가족도 쓸 수 있게 항상 노출. */}
       <TimelineSortToggle value={sortMode} />
-      {/* 오늘 해당 추억이 있으면 풍부한 카드, 없으면 항상 보이는 슬림 진입점(→ /memories 보관함). */}
+      {/* 추억·사람 진입점 — 공간 절약 위해 슬림 2칸 타일. 오늘 해당 추억이 있으면 추억은
+          풍부한 카드(풀폭)로, 그 아래 사람을 슬림 타일로. */}
       <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
         {memoryGroups.length > 0 && memoryGroups[0] ? (
-          <MemoriesCard group={memoryGroups[0]} />
+          <div className="space-y-2">
+            <MemoriesCard group={memoryGroups[0]} />
+            {features.faces && <PeopleEntry count={peopleCount} />}
+          </div>
+        ) : features.faces ? (
+          <div className="grid grid-cols-2 gap-2">
+            <MemoriesEntry count={0} />
+            <PeopleEntry count={peopleCount} />
+          </div>
         ) : (
           <MemoriesEntry count={0} />
         )}
       </div>
-      {features.faces && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
-          <PeopleEntry count={peopleCount} />
-        </div>
-      )}
       {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
