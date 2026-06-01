@@ -140,6 +140,45 @@ describe('listTimeline', () => {
     expect(dates).not.toContain('2026-06-01')
   })
 
+  it('soft-deleted 스토리 사진은 extraAssets 해석에서 제외한다', async () => {
+    const { user, family } = await setup()
+    const visible = await makeAsset(family.id, user.id, new Date('2026-05-31'), 'vis')
+    const deleted = await makeAsset(family.id, user.id, new Date('2026-05-12'), 'del')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-06-01',
+        body: 'trip',
+        assetIds: [visible.id, deleted.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await db.prismaMedia.asset.update({
+      where: { id: deleted.id },
+      data: { deletedAt: new Date() },
+    })
+
+    const { items } = await listTimeline(
+      family.id,
+      { limit: 20 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const story = items.find((i) => i.kind === 'story')
+    if (story?.kind === 'story') {
+      const resolved = story.entry.assets
+        .filter((ea) => ea.asset !== null)
+        .map((ea) => ea.asset?.id)
+      expect(resolved).toEqual([visible.id])
+    } else {
+      throw new Error('expected a story item')
+    }
+  })
+
   it('sort=uploaded orders by createdAt regardless of takenAt', async () => {
     const { user, family } = await setup()
     // Create assets out-of-order: the oldest takenAt is uploaded last.

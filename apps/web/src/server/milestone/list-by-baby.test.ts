@@ -1,6 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
@@ -75,5 +76,56 @@ describe('listMilestonesByBaby', () => {
     ])
     expect(list[0]?.assets).toEqual([])
     expect(list[1]?.assets).toEqual([])
+  })
+
+  it('soft-deleted 자산은 마일스톤 사진에서 제외한다', async () => {
+    const { user, family, baby } = await setup()
+    const asset = await createAsset(
+      {
+        familyId: family.id,
+        uploadedByUserId: user.id,
+        kind: 'image',
+        originalKey: 'k-ms',
+        originalFilename: 'x.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1n,
+        sha256: 'ms'.padEnd(64, '0'),
+        takenAt: new Date(),
+        takenAtSource: 'uploaded',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await db.prismaMedia.asset.update({
+      where: { id: asset.id, familyId: family.id },
+      data: { status: 'ready' },
+    })
+    const m = await createMilestone(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        presetKey: 'first_smile',
+        achievedAt: '2026-02-01',
+        byUserId: user.id,
+        assetIds: [asset.id],
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await db.prismaMedia.asset.update({
+      where: { id: asset.id, familyId: family.id },
+      data: { deletedAt: new Date() },
+    })
+
+    const list = await listMilestonesByBaby(
+      family.id,
+      baby.id,
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const target = list.find((x) => x.id === m.id)
+    expect(target?.assets).toHaveLength(1)
+    expect(target?.assets[0]?.asset).toBeNull()
   })
 })

@@ -140,7 +140,9 @@ export async function listTimeline(
     ),
   )
   const extraAssets = extraIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: extraIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: extraIds }, familyId, deletedAt: null },
+      })
     : []
   const assetById = new Map([...pageAssets, ...extraAssets].map((a) => [a.id, a]))
 

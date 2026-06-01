@@ -20,7 +20,9 @@ export async function listMilestonesByBaby(
     new Set(milestones.flatMap((m) => m.assets.map((ma) => ma.assetId))),
   )
   const assets = allAssetIds.length
-    ? await prismaMedia.asset.findMany({ where: { id: { in: allAssetIds }, familyId } })
+    ? await prismaMedia.asset.findMany({
+        where: { id: { in: allAssetIds }, familyId, deletedAt: null },
+      })
     : []
   const byId = new Map(assets.map((a) => [a.id, a]))
 
