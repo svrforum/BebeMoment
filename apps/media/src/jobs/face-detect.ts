@@ -60,12 +60,14 @@ export async function faceDetect(args: {
     select: { id: true, kind: true, originalKey: true },
   })
   if (!asset) return
-  if (asset.kind !== 'image') return // 영상 얼굴인식은 비범위(P1)
 
-  // 1080 파생물(JPEG) 우선, 없으면 원본.
+  // 이미지: 1080 파생물 → 원본. 영상: 대표 프레임(1080)·포스터만 본다(원본 mp4 는 ML 에
+  // 못 넘긴다). 영상은 단일 대표 프레임 탐지 — 다중 프레임 샘플링은 P2.
   const bytes =
     (await readBytes(storage, `derivatives/${assetId}/display1080.jpeg`)) ??
-    (await readBytes(storage, asset.originalKey))
+    (asset.kind === 'image'
+      ? await readBytes(storage, asset.originalKey)
+      : await readBytes(storage, `derivatives/${assetId}/poster.jpg`))
   if (!bytes) {
     logger.error({ assetId }, 'face-detect: no readable image bytes')
     return
