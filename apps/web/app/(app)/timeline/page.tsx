@@ -1,8 +1,6 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
 import { StoryStrip } from '@/components/timeline/bucket-section'
-import { MemoriesEntry } from '@/components/memories/memories-entry'
-import { PeopleEntry } from '@/components/people/people-entry'
 import { countPeople } from '@/server/people/list'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
@@ -19,7 +17,7 @@ import { listMemories } from '@/server/memories/list'
 import { babyDaysDiff, formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { bucketLabel } from '@bebe/core'
 import { listTimeline } from '@/server/timeline/merged-list'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Sparkles, UsersRound } from 'lucide-react'
 import Link from 'next/link'
 import { z } from 'zod'
 
@@ -230,25 +228,41 @@ export default async function TimelinePage({
       ) : (
         <AppHeader title={ctx.family.name} switchHref="/__bebe/switch" wide />
       )}
-      {/* 정렬(촬영일/업로드)은 보기 설정일 뿐이라 일반 가족도 쓸 수 있게 항상 노출. */}
-      <TimelineSortToggle value={sortMode} />
-      {/* 추억·사람 진입점 — 공간 절약 위해 슬림 2칸 타일. 오늘 해당 추억이 있으면 추억은
-          풍부한 카드(풀폭)로, 그 아래 사람을 슬림 타일로. */}
-      <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
-        {memoryGroups.length > 0 && memoryGroups[0] ? (
-          <div className="space-y-2">
-            <MemoriesCard group={memoryGroups[0]} />
-            {features.faces && <PeopleEntry count={peopleCount} />}
-          </div>
-        ) : features.faces ? (
-          <div className="grid grid-cols-2 gap-2">
-            <MemoriesEntry count={0} />
-            <PeopleEntry count={peopleCount} />
-          </div>
-        ) : (
-          <MemoriesEntry count={0} />
-        )}
-      </div>
+      {/* 정렬 토글 같은 줄 오른쪽에 추억·사람 아이콘 진입점 — 상단 공간 최소화(사용자 요청).
+          오늘 해당 추억이 있을 때만 아래에 풍부한 추억 카드를 노출. */}
+      <TimelineSortToggle
+        value={sortMode}
+        right={
+          <>
+            <Link
+              href="/memories"
+              aria-label="추억"
+              className="flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+            >
+              <Sparkles className="h-[18px] w-[18px]" strokeWidth={2} />
+            </Link>
+            {features.faces && (
+              <Link
+                href="/people"
+                aria-label="사람"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+              >
+                <UsersRound className="h-[18px] w-[18px]" strokeWidth={2} />
+                {peopleCount > 0 && (
+                  <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-point-500 px-1 text-[9px] font-bold tabular-nums text-white">
+                    {peopleCount}
+                  </span>
+                )}
+              </Link>
+            )}
+          </>
+        }
+      />
+      {memoryGroups.length > 0 && memoryGroups[0] && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+          <MemoriesCard group={memoryGroups[0]} />
+        </div>
+      )}
       {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer

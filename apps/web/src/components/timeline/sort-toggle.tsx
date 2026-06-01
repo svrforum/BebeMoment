@@ -1,4 +1,5 @@
 import Link from 'next/link'
+import type { ReactNode } from 'react'
 
 export type TimelineSortMode = 'taken' | 'uploaded'
 
@@ -8,6 +9,8 @@ type Props = {
   /** Other URL params to preserve when switching. `sort` 키는
    *  이쪽에서 덮어쓰므로 호출자가 넣어도 무시된다. */
   preserveParams?: Record<string, string | string[] | undefined>
+  /** 같은 줄 오른쪽에 붙는 슬롯(추억·사람 아이콘 진입점 등). */
+  right?: ReactNode
 }
 
 /**
@@ -18,7 +21,7 @@ type Props = {
  * Toss + Apple 결: pill-shaped track, active 알약은 화이트(다크모드는 base-900)
  * + soft shadow, inactive 는 muted. 그라데이션·강한 primary 컬러 금지.
  */
-export function TimelineSortToggle({ value, preserveParams = {} }: Props) {
+export function TimelineSortToggle({ value, preserveParams = {}, right }: Props) {
   const buildHref = (mode: TimelineSortMode): string => {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries(preserveParams)) {
@@ -42,7 +45,7 @@ export function TimelineSortToggle({ value, preserveParams = {} }: Props) {
   ]
 
   return (
-    <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-2">
+    <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 pt-2 lg:max-w-5xl">
       <div
         role="tablist"
         aria-label="타임라인 정렬"
@@ -69,6 +72,7 @@ export function TimelineSortToggle({ value, preserveParams = {} }: Props) {
           )
         })}
       </div>
+      {right ? <div className="flex flex-shrink-0 items-center gap-1.5">{right}</div> : null}
     </div>
   )
 }
