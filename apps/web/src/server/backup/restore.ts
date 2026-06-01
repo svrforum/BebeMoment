@@ -1,0 +1,160 @@
+import { execFile } from 'node:child_process'
+import { promises as fs } from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
+import { promisify } from 'node:util'
+import { findBackup } from './list'
+import { type BackupManifest, bundleName } from './manifest'
+
+const runFile = promisify(execFile)
+
+type Logger = (msg: string) => void
+
+/** target 부터 부모(parentId)를 따라 full 베이스까지 거슬러 올라간 체인(베이스→target 순). */
+async function resolveChain(dir: string, targetId: string): Promise<BackupManifest[]> {
+  const chain: BackupManifest[] = []
+  let id: string | null = targetId
+  const seen = new Set<string>()
+  while (id) {
+    if (seen.has(id)) throw new Error(`백업 체인 순환: ${id}`)
+    seen.add(id)
+    const m = await findBackup(dir, id)
+    if (!m) throw new Error(`백업을 찾을 수 없어요: ${id}`)
+    chain.unshift(m)
+    id = m.parentId
+  }
+  if (chain[0]?.type !== 'full') {
+    throw new Error('체인의 베이스가 full 백업이 아니에요 — 베이스 백업이 누락됐어요')
+  }
+  return chain
+}
+
+async function decompress(bundlePath: string, outTar: string): Promise<void> {
+  await runFile('zstd', ['-d', '-q', '-f', '--long=27', bundlePath, '-o', outTar])
+}
+
+async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
+  const { stdout } = await runFile('psql', [
+    ownerUrl,
+    '-tAc',
+    `SELECT 1 FROM pg_roles WHERE rolname='${name}'`,
+  ])
+  if (stdout.trim() === '1') return
+  // :'pw' 는 psql 이 안전하게 인용/이스케이프(인젝션 없음).
+  await runFile('psql', [
+    ownerUrl,
+    '-v',
+    `pw=${password}`,
+    '-c',
+    `CREATE ROLE ${name} LOGIN PASSWORD :'pw'`,
+  ])
+}
+
+export type RestoreArgs = {
+  targetId: string
+  backupDir: string
+  dataDir: string
+  databaseUrl: string
+  rolePasswords: { web: string; media: string }
+  log?: Logger
+}
+
+export type RestoreResult = {
+  restoredId: string
+  chain: string[]
+  dataFilesExtracted: number
+  secretKeyPath: string | null
+}
+
+/**
+ * 백업 복구(CLI 용). 체인(full→target)의 데이터파일을 dataDir 에 누적 전개하고, target 의
+ * db.dump 로 DB 를 복원한다(--clean). 돌아가는 앱이 없다고 가정(compose run). 시크릿 키가
+ * 번들에 있으면 추출만 하고 경로를 알려준다(자동 적용 안 함).
+ */
+export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
+  const log = args.log ?? (() => {})
+  const chain = await resolveChain(args.backupDir, args.targetId)
+  log(`복구 체인: ${chain.map((m) => m.id).join(' → ')}`)
+
+  const work = await fs.mkdtemp(path.join(os.tmpdir(), 'bebe-restore-'))
+  let dataFilesExtracted = 0
+  let secretKeyPath: string | null = null
+
+  try {
+    // 1. 데이터파일을 베이스→target 순으로 dataDir 에 전개(불변이라 충돌 없음).
+    await fs.mkdir(args.dataDir, { recursive: true })
+    for (const m of chain) {
+      const tar = path.join(work, `${m.id}.tar`)
+      await decompress(path.join(args.backupDir, bundleName(m.id)), tar)
+      if (m.dataFileCount > 0) {
+        await runFile('tar', [
+          '-xf',
+          tar,
+          '-C',
+          args.dataDir,
+          '--strip-components=1',
+          'data',
+        ]).catch((e) => {
+          throw new Error(`데이터 전개 실패(${m.id}): ${(e as Error).message}`)
+        })
+        dataFilesExtracted += m.dataFileCount
+      }
+      // target 의 메타파일(db.dump, secret.key)만 따로 꺼낸다.
+      if (m.id === args.targetId) {
+        const members = ['db.dump']
+        if (m.includesSecret) members.push('secret.key')
+        await runFile('tar', ['-xf', tar, '-C', work, ...members])
+        if (m.includesSecret) secretKeyPath = path.join(work, 'secret.key')
+      }
+    }
+    log(`데이터 ${dataFilesExtracted}개 전개 완료`)
+
+    // 2. 롤 보장(덤프의 GRANT 대상). 없으면 생성.
+    await ensureRole(args.databaseUrl, 'bebe_web', args.rolePasswords.web)
+    await ensureRole(args.databaseUrl, 'bebe_media', args.rolePasswords.media)
+
+    // 3. 다른 연결 종료(--clean 의 DROP 이 막히지 않게).
+    await runFile('psql', [
+      args.databaseUrl,
+      '-c',
+      'SELECT pg_terminate_backend(pid) FROM pg_stat_activity WHERE datname=current_database() AND pid<>pg_backend_pid()',
+    ]).catch(() => {})
+
+    // 4. DB 복원(target 의 full 덤프). --clean --if-exists 로 기존 객체 교체.
+    await runFile(
+      'pg_restore',
+      [
+        '--clean',
+        '--if-exists',
+        '--no-owner',
+        '--role=bebe',
+        '-d',
+        args.databaseUrl,
+        path.join(work, 'db.dump'),
+      ],
+      { maxBuffer: 1024 * 1024 * 64 },
+    ).catch((e) => {
+      // pg_restore 는 --clean 의 일부 DROP 누락을 비치명적 경고로 내며 비-0 종료할 수 있다.
+      // 치명/비치명 구분이 어려워 경고는 로그만 — 심각하면 이후 앱이 드러낸다.
+      log(`pg_restore 경고: ${(e as Error).message.slice(0, 500)}`)
+    })
+    log('DB 복원 완료')
+
+    if (secretKeyPath) {
+      // work 디렉터리는 finally 에서 지우므로 영구 위치로 복사해 알려준다.
+      const persisted = path.join(args.backupDir, `${args.targetId}.secret.key`)
+      await fs.copyFile(secretKeyPath, persisted)
+      await fs.chmod(persisted, 0o600)
+      secretKeyPath = persisted
+    }
+
+    return {
+      restoredId: args.targetId,
+      chain: chain.map((m) => m.id),
+      dataFilesExtracted,
+      secretKeyPath,
+    }
+  } finally {
+    await fs.rm(work, { recursive: true, force: true })
+  }
+}

@@ -48,8 +48,17 @@ FROM node:20-bookworm-slim AS runner
 WORKDIR /repo
 
 # ffmpeg(영상 파이프라인) + libvips42(sharp 시스템 라이브러리) + 운영 유틸.
+# postgresql-client-16: 백업 pg_dump/pg_restore 는 서버(pg16)와 major 가 같거나 높아야
+# 한다. bookworm 기본은 15 라 PGDG 저장소에서 16 을 받는다. zstd: 백업 번들 압축.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini curl postgresql-client openssl ca-certificates gosu bash ffmpeg libvips42 \
+    tini curl openssl ca-certificates gosu bash ffmpeg libvips42 zstd gnupg \
+    && install -d /usr/share/postgresql-common/pgdg \
+    && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+       -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
+    && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
+       > /etc/apt/sources.list.d/pgdg.list \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get purge -y gnupg && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && (userdel -r node 2>/dev/null || true) \
     && (groupdel node 2>/dev/null || true) \
@@ -69,7 +78,8 @@ COPY --from=builder /repo /repo
 
 COPY docker/entrypoint.sh /usr/local/bin/entrypoint.sh
 COPY docker/run-app.sh /usr/local/bin/run-app.sh
-RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/run-app.sh
+COPY docker/bebe-restore.sh /usr/local/bin/bebe-restore
+RUN chmod +x /usr/local/bin/entrypoint.sh /usr/local/bin/run-app.sh /usr/local/bin/bebe-restore
 
 VOLUME ["/data"]
 EXPOSE 3000

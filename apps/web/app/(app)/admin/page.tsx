@@ -16,6 +16,11 @@ const sections = [
   { href: '/admin/storage', label: '스토리지', description: '로컬/S3 모드 확인' },
   { href: '/admin/retention', label: '리텐션', description: '휴지통 자동 삭제' },
   { href: '/admin/notifications', label: '알림', description: '푸시 알림 + VAPID 키' },
+  {
+    href: '/admin/backup',
+    label: '백업 / 복구',
+    description: '사진·설정 백업, 다운로드, 복구 안내',
+  },
 ]
 
 export default function AdminPage() {
