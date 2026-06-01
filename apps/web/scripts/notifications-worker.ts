@@ -19,10 +19,11 @@ import {
 } from '@/server/notifications/fcm'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
 import { handleNotificationJob } from '@/server/notifications/worker'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { NOTIFICATIONS_QUEUE, type NotificationJob } from '@bebe/core'
-import { createRedisConnection } from '@bebe/queue'
+import { createRedisConnection, enqueueFaceDetect } from '@bebe/queue'
 import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
 import { z } from 'zod'
@@ -233,6 +234,20 @@ async function main(): Promise<void> {
       if (job.name === DIGEST_SCAN_JOB) {
         await runDigestScan()
         return
+      }
+      // 얼굴 인식(옵트인) — 새 사진이 ready 되면(asset.uploaded) features.faces 켜진
+      // 인스턴스만 face-detect 잡을 enqueue. media 는 public 설정을 못 읽으므로 web 이
+      // 게이팅한다(§17#10 upload.convert_to_compatible 와 동일 패턴). 푸시 게이트와
+      // 무관하게 항상 시도(알림 수신자 0명이어도 얼굴 인식은 돈다).
+      if (job.data.type === 'asset.uploaded') {
+        const assetId = job.data.payload.assetId
+        if (assetId && (await isFeatureEnabled('faces', prismaPublic))) {
+          await enqueueFaceDetect({
+            type: 'face-detect',
+            familyId: job.data.familyId,
+            assetId,
+          })
+        }
       }
       // 발송 방식 게이트 — memory.*·digest.summary 는 이미 예약/요약이라 면제. 그 외
       // 개별 이벤트는 다이제스트 모드면 즉시 발송 안 하고(스캔이 모아 보냄), 야간이면 보류.
