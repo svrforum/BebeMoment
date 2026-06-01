@@ -124,7 +124,7 @@ export default async function SavedPage() {
     <>
       <AppHeader title="북마크" wide />
       {features.faces && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
+        <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-4">
           <PeopleEntry count={peopleCount} />
         </div>
       )}
@@ -145,7 +145,7 @@ export default async function SavedPage() {
       ) : (
         <>
           {orphanStories.length > 0 && (
-            <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4 space-y-2">
+            <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-4 space-y-2">
               {orphanStories.map((e) => (
                 <StoryCard key={`j-${e.id}`} data={storyCardDataFromEntry(e)} />
               ))}

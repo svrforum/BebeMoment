@@ -273,7 +273,7 @@ export function TimelineGrid({
 
   return (
     <>
-      <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
+      <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4">
         {initialGroups.map((g, i) => (
           <div key={g.label}>
             {showDivider && i === boundaryIndex && (

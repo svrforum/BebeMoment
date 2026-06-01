@@ -164,7 +164,7 @@ export default async function TimelinePage({
           wide
         />
         {storyItems.length > 0 && (
-          <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
+          <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-4">
             <StoryStrip
               stories={storyItems.flatMap((it) =>
                 it.kind === 'story' ? [storyCardDataFromEntry(it.entry)] : [],
@@ -262,12 +262,12 @@ export default async function TimelinePage({
         }
       />
       {memoryGroups.length > 0 && memoryGroups[0] && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+        <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-3">
           <MemoriesCard group={memoryGroups[0]} />
         </div>
       )}
       {features.diary && ctx.capabilities.includes('record.create') && (
-        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+        <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-3">
           <TimelineComposer
             userDisplayName={ctx.user?.displayName ?? '나'}
             userAvatarPath={ctx.user?.avatarPath ?? null}

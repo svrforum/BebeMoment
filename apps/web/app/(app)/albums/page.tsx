@@ -92,7 +92,7 @@ export default async function AlbumsRootPage({
         }
         wide
       />
-      <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 py-4">
+      <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4">
         <div className="mb-5">
           <SearchBox placeholder="앨범 이름 검색" />
         </div>
@@ -115,7 +115,7 @@ export default async function AlbumsRootPage({
             />
           )
         ) : (
-          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
+          <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6">
             {albums.map((a) => {
               const previewIds = previewByAlbum.get(a.id) ?? []
               // ready + URL 있는 자산만 미리보기에 — 그 외엔 폴더 아이콘 폴백

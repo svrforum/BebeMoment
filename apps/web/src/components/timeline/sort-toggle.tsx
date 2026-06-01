@@ -45,7 +45,7 @@ export function TimelineSortToggle({ value, preserveParams = {}, right }: Props)
   ]
 
   return (
-    <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 pt-2 lg:max-w-5xl">
+    <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 pt-2 lg:max-w-5xl xl:max-w-6xl">
       <div
         role="tablist"
         aria-label="타임라인 정렬"

@@ -182,7 +182,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     // 스와이프 영역을 캘린더 전체(빈 공간 포함)로 — 그리드 아래 빈 화면에서도 달 전환되게
     // min-height 로 뷰포트를 채운다.
     <div
-      className="mx-auto min-h-[68svh] max-w-3xl px-5 py-4"
+      className="mx-auto min-h-[68svh] max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >

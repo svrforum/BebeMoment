@@ -42,7 +42,7 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
 
   const showSwitch = Boolean(switchHref) && isApp
 
-  const maxW = wide ? 'max-w-3xl lg:max-w-5xl' : 'max-w-3xl'
+  const maxW = wide ? 'max-w-3xl lg:max-w-5xl xl:max-w-6xl' : 'max-w-3xl'
 
   return (
     <>
