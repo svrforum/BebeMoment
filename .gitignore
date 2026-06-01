@@ -56,3 +56,12 @@ apps/web/public/workbox-*.js
 apps/web/public/workbox-*.js.map
 apps/web/public/swe-worker-*.js
 apps/web/public/swe-worker-*.js.map
+
+# AI 어시스턴트 관련 파일 — GitHub 에 올리지 않음 (로컬 전용)
+CLAUDE.md
+.claude/
+docs/superpowers/
+AGENTS.md
+GEMINI.md
+.cursorrules
+.windsurfrules

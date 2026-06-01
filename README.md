@@ -1,6 +1,6 @@
 # bebe-moment
 
-셀프호스팅 **가족용 아기 포토 저널** (한 인스턴스 = 한 가족, 초대제). 타임라인·캘린더, 사진·영상 상세 뷰어 + 좋아요·댓글·북마크, 중첩/비밀 앨범, 태그, 일기(스토리), 성장기록·마일스톤, 설치형 PWA + 웹푸시, 안드로이드 앱(FCM), 멤버 관리, OIDC SSO 를 갖춘다. 전체 페이즈 현황은 [CLAUDE.md §3](./CLAUDE.md) 참조.
+셀프호스팅 **가족용 아기 포토 저널** (한 인스턴스 = 한 가족, 초대제). 타임라인·캘린더, 사진·영상 상세 뷰어 + 좋아요·댓글·북마크, 중첩/비밀 앨범, 일기(스토리), 성장기록·마일스톤, 설치형 PWA + 웹푸시, 안드로이드 앱(FCM), 멤버 관리, OIDC SSO 를 갖춘다.
 
 ## 배포
 
@@ -82,8 +82,6 @@ packages/
   media-client/   # web → media HTTP 클라이언트 + 공유 스키마
   queue/          # 공유 Redis/BullMQ
   storage/        # 스토리지 어댑터 (local / S3)
-docs/
-  superpowers/    # 스펙 / 계획 / 리뷰
 android-app/      # Capacitor 안드로이드 앱 (pnpm 워크스페이스 밖)
 ```
 
@@ -91,8 +89,7 @@ android-app/      # Capacitor 안드로이드 앱 (pnpm 워크스페이스 밖)
 
 ## 페이즈
 
-전체 페이즈 현황(P1~P6, Phase A~D, PWA+Push, 단일가족, username 인증, 멤버 관리 등 ~18개)은
-**[CLAUDE.md §3](./CLAUDE.md)** 의 페이즈 표를 진실원으로 본다. 핵심 마일스톤만:
+전체 페이즈 현황(P1~P6, Phase A~D, PWA+Push, 단일가족, username 인증, 멤버 관리 등 ~18개). 핵심 마일스톤만:
 
 - [x] P1~P4 — Foundation / Upload / UX·PWA / Admin·Deploy
 - [x] P5~P6 — 성장·마일스톤·일기 / 상세·소셜(좋아요·댓글·북마크)

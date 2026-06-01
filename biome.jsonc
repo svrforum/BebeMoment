@@ -13,6 +13,8 @@
       "!**/next-env.d.ts",
       // android-app is a separate Capacitor sub-project (vanilla JS, npm, outside the pnpm workspace)
       "!**/android-app",
+      // AI 어시스턴트 설정/스킬 (gitignore 대상, 소스 아님)
+      "!**/.claude",
       "!**/*.md",
       "!**/data",
       "!**/pg",
