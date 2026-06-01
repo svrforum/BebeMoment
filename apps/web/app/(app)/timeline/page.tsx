@@ -2,6 +2,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
 import { StoryStrip } from '@/components/timeline/bucket-section'
 import { MemoriesEntry } from '@/components/memories/memories-entry'
+import { PeopleEntry } from '@/components/people/people-entry'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -209,6 +210,13 @@ export default async function TimelinePage({
     getMediaClient(),
   )
 
+  // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 군집 개수를 뱃지로.
+  const peopleCount = features.faces
+    ? await prismaMedia.person.count({
+        where: { familyId: ctx.family.id, faceCount: { gt: 0 } },
+      })
+    : 0
+
   return (
     <>
       <PullToRefresh />
@@ -232,6 +240,11 @@ export default async function TimelinePage({
           <MemoriesEntry count={0} />
         )}
       </div>
+      {features.faces && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
+          <PeopleEntry count={peopleCount} />
+        </div>
+      )}
       {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-3">
           <TimelineComposer
