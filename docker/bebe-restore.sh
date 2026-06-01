@@ -4,4 +4,5 @@
 # PUID/PGID 로 내려가 /data·/backups 소유권과 맞춘다.
 set -euo pipefail
 cd /repo
-exec gosu "${PUID:-1000}:${PGID:-1000}" pnpm --filter @bebe/web exec tsx apps/web/scripts/restore.ts "$@"
+# pnpm --filter 가 cwd 를 apps/web 로 바꾸므로 경로는 scripts/ 기준(apps/web/ 접두 X).
+exec gosu "${PUID:-1000}:${PGID:-1000}" pnpm --filter @bebe/web exec tsx scripts/restore.ts "$@"

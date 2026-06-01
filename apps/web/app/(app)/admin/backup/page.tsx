@@ -3,7 +3,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
-import { AlertTriangle, Download, Trash2 } from 'lucide-react'
+import { AlertTriangle, Download, RotateCcw, Trash2 } from 'lucide-react'
 import { useCallback, useEffect, useState } from 'react'
 
 type Backup = {
@@ -84,6 +84,51 @@ export default function BackupAdminPage() {
       await fetch(`/api/admin/backups/${id}`, { method: 'DELETE' })
       await load()
     } finally {
+      setBusy(null)
+    }
+  }
+
+  async function restore(b: Backup) {
+    const warn = b.includesSecret
+      ? '\n\n⚠️ 이 백업은 다른 SECRET_KEY 로 만들어졌다면 암호화 설정이 복구 후 풀리지 않아요(그 경우 CLI 복구 권장).'
+      : ''
+    const typed = window.prompt(
+      `현재 DB·사진을 이 백업 시점으로 되돌려요. 되돌릴 수 없어요.${warn}\n\n복구하려면 아래 백업 id 를 그대로 입력하세요:\n${b.id}`,
+    )
+    if (typed !== b.id) {
+      if (typed !== null) alert('입력이 일치하지 않아 취소했어요.')
+      return
+    }
+    setBusy(b.id)
+    setStatus('복구 중… 끝나면 앱이 자동 재시작돼요.')
+    try {
+      const res = await fetch(`/api/admin/backups/${b.id}/restore`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ confirm: b.id }),
+      })
+      const d = await res.json()
+      if (!res.ok) throw new Error(d.error ?? '실패')
+      setStatus('복구 완료 — 앱 재시작 중이에요. 자동으로 새로고침할게요…')
+      // 컨테이너 재시작 대기 → 헬스 복귀하면 새로고침.
+      const wait = async () => {
+        for (let i = 0; i < 60; i++) {
+          await new Promise((r) => setTimeout(r, 2000))
+          try {
+            const h = await fetch('/api/health', { cache: 'no-store' })
+            if (h.ok) {
+              window.location.reload()
+              return
+            }
+          } catch {
+            // 재시작 중 — 계속 대기
+          }
+        }
+        setStatus('복구는 끝났어요. 앱이 안 돌아오면 수동으로 새로고침하세요.')
+      }
+      void wait()
+    } catch (e) {
+      setStatus(`복구 실패: ${(e as Error).message}`)
       setBusy(null)
     }
   }
@@ -171,6 +216,16 @@ export default function BackupAdminPage() {
                         {fmtBytes(b.bundleBytes)} · 사진 {b.dataFileCount}개
                       </div>
                     </div>
+                    <button
+                      type="button"
+                      onClick={() => void restore(b)}
+                      disabled={busy !== null}
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-point-500/10 hover:text-point-600"
+                      aria-label="복구"
+                      title="이 백업으로 복구"
+                    >
+                      <RotateCcw size={16} />
+                    </button>
                     <a
                       href={`/api/admin/backups/${b.id}/download`}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
@@ -199,16 +254,16 @@ export default function BackupAdminPage() {
           <CardBody className="space-y-2">
             <div className="font-medium">복구 방법</div>
             <div className="text-xs text-base-500">
-              완전 복구는 안전을 위해 앱을 내린 상태에서 명령으로 진행해요. 백업 파일을 백업 폴더에
-              둔 뒤, 서버에서:
+              <b>웹에서 복구</b>: 위 목록의 ↺ 버튼 → 백업 id 입력 → 복구. 끝나면 앱이 자동
+              재시작돼요(같은 인스턴스 롤백용).
+            </div>
+            <div className="text-xs text-base-500">
+              <b>완전/재해 복구</b>(새 기기·다른 SECRET_KEY): 백업 파일을 백업 폴더에 둔 뒤
+              서버에서:
             </div>
             <pre className="overflow-x-auto rounded-xl bg-base-900 px-3 py-2 text-[12px] text-base-100">
               docker compose run --rm --entrypoint bebe-restore app &lt;백업-id&gt;
             </pre>
-            <div className="text-[11px] text-base-500">
-              새 기기에서도 compose 를 받고 이 한 줄이면 사진·설정이 복구돼요. (인앱 복구 버튼은
-              다음 단계에서 추가됩니다.)
-            </div>
           </CardBody>
         </Card>
       </div>
