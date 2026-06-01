@@ -97,6 +97,29 @@ export async function countPeople(
   return rows[0]?.c ?? 0
 }
 
+/**
+ * 아직 이름을 안 붙인(=새로 잡힌·미확인) 사람이 1명 이상인지 — 타임라인 "사람" 진입점의
+ * 알림 점(dot)용. 살아있는(미삭제·ready) 얼굴이 있는 사람만 센다(목록 기준과 동일).
+ */
+export async function hasUnnamedPerson(
+  args: { familyId: string },
+  prismaMedia: PrismaMedia,
+): Promise<boolean> {
+  const rows = await prismaMedia.$queryRawUnsafe<{ exists: boolean }[]>(
+    `SELECT EXISTS (
+       SELECT 1 FROM media.persons p
+        WHERE p.family_id = $1::uuid AND p.name IS NULL
+          AND EXISTS (
+            SELECT 1 FROM media.faces f
+              JOIN media.assets a ON a.id = f.asset_id
+             WHERE f.person_id = p.id AND a.deleted_at IS NULL AND a.status = 'ready'
+          )
+     ) AS exists`,
+    args.familyId,
+  )
+  return rows[0]?.exists ?? false
+}
+
 export type PersonDetail = {
   person: { id: string; name: string | null } | null
   assets: AssetWithUrls[]

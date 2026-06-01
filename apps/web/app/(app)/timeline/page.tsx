@@ -1,7 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
 import { StoryStrip } from '@/components/timeline/bucket-section'
-import { countPeople } from '@/server/people/list'
+import { hasUnnamedPerson } from '@/server/people/list'
 import { MemoriesCard } from '@/components/timeline/memories-card'
 import { TimelineSortToggle } from '@/components/timeline/sort-toggle'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -210,10 +210,12 @@ export default async function TimelinePage({
     getMediaClient(),
   )
 
-  // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 살아있는 사진 기준 군집 수.
-  const peopleCount = features.faces
-    ? await countPeople({ familyId: ctx.family.id }, prismaMedia)
-    : 0
+  // 사람·추억 진입점 알림 점 — 전체 개수가 아니라 "새로 확인할 게 있을 때만". 사람은
+  // 아직 이름 안 붙인(새로 잡힌) 사람이 있을 때, 추억은 오늘 해당 추억이 있을 때.
+  const hasNewPeople = features.faces
+    ? await hasUnnamedPerson({ familyId: ctx.family.id }, prismaMedia)
+    : false
+  const hasMemoryToday = memoryGroups.length > 0
 
   return (
     <>
@@ -236,22 +238,23 @@ export default async function TimelinePage({
           <>
             <Link
               href="/memories"
-              aria-label="추억"
-              className="flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+              aria-label={hasMemoryToday ? '추억 (새 추억)' : '추억'}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
             >
               <Sparkles className="h-[18px] w-[18px]" strokeWidth={2} />
+              {hasMemoryToday && (
+                <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-point-500 ring-2 ring-base-50 dark:ring-base-900" />
+              )}
             </Link>
             {features.faces && (
               <Link
                 href="/people"
-                aria-label="사람"
+                aria-label={hasNewPeople ? '사람 (새 사람)' : '사람'}
                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
               >
                 <UsersRound className="h-[18px] w-[18px]" strokeWidth={2} />
-                {peopleCount > 0 && (
-                  <span className="absolute -right-1 -top-1 flex h-[15px] min-w-[15px] items-center justify-center rounded-full bg-point-500 px-1 text-[9px] font-bold tabular-nums text-white">
-                    {peopleCount}
-                  </span>
+                {hasNewPeople && (
+                  <span className="absolute right-0.5 top-0.5 h-2 w-2 rounded-full bg-point-500 ring-2 ring-base-50 dark:ring-base-900" />
                 )}
               </Link>
             )}
