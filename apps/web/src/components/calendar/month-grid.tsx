@@ -147,7 +147,13 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
   const isCurrentView = year === today.getUTCFullYear() && month === today.getUTCMonth()
 
   return (
-    <div className="mx-auto max-w-3xl px-5 py-4">
+    // 스와이프 영역을 캘린더 전체(빈 공간 포함)로 — 그리드 아래 빈 화면에서도 달 전환되게
+    // min-height 로 뷰포트를 채운다.
+    <div
+      className="mx-auto min-h-[68svh] max-w-3xl px-5 py-4"
+      onTouchStart={onTouchStart}
+      onTouchEnd={onTouchEnd}
+    >
       <div className="mb-5 flex items-center justify-between">
         <div className="relative flex items-baseline gap-2">
           <button
@@ -258,7 +264,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
+      <div className="grid grid-cols-7 gap-1.5">
         {days.map((d) => {
           const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
           const dayAssets = byDate.get(key) ?? []
