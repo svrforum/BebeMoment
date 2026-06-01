@@ -27,8 +27,11 @@ services:
       # 얼굴 인식(옵트인) ML 사이드카 주소. faces 프로파일을 안 켜면 ml 컨테이너가 없어
       # 호출도 없다(잡 자체가 features.faces 켜졌을 때만 enqueue 됨).
       FACE_ML_URL: ${FACE_ML_URL:-http://ml:8000}
+      # 백업 저장 위치(컨테이너 내부). BACKUP_DIR 볼륨을 호스트/시놀로지 공유폴더로 매핑.
+      BACKUP_DIR: /backups
     volumes:
       - ${DATA_DIR:-./data}:/data
+      - ${BACKUP_DIR:-./backups}:/backups
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
