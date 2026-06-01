@@ -1,3 +1,4 @@
+import { PeopleEntry } from '@/components/people/people-entry'
 import { AppHeader } from '@/components/shell/app-header'
 import {
   StoryCard,
@@ -9,6 +10,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
+import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
 import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
@@ -111,9 +113,20 @@ export default async function SavedPage() {
 
   const empty = mainGroups.length === 0 && orphanStories.length === 0
 
+  // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 북마크 탭에서도 사람으로 진입.
+  const features = await getFeatureFlags(prismaPublic)
+  const peopleCount = features.faces
+    ? await prismaMedia.person.count({ where: { familyId: ctx.family.id, faceCount: { gt: 0 } } })
+    : 0
+
   return (
     <>
       <AppHeader title="북마크" wide />
+      {features.faces && (
+        <div className="mx-auto max-w-3xl lg:max-w-5xl px-5 pt-4">
+          <PeopleEntry count={peopleCount} />
+        </div>
+      )}
       {empty ? (
         <div className="flex flex-col items-center gap-4 py-16 text-center">
           <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
