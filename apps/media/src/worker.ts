@@ -76,6 +76,9 @@ export async function startWorker(): Promise<void> {
         storage,
         mlUrl: process.env.FACE_ML_URL ?? 'http://ml:8000',
         logger,
+        ...(job.data.clusterDistance !== undefined
+          ? { clusterDistance: job.data.clusterDistance }
+          : {}),
       })
     },
     { connection, concurrency: Number(process.env.MEDIA_FACES_CONCURRENCY ?? 1) },

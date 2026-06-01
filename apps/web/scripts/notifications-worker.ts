@@ -22,7 +22,13 @@ import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
-import { NOTIFICATIONS_QUEUE, type NotificationJob } from '@bebe/core'
+import {
+  DEFAULT_FACE_CLUSTER_DISTANCE,
+  FACE_CLUSTER_DISTANCE_MAX,
+  FACE_CLUSTER_DISTANCE_MIN,
+  NOTIFICATIONS_QUEUE,
+  type NotificationJob,
+} from '@bebe/core'
 import { createRedisConnection, enqueueFaceDetect } from '@bebe/queue'
 import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
@@ -242,10 +248,21 @@ async function main(): Promise<void> {
       if (job.data.type === 'asset.uploaded') {
         const assetId = job.data.payload.assetId
         if (assetId && (await isFeatureEnabled('faces', prismaPublic))) {
+          const raw = await getSetting(
+            'faces.cluster_distance',
+            z.number(),
+            DEFAULT_FACE_CLUSTER_DISTANCE,
+            prismaPublic,
+          )
+          const clusterDistance = Math.min(
+            FACE_CLUSTER_DISTANCE_MAX,
+            Math.max(FACE_CLUSTER_DISTANCE_MIN, raw),
+          )
           await enqueueFaceDetect({
             type: 'face-detect',
             familyId: job.data.familyId,
             assetId,
+            clusterDistance,
           })
         }
       }

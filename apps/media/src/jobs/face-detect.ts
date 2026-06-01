@@ -1,3 +1,4 @@
+import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
 
@@ -8,10 +9,6 @@ type MlFace = {
   embedding: number[]
   score: number
 }
-
-// 같은 사람으로 묶을 코사인 거리 임계(작을수록 엄격). ArcFace 정규화 임베딩 기준
-// 같은 사람은 보통 < 0.4, 다른 사람은 > 0.6. P2 에서 튜닝.
-const CLUSTER_MAX_DISTANCE = 0.45
 
 async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = []
@@ -52,8 +49,10 @@ export async function faceDetect(args: {
   storage: StorageAdapter
   mlUrl: string
   logger: Logger
+  clusterDistance?: number
 }): Promise<void> {
   const { familyId, assetId, prisma, storage, mlUrl, logger } = args
+  const maxDistance = args.clusterDistance ?? DEFAULT_FACE_CLUSTER_DISTANCE
 
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, familyId, status: 'ready', deletedAt: null },
@@ -112,7 +111,7 @@ export async function faceDetect(args: {
       familyId,
       faceId,
     )
-    let personId = near[0] && near[0].dist <= CLUSTER_MAX_DISTANCE ? near[0].person_id : null
+    let personId = near[0] && near[0].dist <= maxDistance ? near[0].person_id : null
 
     if (!personId) {
       const person = await prisma.person.create({

@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { getFeatureFlags } from '@/server/settings/features'
+import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { NextResponse } from 'next/server'
@@ -37,6 +38,7 @@ export async function GET() {
     downloadCompress,
     features,
     navFamilyHidden,
+    facesClusterDistance,
   ] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
     getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
@@ -47,6 +49,7 @@ export async function GET() {
     getSetting('download.compress.enabled', AnySchema, true, prismaPublic),
     getFeatureFlags(prismaPublic),
     getSetting('nav.family.hidden', AnySchema, [], prismaPublic),
+    getSetting('faces.cluster_distance', AnySchema, DEFAULT_FACE_CLUSTER_DISTANCE, prismaPublic),
   ])
   return NextResponse.json({
     general: { app_name: appName },
@@ -58,5 +61,6 @@ export async function GET() {
     download: { compress: { enabled: downloadCompress } },
     features,
     nav: { family: { hidden: navFamilyHidden } },
+    faces: { cluster_distance: facesClusterDistance },
   })
 }
