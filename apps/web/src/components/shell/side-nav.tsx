@@ -76,10 +76,12 @@ export function SideNav({
           b
         </span>
         <div className="min-w-0">
-          <div className="truncate text-[13px] font-semibold tracking-tight">
+          <div className="truncate text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
+            {familyName}
+          </div>
+          <div className="truncate text-[11px] text-base-400">
             bebe<span className="text-point-500">·</span>moment
           </div>
-          <div className="truncate text-[11px] text-base-500">{familyName}</div>
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3">
