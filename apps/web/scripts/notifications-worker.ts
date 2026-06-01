@@ -230,6 +230,20 @@ async function main(): Promise<void> {
   const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
   webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
 
+  // VAPID 키는 부팅 시 web-push 전역에 한 번 설정된다. 관리자가 키를 재생성하면(설정 UI)
+  // 워커가 옛 키로 서명해 모든 웹푸시가 401/403 으로 조용히 실패한다. 매 잡 전에 공개키
+  // (싼 settings 읽기)만 비교해 바뀌었으면 키를 다시 읽어 setVapidDetails 갱신.
+  let currentVapidPublic = keys.publicKey
+  const refreshVapidIfChanged = async (): Promise<void> => {
+    const latest = await settingsGet('push.vapid_public')
+    if (latest && latest !== currentVapidPublic) {
+      const fresh = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
+      webpush.setVapidDetails(contact, fresh.publicKey, fresh.privateKey)
+      currentVapidPublic = fresh.publicKey
+      console.log('[notifications-worker] VAPID keys reloaded')
+    }
+  }
+
   const connection = createRedisConnection()
 
   const worker = new Worker<NotificationJob>(
@@ -280,6 +294,7 @@ async function main(): Promise<void> {
       if (t !== 'digest.summary' && !t.startsWith('memory.')) {
         if (!shouldSendImmediate(await readDeliverySettings(), new Date().getHours())) return
       }
+      await refreshVapidIfChanged()
       const fcm = await buildFcmDeps()
       await handleNotificationJob(job.data, {
         ...(fcm ?? {}),
