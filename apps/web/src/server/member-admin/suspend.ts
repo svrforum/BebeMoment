@@ -1,5 +1,6 @@
 import { ConflictError, ForbiddenError, NotFoundError } from '@/server/error'
 import type { PrismaClient } from '@bebe/db-public'
+import { assertActorIsOwner } from './assert-owner'
 
 export type SuspendMemberInput = {
   membershipId: string
@@ -12,6 +13,7 @@ export async function suspendMember(
   input: SuspendMemberInput,
   prisma: PrismaClient,
 ): Promise<{ suspendedAt: Date }> {
+  await assertActorIsOwner(input.actorUserId, input.familyId, prisma)
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })

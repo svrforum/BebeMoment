@@ -1,5 +1,6 @@
 import { ForbiddenError, NotFoundError } from '@/server/error'
 import type { PrismaClient } from '@bebe/db-public'
+import { assertActorIsOwner } from './assert-owner'
 
 export type RemoveMemberInput = {
   membershipId: string
@@ -11,6 +12,7 @@ export async function removeMember(
   input: RemoveMemberInput,
   prisma: PrismaClient,
 ): Promise<{ ok: true }> {
+  await assertActorIsOwner(input.actorUserId, input.familyId, prisma)
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })

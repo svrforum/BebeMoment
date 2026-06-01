@@ -62,6 +62,24 @@ describe('suspendMember', () => {
     const sessions = await db.prismaPublic.session.findMany({ where: { userId: member.id } })
     expect(sessions).toHaveLength(0)
   })
+  it('owner 가 아닌 actor(guardian)는 정지할 수 없다', async () => {
+    const { family, membership } = await setup()
+    const { user: guardian } = await signup(
+      { username: 'guardian1', password: 'password123', displayName: '이모' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    await expect(
+      suspendMember(
+        { membershipId: membership.id, familyId: family.id, actorUserId: guardian.id },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/소유자/)
+    const updated = await db.prismaPublic.membership.findFirst({ where: { id: membership.id } })
+    expect(updated?.suspendedAt).toBeNull()
+  })
   it('본인은 정지할 수 없다', async () => {
     const { owner, family } = await setup()
     const ownerMembership = await db.prismaPublic.membership.findFirst({

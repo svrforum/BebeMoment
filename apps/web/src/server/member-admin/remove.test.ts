@@ -37,6 +37,24 @@ async function setup() {
 }
 
 describe('removeMember', () => {
+  it('owner 가 아닌 actor(guardian)는 제외할 수 없다', async () => {
+    const { family, membership } = await setup()
+    const { user: guardian } = await signup(
+      { username: 'guardian1', password: 'password123', displayName: '이모' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    await expect(
+      removeMember(
+        { membershipId: membership.id, familyId: family.id, actorUserId: guardian.id },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/소유자/)
+    const updated = await db.prismaPublic.membership.findFirst({ where: { id: membership.id } })
+    expect(updated?.deletedAt).toBeNull()
+  })
   it('soft-delete 하고 세션을 삭제한다', async () => {
     const { owner, family, member, membership } = await setup()
     await db.prismaPublic.session.create({

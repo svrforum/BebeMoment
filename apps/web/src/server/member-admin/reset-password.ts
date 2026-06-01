@@ -1,6 +1,7 @@
 import { randomBytes } from 'node:crypto'
 import { ForbiddenError, NotFoundError, ServiceError } from '@/server/error'
 import type { PrismaClient } from '@bebe/db-public'
+import { assertActorIsOwner } from './assert-owner'
 
 const TOKEN_TTL_MS = 24 * 60 * 60 * 1000
 
@@ -15,6 +16,7 @@ export async function issuePasswordReset(
   input: IssuePasswordResetInput,
   prisma: PrismaClient,
 ): Promise<{ url: string; expiresAt: Date }> {
+  await assertActorIsOwner(input.actorUserId, input.familyId, prisma)
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })

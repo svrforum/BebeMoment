@@ -37,6 +37,29 @@ async function setup() {
 }
 
 describe('issuePasswordReset', () => {
+  it('owner 가 아닌 actor(guardian)는 재설정할 수 없다', async () => {
+    const { family, membership } = await setup()
+    const { user: guardian } = await signup(
+      { username: 'guardian1', password: 'password123', displayName: '이모' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    await expect(
+      issuePasswordReset(
+        {
+          membershipId: membership.id,
+          familyId: family.id,
+          actorUserId: guardian.id,
+          publicUrl: 'https://bebe.example.com',
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/소유자/)
+    const tokens = await db.prismaPublic.passwordResetToken.findMany()
+    expect(tokens).toHaveLength(0)
+  })
   it('토큰 URL 을 발급한다', async () => {
     const { owner, family, member, membership } = await setup()
     const result = await issuePasswordReset(
