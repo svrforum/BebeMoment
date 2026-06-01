@@ -95,4 +95,21 @@ describe('listComments', () => {
     const items = await listComments(family.id, asset.id, db.prismaPublic)
     expect(items).toEqual([])
   })
+
+  it('삭제된 댓글은 본문·멘션을 비워서 반환한다(tombstone 만)', async () => {
+    const { user, family } = await setup()
+    const asset = await makeReadyAsset(family.id, user.id, 'a1')
+    const c = await createComment(
+      { assetId: asset.id, familyId: family.id, body: '비밀 내용', byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await softDeleteComment({ id: c.id, familyId: family.id, byUserId: user.id }, db.prismaPublic)
+
+    const items = await listComments(family.id, asset.id, db.prismaPublic)
+    expect(items).toHaveLength(1)
+    expect(items[0]?.deletedAt).not.toBeNull()
+    expect(items[0]?.body).toBe('')
+    expect(items[0]?.mentionedUserIds).toEqual([])
+  })
 })
