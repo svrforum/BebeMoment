@@ -32,6 +32,8 @@ type Props = {
   /** Right-click handler. Receives the asset id and viewport coords so
    *  the parent can position a context menu. */
   onContextMenu?: (id: string, x: number, y: number) => void
+  /** 타임라인 정렬 모드 — 상세(뷰어) 링크에 보존해 prev/next 이웃이 그리드와 정합. */
+  sort?: 'taken' | 'uploaded'
 }
 
 const STATUS_KO: Record<Props['status'], string> = {
@@ -62,7 +64,9 @@ export function AssetCard({
   onLongPress,
   onTap,
   onContextMenu,
+  sort = 'taken',
 }: Props) {
+  const detailHref = `/detail/${publicNo}${sort === 'uploaded' ? '?sort=uploaded' : ''}`
   const trio = pickThumbTrio(urls)
   const fallbackUrl = pickThumbUrl(urls)
   const blurhash = pickBlurhash(urls)
@@ -195,7 +199,7 @@ export function AssetCard({
 
   return (
     <Link
-      href={`/detail/${publicNo}`}
+      href={detailHref}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}
       onTouchStart={startPress}

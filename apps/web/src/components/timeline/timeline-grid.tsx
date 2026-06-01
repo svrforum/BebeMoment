@@ -46,6 +46,8 @@ type Props = {
   canDeleteSelection?: boolean
   /** 앨범에 추가 가능(앨범 권한 + 앨범 메뉴 비숨김). 없으면 '앨범에 추가' 숨김. */
   canAddAlbum?: boolean
+  /** 타임라인 정렬 모드 — 상세(뷰어) 링크에 보존(prev/next 이웃 정합). */
+  sort?: 'taken' | 'uploaded'
 }
 
 export function TimelineGrid({
@@ -54,6 +56,7 @@ export function TimelineGrid({
   canUpload = true,
   canDeleteSelection = true,
   canAddAlbum = true,
+  sort = 'taken',
 }: Props) {
   const router = useRouter()
   const toast = useToast()
@@ -292,6 +295,7 @@ export function TimelineGrid({
               onLongPress={onLongPress}
               onTap={onTap}
               onContextMenu={onContextMenu}
+              sort={sort}
             />
           </div>
         ))}
@@ -341,6 +345,7 @@ export function TimelineGrid({
         }}
         onAlbum={onMenuAlbum}
         onDelete={onMenuDelete}
+        sort={sort}
       />
     </>
   )

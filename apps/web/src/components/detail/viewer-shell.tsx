@@ -47,6 +47,7 @@ export function ViewerShell({
   initialComments,
   initialFilename,
   initialCaption,
+  sort = 'taken',
 }: {
   initialCurrent: AssetSlim
   initialSiblings: Siblings
@@ -62,6 +63,7 @@ export function ViewerShell({
   initialComments: CommentWithAuthor[]
   initialFilename: string
   initialCaption: string | null
+  sort?: 'taken' | 'uploaded'
 }) {
   // 핵심: current/siblings 는 STATE. SSR 페이지가 마운트되면 props 가 seed 로 들어오고,
   // 그 뒤 사용자가 스와이프하면 fetch('/api/asset/.../viewer-bundle') 결과로 state 만
@@ -114,6 +116,8 @@ export function ViewerShell({
     async (assetId, direction) => {
       if (lastNavRef.current === assetId) return
       lastNavRef.current = assetId
+      // 타임라인 정렬 모드를 URL·이웃 fetch 에 보존 — 업로드순 뷰어 이웃이 그리드와 정합.
+      const sortQ = sort === 'uploaded' ? '?sort=uploaded' : ''
 
       // Optimistic: 현재 siblings 에서 해당 슬롯을 즉시 current 로 승격.
       // URLs 가 이미 사인되어 있어 사진이 끊김 없이 이어진다.
@@ -127,13 +131,13 @@ export function ViewerShell({
       // history.replaceState 로 무음 교체. 페이지 URL 은 publicNo 를 쓴다 (fetch 는
       // 아래에서 UUID assetId 로). optimistic 슬림이 있으면 즉시, 없으면 fetch 후 갱신.
       if (typeof window !== 'undefined' && optimisticMatched && optimisticSlim) {
-        window.history.replaceState({}, '', `/detail/${optimisticSlim.publicNo}`)
+        window.history.replaceState({}, '', `/detail/${optimisticSlim.publicNo}${sortQ}`)
       }
 
       // 권위 있는 새 번들 받아오기 — current 의 fresh signed URL + 새 prev/next +
       // 새 자산의 social state (좋아요·북마크·댓글수). chrome 의 controlled state 도 갱신.
       try {
-        const res = await fetch(`/api/asset/${assetId}/viewer-bundle`)
+        const res = await fetch(`/api/asset/${assetId}/viewer-bundle${sortQ}`)
         if (!res.ok) return
         const next = (await res.json()) as {
           current: AssetSlim
@@ -175,7 +179,7 @@ export function ViewerShell({
         if (!optimisticMatched) {
           setCurrentSlim(next.current)
           if (typeof window !== 'undefined') {
-            window.history.replaceState({}, '', `/detail/${next.current.publicNo}`)
+            window.history.replaceState({}, '', `/detail/${next.current.publicNo}${sortQ}`)
           }
         }
         setSiblings({
@@ -214,7 +218,7 @@ export function ViewerShell({
         // 무음 실패: optimistic state 유지. 다음 swipe 에서 다시 시도.
       }
     },
-    [siblings.next, siblings.prev],
+    [siblings.next, siblings.prev, sort],
   )
 
   async function handleDelete(): Promise<void> {

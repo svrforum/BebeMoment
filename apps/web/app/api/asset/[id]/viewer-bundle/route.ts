@@ -6,7 +6,7 @@ import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { likersForAsset } from '@/server/like/list-for-asset'
 import { NextResponse } from 'next/server'
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
   if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const ctx = await resolveContext(
@@ -17,8 +17,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: 'No current family' }, { status: 400 })
   try {
     const { id } = await params
+    const sort = new URL(req.url).searchParams.get('sort') === 'uploaded' ? 'uploaded' : 'taken'
     const bundle = await loadViewerBundle(
-      { assetId: id, familyId: ctx.family.id },
+      { assetId: id, familyId: ctx.family.id, sort },
       prismaMedia,
       getMediaClient(),
     )

@@ -183,6 +183,7 @@ export default async function TimelinePage({
             initialGroups={groups}
             canDeleteSelection={canDeleteSelection}
             canAddAlbum={canAddAlbum}
+            sort={sortMode}
           />
         ) : null}
       </>
@@ -263,6 +264,7 @@ export default async function TimelinePage({
         canUpload={canUpload}
         canDeleteSelection={canDeleteSelection}
         canAddAlbum={canAddAlbum}
+        sort={sortMode}
       />
     </>
   )

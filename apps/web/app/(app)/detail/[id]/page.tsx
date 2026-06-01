@@ -9,8 +9,16 @@ import { getSetting } from '@/server/settings/get'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
 
-export default async function DetailPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function DetailPage({
+  params,
+  searchParams,
+}: {
+  params: Promise<{ id: string }>
+  searchParams: Promise<{ sort?: string }>
+}) {
   const { id } = await params
+  const { sort: sortParam } = await searchParams
+  const sort = sortParam === 'uploaded' ? 'uploaded' : 'taken'
   // getContext() is `cache()`-wrapped so layout + page share one fetch.
   // resolveContext() called directly would duplicate the user/membership
   // queries on every detail navigation.
@@ -20,8 +28,9 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
   const media = getMediaClient()
   // loadViewerBundle = current asset + adjacent prev/next slims (shared with
   // /api/asset/[id]/viewer-bundle so client-side swipe gets identical shape).
+  // sort 는 타임라인의 정렬 모드와 일치시켜 prev/next 이웃이 그리드와 어긋나지 않게.
   const bundle = await loadViewerBundle(
-    { assetId: id, familyId: ctx.family.id },
+    { assetId: id, familyId: ctx.family.id, sort },
     prismaMedia,
     media,
   )
@@ -124,6 +133,7 @@ export default async function DetailPage({ params }: { params: Promise<{ id: str
       initialComments={initialComments}
       initialFilename={asset.originalFilename}
       initialCaption={asset.caption}
+      sort={sort}
     />
   )
 }

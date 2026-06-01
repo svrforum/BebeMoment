@@ -22,6 +22,8 @@ type Props = {
   onToggleSelect: () => void
   onAlbum: () => void
   onDelete: () => void
+  /** 타임라인 정렬 모드 — 상세 링크에 보존(뷰어 prev/next 정합). */
+  sort?: 'taken' | 'uploaded'
 }
 
 /**
@@ -40,6 +42,7 @@ export function TimelineContextMenu({
   onToggleSelect,
   onAlbum,
   onDelete,
+  sort = 'taken',
 }: Props) {
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
@@ -84,7 +87,8 @@ export function TimelineContextMenu({
         icon={<Eye size={16} strokeWidth={2.2} />}
         onClick={() => {
           onClose()
-          router.push(`/detail/${publicNo ?? assetId}`)
+          const q = sort === 'uploaded' ? '?sort=uploaded' : ''
+          router.push(`/detail/${publicNo ?? assetId}${q}`)
         }}
       >
         상세 보기
