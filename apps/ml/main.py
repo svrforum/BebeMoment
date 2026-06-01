@@ -15,6 +15,11 @@ ROOT = os.environ.get("FACE_MODEL_ROOT", "/data/insightface")
 # 오탐이 늘면 호출자(미디어 워커)에서 score 로 거를 수 있으나, 우선 recall 우선.
 DET_SIZE = int(os.environ.get("FACE_DET_SIZE", "800"))
 DET_THRESH = float(os.environ.get("FACE_DET_THRESH", "0.3"))
+# 후처리 필터(오탐 제거). det_thresh 를 낮춰 아기 얼굴까지 잡으면 작은 비-얼굴 패치도
+# 같이 잡힌다 — 실제 노이즈는 **아주 작은**(w/h ~0.01~0.02) 탐지였고 진짜 얼굴(아기
+# 클로즈업)은 크다(w~0.23). 그래서 최소 크기로 거른다(주 필터). 점수 하한은 보조.
+MIN_SIZE = float(os.environ.get("FACE_MIN_SIZE", "0.05"))  # min(정규화 w, h)
+MIN_SCORE = float(os.environ.get("FACE_MIN_SCORE", "0.3"))
 
 app = FastAPI(title="bebe-ml")
 _model = None
@@ -42,6 +47,8 @@ def health():
         "pack": PACK,
         "detSize": DET_SIZE,
         "detThresh": DET_THRESH,
+        "minSize": MIN_SIZE,
+        "minScore": MIN_SCORE,
     }
 
 
@@ -62,18 +69,21 @@ async def faces(file: UploadFile = File(...)):
     model = get_model()
     out = []
     for f in model.get(img):
+        score = float(f.det_score)
+        if score < MIN_SCORE:
+            continue
         x1, y1, x2, y2 = (float(v) for v in f.bbox)
+        bw = min(1.0, (x2 - x1) / w)
+        bh = min(1.0, (y2 - y1) / h)
+        # 너무 작은 탐지는 비-얼굴 오탐일 가능성이 높아 버린다(주 필터).
+        if min(bw, bh) < MIN_SIZE:
+            continue
         out.append(
             {
                 # 0..1 정규화 — 표시 파생물 크기와 무관하게 크롭 가능.
-                "bbox": {
-                    "x": max(0.0, x1 / w),
-                    "y": max(0.0, y1 / h),
-                    "w": min(1.0, (x2 - x1) / w),
-                    "h": min(1.0, (y2 - y1) / h),
-                },
+                "bbox": {"x": max(0.0, x1 / w), "y": max(0.0, y1 / h), "w": bw, "h": bh},
                 "embedding": [float(v) for v in f.normed_embedding],
-                "score": float(f.det_score),
+                "score": score,
             }
         )
     return {"width": w, "height": h, "faces": out}
