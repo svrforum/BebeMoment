@@ -3,7 +3,7 @@ import { cn } from '@/lib/cn'
 import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import { useCallback, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
@@ -44,6 +44,11 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
   const [month, setMonth] = useState(initialMonth)
   const router = useRouter()
   const storySet = useMemo(() => new Set(storyDays), [storyDays])
+  // 년·월 빠른 선택 picker
+  const [pickerOpen, setPickerOpen] = useState(false)
+  const [pickerYear, setPickerYear] = useState(initialYear)
+  // 좌우 스와이프(모바일)로 달 이동
+  const touchStart = useRef<{ x: number; y: number } | null>(null)
 
   // 업로드·삭제 등 자산 변화 시 캘린더도 새로고침(타임라인처럼) — 삭제한 사진이 남아
   // 보이던 문제 해결. 다중 이벤트 디바운스.
@@ -107,6 +112,33 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     setMonth(today.getUTCMonth())
   }
 
+  // 좌우 스와이프 → 다음/이전 달. 가로 이동이 충분히 크고 세로보다 우세할 때만(셀 탭과 구분).
+  const onTouchStart = (e: React.TouchEvent) => {
+    const t = e.touches[0]
+    touchStart.current = t ? { x: t.clientX, y: t.clientY } : null
+  }
+  const onTouchEnd = (e: React.TouchEvent) => {
+    const s = touchStart.current
+    touchStart.current = null
+    const t = e.changedTouches[0]
+    if (!s || !t) return
+    const dx = t.clientX - s.x
+    const dy = t.clientY - s.y
+    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.4) return
+    if (dx < 0) next()
+    else prev()
+  }
+
+  const openPicker = () => {
+    setPickerYear(year)
+    setPickerOpen((v) => !v)
+  }
+  const pickMonth = (m: number) => {
+    setYear(pickerYear)
+    setMonth(m)
+    setPickerOpen(false)
+  }
+
   const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('ko-KR', {
     year: 'numeric',
     month: 'long',
@@ -117,14 +149,78 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
   return (
     <div className="mx-auto max-w-3xl px-5 py-4">
       <div className="mb-5 flex items-center justify-between">
-        <div className="flex items-baseline gap-2">
-          <h2 className="text-[22px] font-bold tracking-tight tabular-nums text-base-900 dark:text-base-50">
+        <div className="relative flex items-baseline gap-2">
+          <button
+            type="button"
+            onClick={openPicker}
+            aria-expanded={pickerOpen}
+            className="focus-ring flex items-center gap-1 rounded-lg text-[22px] font-bold tracking-tight tabular-nums text-base-900 transition active:opacity-70 dark:text-base-50"
+          >
             {monthLabel}
-          </h2>
+            <ChevronDown
+              className={cn(
+                'h-5 w-5 text-base-400 transition-transform',
+                pickerOpen && 'rotate-180',
+              )}
+            />
+          </button>
           {monthAssets > 0 && (
             <span className="text-[13px] font-medium tabular-nums text-base-400">
               · {monthAssets}장
             </span>
+          )}
+          {pickerOpen && (
+            <>
+              <button
+                type="button"
+                aria-label="닫기"
+                onClick={() => setPickerOpen(false)}
+                className="fixed inset-0 z-30 cursor-default bg-transparent"
+              />
+              <div className="absolute left-0 top-full z-40 mt-2 w-64 rounded-2xl border border-base-200/70 bg-base-0 p-3 shadow-elevated dark:border-base-800/70 dark:bg-base-900">
+                <div className="mb-2 flex items-center justify-between">
+                  <button
+                    type="button"
+                    aria-label="이전 해"
+                    onClick={() => setPickerYear((y) => y - 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+                  >
+                    <ChevronLeft className="h-5 w-5" />
+                  </button>
+                  <span className="text-[16px] font-bold tabular-nums text-base-900 dark:text-base-50">
+                    {pickerYear}년
+                  </span>
+                  <button
+                    type="button"
+                    aria-label="다음 해"
+                    onClick={() => setPickerYear((y) => y + 1)}
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+                  >
+                    <ChevronRight className="h-5 w-5" />
+                  </button>
+                </div>
+                <div className="grid grid-cols-3 gap-1.5">
+                  {Array.from({ length: 12 }, (_, m) => {
+                    const isSel = pickerYear === year && m === month
+                    return (
+                      <button
+                        key={m}
+                        type="button"
+                        onClick={() => pickMonth(m)}
+                        className={cn(
+                          'rounded-xl py-2 text-[14px] font-medium tabular-nums transition active:scale-95',
+                          isSel
+                            ? 'bg-point-500 text-white'
+                            : 'text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
+                        )}
+                      >
+                        {m + 1}월
+                      </button>
+                    )
+                  })}
+                </div>
+              </div>
+            </>
           )}
         </div>
         <div className="flex items-center gap-1">
@@ -162,7 +258,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
+      <div className="grid grid-cols-7 gap-1.5" onTouchStart={onTouchStart} onTouchEnd={onTouchEnd}>
         {days.map((d) => {
           const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
           const dayAssets = byDate.get(key) ?? []
