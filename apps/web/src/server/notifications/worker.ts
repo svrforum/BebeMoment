@@ -1,6 +1,19 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
 import { resolveRecipients } from './recipients'
 
+/** comment.created payload 는 mentionedUserIds 를 JSON 문자열로 싣는다. */
+function parseMentionedUserIds(raw: string | undefined): string[] | undefined {
+  if (!raw) return undefined
+  try {
+    const parsed = JSON.parse(raw)
+    return Array.isArray(parsed)
+      ? parsed.filter((v): v is string => typeof v === 'string')
+      : undefined
+  } catch {
+    return undefined
+  }
+}
+
 type Sub = { endpoint: string; p256dh: string; auth: string }
 type FcmNotification = { title: string; body: string; url: string }
 type Deps = {
@@ -36,8 +49,8 @@ export function buildNotification(job: NotificationJob): {
       }
     case 'comment.created':
       return {
-        title: '새 댓글',
-        body: '사진에 새 댓글이 달렸어요',
+        title: '새 멘션',
+        body: '댓글에서 회원님을 멘션했어요',
         url: `/detail/${job.payload.assetId}`,
       }
     case 'album.asset_added':
@@ -83,11 +96,13 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
   if ((await deps.settingsGet(`push.categories.${category}.enabled`)) === 'false') return
 
   const { members, visibility } = await deps.loadFamily(job.familyId)
+  const mentionedUserIds = parseMentionedUserIds(job.payload.mentionedUserIds)
   const candidates = resolveRecipients({
     members,
     actorUserId: job.actorUserId,
     category,
     visibility,
+    ...(mentionedUserIds ? { mentionedUserIds } : {}),
   })
   let recipients: string[] = []
   if (deps.prefsEnabledFor) {

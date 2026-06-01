@@ -66,7 +66,13 @@ export async function createComment(
     familyId: input.familyId,
     actorUserId: input.byUserId,
     type: 'comment.created',
-    payload: { assetId: input.assetId, commentId: comment.id },
+    // 멘션 전용 알림 — 워커가 mentionedUserIds 로 수신자를 좁힌다(payload 는
+    // Record<string,string> 라 배열은 JSON 문자열로).
+    payload: {
+      assetId: input.assetId,
+      commentId: comment.id,
+      mentionedUserIds: JSON.stringify(mentionedUserIds),
+    },
   })
 
   return comment

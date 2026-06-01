@@ -130,8 +130,30 @@ describe('createComment', () => {
       familyId: family.id,
       actorUserId: user.id,
       type: 'comment.created',
-      payload: { assetId: asset.id, commentId: c.id },
+      payload: { assetId: asset.id, commentId: c.id, mentionedUserIds: '[]' },
     })
+  })
+
+  it('멘션한 사용자 id 를 payload 에 싣는다', async () => {
+    const { user, family } = await setup()
+    const { user: bob } = await signup(
+      { email: `bob-${Date.now()}@b.com`, password: 'password123', displayName: 'Bob' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: bob.id, role: 'family' },
+    })
+    const asset = await makeReadyAsset(family.id, user.id, 'm1')
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
+    await createComment(
+      { assetId: asset.id, familyId: family.id, body: '@Bob 이것 좀 봐', byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+      undefined,
+      enqueue,
+    )
+    const job = enqueue.mock.calls[0]?.[0]
+    expect(JSON.parse(job?.payload.mentionedUserIds ?? '[]')).toEqual([bob.id])
   })
 
   it('rejects asset from another family', async () => {
