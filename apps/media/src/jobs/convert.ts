@@ -32,7 +32,9 @@ export async function convertImageIfNeeded(
 
   const newKey = `${input.originalKey}.converted.jpg`
   await storage.writeBuffer(newKey, converted, 'image/jpeg')
-  await storage.delete(input.originalKey)
+  // 원본은 여기서 지우지 않는다 — process-asset 이 파생물 생성·DB 커밋이 성공한
+  // 뒤에 옛 원본을 지운다. 변환 후 파생 단계가 실패해도 재시도가 원본을 다시 읽을
+  // 수 있어야 하기 때문(원본 영구 손실 방지).
 
   return {
     newKey,

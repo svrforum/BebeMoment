@@ -1,7 +1,10 @@
+import fs from 'node:fs'
+import os from 'node:os'
+import path from 'node:path'
 import type { NotificationJob } from '@bebe/core'
-import type { StorageAdapter } from '@bebe/storage'
-import type pino from 'pino'
-import { describe, expect, it, vi } from 'vitest'
+import { createAdapter, type StorageAdapter } from '@bebe/storage'
+import sharp from 'sharp'
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { processAsset } from './process-asset'
 
 describe('process-asset module', () => {
@@ -93,5 +96,70 @@ describe('process-asset module', () => {
     ).rejects.toThrow('boom')
 
     expect(enqueue).not.toHaveBeenCalled()
+  })
+
+  describe('convert path (convertToCompatible)', () => {
+    let dir: string
+    let prevAvif: string | undefined
+    beforeEach(() => {
+      dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bebe-pa-cvt-'))
+      prevAvif = process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
+      process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = 'false'
+    })
+    afterEach(() => {
+      fs.rmSync(dir, { recursive: true, force: true })
+      if (prevAvif === undefined) delete process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
+      else process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = prevAvif
+    })
+
+    it('deletes the old original only after the successful commit (original replaced)', async () => {
+      const adapter = createAdapter({ mode: 'local', path: dir })
+      const oldKey = 'orig/asset-cvt.heic'
+      const sample = await sharp({
+        create: { width: 64, height: 48, channels: 3, background: '#102030' },
+      })
+        .jpeg()
+        .toBuffer()
+      await adapter.writeBuffer(oldKey, sample, 'image/heic')
+
+      const asset = fakeAsset({
+        id: 'asset-cvt',
+        kind: 'image',
+        originalKey: oldKey,
+        mimeType: 'image/heic',
+        originalFilename: 'x.heic',
+      })
+      const updates: Record<string, unknown>[] = []
+      const prisma = {
+        asset: {
+          findFirst: vi.fn(async () => asset),
+          update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+            updates.push(data)
+            return asset
+          }),
+        },
+      }
+
+      await processAsset({
+        job: {
+          type: 'process-asset',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          convertToCompatible: true,
+        },
+        // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+        prisma: prisma as any,
+        storage: adapter,
+        publishProgress: async () => {},
+        logger: silentLogger,
+        enqueueNotification: async () => {},
+      })
+
+      const ready = updates.find((u) => u.status === 'ready')
+      expect(ready?.originalKey).toBe(`${oldKey}.converted.jpg`)
+      // converted survives, old original is replaced (deleted) after success
+      expect(fs.existsSync(path.join(dir, `${oldKey}.converted.jpg`))).toBe(true)
+      expect(fs.existsSync(path.join(dir, oldKey))).toBe(false)
+    }, 30_000)
   })
 })

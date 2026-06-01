@@ -24,6 +24,12 @@ afterAll(async () => {
   await rm(tmp, { recursive: true, force: true })
 })
 
+async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
+  const chunks: Buffer[] = []
+  for await (const c of stream) chunks.push(c as Buffer)
+  return Buffer.concat(chunks)
+}
+
 describe('convertImageIfNeeded', () => {
   it('returns null when mime does not need conversion', async () => {
     const result = await convertImageIfNeeded(
@@ -31,5 +37,27 @@ describe('convertImageIfNeeded', () => {
       storage,
     )
     expect(result).toBeNull()
+  })
+
+  it('preserves the original (does not delete) so a failed retry can re-read it', async () => {
+    // sharp sniffs actual bytes, so a JPEG body claiming HEIC still converts.
+    const sample = await sharp({
+      create: { width: 50, height: 50, channels: 3, background: '#abcdef' },
+    })
+      .jpeg()
+      .toBuffer()
+    await storage.writeBuffer('originals/h.heic', sample)
+
+    const result = await convertImageIfNeeded(
+      { originalKey: 'originals/h.heic', mimeType: 'image/heic', assetId: 'a' },
+      storage,
+    )
+
+    expect(result).not.toBeNull()
+    expect(result?.newKey).toBe('originals/h.heic.converted.jpg')
+    // The original must survive — process-asset deletes it only after the
+    // successful DB commit, so retries can re-read it on a mid-pipeline failure.
+    const original = await collect(await storage.read('originals/h.heic'))
+    expect(original.length).toBeGreaterThan(0)
   })
 })

@@ -64,6 +64,7 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     let mimeType = asset.mimeType
     let sizeBytes = asset.sizeBytes
     let convertedFrom: string | null = null
+    let oldOriginalKey: string | null = null
     if (convertEnabled && asset.kind === 'image' && needsConvert(asset.mimeType)) {
       const result = await convertImageIfNeeded(
         { originalKey: asset.originalKey, mimeType: asset.mimeType, assetId: asset.id },
@@ -74,6 +75,7 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
         mimeType = result.newMimeType
         sizeBytes = result.newSizeBytes
         convertedFrom = result.originalMimeType
+        oldOriginalKey = asset.originalKey
       }
     }
 
@@ -132,6 +134,20 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
         derivatives: derivatives as any,
       },
     })
+
+    // 커밋이 성공한 뒤에만 옛 원본을 지운다(원본 대체). 실패 시엔 위 catch 로 가
+    // 원본이 보존되어 재시도가 다시 읽을 수 있다. 삭제 실패는 자산이 이미 ready 라
+    // 치명적이지 않으므로 경고만.
+    if (oldOriginalKey) {
+      try {
+        await storage.delete(oldOriginalKey)
+      } catch (delErr) {
+        logger.warn(
+          { assetId: asset.id, key: oldOriginalKey, err: delErr },
+          'failed to delete converted original',
+        )
+      }
+    }
 
     await publishProgress({
       type: 'status',
