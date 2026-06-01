@@ -2,6 +2,7 @@ import { ASSET_QUEUE, FACES_QUEUE, type FaceDetectJob } from '@bebe/core'
 import { type Job, Worker } from 'bullmq'
 import { faceDetect } from './jobs/face-detect'
 import { processAsset } from './jobs/process-asset'
+import { reapStaleUploads } from './jobs/reap-stale-uploads'
 import type { ProcessAssetJob } from './jobs/types'
 import { logger } from './lib/logger'
 import { prisma } from './lib/prisma'
@@ -94,8 +95,19 @@ export async function startWorker(): Promise<void> {
     logger.error({ id: job?.id, error: err.message }, 'job failed')
   })
 
+  // 중단된 업로드 정리 — 부팅 직후 1회 + 매시간. (media 엔 BullMQ 반복잡 인프라가 없어
+  // 경량 setInterval 로; reapStaleUploads 는 멱등하고 raw SQL 한 방이라 cheap.)
+  const reap = (): void => {
+    void reapStaleUploads(prisma, logger).catch((e) =>
+      logger.error({ err: (e as Error).message }, 'reapStaleUploads failed'),
+    )
+  }
+  const reapTimer = setInterval(reap, 60 * 60 * 1000)
+  reap()
+
   const shutdown = async (): Promise<void> => {
     logger.info('worker shutting down')
+    clearInterval(reapTimer)
     await worker.close()
     await facesWorker.close()
     await connection.quit()
