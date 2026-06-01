@@ -101,4 +101,18 @@ describe('toggleBookmark', () => {
       ),
     ).rejects.toThrow(/not found|asset/i)
   })
+
+  it('동시 토글에서 P2002 가 사용자에게 새지 않는다(멱등)', async () => {
+    const { user, family } = await setup()
+    const asset = await makeReadyAsset(family.id, user.id, 'race')
+    const input = { assetId: asset.id, familyId: family.id, byUserId: user.id }
+    const results = await Promise.allSettled(
+      Array.from({ length: 5 }, () => toggleBookmark(input, db.prismaPublic, db.prismaMedia)),
+    )
+    expect(results.filter((r) => r.status === 'rejected')).toEqual([])
+    const count = await db.prismaPublic.assetBookmark.count({
+      where: { assetId: asset.id, familyId: family.id },
+    })
+    expect(count).toBeLessThanOrEqual(1)
+  })
 })

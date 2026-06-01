@@ -2,6 +2,7 @@ import { can } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
+import { isUniqueViolation } from '../prisma-errors'
 
 const Input = z.object({
   assetId: z.string().uuid(),
@@ -38,8 +39,13 @@ export async function toggleBookmark(
     })
     return { bookmarked: false }
   }
-  await prismaPublic.assetBookmark.create({
-    data: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
-  })
+  try {
+    await prismaPublic.assetBookmark.create({
+      data: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
+    })
+  } catch (e) {
+    // 동시 토글로 이미 생성됨 — 멱등하게 북마크 상태로 본다.
+    if (!isUniqueViolation(e)) throw e
+  }
   return { bookmarked: true }
 }

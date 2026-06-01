@@ -4,6 +4,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { z } from 'zod'
+import { isUniqueViolation } from '../prisma-errors'
 
 const Input = z.object({
   assetId: z.string().uuid(),
@@ -40,9 +41,14 @@ export async function toggleLike(
       where: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
     })
   } else {
-    await prismaPublic.assetLike.create({
-      data: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
-    })
+    try {
+      await prismaPublic.assetLike.create({
+        data: { assetId: input.assetId, userId: input.byUserId, familyId: input.familyId },
+      })
+    } catch (e) {
+      // 동시 토글(중복 탭·재시도)로 이미 생성됨 — 멱등하게 좋아요 상태로 본다.
+      if (!isUniqueViolation(e)) throw e
+    }
   }
 
   const count = await prismaPublic.assetLike.count({
