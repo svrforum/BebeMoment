@@ -10,6 +10,9 @@ import { DayCell } from './day-cell'
 
 type Asset = { id: string; takenAtISO: string; urls: AssetUrls | null }
 
+// 0..11 — picker 의 월 버튼 키로 인덱스 대신 값을 쓰기 위한 상수 배열.
+const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
+
 type Props = {
   initialYear: number
   initialMonth: number
@@ -206,7 +209,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
                   </button>
                 </div>
                 <div className="grid grid-cols-3 gap-1.5">
-                  {Array.from({ length: 12 }, (_, m) => {
+                  {MONTHS.map((m) => {
                     const isSel = pickerYear === year && m === month
                     return (
                       <button
