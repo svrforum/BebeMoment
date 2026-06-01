@@ -94,6 +94,9 @@ export default async function StoryDetailPage({
 
   // 스토리에 담긴 사진들(전체 저장용). 앨범이 일반 가족에게 숨겨졌으면 '앨범에 추가' 숨김.
   const storyAssetIds = entry.assets.flatMap((ea) => (ea.asset ? [ea.asset.id] : []))
+  const storyPhotos = entry.assets.flatMap((ea) =>
+    ea.asset ? [{ id: ea.asset.id, urls: ea.asset.urls }] : [],
+  )
   const isManager = ctx.membership?.role === 'owner' || ctx.membership?.role === 'guardian'
   const albumsHidden =
     !isManager &&
@@ -131,7 +134,9 @@ export default async function StoryDetailPage({
               <span>편집</span>
             </Link>
           )}
-          {canDelete && <StoryDeleteButton onDelete={deleteStoryAction.bind(null, uuid)} />}
+          {canDelete && (
+            <StoryDeleteButton onDelete={deleteStoryAction.bind(null, uuid)} photos={storyPhotos} />
+          )}
         </div>
       </div>
     </>
