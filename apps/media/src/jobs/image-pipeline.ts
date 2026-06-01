@@ -1,4 +1,5 @@
 import { computeBlurhash } from '@/domain/blurhash'
+import { rgbToHex } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import sharp from 'sharp'
 import { type Trio, generateTrios } from './derivative-trios'
@@ -26,14 +27,6 @@ async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = []
   for await (const c of stream) chunks.push(c as Buffer)
   return Buffer.concat(chunks)
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  const h = (n: number): string =>
-    Math.max(0, Math.min(255, Math.round(n)))
-      .toString(16)
-      .padStart(2, '0')
-  return `#${h(r)}${h(g)}${h(b)}`
 }
 
 export async function processImage(

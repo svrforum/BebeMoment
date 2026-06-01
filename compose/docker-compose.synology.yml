@@ -5,6 +5,7 @@ services:
   app:
     volumes:
       - /volume1/docker/bebe-moment/data:/data
+      - /volume1/docker/bebe-moment/backups:/backups
     environment:
       PUID: 1026
       PGID: 100

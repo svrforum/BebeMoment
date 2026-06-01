@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { computeBlurhash } from '@/domain/blurhash'
+import { rgbToHex } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
 import sharp from 'sharp'
@@ -38,14 +39,6 @@ async function writeToLocal(
 ): Promise<void> {
   const readStream = await storage.read(key)
   await pipeline(readStream, createWriteStream(localPath))
-}
-
-function rgbToHex(r: number, g: number, b: number): string {
-  const h = (n: number): string =>
-    Math.max(0, Math.min(255, Math.round(n)))
-      .toString(16)
-      .padStart(2, '0')
-  return `#${h(r)}${h(g)}${h(b)}`
 }
 
 export async function processVideo(
