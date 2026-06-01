@@ -122,6 +122,9 @@ export async function faceDetect(args: {
     }
 
     await prisma.face.updateMany({ where: { id: faceId, familyId }, data: { personId } })
+    // ⚠️ persons.face_count 는 권위 있는 값이 아니다 — 재검출 시 faces 를 지우되 여기서
+    // 감소시키지 않아 부풀 수 있다. 표시·정렬용 장수는 모두 살아있는(미삭제·ready) 얼굴을
+    // 라이브 집계한다(server/people/list.ts). 이 컬럼을 화면에 쓰지 말 것.
     await prisma.person.updateMany({
       where: { id: personId, familyId },
       data: { faceCount: { increment: 1 } },

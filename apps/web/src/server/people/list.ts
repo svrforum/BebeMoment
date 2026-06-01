@@ -98,7 +98,7 @@ export async function countPeople(
 }
 
 export type PersonDetail = {
-  person: { id: string; name: string | null; faceCount: number } | null
+  person: { id: string; name: string | null } | null
   assets: AssetWithUrls[]
 }
 
@@ -111,7 +111,7 @@ export async function getPersonAssets(
   const { familyId, personId } = args
   const person = await prismaMedia.person.findFirst({
     where: { id: personId, familyId },
-    select: { id: true, name: true, faceCount: true },
+    select: { id: true, name: true },
   })
   if (!person) return { person: null, assets: [] }
 
