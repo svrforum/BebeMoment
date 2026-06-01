@@ -60,8 +60,15 @@ export function UploadDashboard({
   canCreateStory?: boolean
   storyBabyId?: string | null
 }) {
-  const { files, addFiles, removeFile, markAssetDone, startStagedUploads, replaceFileData } =
-    useUploadManager()
+  const {
+    files,
+    addFiles,
+    removeFile,
+    markAssetDone,
+    startStagedUploads,
+    replaceFileData,
+    pauseAutoDismiss,
+  } = useUploadManager()
   const router = useRouter()
   const toast = useToast()
   const { close } = useUploadSheet()
@@ -91,6 +98,9 @@ export function UploadDashboard({
     }
     if (submittingStory) return
     setSubmittingStory(true)
+    // 제출이 끝날 때까지 자동정리(cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다
+    // (빠른 사진은 POST 전에 ready 처리돼 파일이 정리될 수 있어 실패 후 재시도가 깨졌다).
+    pauseAutoDismiss(true)
     try {
       const fileIds = stagedFiles.map((f) => f.id)
       startStagedUploads()
@@ -132,8 +142,18 @@ export function UploadDashboard({
       toast({ title: (e as Error).message, variant: 'danger' })
     } finally {
       setSubmittingStory(false)
+      pauseAutoDismiss(false)
     }
-  }, [storyBody, storyBabyId, submittingStory, startStagedUploads, close, router, toast])
+  }, [
+    storyBody,
+    storyBabyId,
+    submittingStory,
+    startStagedUploads,
+    close,
+    router,
+    toast,
+    pauseAutoDismiss,
+  ])
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {

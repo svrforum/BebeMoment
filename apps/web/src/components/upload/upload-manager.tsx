@@ -45,6 +45,8 @@ export type UploadManager = {
   markAssetDone: (assetId: string) => void
   startStagedUploads: () => void
   replaceFileData: (id: string, blob: Blob) => void
+  /** 비동기 제출 중 자동정리(cancelAll) 일시중지 — 스테이징 파일 보호용. */
+  pauseAutoDismiss: (paused: boolean) => void
   hasStaged: boolean
   uploadingCount: number
   processingCount: number
@@ -76,6 +78,9 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const [files, setFiles] = useState<FileRow[]>([])
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
   const [uppy, setUppy] = useState<UppyInstance | null>(null)
+  // 스토리 제출처럼 assetId 를 비동기로 모은 뒤 POST 하는 흐름 중에는 자동정리
+  // (cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다(POST 실패 후 재시도 보호).
+  const [autoDismissPaused, setAutoDismissPaused] = useState(false)
   const initLock = useRef<Promise<UppyInstance> | null>(null)
 
   const initUppy = useCallback(async (): Promise<UppyInstance> => {
@@ -262,7 +267,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   // refresh after the last asset settles, so doing it again would just
   // cause a second flicker.
   useEffect(() => {
-    if (!uppy || files.length === 0) return
+    if (!uppy || files.length === 0 || autoDismissPaused) return
     const allHaveAsset = files.every((f) => f.meta?.assetId)
     if (!allHaveAsset) return
     const allDone = files.every((f) => {
@@ -275,7 +280,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       setDoneIds(new Set())
     }, 700)
     return () => clearTimeout(t)
-  }, [files, doneIds, uppy])
+  }, [files, doneIds, uppy, autoDismissPaused])
 
   const addFiles = useCallback(
     async (list: FileList | File[]): Promise<string[]> => {
@@ -354,6 +359,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       markAssetDone,
       startStagedUploads,
       replaceFileData,
+      pauseAutoDismiss: setAutoDismissPaused,
       hasStaged,
       uploadingCount: uploading,
       processingCount: processing,

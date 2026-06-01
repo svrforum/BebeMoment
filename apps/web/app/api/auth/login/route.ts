@@ -17,6 +17,11 @@ export async function POST(req: Request) {
   if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
     const input = LoginInput.parse(await req.json())
+    // 계정(아이디) 단위 추가 제한 — IP 단위 제한은 X-Forwarded-For 위조로 우회될 수
+    // 있으므로, 비번 무차별 대입의 표적인 "한 계정"에 5분당 8회로 캡(IP 무관).
+    const idKey = input.identifier.trim().toLowerCase()
+    const rlId = await rateLimit(`login-id:${idKey}`, 8, 300)
+    if (!rlId.ok) return tooManyRequests(rlId.retryAfter)
     const user = await authenticate(input, prismaPublic)
     if (!user) {
       return NextResponse.json({ error: '아이디 또는 비밀번호가 올바르지 않아요' }, { status: 400 })
