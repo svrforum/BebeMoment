@@ -53,15 +53,42 @@ export default function BackupAdminPage() {
     retentionKeep: 14,
   })
   const [lastError, setLastError] = useState<string | null>(null)
+  const [remote, setRemote] = useState({
+    enabled: false,
+    endpoint: '',
+    region: 'us-east-1',
+    bucket: '',
+    prefix: '',
+    accessKey: '',
+    secretKey: '',
+    secretConfigured: false,
+    lastError: null as string | null,
+  })
+  const [remoteStatus, setRemoteStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
 
   const load = useCallback(async () => {
-    const [b, s] = await Promise.all([
+    const [b, s, rm] = await Promise.all([
       fetch('/api/admin/backups').then((r) => r.json()),
       fetch('/api/admin/settings').then((r) => r.json()),
+      fetch('/api/admin/backups/remote').then((r) => r.json()),
     ])
     if (Array.isArray(b.backups)) setBackups(b.backups)
+    if (rm && typeof rm.bucket === 'string') {
+      setRemote((prev) => ({
+        ...prev,
+        enabled: Boolean(rm.enabled),
+        endpoint: rm.endpoint ?? '',
+        region: rm.region ?? 'us-east-1',
+        bucket: rm.bucket ?? '',
+        prefix: rm.prefix ?? '',
+        accessKey: rm.accessKey ?? '',
+        secretConfigured: Boolean(rm.secretConfigured),
+        lastError: rm.lastError ?? null,
+        secretKey: '',
+      }))
+    }
     const bk = s.backup
     if (bk) {
       if (typeof bk.include_secret === 'boolean') setIncludeSecret(bk.include_secret)
@@ -83,6 +110,47 @@ export default function BackupAdminPage() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ key, value }),
     })
+  }
+
+  async function saveRemote(extra: Record<string, unknown> = {}) {
+    setRemoteStatus('저장 중…')
+    const body = {
+      enabled: remote.enabled,
+      endpoint: remote.endpoint,
+      region: remote.region,
+      bucket: remote.bucket,
+      prefix: remote.prefix,
+      accessKey: remote.accessKey,
+      ...(remote.secretKey ? { secretKey: remote.secretKey } : {}),
+      ...extra,
+    }
+    const res = await fetch('/api/admin/backups/remote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    })
+    const d = await res.json().catch(() => ({}))
+    setRemoteStatus(res.ok ? '저장됨' : `실패: ${d.error ?? ''}`)
+    if (res.ok) await load()
+  }
+
+  async function testRemote() {
+    setRemoteStatus('연결 테스트 중…')
+    const res = await fetch('/api/admin/backups/remote', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        test: true,
+        endpoint: remote.endpoint,
+        region: remote.region,
+        bucket: remote.bucket,
+        prefix: remote.prefix,
+        accessKey: remote.accessKey,
+        ...(remote.secretKey ? { secretKey: remote.secretKey } : {}),
+      }),
+    })
+    const d = await res.json().catch(() => ({}))
+    setRemoteStatus(res.ok ? '연결 성공 ✓' : `연결 실패: ${d.error ?? ''}`)
   }
 
   async function saveSchedule(next: Schedule) {
@@ -121,7 +189,9 @@ export default function BackupAdminPage() {
       })
       const d = await res.json()
       if (!res.ok) throw new Error(d.error ?? '실패')
-      setStatus(`완료: ${d.manifest.id} (${fmtBytes(d.bundleBytes)})`)
+      setStatus(
+        `완료: ${d.manifest.id} (${fmtBytes(d.bundleBytes)})${d.remoteMirrored ? ' · 원격 업로드됨' : ''}`,
+      )
       await load()
     } catch (e) {
       setStatus(`실패: ${(e as Error).message}`)
@@ -349,6 +419,88 @@ export default function BackupAdminPage() {
                   수 있는 저장소에만 보관하세요.
                 </div>
               </div>
+            )}
+          </CardBody>
+        </Card>
+
+        {/* 원격 백업(S3 호환) */}
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="font-medium">원격 백업 (S3 호환)</div>
+                <div className="text-xs text-base-500">
+                  백업을 만든 뒤 S3 호환 저장소(B2·MinIO·S3 등)에도 올려요.
+                </div>
+              </div>
+              <Toggle
+                checked={remote.enabled}
+                onChange={(e) => setRemote((p) => ({ ...p, enabled: e.target.checked }))}
+              />
+            </div>
+            {remote.enabled && (
+              <div className="space-y-2 border-t border-base-200/60 pt-3 dark:border-base-800/60">
+                <input
+                  placeholder="Endpoint (예: https://s3.us-west-002.backblazeb2.com, AWS면 비움)"
+                  value={remote.endpoint}
+                  onChange={(e) => setRemote((p) => ({ ...p, endpoint: e.target.value }))}
+                  className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                />
+                <div className="flex gap-2">
+                  <input
+                    placeholder="Bucket"
+                    value={remote.bucket}
+                    onChange={(e) => setRemote((p) => ({ ...p, bucket: e.target.value }))}
+                    className="min-w-0 flex-1 rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                  />
+                  <input
+                    placeholder="Region"
+                    value={remote.region}
+                    onChange={(e) => setRemote((p) => ({ ...p, region: e.target.value }))}
+                    className="w-28 rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                  />
+                </div>
+                <input
+                  placeholder="경로 prefix (선택, 예: bebe-backups)"
+                  value={remote.prefix}
+                  onChange={(e) => setRemote((p) => ({ ...p, prefix: e.target.value }))}
+                  className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                />
+                <input
+                  placeholder="Access Key ID"
+                  value={remote.accessKey}
+                  onChange={(e) => setRemote((p) => ({ ...p, accessKey: e.target.value }))}
+                  className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                />
+                <input
+                  type="password"
+                  placeholder={
+                    remote.secretConfigured
+                      ? 'Secret Access Key (저장됨 — 바꿀 때만 입력)'
+                      : 'Secret Access Key'
+                  }
+                  value={remote.secretKey}
+                  onChange={(e) => setRemote((p) => ({ ...p, secretKey: e.target.value }))}
+                  className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
+                />
+                <div className="flex gap-2">
+                  <Button onClick={() => void saveRemote()}>저장</Button>
+                  <Button variant="ghost" onClick={() => void testRemote()}>
+                    연결 테스트
+                  </Button>
+                </div>
+                {remoteStatus && <p className="text-sm text-base-500">{remoteStatus}</p>}
+                {remote.lastError && (
+                  <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
+                    최근 원격 업로드 오류: {remote.lastError}
+                  </p>
+                )}
+              </div>
+            )}
+            {remote.enabled && !remote.secretConfigured && (
+              <p className="text-[11px] text-base-400">
+                저장을 눌러야 적용돼요. 시크릿 키는 암호화 저장되고 다시 표시되지 않아요.
+              </p>
             )}
           </CardBody>
         </Card>

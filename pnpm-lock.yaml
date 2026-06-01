@@ -106,6 +106,12 @@ importers:
 
   apps/web:
     dependencies:
+      '@aws-sdk/client-s3':
+        specifier: ^3.600.0
+        version: 3.1033.0
+      '@aws-sdk/lib-storage':
+        specifier: ^3.600.0
+        version: 3.1033.0(@aws-sdk/client-s3@3.1033.0)
       '@bebe/config':
         specifier: workspace:*
         version: link:../../packages/config

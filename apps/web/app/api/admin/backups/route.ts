@@ -41,6 +41,7 @@ export async function POST(req: Request) {
       ok: true,
       manifest: result.manifest,
       bundleBytes: result.bundleBytes,
+      remoteMirrored: result.remoteMirrored,
     })
   } catch (e) {
     return NextResponse.json({ error: (e as Error).message }, { status: 400 })

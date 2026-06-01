@@ -1,7 +1,9 @@
+import { setSetting } from '@/server/settings/set'
 import type { PrismaClient } from '@bebe/db-public'
 import { backupDir, ownerDatabaseUrl, storageDataDir } from './config'
 import { type CreateBackupArgs, createBackup } from './create'
 import type { BackupManifest, BackupType } from './manifest'
+import { loadRemoteConfig, uploadBackupToRemote } from './remote'
 
 async function gatherSchemaMigrations(prisma: PrismaClient): Promise<string[]> {
   try {
@@ -21,7 +23,7 @@ async function gatherSchemaMigrations(prisma: PrismaClient): Promise<string[]> {
 export async function runBackup(
   args: { type: BackupType; includeSecret: boolean; now: Date },
   prisma: PrismaClient,
-): Promise<{ manifest: BackupManifest; bundleBytes: number }> {
+): Promise<{ manifest: BackupManifest; bundleBytes: number; remoteMirrored: boolean }> {
   const schemaMigrations = await gatherSchemaMigrations(prisma)
   const createArgs: CreateBackupArgs = {
     type: args.type,
@@ -34,5 +36,24 @@ export async function runBackup(
     now: args.now,
   }
   const { manifest, bundleBytes } = await createBackup(createArgs)
-  return { manifest, bundleBytes }
+
+  // 원격 미러(설정 시) — best-effort. 실패해도 로컬 백업은 성공으로 두고 오류만 기록.
+  let remoteMirrored = false
+  try {
+    const cfg = await loadRemoteConfig(prisma, process.env.SECRET_KEY ?? '')
+    if (cfg) {
+      await uploadBackupToRemote({ cfg, backupDir: backupDir(), id: manifest.id })
+      remoteMirrored = true
+      await setSetting('backup.remote.last_error', null, null, prisma).catch(() => {})
+    }
+  } catch (e) {
+    await setSetting(
+      'backup.remote.last_error',
+      `${manifest.id}: ${(e as Error).message}`.slice(0, 300),
+      null,
+      prisma,
+    ).catch(() => {})
+  }
+
+  return { manifest, bundleBytes, remoteMirrored }
 }
