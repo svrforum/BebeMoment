@@ -29,9 +29,30 @@ function fmtBytes(n: number): string {
   return `${v.toFixed(1)} ${u[i]}`
 }
 
+type Schedule = {
+  enabled: boolean
+  hour: number
+  interval: 'daily' | 'weekly'
+  weekday: number
+  fullEvery: number
+  retentionKeep: number
+}
+
+const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
+const HOURS = Array.from({ length: 24 }, (_, i) => i)
+
 export default function BackupAdminPage() {
   const [backups, setBackups] = useState<Backup[]>([])
   const [includeSecret, setIncludeSecret] = useState(false)
+  const [sched, setSched] = useState<Schedule>({
+    enabled: false,
+    hour: 4,
+    interval: 'daily',
+    weekday: 0,
+    fullEvery: 7,
+    retentionKeep: 14,
+  })
+  const [lastError, setLastError] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
 
@@ -41,8 +62,40 @@ export default function BackupAdminPage() {
       fetch('/api/admin/settings').then((r) => r.json()),
     ])
     if (Array.isArray(b.backups)) setBackups(b.backups)
-    if (typeof s.backup?.include_secret === 'boolean') setIncludeSecret(s.backup.include_secret)
+    const bk = s.backup
+    if (bk) {
+      if (typeof bk.include_secret === 'boolean') setIncludeSecret(bk.include_secret)
+      setLastError(typeof bk.last_error === 'string' ? bk.last_error : null)
+      setSched({
+        enabled: Boolean(bk.schedule?.enabled),
+        hour: Number(bk.schedule?.hour ?? 4),
+        interval: bk.schedule?.interval === 'weekly' ? 'weekly' : 'daily',
+        weekday: Number(bk.schedule?.weekday ?? 0),
+        fullEvery: Number(bk.full_every ?? 7),
+        retentionKeep: Number(bk.retention?.keep ?? 14),
+      })
+    }
   }, [])
+
+  async function saveSetting(key: string, value: unknown) {
+    await fetch('/api/admin/settings', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ key, value }),
+    })
+  }
+
+  async function saveSchedule(next: Schedule) {
+    setSched(next)
+    await Promise.all([
+      saveSetting('backup.schedule.enabled', next.enabled),
+      saveSetting('backup.schedule.hour', next.hour),
+      saveSetting('backup.schedule.interval', next.interval),
+      saveSetting('backup.schedule.weekday', next.weekday),
+      saveSetting('backup.full_every', next.fullEvery),
+      saveSetting('backup.retention.keep', next.retentionKeep),
+    ])
+  }
 
   useEffect(() => {
     void load()
@@ -156,6 +209,119 @@ export default function BackupAdminPage() {
               </Button>
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
+          </CardBody>
+        </Card>
+
+        {/* 자동 백업 스케줄 */}
+        <Card>
+          <CardBody className="space-y-3">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <div className="font-medium">자동 백업</div>
+                <div className="text-xs text-base-500">
+                  정해진 시각에 자동으로 백업해요. {sched.fullEvery}회마다 전체, 나머지는 증분.
+                </div>
+              </div>
+              <Toggle
+                checked={sched.enabled}
+                onChange={(e) => void saveSchedule({ ...sched, enabled: e.target.checked })}
+              />
+            </div>
+            {sched.enabled && (
+              <div className="space-y-3 border-t border-base-200/60 pt-3 dark:border-base-800/60">
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>주기</span>
+                  <select
+                    value={sched.interval}
+                    onChange={(e) =>
+                      void saveSchedule({
+                        ...sched,
+                        interval: e.target.value === 'weekly' ? 'weekly' : 'daily',
+                      })
+                    }
+                    className="rounded-lg border border-base-200 bg-base-0 px-2 py-1 dark:border-base-700 dark:bg-base-900"
+                  >
+                    <option value="daily">매일</option>
+                    <option value="weekly">매주</option>
+                  </select>
+                </label>
+                {sched.interval === 'weekly' && (
+                  <label className="flex items-center justify-between gap-3 text-sm">
+                    <span>요일</span>
+                    <select
+                      value={sched.weekday}
+                      onChange={(e) =>
+                        void saveSchedule({ ...sched, weekday: Number(e.target.value) })
+                      }
+                      className="rounded-lg border border-base-200 bg-base-0 px-2 py-1 dark:border-base-700 dark:bg-base-900"
+                    >
+                      {WEEKDAYS.map((w, i) => (
+                        <option key={w} value={i}>
+                          {w}요일
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>시각</span>
+                  <select
+                    value={sched.hour}
+                    onChange={(e) => void saveSchedule({ ...sched, hour: Number(e.target.value) })}
+                    className="rounded-lg border border-base-200 bg-base-0 px-2 py-1 dark:border-base-700 dark:bg-base-900"
+                  >
+                    {HOURS.map((h) => (
+                      <option key={h} value={h}>
+                        {String(h).padStart(2, '0')}:00
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>전체 백업 주기</span>
+                  <span className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      max={60}
+                      value={sched.fullEvery}
+                      onChange={(e) =>
+                        void saveSchedule({
+                          ...sched,
+                          fullEvery: Math.max(1, Number(e.target.value)),
+                        })
+                      }
+                      className="w-16 rounded-lg border border-base-200 bg-base-0 px-2 py-1 text-right dark:border-base-700 dark:bg-base-900"
+                    />
+                    <span className="text-xs text-base-500">회마다</span>
+                  </span>
+                </label>
+                <label className="flex items-center justify-between gap-3 text-sm">
+                  <span>보관 개수</span>
+                  <span className="flex items-center gap-1">
+                    <input
+                      type="number"
+                      min={1}
+                      max={365}
+                      value={sched.retentionKeep}
+                      onChange={(e) =>
+                        void saveSchedule({
+                          ...sched,
+                          retentionKeep: Math.max(1, Number(e.target.value)),
+                        })
+                      }
+                      className="w-16 rounded-lg border border-base-200 bg-base-0 px-2 py-1 text-right dark:border-base-700 dark:bg-base-900"
+                    />
+                    <span className="text-xs text-base-500">개 유지</span>
+                  </span>
+                </label>
+              </div>
+            )}
+            {lastError && (
+              <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
+                최근 자동 백업 오류: {lastError}
+              </p>
+            )}
           </CardBody>
         </Card>
 

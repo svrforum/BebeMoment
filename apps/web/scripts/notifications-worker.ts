@@ -17,6 +17,7 @@ import {
   parseServiceAccount,
   sendFcm,
 } from '@/server/notifications/fcm'
+import { runScheduledBackupTick } from '@/server/backup/scheduled'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
 import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
@@ -36,6 +37,7 @@ import { z } from 'zod'
 
 const stringSetting = z.string()
 const MEMORIES_SCAN_JOB = 'memories-scan'
+const BACKUP_TICK_JOB = 'backup-tick'
 
 async function settingsGet(key: string): Promise<string | null> {
   return getSetting(key, stringSetting.nullable(), null, prismaPublic)
@@ -241,6 +243,12 @@ async function main(): Promise<void> {
         await runDigestScan()
         return
       }
+      if (job.name === BACKUP_TICK_JOB) {
+        await runScheduledBackupTick(new Date(), prismaPublic, (m) =>
+          console.log('[backup-tick]', m),
+        )
+        return
+      }
       // 얼굴 인식(옵트인) — 새 사진이 ready 되면(asset.uploaded) features.faces 켜진
       // 인스턴스만 face-detect 잡을 enqueue. media 는 public 설정을 못 읽으므로 web 이
       // 게이팅한다(§17#10 upload.convert_to_compatible 와 동일 패턴). 푸시 게이트와
@@ -330,6 +338,12 @@ async function main(): Promise<void> {
     DIGEST_SCAN_JOB,
     {},
     { repeat: { pattern: '0 * * * *' }, jobId: DIGEST_SCAN_JOB, removeOnComplete: true },
+  )
+  // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
+  await queue.add(
+    BACKUP_TICK_JOB,
+    {},
+    { repeat: { pattern: '5 * * * *' }, jobId: BACKUP_TICK_JOB, removeOnComplete: true },
   )
 
   console.log('[notifications-worker] started')

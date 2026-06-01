@@ -39,6 +39,16 @@ export async function GET() {
     features,
     navFamilyHidden,
     facesClusterDistance,
+    backupIncludeSecret,
+    backupSchedEnabled,
+    backupSchedHour,
+    backupSchedInterval,
+    backupSchedWeekday,
+    backupFullEvery,
+    backupRetentionKeep,
+    backupLastError,
+    backupRemoteEnabled,
+    backupRemoteConfigured,
   ] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
     getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
@@ -50,6 +60,16 @@ export async function GET() {
     getFeatureFlags(prismaPublic),
     getSetting('nav.family.hidden', AnySchema, [], prismaPublic),
     getSetting('faces.cluster_distance', AnySchema, DEFAULT_FACE_CLUSTER_DISTANCE, prismaPublic),
+    getSetting('backup.include_secret', AnySchema, false, prismaPublic),
+    getSetting('backup.schedule.enabled', AnySchema, false, prismaPublic),
+    getSetting('backup.schedule.hour', AnySchema, 4, prismaPublic),
+    getSetting('backup.schedule.interval', AnySchema, 'daily', prismaPublic),
+    getSetting('backup.schedule.weekday', AnySchema, 0, prismaPublic),
+    getSetting('backup.full_every', AnySchema, 7, prismaPublic),
+    getSetting('backup.retention.keep', AnySchema, 14, prismaPublic),
+    getSetting('backup.last_error', AnySchema, null, prismaPublic),
+    getSetting('backup.remote.enabled', AnySchema, false, prismaPublic),
+    getSetting('backup.remote.secret_key', z.string(), '', prismaPublic).then((v) => v.length > 0),
   ])
   return NextResponse.json({
     general: { app_name: appName },
@@ -62,5 +82,18 @@ export async function GET() {
     features,
     nav: { family: { hidden: navFamilyHidden } },
     faces: { cluster_distance: facesClusterDistance },
+    backup: {
+      include_secret: backupIncludeSecret,
+      schedule: {
+        enabled: backupSchedEnabled,
+        hour: backupSchedHour,
+        interval: backupSchedInterval,
+        weekday: backupSchedWeekday,
+      },
+      full_every: backupFullEvery,
+      retention: { keep: backupRetentionKeep },
+      last_error: backupLastError,
+      remote: { enabled: backupRemoteEnabled, configured: backupRemoteConfigured },
+    },
   })
 }
