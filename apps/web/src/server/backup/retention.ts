@@ -9,6 +9,26 @@ export async function deleteBackupFiles(dir: string, id: string): Promise<void> 
 }
 
 /**
+ * `id` 백업에 (직·간접) 의존하는 다른 백업이 있는지. 있으면 삭제 시 그 증분 체인이
+ * 복구 불능이 된다 — 수동 삭제 가드용(applyRetention 의 조상보호와 같은 불변식).
+ */
+export function hasDependentDescendant(
+  backups: { id: string; parentId: string | null }[],
+  id: string,
+): boolean {
+  const byId = new Map(backups.map((b) => [b.id, b]))
+  return backups.some((b) => {
+    if (b.id === id) return false
+    let p = b.parentId
+    while (p) {
+      if (p === id) return true
+      p = byId.get(p)?.parentId ?? null
+    }
+    return false
+  })
+}
+
+/**
  * 최신 `keep`개만 남기고 오래된 백업을 지운다. **단 유지되는 incr 백업의 조상(부모 체인)은
  * 절대 지우지 않는다** — full 베이스를 지우면 그 위 증분이 복구 불능이 되기 때문.
  * 지운 id 목록을 반환.
