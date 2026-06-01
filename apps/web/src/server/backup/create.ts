@@ -145,6 +145,11 @@ export async function createBackup(
       maxBuffer: 1024 * 1024 * 16,
     })
 
+    // 5b. 무결성 검증 — 손상/절단된 번들을 복구 시점이 아니라 지금 잡는다(zstd -t 는
+    // 내장 체크섬까지 검증). 매니페스트는 검증 통과 후에만 써서, 깨진 번들이 목록·부모
+    // 탐색에 healthy 로 보이지 않게.
+    await runFile('zstd', ['-t', '--long=27', bundlePath])
+
     // 6. 사이드카 매니페스트(목록·부모탐색을 압축 풀지 않고 빠르게).
     await fs.writeFile(
       path.join(args.backupDir, manifestName(id)),
@@ -153,6 +158,11 @@ export async function createBackup(
 
     const bundleBytes = (await fs.stat(bundlePath)).size
     return { manifest, bundlePath, bundleBytes }
+  } catch (e) {
+    // 중간 실패(ENOSPC·검증 실패 등) 시 절단된 번들을 남기지 않는다 — finally 는 work
+    // 임시 디렉터리만 지우고 backupDir 의 bundlePath 는 안 지우므로 여기서 정리.
+    await fs.rm(bundlePath, { force: true }).catch(() => {})
+    throw e
   } finally {
     await fs.rm(work, { recursive: true, force: true })
   }
