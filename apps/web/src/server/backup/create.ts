@@ -24,12 +24,23 @@ export type CreateBackupArgs = {
   schemaMigrations: string[]
   /** includeSecret 일 때 번들에 넣을 평문 키. 보통 process.env.SECRET_KEY. */
   secretKey?: string | undefined
+  /** 파생물(썸네일) 포함 여부. 기본 true(복구 즉시 완전). false 면 작아지지만 복구 후 재생성 필요. */
+  includeDerivatives?: boolean
   now: Date
 }
 
 type DataScan = { files: string[]; bytes: number }
 
-async function scanDataFiles(dataDir: string, sinceMs: number): Promise<DataScan> {
+// 백업에서 항상 제외하는 최상위 디렉터리.
+// - tus-tmp: 진행 중/잔여 업로드 청크(휘발성 임시). 백업에 들어갈 이유 없음.
+// - derivatives: 원본에서 재생성 가능(includeDerivatives=false 일 때 제외 → 복구 시 재생성).
+const ALWAYS_EXCLUDE = new Set(['tus-tmp'])
+
+async function scanDataFiles(
+  dataDir: string,
+  sinceMs: number,
+  includeDerivatives: boolean,
+): Promise<DataScan> {
   const files: string[] = []
   let bytes = 0
   async function walk(rel: string): Promise<void> {
@@ -42,6 +53,11 @@ async function scanDataFiles(dataDir: string, sinceMs: number): Promise<DataScan
     }
     for (const e of entries) {
       const childRel = rel ? `${rel}/${e.name}` : e.name
+      // 최상위 제외 디렉터리 컷.
+      if (!rel) {
+        if (ALWAYS_EXCLUDE.has(e.name)) continue
+        if (!includeDerivatives && e.name === 'derivatives') continue
+      }
       if (e.isDirectory()) {
         await walk(childRel)
       } else if (e.isFile()) {
@@ -80,9 +96,10 @@ export async function createBackup(
       maxBuffer: 1024 * 1024 * 64,
     })
 
-    // 2. 스토리지 파일 스캔(incr 이면 부모 이후만).
+    // 2. 스토리지 파일 스캔(incr 이면 부모 이후만). tus-tmp 는 항상 제외.
     const sinceMs = parent ? new Date(parent.createdAt).getTime() : 0
-    const scan = await scanDataFiles(args.dataDir, sinceMs)
+    const includeDerivatives = args.includeDerivatives ?? true
+    const scan = await scanDataFiles(args.dataDir, sinceMs, includeDerivatives)
 
     // 3. 매니페스트.
     const manifest: BackupManifest = {
@@ -93,6 +110,7 @@ export async function createBackup(
       parentId: parent?.id ?? null,
       schemaMigrations: args.schemaMigrations,
       includesSecret: args.includeSecret && Boolean(args.secretKey),
+      includesDerivatives: includeDerivatives,
       dataFileCount: scan.files.length,
       dataBytes: scan.bytes,
     }

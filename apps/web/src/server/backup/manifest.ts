@@ -10,6 +10,8 @@ export type BackupManifest = {
   /** 복구 호환 판단용 — 백업 시점에 적용된 마이그레이션 이름들. */
   schemaMigrations: string[]
   includesSecret: boolean
+  /** 파생물(썸네일) 포함 여부. false 면 복구 후 재생성 필요(원본은 있음). 옛 백업엔 없을 수 있음. */
+  includesDerivatives?: boolean
   dataFileCount: number
   dataBytes: number
 }
