@@ -50,5 +50,14 @@ export async function unlinkIdentity(
   providerId: string,
   prisma: PrismaClient,
 ): Promise<void> {
+  const [identities, credential] = await Promise.all([
+    prisma.oidcIdentity.findMany({ where: { userId }, select: { providerId: true } }),
+    prisma.account.findFirst({ where: { userId, providerId: 'credential' } }),
+  ])
+  const hasThis = identities.some((i) => i.providerId === providerId)
+  if (!hasThis) return // 멱등 — 이미 없음
+  const otherOidc = identities.some((i) => i.providerId !== providerId)
+  if (!credential && !otherOidc)
+    throw new Error('마지막 로그인 수단은 해제할 수 없어요. 먼저 비밀번호를 설정해주세요.')
   await prisma.oidcIdentity.deleteMany({ where: { userId, providerId } })
 }

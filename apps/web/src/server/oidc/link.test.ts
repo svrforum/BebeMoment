@@ -97,4 +97,40 @@ describe('account linking', () => {
     await unlinkIdentity(user.id, prov.id, db.prismaPublic)
     expect(await listUserIdentities(user.id, db.prismaPublic)).toHaveLength(0)
   })
+
+  it('OIDC-only 사용자의 마지막 신원 해제를 거부한다(잠금 방지)', async () => {
+    const user = await makeUser()
+    // OIDC 전용으로 만든다 — 비밀번호 credential 제거
+    await db.prismaPublic.account.deleteMany({
+      where: { userId: user.id, providerId: 'credential' },
+    })
+    const prov = await makeProvider()
+    await linkIdentityToUser(
+      { userId: user.id, providerId: prov.id, subject: 's' },
+      db.prismaPublic,
+    )
+
+    await expect(unlinkIdentity(user.id, prov.id, db.prismaPublic)).rejects.toThrow(/마지막/)
+    expect(await listUserIdentities(user.id, db.prismaPublic)).toHaveLength(1)
+  })
+
+  it('다른 OIDC 가 남으면 OIDC-only 사용자도 해제할 수 있다', async () => {
+    const user = await makeUser()
+    await db.prismaPublic.account.deleteMany({
+      where: { userId: user.id, providerId: 'credential' },
+    })
+    const provA = await makeProvider()
+    const provB = await makeProvider()
+    await linkIdentityToUser(
+      { userId: user.id, providerId: provA.id, subject: 'a' },
+      db.prismaPublic,
+    )
+    await linkIdentityToUser(
+      { userId: user.id, providerId: provB.id, subject: 'b' },
+      db.prismaPublic,
+    )
+
+    await unlinkIdentity(user.id, provA.id, db.prismaPublic)
+    expect(await listUserIdentities(user.id, db.prismaPublic)).toHaveLength(1)
+  })
 })
