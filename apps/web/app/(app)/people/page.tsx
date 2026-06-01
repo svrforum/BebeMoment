@@ -1,5 +1,6 @@
 import { PersonGrid } from '@/components/people/person-grid'
 import { AppHeader } from '@/components/shell/app-header'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { EmptyState } from '@/components/ui/empty-state'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -19,6 +20,7 @@ export default async function PeoplePage() {
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader title="사람" subtitle="얼굴로 모은 사람들" wide />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl">
         {people.length === 0 ? (

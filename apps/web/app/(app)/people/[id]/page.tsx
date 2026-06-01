@@ -1,6 +1,7 @@
 import { PersonNameEditor } from '@/components/people/person-name-editor'
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { EmptyState } from '@/components/ui/empty-state'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -27,6 +28,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader
         title={person.name ?? '이름 없음'}
         subtitle={`사진 ${assets.length}장`}
