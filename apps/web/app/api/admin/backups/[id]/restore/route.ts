@@ -8,7 +8,7 @@ import { z } from 'zod'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ID_RE = /^bebe-backup-\d{8}-\d{6}-(full|incr)$/
+const ID_RE = /^bebe-backup-\d{8}-\d{6}-(full|incr)(-[0-9a-f]{6})?$/
 const BodySchema = z.object({ confirm: z.string() })
 
 /**

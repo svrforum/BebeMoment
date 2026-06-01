@@ -1,3 +1,5 @@
+import { randomBytes } from 'node:crypto'
+
 export type BackupType = 'full' | 'incr'
 
 export type BackupManifest = {
@@ -17,9 +19,12 @@ export type BackupManifest = {
 }
 
 export function makeBackupId(type: BackupType, now: Date): string {
-  // bebe-backup-YYYYMMDD-HHMMSS-<type> (UTC)
+  // bebe-backup-YYYYMMDD-HHMMSS-<type>-<hex6> (UTC). 초 단위 타임스탬프라 같은 초에
+  // 두 백업(수동+스케줄 등)이 만들어지면 id 가 충돌해 번들을 덮어쓰던 문제 → 랜덤
+  // suffix 로 충돌 방지.
   const ts = now.toISOString().replace(/[-:]/g, '').replace('T', '-').slice(0, 15)
-  return `bebe-backup-${ts}-${type}`
+  const suffix = randomBytes(3).toString('hex')
+  return `bebe-backup-${ts}-${type}-${suffix}`
 }
 
 export function bundleName(id: string): string {
