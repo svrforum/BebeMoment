@@ -352,6 +352,10 @@ public class MainActivity extends BridgeActivity {
     // bebeAccounts 는 UI 스레드(시드)·워커 스레드(라벨)에서 read-modify-write 되므로
     // 동시 기록이 서로를 덮어쓰지(유실) 않게 한 락으로 직렬화한다.
     private static final Object ACCOUNTS_LOCK = new Object();
+    // 백그라운드 HTTP(등록·라벨·핸드오프)용 공유 풀 — onResume 마다 계정 수만큼 raw 스레드를
+    // 띄우던 폭주를 막는다.
+    private static final java.util.concurrent.ExecutorService BG =
+        java.util.concurrent.Executors.newFixedThreadPool(3);
 
     /** 저장된 계정들의 base URL(끝 슬래시 제거) 목록. */
     private java.util.List<String> readAccountBases() {
@@ -420,7 +424,7 @@ public class MainActivity extends BridgeActivity {
         }
         if (cookies == null || !cookies.contains("session")) return;
         final String c = cookies;
-        new Thread(() -> labelFamily(base, c)).start();
+        BG.execute(() -> labelFamily(base, c));
     }
 
     private void labelFamily(String base, String cookies) {
@@ -489,7 +493,7 @@ public class MainActivity extends BridgeActivity {
         final String serverUrl = readServerUrl();
         if (serverUrl == null) return;
         final String base = serverUrl.replaceAll("/+$", "");
-        new Thread(() -> {
+        BG.execute(() -> {
             try {
                 final String cfg = httpGet(base + "/api/push/fcm-config");
                 if (cfg == null) return;
@@ -522,7 +526,7 @@ public class MainActivity extends BridgeActivity {
                     final java.util.List<String> targets = readAccountBases();
                     if (targets.isEmpty()) targets.add(base);
                     for (final String t : targets) {
-                        new Thread(() -> {
+                        BG.execute(() -> {
                             try {
                                 final String cookies = CookieManager.getInstance().getCookie(t);
                                 if (cookies == null || !cookies.contains("session")) return;
@@ -530,12 +534,12 @@ public class MainActivity extends BridgeActivity {
                                     new JSONObject().put("token", fcmToken).put("platform", "android").toString());
                             } catch (Exception ignored) {
                             }
-                        }).start();
+                        });
                     }
                 });
             } catch (Exception ignored) {
             }
-        }).start();
+        });
     }
 
     private String httpGet(String urlStr) {
@@ -591,7 +595,7 @@ public class MainActivity extends BridgeActivity {
             }
             if (cookies == null || !cookies.contains("session")) return;
             final String c = cookies;
-            new Thread(() -> registerWidgetToken(serverUrl, c)).start();
+            BG.execute(() -> registerWidgetToken(serverUrl, c));
         }, 1500);
     }
 
@@ -830,7 +834,7 @@ public class MainActivity extends BridgeActivity {
                 .getString("verifier", null);
         final String serverUrl = readServerUrl();
         if (verifier == null || serverUrl == null) return;
-        new Thread(() -> exchangeHandoff(serverUrl, code, verifier)).start();
+        BG.execute(() -> exchangeHandoff(serverUrl, code, verifier));
     }
 
     private void exchangeHandoff(String serverUrl, String code, String verifier) {
