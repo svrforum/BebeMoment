@@ -5,10 +5,11 @@ import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useRouter } from 'next/navigation'
-import { useCallback, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
 
 type Asset = { id: string; takenAtISO: string; urls: AssetUrls | null }
+type MonthData = { assets: Asset[]; storyDays: string[] }
 
 // 0..11 — picker 의 월 버튼 키로 인덱스 대신 값을 쓰기 위한 상수 배열.
 const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -46,7 +47,32 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
   const router = useRouter()
-  const storySet = useMemo(() => new Set(storyDays), [storyDays])
+
+  // 보이는 달만 서버에서 받는다(전역 take:500 제거). 초기 달은 SSR props 를 그대로 쓰고,
+  // 다른 달로 이동하면 /api/calendar 로 받아 캐시. SSE 새로고침 시 캐시를 비워 재요청.
+  const initialKey = `${initialYear}-${initialMonth}`
+  const monthKey = `${year}-${month}`
+  const [cache, setCache] = useState<Record<string, MonthData>>({})
+  useEffect(() => {
+    if (monthKey === initialKey || cache[monthKey]) return
+    let cancelled = false
+    fetch(`/api/calendar?year=${year}&month=${month}`)
+      .then((r) => (r.ok ? (r.json() as Promise<MonthData>) : null))
+      .then((d) => {
+        if (d && !cancelled) setCache((prev) => ({ ...prev, [monthKey]: d }))
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [monthKey, initialKey, year, month, cache])
+
+  const monthData: MonthData =
+    monthKey === initialKey
+      ? { assets, storyDays }
+      : (cache[monthKey] ?? { assets: [], storyDays: [] })
+  const viewAssets = monthData.assets
+  const storySet = useMemo(() => new Set(monthData.storyDays), [monthData.storyDays])
   // 년·월 빠른 선택 picker
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerYear, setPickerYear] = useState(initialYear)
@@ -63,7 +89,10 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
         (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed'))
       ) {
         if (refreshTimer.current) clearTimeout(refreshTimer.current)
-        refreshTimer.current = setTimeout(() => router.refresh(), 800)
+        refreshTimer.current = setTimeout(() => {
+          setCache({}) // 다른 달 캐시 무효화 → 현재 달 재요청. 초기 달은 router.refresh.
+          router.refresh()
+        }, 800)
       }
     },
     [router],
@@ -75,7 +104,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
 
   const byDate = useMemo(() => {
     const m = new Map<string, Asset[]>()
-    for (const a of assets) {
+    for (const a of viewAssets) {
       const d = new Date(a.takenAtISO)
       const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
       const list = m.get(key) ?? []
@@ -83,15 +112,15 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
       m.set(key, list)
     }
     return m
-  }, [assets])
+  }, [viewAssets])
 
   const monthAssets = useMemo(
     () =>
-      assets.filter((a) => {
+      viewAssets.filter((a) => {
         const d = new Date(a.takenAtISO)
         return d.getUTCFullYear() === year && d.getUTCMonth() === month
       }).length,
-    [assets, year, month],
+    [viewAssets, year, month],
   )
 
   const prev = () => {
