@@ -7,6 +7,7 @@ import { deleteDeviceToken, listDeviceTokensForUsers } from '@/server/notificati
 import {
   DEFAULT_DELIVERY,
   type DeliverySettings,
+  inQuietHours,
   isDigestSlot,
   shouldSendImmediate,
 } from '@/server/notifications/digest'
@@ -135,22 +136,39 @@ async function runDigestScan(): Promise<void> {
   for (const fam of families) {
     const since = await settingsGet(`push.digest.since.${fam.id}`)
     const sinceDate = since ? new Date(since) : new Date(now.getTime() - 24 * 3600 * 1000)
-    const count = await prismaMedia.asset.count({
-      where: {
-        familyId: fam.id,
-        status: 'ready',
-        deletedAt: null,
-        duplicateOf: null,
-        createdAt: { gt: sinceDate },
-      },
-    })
-    await settingsSet(`push.digest.since.${fam.id}`, now.toISOString())
-    if (count <= 0) continue
+    const familyId = fam.id
+    // 사진 + 가족 단위 콘텐츠 소식(마일스톤·성장·스토리·앨범추가)을 모두 합산한다 —
+    // 다이제스트 모드에서 비-자산 알림이 조용히 사라지던 문제 수정. (댓글 멘션은 개인
+    // 대상이라 다이제스트로 묶지 않고 즉시 발송 — 핸들러 면제 목록 참조.)
+    const [photos, milestones, growth, stories, albumAdds] = await Promise.all([
+      prismaMedia.asset.count({
+        where: {
+          familyId,
+          status: 'ready',
+          deletedAt: null,
+          duplicateOf: null,
+          createdAt: { gt: sinceDate },
+        },
+      }),
+      prismaPublic.milestone.count({
+        where: { familyId, deletedAt: null, createdAt: { gt: sinceDate } },
+      }),
+      prismaPublic.growthRecord.count({
+        where: { familyId, deletedAt: null, createdAt: { gt: sinceDate } },
+      }),
+      prismaPublic.story.count({
+        where: { familyId, deletedAt: null, createdAt: { gt: sinceDate } },
+      }),
+      prismaPublic.albumAsset.count({ where: { familyId, addedAt: { gt: sinceDate } } }),
+    ])
+    await settingsSet(`push.digest.since.${familyId}`, now.toISOString())
+    const others = milestones + growth + stories + albumAdds
+    if (photos + others <= 0) continue
     await enqueueNotification({
-      familyId: fam.id,
+      familyId,
       actorUserId: '',
       type: 'digest.summary',
-      payload: { count: String(count), visibility: 'family' },
+      payload: { photos: String(photos), others: String(others), visibility: 'family' },
     })
   }
 }
@@ -288,11 +306,20 @@ async function main(): Promise<void> {
           })
         }
       }
-      // 발송 방식 게이트 — memory.*·digest.summary 는 이미 예약/요약이라 면제. 그 외
-      // 개별 이벤트는 다이제스트 모드면 즉시 발송 안 하고(스캔이 모아 보냄), 야간이면 보류.
+      // 발송 방식 게이트 — memory.*·digest.summary 는 이미 예약/요약이라 면제.
+      // comment.created(개인 멘션)도 면제 — 다이제스트 스캔은 가족 단위 콘텐츠만 모으고
+      // 멘션은 개인 대상이라 브로드캐스트로 묶지 않고 즉시 발송(야간 보류는 적용). 그 외
+      // 가족 콘텐츠 이벤트는 다이제스트 모드면 즉시 발송 안 하고(스캔이 모아 보냄).
       const t = job.data.type
-      if (t !== 'digest.summary' && !t.startsWith('memory.')) {
-        if (!shouldSendImmediate(await readDeliverySettings(), new Date().getHours())) return
+      const digestExempt =
+        t === 'digest.summary' || t.startsWith('memory.') || t === 'comment.created'
+      const delivery = await readDeliverySettings()
+      const hour = new Date().getHours()
+      if (t === 'comment.created') {
+        // 멘션도 야간(방해금지)엔 보류 — 다이제스트 모드라도 즉시 발송하되 야간만 막는다.
+        if (inQuietHours(delivery, hour)) return
+      } else if (!digestExempt) {
+        if (!shouldSendImmediate(delivery, hour)) return
       }
       await refreshVapidIfChanged()
       const fcm = await buildFcmDeps()

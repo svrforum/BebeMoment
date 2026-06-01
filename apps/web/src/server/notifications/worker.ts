@@ -80,12 +80,14 @@ export function buildNotification(job: NotificationJob): {
       }
     }
     case 'digest.summary': {
-      const count = job.payload.count ?? ''
-      return {
-        title: '새 알림',
-        body: count ? `새 사진 ${count}장이 올라왔어요` : '새 소식이 있어요',
-        url: '/timeline',
-      }
+      const photos = Number(job.payload.photos ?? '0')
+      const others = Number(job.payload.others ?? '0')
+      let body: string
+      if (photos > 0 && others > 0) body = `새 사진 ${photos}장과 새 소식 ${others}개가 있어요`
+      else if (photos > 0) body = `새 사진 ${photos}장이 올라왔어요`
+      else if (others > 0) body = `새 소식 ${others}개가 있어요`
+      else body = '새 소식이 있어요'
+      return { title: '새 알림', body, url: '/timeline' }
     }
   }
 }

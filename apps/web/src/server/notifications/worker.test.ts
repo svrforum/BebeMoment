@@ -1,5 +1,18 @@
 import { expect, it, vi } from 'vitest'
-import { handleNotificationJob } from './worker'
+import { buildNotification, handleNotificationJob } from './worker'
+
+it('digest.summary 는 사진과 기타 소식을 합산해 보여준다', () => {
+  const base = { familyId: 'f', actorUserId: '', type: 'digest.summary' as const }
+  expect(buildNotification({ ...base, payload: { photos: '3', others: '2' } }).body).toBe(
+    '새 사진 3장과 새 소식 2개가 있어요',
+  )
+  expect(buildNotification({ ...base, payload: { photos: '3', others: '0' } }).body).toBe(
+    '새 사진 3장이 올라왔어요',
+  )
+  expect(buildNotification({ ...base, payload: { photos: '0', others: '2' } }).body).toBe(
+    '새 소식 2개가 있어요',
+  )
+})
 
 it('마스터 off 면 발송 안 함', async () => {
   const send = vi.fn()
