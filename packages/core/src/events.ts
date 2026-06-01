@@ -1,5 +1,15 @@
 export const ASSET_QUEUE = 'bebe-asset'
 
+// 얼굴 인식(옵트인) 잡 큐 — web 이 features.faces 켜진 자산에만 enqueue, 미디어 워커가
+// ML 사이드카를 호출해 처리. faces 꺼진 인스턴스엔 잡이 없음.
+export const FACES_QUEUE = 'bebe-faces'
+
+export type FaceDetectJob = {
+  type: 'face-detect'
+  familyId: string
+  assetId: string
+}
+
 export type AssetEvent =
   | {
       type: 'asset.updated'

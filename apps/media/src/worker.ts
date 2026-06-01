@@ -1,5 +1,6 @@
-import { ASSET_QUEUE } from '@bebe/core'
+import { ASSET_QUEUE, FACES_QUEUE, type FaceDetectJob } from '@bebe/core'
 import { type Job, Worker } from 'bullmq'
+import { faceDetect } from './jobs/face-detect'
 import { processAsset } from './jobs/process-asset'
 import type { ProcessAssetJob } from './jobs/types'
 import { logger } from './lib/logger'
@@ -62,6 +63,27 @@ export async function startWorker(): Promise<void> {
     },
   )
 
+  // 얼굴 인식(옵트인) — features.faces 켜졌을 때만 web 이 이 큐에 enqueue 한다. 꺼진
+  // 인스턴스엔 잡이 없어 이 워커는 idle, ML 사이드카 호출도 없음.
+  const facesWorker = new Worker<FaceDetectJob>(
+    FACES_QUEUE,
+    async (job: Job<FaceDetectJob>) => {
+      if (job.data.type !== 'face-detect') return
+      await faceDetect({
+        familyId: job.data.familyId,
+        assetId: job.data.assetId,
+        prisma,
+        storage,
+        mlUrl: process.env.FACE_ML_URL ?? 'http://ml:8000',
+        logger,
+      })
+    },
+    { connection, concurrency: Number(process.env.MEDIA_FACES_CONCURRENCY ?? 1) },
+  )
+  facesWorker.on('failed', (job, err) => {
+    logger.error({ id: job?.id, error: err.message }, 'face-detect job failed')
+  })
+
   worker.on('completed', (job) => {
     logger.info({ id: job.id, ...job.data }, 'job completed')
   })
@@ -72,6 +94,7 @@ export async function startWorker(): Promise<void> {
   const shutdown = async (): Promise<void> => {
     logger.info('worker shutting down')
     await worker.close()
+    await facesWorker.close()
     await connection.quit()
     await publisher.quit()
   }
