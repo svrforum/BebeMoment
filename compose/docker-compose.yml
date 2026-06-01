@@ -78,7 +78,7 @@ services:
       FACE_DET_THRESH: ${FACE_DET_THRESH:-0.3}
       # 오탐 제거 후처리 — 아주 작은 탐지(비-얼굴) 컷.
       FACE_MIN_SIZE: ${FACE_MIN_SIZE:-0.05}
-      FACE_MIN_SCORE: ${FACE_MIN_SCORE:-0.3}
+      FACE_MIN_SCORE: ${FACE_MIN_SCORE:-0.5}
     volumes:
       - ${ML_MODELS_DIR:-./ml-models}:/data/insightface
     restart: unless-stopped
