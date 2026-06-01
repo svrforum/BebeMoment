@@ -72,6 +72,10 @@ ENV PORT=3000
 ENV HOSTNAME=0.0.0.0
 ENV MEDIA_ROLE=both
 ENV MEDIA_PORT=3001
+# 릴리즈 태그(예: v0.0.11)를 이미지에 새긴다 — 설정·관리자 화면에 버전 표시. release.yml 이
+# --build-arg APP_VERSION=<tag> 로 주입. 로컬/미지정 빌드는 'dev'.
+ARG APP_VERSION=dev
+ENV APP_VERSION=$APP_VERSION
 
 # 전체 트리(빌드된 .next + apps/media 소스 + node_modules + 양쪽 prisma client).
 COPY --from=builder /repo /repo

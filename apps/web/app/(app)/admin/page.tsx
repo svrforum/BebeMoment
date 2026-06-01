@@ -21,6 +21,11 @@ const sections = [
     label: '백업 / 복구',
     description: '사진·설정 백업, 다운로드, 복구 안내',
   },
+  {
+    href: '/admin/system',
+    label: '시스템 정보',
+    description: '구동 스펙·메모리·디스크 사용량, 버전',
+  },
 ]
 
 export default function AdminPage() {

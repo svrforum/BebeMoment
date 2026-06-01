@@ -169,6 +169,10 @@ export default async function SettingsPage() {
             로그아웃
           </Button>
         </form>
+
+        <p className="pt-2 text-center text-[12px] text-base-400">
+          bebe-moment {process.env.APP_VERSION ?? 'dev'}
+        </p>
       </div>
     </>
   )
