@@ -9,7 +9,15 @@ overrides:
   react: 19.2.6
   react-dom: 19.2.6
 
-# pnpm 10+ 는 의존성 빌드 스크립트를 기본 차단한다. prisma 는 엔진 셋업 스크립트가 필요해
-# 명시 허용(나머지 sharp/esbuild 등은 prebuilt 바이너리라 스크립트 불필요).
-onlyBuiltDependencies:
-  - prisma
+# pnpm 10+ 는 의존성 빌드 스크립트를 기본 차단하고, 허용 안 된 게 있으면 설치를 실패시킨다
+# (ERR_PNPM_IGNORED_BUILDS). pnpm 9 시절엔 전부 자동 실행됐으므로, 그때 빌드되던 패키지를
+# 명시 허용(true)해 동일 동작 복원. prisma/sharp/esbuild=필수, 나머지는 네이티브 가속 옵션.
+allowBuilds:
+  '@prisma/engines': true
+  prisma: true
+  sharp: true
+  esbuild: true
+  cpu-features: true
+  msgpackr-extract: true
+  protobufjs: true
+  ssh2: true
