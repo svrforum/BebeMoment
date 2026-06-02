@@ -36,6 +36,31 @@ const nextConfig = {
     if (!target) return []
     return [{ source: '/media/:path*', destination: `${target}/media/:path*` }]
   },
+  // 보안 응답 헤더. 셀프호스팅(LAN/http 포함)을 깨지 않는 보수적 기본값.
+  // CSP 는 스크립트/스타일을 막으면 앱이 런타임에 깨지므로(브라우저 검증 필요),
+  // 여기선 기능에 영향 없는 보호만 건다: frame-ancestors(클릭재킹)·base-uri·
+  // object-src·form-action. script-src 강화는 라이브 검증 후 별도 적용.
+  async headers() {
+    const isHttps = (process.env.PUBLIC_URL ?? '').startsWith('https://')
+    return [
+      {
+        source: '/:path*',
+        headers: [
+          { key: 'X-Frame-Options', value: 'SAMEORIGIN' },
+          { key: 'X-Content-Type-Options', value: 'nosniff' },
+          { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
+          { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
+          {
+            key: 'Content-Security-Policy',
+            value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'",
+          },
+          ...(isHttps
+            ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
+            : []),
+        ],
+      },
+    ]
+  },
 }
 
 // Next 16 fixes the not-found prerender regression (vercel/next.js#85668)
