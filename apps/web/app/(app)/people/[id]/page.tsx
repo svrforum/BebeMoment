@@ -19,7 +19,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
   if (!features.faces) notFound()
 
   const { id } = await params
-  const { person, assets } = await getPersonAssets(
+  const { person, assets, truncated } = await getPersonAssets(
     { familyId: ctx.family.id, personId: id },
     prismaMedia,
     getMediaClient(),
@@ -31,7 +31,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
       <PullToRefresh />
       <AppHeader
         title={person.name ?? '이름 없음'}
-        subtitle={`사진 ${assets.length}장`}
+        subtitle={truncated ? `먼저 ${assets.length}장 표시 중` : `사진 ${assets.length}장`}
         wide
         left={
           <Link

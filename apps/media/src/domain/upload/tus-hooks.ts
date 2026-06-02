@@ -101,6 +101,9 @@ export async function onUploadFinishMedia(args: {
     {
       attempts: 3,
       backoff: { type: 'exponential', delay: 5_000 },
+      // 완료·실패 잡을 Redis 에서 정리(무한 누적 방지). 실패는 진단 위해 일부 보존.
+      removeOnComplete: true,
+      removeOnFail: 500,
     },
   )
 

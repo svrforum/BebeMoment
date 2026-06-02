@@ -123,9 +123,14 @@ export async function hasUnnamedPerson(
 export type PersonDetail = {
   person: { id: string; name: string | null } | null
   assets: AssetWithUrls[]
+  /** 상한(MAX_PERSON_ASSETS)을 넘겨 일부만 표시 중인지. */
+  truncated: boolean
 }
 
-/** 한 사람의 사진(타임라인 포맷, 촬영일 내림차순). 같은 자산에 여러 얼굴이 있어도 1번만. */
+const MAX_PERSON_ASSETS = 500
+
+/** 한 사람의 사진(타임라인 포맷, 촬영일 내림차순). 같은 자산에 여러 얼굴이 있어도 1번만.
+ *  가장 많이 찍히는 사람(아기)도 무제한 로드하지 않도록 상한을 둔다(앨범과 동일 패턴). */
 export async function getPersonAssets(
   args: { familyId: string; personId: string },
   prismaMedia: PrismaMedia,
@@ -136,16 +141,16 @@ export async function getPersonAssets(
     where: { id: personId, familyId },
     select: { id: true, name: true },
   })
-  if (!person) return { person: null, assets: [] }
+  if (!person) return { person: null, assets: [], truncated: false }
 
   const faces = await prismaMedia.face.findMany({
     where: { familyId, personId },
     select: { assetId: true },
   })
   const assetIds = Array.from(new Set(faces.map((f) => f.assetId)))
-  if (assetIds.length === 0) return { person, assets: [] }
+  if (assetIds.length === 0) return { person, assets: [], truncated: false }
 
-  const assets = await prismaMedia.asset.findMany({
+  const rows = await prismaMedia.asset.findMany({
     where: {
       id: { in: assetIds },
       familyId,
@@ -154,7 +159,10 @@ export async function getPersonAssets(
       duplicateOf: null,
     },
     orderBy: { takenAt: 'desc' },
+    take: MAX_PERSON_ASSETS + 1,
   })
+  const truncated = rows.length > MAX_PERSON_ASSETS
+  const assets = truncated ? rows.slice(0, MAX_PERSON_ASSETS) : rows
   const urls = assets.length
     ? await media.getAssetUrlsBatch(
         familyId,
@@ -164,6 +172,7 @@ export async function getPersonAssets(
   return {
     person,
     assets: assets.map((a) => ({ ...a, urls: urls[a.id] ?? null })),
+    truncated,
   }
 }
 

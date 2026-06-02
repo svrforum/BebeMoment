@@ -54,8 +54,12 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     }
 
     let exifResult: Awaited<ReturnType<typeof parseExif>> = {}
+    // 이미지는 원본을 한 번만 읽어 EXIF 파싱과 파생물 생성이 같은 버퍼를 공유한다
+    // (과거엔 EXIF·파이프라인이 각각 풀버퍼로 읽어 저사양 NAS 에서 IO·메모리 2배).
+    let originalBuf: Buffer | undefined
     if (asset.kind === 'image') {
-      exifResult = await parseExif(await collect(await storage.read(asset.originalKey)))
+      originalBuf = await collect(await storage.read(asset.originalKey))
+      exifResult = await parseExif(originalBuf)
     }
 
     const derived = deriveTakenAt({
@@ -93,7 +97,15 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     let dominantColor: string | null = null
 
     if (asset.kind === 'image') {
-      const r = await processImage({ originalKey, assetId: asset.id }, storage)
+      // 변환했으면 새 키(변환본)를 파이프라인이 직접 읽어야 하므로 버퍼 재사용 불가.
+      const r = await processImage(
+        {
+          originalKey,
+          assetId: asset.id,
+          ...(!convertedFrom && originalBuf ? { buffer: originalBuf } : {}),
+        },
+        storage,
+      )
       derivatives = r.derivatives as unknown as Record<string, unknown>
       width = r.width
       height = r.height

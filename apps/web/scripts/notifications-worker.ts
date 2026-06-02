@@ -42,6 +42,34 @@ import { z } from 'zod'
 const stringSetting = z.string()
 const MEMORIES_SCAN_JOB = 'memories-scan'
 const BACKUP_TICK_JOB = 'backup-tick'
+const TRASH_PURGE_JOB = 'trash-purge'
+
+/**
+ * 자동 휴지통 비우기 — retention.trash_days 를 넘긴 소프트삭제 자산을 영구 삭제한다.
+ * media 가 바이트를 지워야 하므로 web 은 만료 자산 id 만 추려 media purge 라우트를
+ * 호출한다(§17#10 경계). 가족별 스코프 쿼리로 tenant 미들웨어 통과. 0 이면 비활성.
+ */
+async function runTrashPurge(): Promise<void> {
+  const days = await getSetting('retention.trash_days', z.number().finite(), 30, prismaPublic)
+  if (days <= 0) return
+  const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000)
+  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  const media = getMediaClient()
+  for (const fam of families) {
+    const expired = await prismaMedia.asset.findMany({
+      where: { familyId: fam.id, deletedAt: { lt: cutoff } },
+      select: { id: true },
+      take: 500,
+    })
+    for (const a of expired) {
+      try {
+        await media.purgeAsset(a.id, fam.id)
+      } catch (e) {
+        console.error('[trash-purge]', a.id, (e as Error).message)
+      }
+    }
+  }
+}
 
 async function settingsGet(key: string): Promise<string | null> {
   return getSetting(key, stringSetting.nullable(), null, prismaPublic)
@@ -335,6 +363,10 @@ async function main(): Promise<void> {
         )
         return
       }
+      if (job.name === TRASH_PURGE_JOB) {
+        await runTrashPurge()
+        return
+      }
       // 얼굴 인식(옵트인) — 새 사진이 ready 되면(asset.uploaded) features.faces 켜진
       // 인스턴스만 face-detect 잡을 enqueue. media 는 public 설정을 못 읽으므로 web 이
       // 게이팅한다(§17#10 upload.convert_to_compatible 와 동일 패턴). 푸시 게이트와
@@ -440,6 +472,11 @@ async function main(): Promise<void> {
     { repeat: { pattern: '0 * * * *' }, jobId: DIGEST_SCAN_JOB, removeOnComplete: true },
   )
   // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
+  await queue.add(TRASH_PURGE_JOB, {} as NotificationJob, {
+    repeat: { pattern: '30 3 * * *' },
+    jobId: TRASH_PURGE_JOB,
+    removeOnComplete: true,
+  })
   await queue.add(
     BACKUP_TICK_JOB,
     {},

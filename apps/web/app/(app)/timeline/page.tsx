@@ -196,7 +196,12 @@ export default async function TimelinePage({
   const prevLastSeenAt = ctx.membership?.lastSeenAt ?? null
   if (ctx.membership) {
     await touchLastSeen(
-      { id: ctx.membership.id, familyId: ctx.membership.familyId, userId: ctx.membership.userId },
+      {
+        id: ctx.membership.id,
+        familyId: ctx.membership.familyId,
+        userId: ctx.membership.userId,
+        lastSeenAt: ctx.membership.lastSeenAt,
+      },
       prismaPublic,
     )
   }

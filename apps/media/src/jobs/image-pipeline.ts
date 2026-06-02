@@ -7,6 +7,8 @@ import { type Trio, generateTrios } from './derivative-trios'
 export type ProcessImageInput = {
   originalKey: string
   assetId: string
+  /** 이미 읽은 원본 바이트(있으면 재사용해 중복 read 회피). 변환된 경우엔 넘기지 않는다. */
+  buffer?: Buffer
 }
 
 export type ProcessImageResult = {
@@ -33,7 +35,7 @@ export async function processImage(
   input: ProcessImageInput,
   storage: StorageAdapter,
 ): Promise<ProcessImageResult> {
-  const buf = await collect(await storage.read(input.originalKey))
+  const buf = input.buffer ?? (await collect(await storage.read(input.originalKey)))
   const meta = await sharp(buf, { failOn: 'none' }).metadata()
 
   let dominantColor: string | null = null

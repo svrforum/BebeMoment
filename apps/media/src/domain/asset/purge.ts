@@ -61,7 +61,13 @@ export async function purgeAsset(
     throw new Error('asset is not in trash; soft-delete first before purge')
   }
 
-  const keys = collectKeys(asset)
+  // 중복 별칭(duplicateOf=이 자산)이 살아있으면 이 자산의 originalKey·파생물 바이트를
+  // 그 별칭들이 공유한다(dedup 시 canonical 키를 복사). 바이트를 지우면 스토리·앨범에
+  // 있는 별칭이 깨지므로, 살아있는 별칭이 있으면 바이트는 보존하고 행만 하드삭제한다.
+  const aliasCount = await prisma.asset.count({
+    where: { familyId: args.familyId, duplicateOf: asset.id, deletedAt: null },
+  })
+  const keys = aliasCount > 0 ? [] : collectKeys(asset)
   const deletedKeys: string[] = []
   const failedKeys: { key: string; error: string }[] = []
 
