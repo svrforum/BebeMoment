@@ -344,7 +344,8 @@ async function main(): Promise<void> {
         if (assetId && (await isFeatureEnabled('faces', prismaPublic))) {
           const raw = await getSetting(
             'faces.cluster_distance',
-            z.number(),
+            // finite 만 — NaN/Infinity 가 들어오면 clamp 가 NaN 을 통과시켜 군집이 붕괴된다.
+            z.number().finite(),
             DEFAULT_FACE_CLUSTER_DISTANCE,
             prismaPublic,
           )

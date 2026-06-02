@@ -1,6 +1,7 @@
 import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
+import { z } from 'zod'
 
 type Logger = { info: (o: unknown, m?: string) => void; error: (o: unknown, m?: string) => void }
 
@@ -8,6 +9,49 @@ type MlFace = {
   bbox: { x: number; y: number; w: number; h: number }
   embedding: number[]
   score: number
+}
+
+const EMBEDDING_DIM = 512
+const MAX_FACES = 64
+
+// ML 사이드카 응답은 신뢰 경계 밖 입력이다. embedding 은 정확히 vector(512) 길이의
+// 유한수여야 하고(아니면 pgvector insert 가 잡 전체를 죽인다 — 멱등 DELETE 직후라
+// 부분 데이터 손실), bbox 는 0..1 클램프, 얼굴 수는 상한을 둔다(DoS). 잘못된 얼굴은
+// 스킵하되 잡은 살린다(§6: 한 얼굴 때문에 자산 전체를 잃지 않는다).
+const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
+
+const MlFaceSchema = z.object({
+  bbox: z.object({
+    x: z.number().finite(),
+    y: z.number().finite(),
+    w: z.number().finite(),
+    h: z.number().finite(),
+  }),
+  embedding: z.array(z.number().finite()).length(EMBEDDING_DIM),
+  score: z.number().finite(),
+})
+
+export function validateMlFaces(json: unknown, logger: Logger): MlFace[] {
+  const env = z.object({ faces: z.array(z.unknown()).optional() }).safeParse(json)
+  if (!env.success) {
+    logger.error({ err: env.error.message }, 'face-detect: ml response shape invalid')
+    return []
+  }
+  const out: MlFace[] = []
+  for (const item of (env.data.faces ?? []).slice(0, MAX_FACES)) {
+    const f = MlFaceSchema.safeParse(item)
+    if (!f.success) {
+      logger.error({ err: f.error.message }, 'face-detect: skipping invalid face')
+      continue
+    }
+    const b = f.data.bbox
+    out.push({
+      bbox: { x: clamp01(b.x), y: clamp01(b.y), w: clamp01(b.w), h: clamp01(b.h) },
+      embedding: f.data.embedding,
+      score: f.data.score,
+    })
+  }
+  return out
 }
 
 async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -24,13 +68,12 @@ async function readBytes(storage: StorageAdapter, key: string): Promise<Buffer |
   }
 }
 
-async function callMl(mlUrl: string, bytes: Buffer): Promise<MlFace[]> {
+async function callMl(mlUrl: string, bytes: Buffer, logger: Logger): Promise<MlFace[]> {
   const form = new FormData()
   form.append('file', new Blob([new Uint8Array(bytes)], { type: 'image/jpeg' }), 'image.jpg')
   const res = await fetch(`${mlUrl.replace(/\/+$/, '')}/faces`, { method: 'POST', body: form })
   if (!res.ok) throw new Error(`ml /faces ${res.status}`)
-  const json = (await res.json()) as { faces?: MlFace[] }
-  return json.faces ?? []
+  return validateMlFaces(await res.json(), logger)
 }
 
 function vecLiteral(embedding: number[]): string {
@@ -52,7 +95,12 @@ export async function faceDetect(args: {
   clusterDistance?: number
 }): Promise<void> {
   const { familyId, assetId, prisma, storage, mlUrl, logger } = args
-  const maxDistance = args.clusterDistance ?? DEFAULT_FACE_CLUSTER_DISTANCE
+  // 유한수만 신뢰 — NaN/Infinity 가 들어오면 `dist <= NaN` 이 항상 false 가 돼 모든
+  // 얼굴이 새 person 이 되는 조용한 군집 붕괴를 막는다.
+  const maxDistance =
+    args.clusterDistance !== undefined && Number.isFinite(args.clusterDistance)
+      ? args.clusterDistance
+      : DEFAULT_FACE_CLUSTER_DISTANCE
 
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, familyId, status: 'ready', deletedAt: null },
@@ -72,7 +120,7 @@ export async function faceDetect(args: {
     return
   }
 
-  const faces = await callMl(mlUrl, bytes)
+  const faces = await callMl(mlUrl, bytes, logger)
 
   // 재실행 멱등: 이 자산의 기존 얼굴 제거 후 새로 넣는다.
   await prisma.$executeRawUnsafe(
