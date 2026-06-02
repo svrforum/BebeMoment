@@ -37,6 +37,7 @@ export type Capability =
   | 'album.delete.any'
   | 'album.asset.attach'
   | 'album.asset.detach'
+  | 'person.rename'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
@@ -76,6 +77,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.delete.any',
     'album.asset.attach',
     'album.asset.detach',
+    'person.rename',
   ],
   guardian: [
     'family.edit',
@@ -109,6 +111,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.delete.any',
     'album.asset.attach',
     'album.asset.detach',
+    'person.rename',
   ],
   family: [
     'asset.upload',
@@ -128,6 +131,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.delete.own',
     'album.asset.attach',
     'album.asset.detach',
+    'person.rename',
   ],
 }
 
@@ -156,6 +160,7 @@ export const GRANTABLE_FAMILY_CAPABILITIES: Capability[] = [
   'album.delete.own',
   'album.asset.attach',
   'album.asset.detach',
+  'person.rename',
 ]
 
 const GRANTABLE_SET = new Set<string>(GRANTABLE_FAMILY_CAPABILITIES)

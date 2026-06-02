@@ -18,6 +18,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     prismaPublic,
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  // 사람 이름변경은 가족 전체가 공유하는 메타데이터 변경 — person.rename 능력 필요
+  // (owner/guardian 기본, 관리자가 family 에 부여 가능). 다른 변경과 동일하게 서버 게이트.
+  if (!ctx.capabilities.includes('person.rename'))
+    return NextResponse.json({ error: '권한이 없어요' }, { status: 403 })
   try {
     const { id } = await params
     const { name } = patchSchema.parse(await req.json())

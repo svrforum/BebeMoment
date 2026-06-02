@@ -42,7 +42,11 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             <ChevronLeft size={22} />
           </Link>
         }
-        right={<PersonNameEditor personId={person.id} initialName={person.name} />}
+        right={
+          ctx.capabilities.includes('person.rename') ? (
+            <PersonNameEditor personId={person.id} initialName={person.name} />
+          ) : undefined
+        }
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl">
         {assets.length === 0 ? (
