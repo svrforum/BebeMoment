@@ -47,6 +47,26 @@ describe('GET /media/v1/files/:signed', () => {
     await app.close()
   })
 
+  test('401 when key does not belong to the token familyId/assetId (IDOR guard)', async () => {
+    // 토큰 claims(fam/asset)와 다른 경로의 실재 파일을 가리키는 토큰 — 가드 없으면
+    // 200 으로 다른 자산 바이트가 새어나간다. prefix 결속으로 401 이어야 한다.
+    const otherKey = 'families/other-fam/assets/other-asset/original'
+    const full = path.join(storageRoot, otherKey)
+    fs.mkdirSync(path.dirname(full), { recursive: true })
+    fs.writeFileSync(full, 'secret-other-family')
+
+    const { signFileServeToken } = await import('@/lib/jwt')
+    const token = await signFileServeToken({
+      familyId: 'fam',
+      assetId: 'asset',
+      key: otherKey,
+    })
+    const app = buildApp()
+    const res = await app.inject({ method: 'GET', url: `/media/v1/files/${token}` })
+    expect(res.statusCode).toBe(401)
+    await app.close()
+  })
+
   test('404 when file missing even with valid token', async () => {
     const { signFileServeToken } = await import('@/lib/jwt')
     const token = await signFileServeToken({

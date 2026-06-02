@@ -66,4 +66,10 @@ describe('LocalAdapter', () => {
     )
     await expect(adapter.exists('../escape.txt')).rejects.toThrow(/invalid key/i)
   })
+
+  it('rejects absolute keys and deep traversal (containment check)', async () => {
+    await expect(adapter.exists('/etc/passwd')).rejects.toThrow(/invalid key/i)
+    await expect(adapter.exists('a/../../escape')).rejects.toThrow(/invalid key/i)
+    await expect(adapter.exists('foo\0bar')).rejects.toThrow(/invalid key/i)
+  })
 })

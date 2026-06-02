@@ -221,6 +221,20 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
       })
     }
 
+    // 토큰의 familyId/assetId 와 서빙할 key 들을 결속(IDOR 방어 — files.ts 와 동일).
+    const prefix = `families/${payload.familyId}/assets/${payload.assetId}/`
+    if (
+      !payload.originalKey.startsWith(prefix) ||
+      (payload.hdImageKey !== undefined && !payload.hdImageKey.startsWith(prefix))
+    ) {
+      throw new MediaHttpError({
+        code: 'UNAUTHORIZED',
+        status: 401,
+        message: '유효하지 않은 URL 이에요',
+        retriable: false,
+      })
+    }
+
     setDownloadHeaders(reply, payload)
 
     if (payload.quality === 'original') {

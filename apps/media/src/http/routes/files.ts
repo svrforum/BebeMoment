@@ -22,6 +22,18 @@ export const filesRoute: FastifyPluginAsync = async (app) => {
       })
     }
 
+    // 토큰의 familyId/assetId 와 서빙할 key 를 결속한다. key 는 web 이 서명해 넣지만,
+    // 그 셋이 일관됨을 서빙 시 확인하지 않으면 mint 측 버그 하나로 다른 자산·가족의
+    // 바이트가 그대로 새어나간다(IDOR 방어). 정상 key 는 families/<fam>/assets/<asset>/...
+    if (!payload.key.startsWith(`families/${payload.familyId}/assets/${payload.assetId}/`)) {
+      throw new MediaHttpError({
+        code: 'UNAUTHORIZED',
+        status: 401,
+        message: '유효하지 않은 URL 이에요',
+        retriable: false,
+      })
+    }
+
     const env = parseEnv(process.env as Record<string, string | undefined>)
     const storage = getStorage()
 

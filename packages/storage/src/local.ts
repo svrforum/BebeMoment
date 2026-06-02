@@ -4,12 +4,6 @@ import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import type { StorageAdapter, StorageConfig, WriteResult } from './types'
 
-const KEY_INVALID = /(^\/|\.\.|\\)/
-
-function ensureSafeKey(key: string): void {
-  if (KEY_INVALID.test(key)) throw new Error(`invalid key: ${key}`)
-}
-
 export class LocalAdapter implements StorageAdapter {
   private readonly root: string
 
@@ -17,9 +11,16 @@ export class LocalAdapter implements StorageAdapter {
     this.root = path.resolve(cfg.path)
   }
 
+  // 키를 root 기준으로 resolve 한 뒤 결과가 root 안에 있는지 확인한다(blocklist 정규식
+  // 대신 canonical containment). 절대경로(키가 / 로 시작)·`..` 트래버설·심볼릭 형태
+  // 모두 root 밖으로 나가면 거부 — 한 가지 검사로 모든 탈출 형태를 막는다.
   private resolve(key: string): string {
-    ensureSafeKey(key)
-    return path.join(this.root, key)
+    if (key.includes('\0')) throw new Error(`invalid key: ${key}`)
+    const full = path.resolve(this.root, key)
+    if (full !== this.root && !full.startsWith(this.root + path.sep)) {
+      throw new Error(`invalid key: ${key}`)
+    }
+    return full
   }
 
   async write(key: string, stream: NodeJS.ReadableStream): Promise<WriteResult> {
@@ -72,7 +73,7 @@ export class LocalAdapter implements StorageAdapter {
   }
 
   async publicUrl(key: string): Promise<string> {
-    ensureSafeKey(key)
+    this.resolve(key) // 검증 목적(root 이탈 키 거부) — 반환은 그대로 URL.
     return `/media/${key}`
   }
 
