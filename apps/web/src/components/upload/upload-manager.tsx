@@ -334,8 +334,14 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
   const replaceFileData = useCallback(
     (id: string, blob: Blob) => {
-      uppy?.setFileState(id, { data: blob, size: blob.size })
-      if (uppy) setFiles(uppy.getFiles() as unknown as FileRow[])
+      if (!uppy) return
+      // 편집기는 항상 JPEG 를 렌더한다 — type/name 도 JPEG 로 맞춰야 init(assets/init)
+      // 이 올바른 mime/확장자를 받는다(바이트만 바꾸고 type 을 두면 원본 mime 으로 오라벨).
+      const cur = uppy.getFile(id) as unknown as FileRow | undefined
+      const jpgName = `${(cur?.name ?? 'edited').replace(/\.[^./\\]+$/, '')}.jpg`
+      uppy.setFileState(id, { data: blob, size: blob.size, type: 'image/jpeg', name: jpgName })
+      uppy.setFileMeta(id, { name: jpgName })
+      setFiles(uppy.getFiles() as unknown as FileRow[])
     },
     [uppy],
   )

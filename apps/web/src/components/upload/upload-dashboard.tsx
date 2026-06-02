@@ -9,7 +9,10 @@ import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
 import { type FileRow, useUploadManager } from './upload-manager'
 
-const EDITABLE = new Set(['image/jpeg', 'image/png', 'image/webp'])
+// 편집기(크롭/회전/밝기)는 항상 JPEG 를 렌더하고 EXIF 재주입도 JPEG 원본만 읽는다.
+// PNG/WebP 를 편집하면 JPEG 바이트가 원래 mime/확장자(png·webp)로 저장돼 오라벨되고
+// EXIF(촬영일시·GPS)가 소실됐다 → 편집은 JPEG 원본으로만 허용한다("원본은 원본").
+const EDITABLE = new Set(['image/jpeg'])
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -115,7 +118,12 @@ export function UploadDashboard({
       }
       const assetIds = resolveIds()
       if (assetIds.length !== fileIds.length) {
-        throw new Error('사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.')
+        // 타임아웃 — startStagedUploads 로 시작된 업로드는 계속 진행돼 타임라인에
+        // 저장된다(사진은 유실되지 않음). "재시도"로 오안내하지 않는다: 이미 시작된
+        // 파일은 재제출에서 제외되므로 재시도해도 다시 안 올라간다(§6 정직한 안내).
+        throw new Error(
+          '사진 업로드가 아직 끝나지 않았어요. 업로드 중인 사진은 타임라인에 저장되니 잠시 후 타임라인에서 확인해주세요.',
+        )
       }
 
       const today = new Date().toISOString().slice(0, 10)
@@ -157,7 +165,9 @@ export function UploadDashboard({
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files) addFiles(e.target.files)
+      // FileList 는 라이브 객체라 value='' 로 비우면 같이 비워진다. addFiles 가
+      // 내부에서 즉시 스냅샷하지만, 안전을 호출부에 두어 Array.from 으로 먼저 고정한다(§17.20).
+      if (e.target.files) addFiles(Array.from(e.target.files))
       e.target.value = ''
     },
     [addFiles],

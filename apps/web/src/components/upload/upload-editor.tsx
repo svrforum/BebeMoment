@@ -3,6 +3,7 @@ import 'react-image-crop/dist/ReactCrop.css'
 import { cn } from '@/lib/cn'
 import { applyFilterJpeg, getCroppedJpeg, rotateJpeg90 } from '@/lib/crop-image'
 import { reinjectExif } from '@/lib/exif-reinject'
+import { useToast } from '@/lib/toast'
 import { Check, RotateCw, Sun, X } from 'lucide-react'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
@@ -42,6 +43,7 @@ export function UploadEditor({
   // 미리보기는 <img> 의 CSS filter 로 실시간, 적용 시 canvas 의 ctx.filter 로 baked.
   const [brightness, setBrightness] = useState(0)
   const imgRef = useRef<HTMLImageElement>(null)
+  const toast = useToast()
 
   const aspect = ASPECT_PRESETS.find((p) => p.mode === aspectMode)?.aspect
   const filterCss = brightness !== 0 ? `brightness(${1 + brightness / 100})` : undefined
@@ -54,10 +56,16 @@ export function UploadEditor({
       setWorking(rotated)
       setCrop(undefined)
       setCompleted(null)
+    } catch (e) {
+      toast({
+        title: '회전을 적용하지 못했어요',
+        description: (e as Error).message,
+        variant: 'danger',
+      })
     } finally {
       setBusy(false)
     }
-  }, [working, busy])
+  }, [working, busy, toast])
 
   /** 표시된 이미지 영역(displayed px) 기준으로 aspect 비율의 최대 크기 중앙 정렬 크롭을
    *  만들어 setCrop/setCompleted 한다. img 가 아직 안 떴으면 false. */
@@ -133,10 +141,18 @@ export function UploadEditor({
       const blob = await dataUrlToBlob(withExif)
       onApply(fileId, blob)
       onClose()
+    } catch (e) {
+      // 캔버스 2D 컨텍스트·디코드 실패 등 — 조용히 멈추지 않고 알린다(§6). 시트는
+      // 닫지 않아 사용자가 다시 시도하거나 취소할 수 있게 한다.
+      toast({
+        title: '편집을 적용하지 못했어요',
+        description: (e as Error).message,
+        variant: 'danger',
+      })
     } finally {
       setBusy(false)
     }
-  }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose, filterCss])
+  }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose, filterCss, toast])
 
   // Portal to <body>: the editor is opened from inside the upload sheet (a
   // vaul drawer), and vaul uses a CSS transform for its drag animation — a
