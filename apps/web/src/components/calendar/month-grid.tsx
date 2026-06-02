@@ -67,6 +67,14 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     }
   }, [monthKey, initialKey, year, month, cache])
 
+  // 보던 달을 URL(?month=YYYY-MM)에 반영 — 날짜 셀을 눌러 타임라인으로 갔다 뒤로가기로
+  // 돌아와도 그 달이 유지된다(예전엔 항상 현재월로 리셋). history.replaceState 로 Next
+  // 재렌더 없이 URL 만 갱신해 빠른 클라 월 이동은 그대로 둔다.
+  useEffect(() => {
+    const mm = `${year}-${String(month + 1).padStart(2, '0')}`
+    window.history.replaceState(null, '', `/calendar?month=${mm}`)
+  }, [year, month])
+
   const monthData: MonthData =
     monthKey === initialKey
       ? { assets, storyDays }

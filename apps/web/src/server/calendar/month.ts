@@ -28,6 +28,10 @@ export async function loadCalendarMonth(
       familyId,
       status: 'ready',
       deletedAt: null,
+      // 중복 별칭은 제외 — 타임라인(merged-list)과 동일. 안 빼면 스토리·앨범에 추가한
+      // "이미 있는 사진"(별칭)이 캘린더 커버로 떠, 그 날짜 타임라인엔 없는데 사진이 있는
+      // 것처럼 보였다.
+      duplicateOf: null,
       takenAt: { gte: start, lt: end },
     },
     orderBy: { takenAt: 'desc' },
