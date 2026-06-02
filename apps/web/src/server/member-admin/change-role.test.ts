@@ -58,6 +58,28 @@ describe('changeMemberRole', () => {
     ).rejects.toThrow('지정할 수 없는')
   })
 
+  it('owner 가 아닌 actor 의 역할 변경을 거부한다', async () => {
+    const { family, membership } = await setup()
+    const { user: guardian } = await signup(
+      { username: 'guardian', password: 'password123', displayName: '삼촌' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    await expect(
+      changeMemberRole(
+        {
+          membershipId: membership.id,
+          familyId: family.id,
+          actorUserId: guardian.id,
+          role: 'guardian',
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow('소유자')
+  })
+
   it('본인 역할은 변경할 수 없다', async () => {
     const { owner, family } = await setup()
     const ownerMembership = await db.prismaPublic.membership.findFirst({

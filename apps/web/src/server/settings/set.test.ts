@@ -25,6 +25,18 @@ describe('setSetting', () => {
     expect(history[0]?.oldValue).toBeNull()
     expect(history[0]?.newValue).toBe('bebe')
   })
+  it('permissions.family 는 부여 가능 권한만 허용(owner전용 주입 거부)', async () => {
+    await expect(
+      setSetting('permissions.family', ['member.suspend'], null, db.prismaPublic),
+    ).rejects.toThrow(/부여 가능|grant/i)
+    // grantable 한 값은 허용.
+    await setSetting('permissions.family', ['asset.upload'], null, db.prismaPublic)
+    const row = await db.prismaPublic.appSetting.findUnique({
+      where: { key: 'permissions.family' },
+    })
+    expect(row?.value).toEqual(['asset.upload'])
+  })
+
   it('records diff when value changes', async () => {
     await setSetting('x', 1, null, db.prismaPublic)
     await setSetting('x', 2, null, db.prismaPublic)
