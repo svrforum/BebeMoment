@@ -8,7 +8,7 @@ WORKDIR /repo
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl ca-certificates \
     && rm -rf /var/lib/apt/lists/*
-RUN corepack enable && corepack prepare pnpm@9.12.0 --activate
+RUN corepack enable && corepack prepare pnpm@11.5.0 --activate
 
 COPY pnpm-workspace.yaml pnpm-lock.yaml package.json ./
 COPY tsconfig.base.json ./
@@ -64,7 +64,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && (groupdel node 2>/dev/null || true) \
     && groupadd -g 1000 bebe \
     && useradd -u 1000 -g bebe -s /bin/bash -m bebe \
-    && corepack enable && corepack prepare pnpm@9.12.0 --activate
+    && corepack enable && corepack prepare pnpm@11.5.0 --activate
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1

@@ -2,3 +2,14 @@ packages:
   - "apps/*"
   - "packages/*"
   - "e2e"
+
+# pnpm 10+ 부터 설정이 package.json 의 "pnpm" 필드에서 이리로 이동했다.
+# React 중복 방지(§17#17) — 단일 버전 핀. 의존성 추가로 React 가 갈라지면 여기서 갱신.
+overrides:
+  react: 19.2.6
+  react-dom: 19.2.6
+
+# pnpm 10+ 는 의존성 빌드 스크립트를 기본 차단한다. prisma 는 엔진 셋업 스크립트가 필요해
+# 명시 허용(나머지 sharp/esbuild 등은 prebuilt 바이너리라 스크립트 불필요).
+onlyBuiltDependencies:
+  - prisma
