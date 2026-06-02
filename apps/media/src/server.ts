@@ -17,7 +17,10 @@ import { logger, sanitizeUrl } from './lib/logger'
 
 export function buildApp(): FastifyInstance {
   const app = Fastify({
-    logger: logger as unknown as FastifyBaseLogger,
+    // Fastify 5: `logger` 는 설정 객체만 받는다. 커스텀 pino 인스턴스는 loggerInstance 로.
+    // FastifyBaseLogger 로 캐스트해 app 이 기본 FastifyInstance 로 추론되게(구체 pino
+    // Logger 로 추론되면 라우트 플러그인·반환 타입과 child() 변성에서 어긋난다).
+    loggerInstance: logger as unknown as FastifyBaseLogger,
     bodyLimit: 256 * 1024 * 1024,
     // 자동 요청 로깅은 URL(서명 토큰 포함)을 그대로 찍는다 — Fastify 기본 serializer 는
     // pino 인스턴스 serializer 를 무시하므로, 직접 끄고 아래 훅에서 마스킹해 찍는다.

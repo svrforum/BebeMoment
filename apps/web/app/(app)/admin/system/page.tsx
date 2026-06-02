@@ -76,7 +76,6 @@ export default async function AdminSystemPage() {
         <Card>
           <InfoRow label="버전" value={info.version} />
           <InfoRow label="플랫폼" value={`${info.platform} · ${info.arch}`} />
-          <InfoRow label="Node" value={info.nodeVersion} />
           <InfoRow label="CPU" value={`${info.cpuModel} · ${info.cpuCount} 코어`} />
           <InfoRow label="가동 시간" value={formatUptime(info.uptimeSec)} />
         </Card>

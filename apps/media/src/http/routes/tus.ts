@@ -2,6 +2,7 @@ import { onUploadFinishMedia } from '@/domain/upload/tus-hooks'
 import type { UploadTokenPayload } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { createRedisConnection } from '@/lib/redis'
+import { logger } from '@/lib/logger'
 import { getTusStore } from '@/lib/tus-store'
 import { parseEnv } from '@bebe/config'
 import { ASSET_QUEUE } from '@bebe/core'
@@ -57,7 +58,7 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
         token,
         prisma,
         queue,
-        logger: app.log,
+        logger,
       })
       return {
         status_code: 204,

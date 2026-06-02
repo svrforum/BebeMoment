@@ -91,12 +91,16 @@ services:
           memory: ${ML_MEMORY_LIMIT:-3g}
 
   redis:
-    image: redis:7-alpine
+    # Valkey (Redis BSD 포크) — BullMQ/ioredis 와 RESP 프로토콜 호환, 셀프호스팅에 라이선스
+    # 깔끔. 서비스명은 redis 유지(REDIS_URL=redis://redis:6379 그대로).
+    # ⚠️ Redis 7.4+ 에서 옮길 땐 기존 dump.rdb(RDB v12)를 Valkey 9 가 못 읽는다 —
+    #    REDIS_DIR 볼륨을 비우고 시작할 것. 큐/pub-sub 데이터는 일시적이라 손실 무방.
+    image: valkey/valkey:9-alpine
     volumes:
       - ${REDIS_DIR:-./redis}:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
       interval: 10s
       timeout: 3s
       retries: 3
