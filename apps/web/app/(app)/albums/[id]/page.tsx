@@ -4,7 +4,9 @@ import { AlbumCreateButton } from '@/components/albums/album-create-button'
 import { AlbumMenu } from '@/components/albums/album-menu'
 import { AlbumStoryItem } from '@/components/albums/album-story-item'
 import { AppHeader } from '@/components/shell/app-header'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { AssetCard } from '@/components/timeline/asset-card'
+import { EmptyState } from '@/components/ui/empty-state'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getAlbumWithBreadcrumbs } from '@/server/album/get'
@@ -83,6 +85,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader
         title={album.name}
         right={
@@ -154,14 +157,11 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
             사진 · 영상
           </h2>
           {assets.length === 0 ? (
-            <div className="mx-auto flex max-w-sm flex-col items-center gap-3 px-4 py-12 text-center">
-              <div className="rounded-full bg-base-100 p-5 dark:bg-base-800">
-                <ImagePlus className="h-8 w-8 text-base-400" strokeWidth={1.6} />
-              </div>
-              <p className="text-[13px] text-base-500">
-                사진을 보고 우상단 메뉴 → "앨범에 추가" 로 담아보세요
-              </p>
-            </div>
+            <EmptyState
+              icon={ImagePlus}
+              title="아직 사진이 없어요"
+              description={'사진을 보고 우상단 메뉴 → "앨범에 추가" 로 담아보세요'}
+            />
           ) : (
             <>
               <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">

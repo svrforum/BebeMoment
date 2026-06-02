@@ -1,5 +1,6 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
+import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
@@ -107,7 +108,7 @@ export function ViewerShell({
   const [metaState, setMetaState] = useState<MetaProps>(meta)
   const [filenameState, setFilenameState] = useState<string>(initialFilename)
   const [captionState, setCaptionState] = useState<string | null>(initialCaption)
-  const [deleting, setDeleting] = useState(false)
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const router = useRouter()
   const toast = useToast()
 
@@ -228,10 +229,9 @@ export function ViewerShell({
     [siblings.next, siblings.prev, sort, viewerCtx],
   )
 
-  async function handleDelete(): Promise<void> {
-    if (deleting) return
-    if (!window.confirm('이 사진을 휴지통으로 옮길까요? 휴지통에서 다시 복원할 수 있어요.')) return
-    setDeleting(true)
+  // 단일 삭제도 벌크 삭제와 동일하게 iOS풍 ConfirmSheet 로 — 네이티브 window.confirm
+  // 은 다크모드 미적용 + 메인스레드 블록이라 프리미엄 감성을 깼다.
+  async function doDelete(): Promise<void> {
     try {
       const res = await fetch(`/api/asset/${currentSlim.id}/delete`, { method: 'POST' })
       if (!res.ok) throw new Error()
@@ -240,7 +240,7 @@ export function ViewerShell({
       router.refresh()
     } catch {
       toast({ title: '삭제하지 못했어요. 잠시 후 다시 시도해주세요', variant: 'danger' })
-      setDeleting(false)
+      throw new Error('delete failed') // 시트가 닫히지 않게(재시도 가능)
     }
   }
 
@@ -304,7 +304,7 @@ export function ViewerShell({
             setSheetDetailsOpen(true)
             setSheetOpen(true)
           }}
-          {...(canDelete ? { onDelete: handleDelete } : {})}
+          {...(canDelete ? { onDelete: () => setConfirmDeleteOpen(true) } : {})}
         />
         <ViewerImage
           current={currentSlim}
@@ -388,6 +388,16 @@ export function ViewerShell({
         open={albumPickerOpen}
         onOpenChange={setAlbumPickerOpen}
         assetId={currentSlim.id}
+      />
+
+      <ConfirmSheet
+        open={confirmDeleteOpen}
+        onOpenChange={setConfirmDeleteOpen}
+        title="휴지통으로 옮길까요?"
+        description="휴지통에서 다시 복원할 수 있어요."
+        confirmLabel="휴지통으로"
+        confirmingLabel="옮기는 중…"
+        onConfirm={doDelete}
       />
     </div>
   )

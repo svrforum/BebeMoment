@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { StoryDateFilter } from '@/components/story/story-date-filter'
 import { StoryCard, storyCardDataFromEntry } from '@/components/story/story-card'
 import { EmptyState } from '@/components/ui/empty-state'
@@ -67,6 +68,7 @@ export default async function StoryPage({
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader
         title="스토리"
         right={

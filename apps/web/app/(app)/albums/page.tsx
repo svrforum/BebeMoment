@@ -1,6 +1,7 @@
 import { AlbumCard } from '@/components/albums/album-card'
 import { AlbumCreateButton } from '@/components/albums/album-create-button'
 import { AppHeader } from '@/components/shell/app-header'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { EmptyState } from '@/components/ui/empty-state'
 import { SearchBox } from '@/components/ui/search-box'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -65,6 +66,7 @@ export default async function AlbumsRootPage({
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader
         title="앨범"
         right={

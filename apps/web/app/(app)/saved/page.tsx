@@ -1,11 +1,13 @@
 import { PeopleEntry } from '@/components/people/people-entry'
 import { AppHeader } from '@/components/shell/app-header'
+import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import {
   StoryCard,
   type StoryCardData,
   storyCardDataFromEntry,
 } from '@/components/story/story-card'
 import { TimelineGrid } from '@/components/timeline/timeline-grid'
+import { EmptyState } from '@/components/ui/empty-state'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
@@ -122,6 +124,7 @@ export default async function SavedPage() {
 
   return (
     <>
+      <PullToRefresh />
       <AppHeader title="북마크" wide />
       {features.faces && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-4">
@@ -129,19 +132,11 @@ export default async function SavedPage() {
         </div>
       )}
       {empty ? (
-        <div className="flex flex-col items-center gap-4 py-16 text-center">
-          <div className="rounded-full bg-base-100 p-6 dark:bg-base-800">
-            <Bookmark className="h-10 w-10 text-base-400" />
-          </div>
-          <div>
-            <p className="text-base font-semibold text-base-900 dark:text-base-50">
-              저장한 항목이 없어요
-            </p>
-            <p className="mt-1 text-sm text-base-500">
-              사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요
-            </p>
-          </div>
-        </div>
+        <EmptyState
+          icon={Bookmark}
+          title="저장한 항목이 없어요"
+          description="사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요"
+        />
       ) : (
         <>
           {orphanStories.length > 0 && (
