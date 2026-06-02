@@ -67,7 +67,11 @@ export function CommentComposer({
     } catch {
       onOptimisticFail?.(tempId)
       setBody(draftBody)
-      toast({ title: '댓글을 등록하지 못했어요', variant: 'danger' })
+      toast({
+        title: '댓글을 등록하지 못했어요',
+        variant: 'danger',
+        action: { label: '다시 시도', onClick: submit },
+      })
     } finally {
       setPending(false)
     }

@@ -132,6 +132,9 @@ export function MetadataEditor({
               hour: '2-digit',
               minute: '2-digit',
               hour12: false,
+              // takenAt 은 벽시계 시각을 UTC 로 저장 — 로컬 TZ 로 렌더하면 자정 근처에서
+              // 타임라인 버킷과 하루 어긋난다. UTC 로 포맷해 버킷과 일치시킨다.
+              timeZone: 'UTC',
             })}
             secondary={`촬영일${takenAtSource !== 'exif' ? ` (${takenAtSource})` : ''}`}
             onEdit={() => setEditing('takenAt')}

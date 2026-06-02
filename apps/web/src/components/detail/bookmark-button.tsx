@@ -42,7 +42,11 @@ export function BookmarkButton(props: Props) {
       setBookmarked(data.bookmarked)
     } catch {
       setBookmarked(prev)
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({
+        title: '북마크를 반영하지 못했어요',
+        variant: 'danger',
+        action: { label: '다시 시도', onClick },
+      })
     } finally {
       setPending(false)
     }

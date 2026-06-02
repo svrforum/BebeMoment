@@ -52,7 +52,11 @@ export function LikeButton(props: Props) {
     } catch {
       setLiked(prevLiked)
       setCount(prevCount)
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({
+        title: '좋아요를 반영하지 못했어요',
+        variant: 'danger',
+        action: { label: '다시 시도', onClick },
+      })
     } finally {
       setPending(false)
     }
