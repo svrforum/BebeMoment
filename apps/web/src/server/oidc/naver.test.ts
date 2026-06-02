@@ -22,7 +22,9 @@ describe('fetchNaverProfile', () => {
     const p = await fetchNaverProfile('tok')
     expect(p.sub).toBe('naver-123')
     expect(p.email).toBe('a@b.com')
-    expect(p.emailVerified).toBe(true)
+    // 네이버엔 표준 email_verified 가 없어 검증으로 신뢰하지 않는다 — 이메일 일치
+    // 자동병합(계정 탈취 벡터)을 막기 위해 항상 false. (providerId,subject)로만 연결.
+    expect(p.emailVerified).toBe(false)
     expect(p.displayName).toBe('길동이') // nickname 우선
   })
 

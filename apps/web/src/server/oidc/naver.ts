@@ -62,8 +62,11 @@ export async function fetchNaverProfile(accessToken: string): Promise<NaverProfi
   return {
     sub: r.id,
     ...(r.email ? { email: r.email } : {}),
-    // 네이버 계정 이메일은 검증된 본인 이메일 → 이메일 기반 계정 연결에 사용 가능.
-    emailVerified: Boolean(r.email),
+    // 네이버 응답엔 표준 email_verified 클레임이 없다. 이메일 존재를 검증으로 간주하면
+    // (callback 의 email 일치 자동병합 경로를 타) 같은 이메일을 가진 기존 로컬 계정에
+    // 네이버 로그인이 붙어 계정 탈취가 가능하다. 검증으로 신뢰하지 않고 (providerId,
+    // subject)로만 연결한다(이메일은 신규 유저 기록용으로만 저장).
+    emailVerified: false,
     ...(r.nickname || r.name ? { displayName: r.nickname ?? r.name } : {}),
   }
 }

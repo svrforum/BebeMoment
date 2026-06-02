@@ -56,6 +56,27 @@ describe('unsuspendMember', () => {
     expect(updated?.suspendedReason).toBeNull()
     expect(updated?.suspendedByUserId).toBeNull()
   })
+  it('owner 가 아닌 actor 의 해제를 거부한다 (정지와 대칭인 owner 전용)', async () => {
+    const { owner, family, membership } = await setup()
+    await suspendMember(
+      { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
+      db.prismaPublic,
+    )
+    const { user: guardian } = await signup(
+      { username: 'guardian', password: 'password123', displayName: '삼촌' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    await expect(
+      unsuspendMember(
+        { membershipId: membership.id, familyId: family.id, actorUserId: guardian.id },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow('소유자')
+  })
+
   it('정지 상태가 아니면 거부한다', async () => {
     const { owner, family, membership } = await setup()
     await expect(
