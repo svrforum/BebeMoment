@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { decryptSecret } from '@/lib/crypto'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -210,15 +211,21 @@ async function runDigestScan(): Promise<void> {
       }),
       prismaPublic.albumAsset.count({ where: { familyId, addedAt: { gt: sinceDate } } }),
     ])
-    await settingsSet(`push.digest.since.${familyId}`, now.toISOString())
     const others = milestones + growth + stories + albumAdds
-    if (photos + others <= 0) continue
+    if (photos + others <= 0) {
+      // 보낼 게 없으면 윈도만 전진(손실 위험 없음).
+      await settingsSet(`push.digest.since.${familyId}`, now.toISOString())
+      continue
+    }
     await enqueueNotification({
       familyId,
       actorUserId: '',
       type: 'digest.summary',
       payload: { photos: String(photos), others: String(others), visibility: 'family' },
     })
+    // since 는 enqueue 성공 후에만 전진 — 그 전에 죽으면 다음 슬롯이 같은 윈도를 다시
+    // 집계(최악 다이제스트 중복)한다. since 를 먼저 올리면 그 사이 이벤트가 영구 누락된다.
+    await settingsSet(`push.digest.since.${familyId}`, now.toISOString())
   }
 }
 
@@ -234,11 +241,14 @@ type FcmDeps = {
 }
 
 // OAuth access token is cached across jobs (TTL from OAuth `expires_in` minus a
-// 300s safety margin); re-minted on expiry or when the service account's
-// client_email changes. `pendingToken` dedupes the cold-start stampede when
-// many sendFcm calls fire concurrently with no live cache.
-let fcmTokenCache: { token: string; exp: number; clientEmail: string } | null = null
-let pendingToken: Promise<string> | null = null
+// 300s safety margin); re-minted on expiry or when the service account changes.
+// Cache/pending are keyed by a fingerprint of the *encrypted service-account
+// setting* (not client_email) so rotating the private key under the same email
+// invalidates the cached token — otherwise a rotated/revoked key kept serving
+// stale tokens for up to ~55min. pendingToken is per-fingerprint to avoid a
+// concurrent mint handing back a token minted for a different account.
+let fcmTokenCache: { token: string; exp: number; fingerprint: string } | null = null
+const pendingTokenByFp = new Map<string, Promise<string>>()
 
 async function buildFcmDeps(): Promise<FcmDeps | null> {
   if ((await settingsGet('push.fcm.enabled')) !== 'true') return null
@@ -254,32 +264,27 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
   }
   if (!sa) return null
   const account = sa
+  const fingerprint = createHash('sha256').update(enc).digest('hex')
 
   async function accessToken(): Promise<string> {
     const now = Date.now()
-    if (
-      fcmTokenCache &&
-      fcmTokenCache.exp > now &&
-      fcmTokenCache.clientEmail === account.clientEmail
-    ) {
+    if (fcmTokenCache && fcmTokenCache.exp > now && fcmTokenCache.fingerprint === fingerprint) {
       return fcmTokenCache.token
     }
-    if (pendingToken) return pendingToken
-    pendingToken = (async () => {
+    const inflight = pendingTokenByFp.get(fingerprint)
+    if (inflight) return inflight
+    const p = (async () => {
       try {
         const { token, expiresIn } = await getFcmAccessToken(account)
         const ttlMs = Math.max(expiresIn - 300, 60) * 1000
-        fcmTokenCache = {
-          token,
-          exp: Date.now() + ttlMs,
-          clientEmail: account.clientEmail,
-        }
+        fcmTokenCache = { token, exp: Date.now() + ttlMs, fingerprint }
         return token
       } finally {
-        pendingToken = null
+        pendingTokenByFp.delete(fingerprint)
       }
     })()
-    return pendingToken
+    pendingTokenByFp.set(fingerprint, p)
+    return p
   }
 
   return {

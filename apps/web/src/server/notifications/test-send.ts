@@ -53,7 +53,11 @@ export async function sendTestNotification(
         webFailed++
         const code = (e as { statusCode?: number }).statusCode
         if (code === 404 || code === 410) {
-          await prisma.pushSubscription.deleteMany({ where: { endpoint: sub.endpoint } })
+          // endpoint+userId 로 스코프 — endpoint 문자열은 유저 간 재사용될 수 있어
+          // endpoint 만으로 지우면 다른 유저의 구독을 날릴 수 있다(워커와 동일 규칙).
+          await prisma.pushSubscription.deleteMany({
+            where: { endpoint: sub.endpoint, userId },
+          })
         }
       }
     }
