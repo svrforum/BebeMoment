@@ -102,7 +102,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
           </div>
         }
       />
-      <div className="mx-auto max-w-3xl px-5 py-3">
+      <div className="mx-auto max-w-3xl px-5 py-3 lg:max-w-5xl xl:max-w-6xl">
         <AlbumBreadcrumbs trail={trail} />
         <p className="mt-2 text-[12px] tabular-nums text-base-400">
           {album.assetCount}장{entries.length > 0 && ` · 스토리 ${entries.length}개`} ·{' '}
@@ -114,7 +114,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
             <h2 className="mb-3 px-1 text-[13px] font-semibold tracking-tight text-base-500">
               하위 앨범
             </h2>
-            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4">
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {children.map((c) => {
                 const ids = previewByAlbum.get(c.id) ?? []
                 // ready + URL 있는 자산만 — 그 외엔 폴더 아이콘 폴백
@@ -164,7 +164,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
             />
           ) : (
             <>
-              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">
+              <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
                 {assets.map((a) => (
                   <AssetCard
                     key={a.id}

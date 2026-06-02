@@ -212,6 +212,8 @@ export function AssetCard({
   const baseClass = cn(
     'relative block aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-900',
     'transition-transform ease-ios active:scale-[0.97]',
+    // 데스크톱 hover 어포던스 — 마우스 사용자에게 타일이 상호작용 가능함을 알린다.
+    'md:transition md:hover:ring-2 md:hover:ring-point-500/40',
     selected && 'scale-[0.95]',
   )
   const styleProp = { viewTransitionName: `asset-${id}` } as CSSProperties

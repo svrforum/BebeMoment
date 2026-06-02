@@ -25,8 +25,8 @@ export default async function MemoriesPage() {
 
   return (
     <>
-      <AppHeader title="추억" subtitle="오늘과 같은 날의 지난 순간들" />
-      <div className="section-enter mx-auto max-w-3xl px-5 py-4">
+      <AppHeader title="추억" subtitle="오늘과 같은 날의 지난 순간들" wide />
+      <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl">
         {groups.length === 0 ? (
           <EmptyState
             icon={Sparkles}

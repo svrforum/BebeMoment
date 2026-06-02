@@ -48,7 +48,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
           ) : undefined
         }
       />
-      <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl">
+      <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl">
         {assets.length === 0 ? (
           <EmptyState
             icon={ImageOff}
@@ -56,7 +56,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             description="이 사람의 사진이 아직 없어요."
           />
         ) : (
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5">
+          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
             {assets.map((a) => (
               <AssetCard
                 key={a.id}

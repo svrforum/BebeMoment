@@ -1,6 +1,7 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
@@ -303,6 +304,35 @@ function SwiperViewport({
           </SwiperSlide>
         ))}
       </Swiper>
+
+      {/* 데스크톱 전용 prev/next 화살표 — 모바일은 스와이프, 데스크톱은 마우스 사용자가
+          넘길 수단이 키보드 화살표뿐이라 막다른 느낌이었다. 키보드(←/→)와 동일 동작. */}
+      {hasPrev && (
+        <button
+          type="button"
+          aria-label="이전 사진"
+          onClick={(e) => {
+            e.stopPropagation()
+            onPrev()
+          }}
+          className="absolute left-4 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full bg-black/40 p-2.5 text-white transition hover:bg-black/60 md:flex"
+        >
+          <ChevronLeft className="h-6 w-6" />
+        </button>
+      )}
+      {hasNext && (
+        <button
+          type="button"
+          aria-label="다음 사진"
+          onClick={(e) => {
+            e.stopPropagation()
+            onNext()
+          }}
+          className="absolute right-4 top-1/2 z-30 hidden -translate-y-1/2 items-center justify-center rounded-full bg-black/40 p-2.5 text-white transition hover:bg-black/60 md:flex"
+        >
+          <ChevronRight className="h-6 w-6" />
+        </button>
+      )}
     </div>
   )
 }

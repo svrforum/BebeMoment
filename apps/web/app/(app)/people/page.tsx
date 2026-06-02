@@ -22,7 +22,7 @@ export default async function PeoplePage() {
     <>
       <PullToRefresh />
       <AppHeader title="사람" subtitle="얼굴로 모은 사람들" wide />
-      <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl">
+      <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl">
         {people.length === 0 ? (
           <EmptyState
             icon={UsersRound}
