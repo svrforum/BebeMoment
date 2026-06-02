@@ -43,6 +43,27 @@ describe('upload token', () => {
     process.env.MEDIA_JWT_SECRET = SECRET
   })
 
+  test('verify rejects a token signed with a different HMAC algorithm (HS512)', async () => {
+    const { SignJWT } = await import('jose')
+    const token = await new SignJWT({
+      scope: 'tus-upload',
+      v: 1,
+      sub: 'a',
+      familyId: 'b',
+      assetId: 'c',
+      mime: 'image/jpeg',
+      maxBytes: 1,
+      convertToCompatible: false,
+    })
+      .setProtectedHeader({ alg: 'HS512' })
+      .setIssuedAt()
+      .setIssuer('web')
+      .setAudience('media')
+      .setExpirationTime('15m')
+      .sign(new TextEncoder().encode(SECRET))
+    await expect(verifyUploadToken(token)).rejects.toThrow()
+  })
+
   test('verify rejects mismatched signature', async () => {
     const token = await signUploadToken({
       sub: 'a',

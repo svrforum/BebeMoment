@@ -47,6 +47,7 @@ export async function signUploadToken(args: SignUploadTokenArgs): Promise<string
 
 export async function verifyUploadToken(token: string): Promise<UploadTokenPayload> {
   const { payload } = await jwtVerify(token, getSecret(), {
+    algorithms: ['HS256'],
     audience: 'media',
     issuer: 'web',
   })
@@ -91,6 +92,7 @@ export async function signFileServeToken(args: SignFileServeArgs): Promise<strin
 
 export async function verifyFileServeToken(token: string): Promise<FileServeTokenPayload> {
   const { payload } = await jwtVerify(token, getSecret(), {
+    algorithms: ['HS256'],
     audience: 'media',
     issuer: 'media',
   })
@@ -147,6 +149,7 @@ export async function signDownloadToken(args: SignDownloadArgs): Promise<string>
 
 export async function verifyDownloadToken(token: string): Promise<DownloadTokenPayload> {
   const { payload } = await jwtVerify(token, getSecret(), {
+    algorithms: ['HS256'],
     audience: 'media',
     issuer: 'media',
   })

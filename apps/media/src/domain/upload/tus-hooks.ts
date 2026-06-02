@@ -12,6 +12,14 @@ import type pino from 'pino'
  * (`families/<familyId>/assets/<assetId>/original`). Atomic rename when same
  * filesystem; copy+unlink fallback otherwise.
  */
+/** 거부·실패한 업로드의 tus 임시파일(+ .json 사이드카)을 best-effort 로 지운다. */
+export async function removeTusTmp(assetId: string): Promise<void> {
+  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', assetId)
+  await fs.unlink(tusPath).catch(() => {})
+  await fs.unlink(`${tusPath}.json`).catch(() => {})
+}
+
 async function moveTusToFinal(args: { assetId: string; finalKey: string }): Promise<void> {
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', args.assetId)
@@ -58,6 +66,8 @@ export async function onUploadFinishMedia(args: {
       where: { id: token.assetId, familyId: token.familyId },
       data: { status: 'failed', processingError: message },
     })
+    // 거부된 초과분 바이트를 디스크에 남기지 않는다(이동 전이라 임시파일을 직접 정리).
+    await removeTusTmp(token.assetId)
     logger.warn(
       {
         assetId: token.assetId,

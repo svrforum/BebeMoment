@@ -28,7 +28,10 @@ export async function extractUploadToken(req: FastifyRequest): Promise<UploadTok
     return await verifyUploadToken(token)
   } catch (e) {
     const msg = (e as Error).message
-    const expired = msg.includes('exp') || msg.includes('JWT expired') || msg.includes('expired')
+    // jose 는 만료에 JWTExpired(code ERR_JWT_EXPIRED)를 던진다. 메시지 substring
+    // ('exp')으로 판정하면 `unexpected "aud" claim value` 같은 무관한 에러까지
+    // 만료(retriable)로 오분류된다 — 타입 코드로만 만료를 판정한다.
+    const expired = (e as { code?: string }).code === 'ERR_JWT_EXPIRED'
     throw new MediaHttpError({
       code: expired ? 'UPLOAD_TOKEN_EXPIRED' : 'UPLOAD_TOKEN_INVALID',
       status: 401,
