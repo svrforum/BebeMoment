@@ -8,7 +8,7 @@ export default function Loading() {
           </div>
         </div>
       </div>
-      <div className="mx-auto grid max-w-3xl grid-cols-7 gap-1.5 px-5 py-4">
+      <div className="mx-auto grid max-w-md grid-cols-7 gap-1.5 px-5 py-4 sm:max-w-lg md:max-w-xl">
         {Array.from({ length: 35 }, (_, i) => `cal-sk-${i}`).map((k) => (
           <div
             key={k}

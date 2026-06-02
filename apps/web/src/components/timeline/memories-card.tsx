@@ -23,9 +23,10 @@ export function MemoriesCard({ group }: { group: MemoryGroup }) {
         </span>
       </div>
       {thumbs.length > 0 ? (
-        <div className="flex gap-1">
+        // 고정 크기 썸네일 — flex-1 로 채우면 사진이 1~2장일 때 전폭으로 늘어나 거대해졌다.
+        <div className="flex gap-1.5">
           {thumbs.map((a) => (
-            <div key={a.id} className="aspect-square min-w-0 flex-1 overflow-hidden rounded-lg">
+            <div key={a.id} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg">
               <PictureImage
                 trio={pickThumbTrio(a.urls)}
                 fallbackUrl={pickThumbUrl(a.urls)}
@@ -33,7 +34,7 @@ export function MemoriesCard({ group }: { group: MemoryGroup }) {
                 dominantColor={a.urls?.dominantColor ?? null}
                 blurhash={pickBlurhash(a.urls)}
                 aspectRatio={1}
-                className="aspect-square w-full"
+                className="h-full w-full"
                 objectFit="cover"
               />
             </div>

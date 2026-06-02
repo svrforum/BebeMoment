@@ -182,7 +182,10 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     // 스와이프 영역을 캘린더 전체(빈 공간 포함)로 — 그리드 아래 빈 화면에서도 달 전환되게
     // min-height 로 뷰포트를 채운다.
     <div
-      className="mx-auto min-h-[68svh] max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl"
+      // 캘린더 폭은 좁게 유지한다. 넓은 데스크톱 컨테이너(5xl/6xl)에서 7열 aspect-square
+      // 셀이 거대해져 월 전체가 세로로 넘쳐 스크롤이 생겼다 — md:max-w-xl 로 셀 크기를
+      // 묶어 한 화면에 들어오게 한다.
+      className="mx-auto min-h-[68svh] max-w-md px-5 py-4 sm:max-w-lg md:max-w-xl"
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
