@@ -1,4 +1,5 @@
 import { spawn } from 'node:child_process'
+import { keyBelongsToAsset } from '@/domain/asset-key'
 import { type DownloadTokenPayload, verifyDownloadToken } from '@/lib/jwt'
 import { getStorage } from '@/lib/storage'
 import { parseEnv } from '@bebe/config'
@@ -224,10 +225,11 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
     }
 
     // 토큰의 familyId/assetId 와 서빙할 key 들을 결속(IDOR 방어 — files.ts 와 동일).
-    const prefix = `families/${payload.familyId}/assets/${payload.assetId}/`
+    // 원본은 families/ 접두, hdImageKey 는 derivatives/ 접두라 둘 다 허용해야 한다.
     if (
-      !payload.originalKey.startsWith(prefix) ||
-      (payload.hdImageKey !== undefined && !payload.hdImageKey.startsWith(prefix))
+      !keyBelongsToAsset(payload.originalKey, payload.familyId, payload.assetId) ||
+      (payload.hdImageKey !== undefined &&
+        !keyBelongsToAsset(payload.hdImageKey, payload.familyId, payload.assetId))
     ) {
       throw new MediaHttpError({
         code: 'UNAUTHORIZED',

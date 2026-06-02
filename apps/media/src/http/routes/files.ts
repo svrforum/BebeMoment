@@ -1,3 +1,4 @@
+import { keyBelongsToAsset } from '@/domain/asset-key'
 import { type FileServeTokenPayload, verifyFileServeToken } from '@/lib/jwt'
 import { getStorage } from '@/lib/storage'
 import { parseEnv } from '@bebe/config'
@@ -22,10 +23,9 @@ export const filesRoute: FastifyPluginAsync = async (app) => {
       })
     }
 
-    // 토큰의 familyId/assetId 와 서빙할 key 를 결속한다. key 는 web 이 서명해 넣지만,
-    // 그 셋이 일관됨을 서빙 시 확인하지 않으면 mint 측 버그 하나로 다른 자산·가족의
-    // 바이트가 그대로 새어나간다(IDOR 방어). 정상 key 는 families/<fam>/assets/<asset>/...
-    if (!payload.key.startsWith(`families/${payload.familyId}/assets/${payload.assetId}/`)) {
+    // 토큰의 familyId/assetId 와 서빙할 key 를 결속(IDOR 방어). 원본은 families/ 접두,
+    // 파생물은 derivatives/<asset>/ 접두 — 둘 다 허용(keyBelongsToAsset).
+    if (!keyBelongsToAsset(payload.key, payload.familyId, payload.assetId)) {
       throw new MediaHttpError({
         code: 'UNAUTHORIZED',
         status: 401,
