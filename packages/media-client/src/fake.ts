@@ -1,4 +1,3 @@
-import { randomUUID } from 'node:crypto'
 import { type MediaClient, MediaError } from './client'
 import type {
   AssetUrls,
@@ -74,7 +73,7 @@ export class FakeMediaClient implements MediaClient {
   async initAsset(input: InitAssetRequest): Promise<InitAssetResponse> {
     this.maybeThrow()
     this.calls.initAsset.push(input)
-    const assetId = randomUUID()
+    const assetId = crypto.randomUUID()
     return {
       v: 1,
       assetId,
