@@ -48,6 +48,8 @@ type Props = {
   canAddAlbum?: boolean
   /** 타임라인 정렬 모드 — 상세(뷰어) 링크에 보존(prev/next 이웃 정합). */
   sort?: 'taken' | 'uploaded'
+  /** 컬렉션 맥락(예: 'saved') — 상세 링크에 실어 뷰어 스와이프 스코프 유지. */
+  viewerCtx?: string | null
 }
 
 export function TimelineGrid({
@@ -57,6 +59,7 @@ export function TimelineGrid({
   canDeleteSelection = true,
   canAddAlbum = true,
   sort = 'taken',
+  viewerCtx = null,
 }: Props) {
   const router = useRouter()
   const toast = useToast()
@@ -283,6 +286,7 @@ export function TimelineGrid({
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
               </div>
             )}
+            {/* viewerCtx 도 함께 — saved 등 컬렉션에서 스와이프 스코프 유지 */}
             <BucketSection
               label={g.label}
               ageLabel={g.ageLabel ?? null}
@@ -296,6 +300,7 @@ export function TimelineGrid({
               onTap={onTap}
               onContextMenu={onContextMenu}
               sort={sort}
+              viewerCtx={viewerCtx}
             />
           </div>
         ))}

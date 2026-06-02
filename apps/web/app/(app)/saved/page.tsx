@@ -157,6 +157,7 @@ export default async function SavedPage() {
               canUpload={false}
               canDeleteSelection={canDeleteSelection}
               canAddAlbum={canAddAlbum}
+              viewerCtx="saved"
             />
           )}
         </>

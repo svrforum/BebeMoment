@@ -151,6 +151,38 @@ describe('loadViewerBundle', () => {
     expect(uploaded?.nextId).toBeUndefined()
   })
 
+  it('neighborIds 가 주어지면 전역이 아니라 그 목록 안에서 prev/next 를 찾는다', async () => {
+    const { user, family } = await setup()
+    // 촬영순 전역 이웃과 다른 임의 컬렉션 순서를 만든다.
+    const a = await makeReadyAsset(family.id, user.id, 'na', new Date('2026-04-01'))
+    const b = await makeReadyAsset(family.id, user.id, 'nb', new Date('2026-04-02'))
+    const c = await makeReadyAsset(family.id, user.id, 'nc', new Date('2026-04-03'))
+    const d = await makeReadyAsset(family.id, user.id, 'nd', new Date('2026-04-04'))
+    // 컬렉션 순서: [c, a, d] (b 제외). a 를 열면 컬렉션상 prev=c, next=d.
+    const bundle = await loadViewerBundle(
+      { assetId: a, familyId: family.id, neighborIds: [c, a, d] },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(bundle?.prevId).toBe(c)
+    expect(bundle?.nextId).toBe(d)
+    // 전역 촬영순이면 a(04-01)의 prev 는 없고 next 는 b 였을 것 — 그게 아님을 확인.
+    expect(bundle?.nextId).not.toBe(b)
+  })
+
+  it('neighborIds 목록의 끝 자산은 한쪽 이웃만 있다', async () => {
+    const { user, family } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'ea', new Date('2026-04-01'))
+    const b = await makeReadyAsset(family.id, user.id, 'eb', new Date('2026-04-02'))
+    const bundle = await loadViewerBundle(
+      { assetId: b, familyId: family.id, neighborIds: [a, b] },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(bundle?.prevId).toBe(a)
+    expect(bundle?.nextId).toBeUndefined()
+  })
+
   it('does not leak across families', async () => {
     const { user, family } = await setup()
     const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)

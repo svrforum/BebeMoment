@@ -30,7 +30,14 @@ export type ViewerBundle = {
  * Tenant 격리: familyId 인자로만 조회. media SignedURL TTL 은 10분.
  */
 export async function loadViewerBundle(
-  args: { assetId: string; familyId: string; sort?: TimelineSort },
+  args: {
+    assetId: string
+    familyId: string
+    sort?: TimelineSort
+    /** 추억·앨범 등 특정 컬렉션에서 열렸으면 그 순서대로의 자산 UUID 목록. 주어지면
+     *  prev/next 를 전역 타임라인이 아니라 이 목록 안에서 찾는다(컬렉션 이탈 방지). */
+    neighborIds?: string[]
+  },
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<ViewerBundle | null> {
@@ -61,56 +68,77 @@ export async function loadViewerBundle(
     duplicateOf: null,
   }
   const select = { id: true, publicNo: true, kind: true } as const
-  const [prevAsset, nextAsset] =
-    args.sort === 'uploaded'
-      ? await Promise.all([
-          prismaMedia.asset.findFirst({
-            where: {
-              ...baseWhere,
-              OR: [
-                { createdAt: { lt: asset.createdAt } },
-                { createdAt: asset.createdAt, id: { lt: asset.id } },
-              ],
-            },
-            orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
-            select,
-          }),
-          prismaMedia.asset.findFirst({
-            where: {
-              ...baseWhere,
-              OR: [
-                { createdAt: { gt: asset.createdAt } },
-                { createdAt: asset.createdAt, id: { gt: asset.id } },
-              ],
-            },
-            orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-            select,
-          }),
-        ])
-      : await Promise.all([
-          prismaMedia.asset.findFirst({
-            where: {
-              ...baseWhere,
-              OR: [
-                { takenAt: { lt: asset.takenAt } },
-                { takenAt: asset.takenAt, id: { lt: asset.id } },
-              ],
-            },
-            orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
-            select,
-          }),
-          prismaMedia.asset.findFirst({
-            where: {
-              ...baseWhere,
-              OR: [
-                { takenAt: { gt: asset.takenAt } },
-                { takenAt: asset.takenAt, id: { gt: asset.id } },
-              ],
-            },
-            orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
-            select,
-          }),
-        ])
+  type Slim = { id: string; publicNo: number; kind: 'image' | 'video' }
+  let prevAsset: Slim | null = null
+  let nextAsset: Slim | null = null
+
+  if (args.neighborIds && args.neighborIds.length > 0) {
+    // 컬렉션 내 이동 — 목록에서 현재 위치의 앞/뒤 자산.
+    const i = args.neighborIds.indexOf(asset.id)
+    const prevId = i > 0 ? args.neighborIds[i - 1] : undefined
+    const nextId = i >= 0 && i < args.neighborIds.length - 1 ? args.neighborIds[i + 1] : undefined
+    const ids = [prevId, nextId].filter((x): x is string => Boolean(x))
+    const rows = ids.length
+      ? await prismaMedia.asset.findMany({
+          where: { id: { in: ids }, familyId: args.familyId, deletedAt: null },
+          select,
+        })
+      : []
+    const byId = new Map(rows.map((r) => [r.id, r]))
+    prevAsset = prevId ? (byId.get(prevId) ?? null) : null
+    nextAsset = nextId ? (byId.get(nextId) ?? null) : null
+  } else {
+    ;[prevAsset, nextAsset] =
+      args.sort === 'uploaded'
+        ? await Promise.all([
+            prismaMedia.asset.findFirst({
+              where: {
+                ...baseWhere,
+                OR: [
+                  { createdAt: { lt: asset.createdAt } },
+                  { createdAt: asset.createdAt, id: { lt: asset.id } },
+                ],
+              },
+              orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+              select,
+            }),
+            prismaMedia.asset.findFirst({
+              where: {
+                ...baseWhere,
+                OR: [
+                  { createdAt: { gt: asset.createdAt } },
+                  { createdAt: asset.createdAt, id: { gt: asset.id } },
+                ],
+              },
+              orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+              select,
+            }),
+          ])
+        : await Promise.all([
+            prismaMedia.asset.findFirst({
+              where: {
+                ...baseWhere,
+                OR: [
+                  { takenAt: { lt: asset.takenAt } },
+                  { takenAt: asset.takenAt, id: { lt: asset.id } },
+                ],
+              },
+              orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
+              select,
+            }),
+            prismaMedia.asset.findFirst({
+              where: {
+                ...baseWhere,
+                OR: [
+                  { takenAt: { gt: asset.takenAt } },
+                  { takenAt: asset.takenAt, id: { gt: asset.id } },
+                ],
+              },
+              orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
+              select,
+            }),
+          ])
+  }
 
   // 인접 두 슬롯은 batch 로 사인 — round-trip 한 번 절약.
   const adjIds = [prevAsset?.id, nextAsset?.id].filter((x): x is string => Boolean(x))

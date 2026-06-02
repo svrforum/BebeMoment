@@ -34,6 +34,9 @@ type Props = {
   onContextMenu?: (id: string, x: number, y: number) => void
   /** 타임라인 정렬 모드 — 상세(뷰어) 링크에 보존해 prev/next 이웃이 그리드와 정합. */
   sort?: 'taken' | 'uploaded'
+  /** 컬렉션 맥락(memories·saved·album:id 등) — 상세 링크에 실어 뷰어 스와이프가 그
+   *  컬렉션 안에서만 이동하게. 없으면 전역 타임라인. */
+  viewerCtx?: string | null
 }
 
 const STATUS_KO: Record<Props['status'], string> = {
@@ -65,8 +68,12 @@ export function AssetCard({
   onTap,
   onContextMenu,
   sort = 'taken',
+  viewerCtx = null,
 }: Props) {
-  const detailHref = `/detail/${publicNo}${sort === 'uploaded' ? '?sort=uploaded' : ''}`
+  const detailQp = new URLSearchParams()
+  if (sort === 'uploaded') detailQp.set('sort', 'uploaded')
+  if (viewerCtx) detailQp.set('ctx', viewerCtx)
+  const detailHref = `/detail/${publicNo}${detailQp.toString() ? `?${detailQp}` : ''}`
   const trio = pickThumbTrio(urls)
   const fallbackUrl = pickThumbUrl(urls)
   const blurhash = pickBlurhash(urls)

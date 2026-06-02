@@ -26,7 +26,11 @@ export function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
           {g.assets.length > 0 && (
             <div className="grid grid-cols-3 gap-0.5 overflow-hidden rounded-2xl">
               {g.assets.map((a) => (
-                <Link key={a.id} href={`/detail/${a.publicNo}`} className="block aspect-square">
+                <Link
+                  key={a.id}
+                  href={`/detail/${a.publicNo}?ctx=memories`}
+                  className="block aspect-square"
+                >
                   <PictureImage
                     trio={pickThumbTrio(a.urls)}
                     fallbackUrl={pickThumbUrl(a.urls)}

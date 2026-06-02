@@ -3,6 +3,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
+import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
 import { likersForAsset } from '@/server/like/list-for-asset'
 import { NextResponse } from 'next/server'
 
@@ -17,9 +18,21 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     return NextResponse.json({ error: 'No current family' }, { status: 400 })
   try {
     const { id } = await params
-    const sort = new URL(req.url).searchParams.get('sort') === 'uploaded' ? 'uploaded' : 'taken'
+    const sp = new URL(req.url).searchParams
+    const sort = sp.get('sort') === 'uploaded' ? 'uploaded' : 'taken'
+    const neighborIds = await resolveNeighborIds(
+      sp.get('ctx') ?? undefined,
+      {
+        familyId: ctx.family.id,
+        userId: ctx.user.id,
+        viewerRole: ctx.membership?.role ?? 'family',
+      },
+      prismaPublic,
+      prismaMedia,
+      getMediaClient(),
+    )
     const bundle = await loadViewerBundle(
-      { assetId: id, familyId: ctx.family.id, sort },
+      { assetId: id, familyId: ctx.family.id, sort, ...(neighborIds ? { neighborIds } : {}) },
       prismaMedia,
       getMediaClient(),
     )

@@ -62,6 +62,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
                 status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
                 kind={a.kind as 'image' | 'video'}
                 durationMs={a.durationMs}
+                viewerCtx={`person:${person.id}`}
               />
             ))}
           </div>

@@ -63,6 +63,7 @@ type Props = {
   onTap?: (id: string, mods: TapModifiers) => void
   onContextMenu?: (id: string, x: number, y: number) => void
   sort?: 'taken' | 'uploaded'
+  viewerCtx?: string | null
 }
 
 export function BucketSection({
@@ -78,6 +79,7 @@ export function BucketSection({
   onTap,
   onContextMenu,
   sort = 'taken',
+  viewerCtx = null,
 }: Props) {
   const [expanded, setExpanded] = useState(false)
   // 선택 모드에선 전부 보여야 일괄 선택이 가능 — 접지 않는다.
@@ -132,6 +134,7 @@ export function BucketSection({
               kind={a.kind}
               durationMs={a.durationMs ?? null}
               sort={sort}
+              viewerCtx={viewerCtx}
               selectionMode={selectionMode}
               selected={selected?.has(a.id) ?? false}
               {...(onLongPress ? { onLongPress } : {})}

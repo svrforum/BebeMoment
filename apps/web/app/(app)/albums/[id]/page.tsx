@@ -173,6 +173,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
                     urls={a.urls}
                     status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
                     kind={a.kind as 'image' | 'video'}
+                    viewerCtx={`album:${album.id}`}
                   />
                 ))}
               </div>

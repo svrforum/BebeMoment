@@ -48,6 +48,7 @@ export function ViewerShell({
   initialFilename,
   initialCaption,
   sort = 'taken',
+  viewerCtx = null,
 }: {
   initialCurrent: AssetSlim
   initialSiblings: Siblings
@@ -64,6 +65,8 @@ export function ViewerShell({
   initialFilename: string
   initialCaption: string | null
   sort?: 'taken' | 'uploaded'
+  /** 어느 컬렉션에서 열렸는지(memories·saved·album:id 등) — 스와이프 이웃 스코프 유지용. */
+  viewerCtx?: string | null
 }) {
   // 핵심: current/siblings 는 STATE. SSR 페이지가 마운트되면 props 가 seed 로 들어오고,
   // 그 뒤 사용자가 스와이프하면 fetch('/api/asset/.../viewer-bundle') 결과로 state 만
@@ -116,8 +119,12 @@ export function ViewerShell({
     async (assetId, direction) => {
       if (lastNavRef.current === assetId) return
       lastNavRef.current = assetId
-      // 타임라인 정렬 모드를 URL·이웃 fetch 에 보존 — 업로드순 뷰어 이웃이 그리드와 정합.
-      const sortQ = sort === 'uploaded' ? '?sort=uploaded' : ''
+      // 정렬 모드 + 컬렉션 ctx 를 URL·이웃 fetch 에 보존 — 스와이프가 같은 컬렉션·정렬을
+      // 유지하도록(추억/앨범/북마크 등에서 열어도 그 안에서만 이동).
+      const qp = new URLSearchParams()
+      if (sort === 'uploaded') qp.set('sort', 'uploaded')
+      if (viewerCtx) qp.set('ctx', viewerCtx)
+      const sortQ = qp.toString() ? `?${qp.toString()}` : ''
 
       // Optimistic: 현재 siblings 에서 해당 슬롯을 즉시 current 로 승격.
       // URLs 가 이미 사인되어 있어 사진이 끊김 없이 이어진다.
@@ -218,7 +225,7 @@ export function ViewerShell({
         // 무음 실패: optimistic state 유지. 다음 swipe 에서 다시 시도.
       }
     },
-    [siblings.next, siblings.prev, sort],
+    [siblings.next, siblings.prev, sort, viewerCtx],
   )
 
   async function handleDelete(): Promise<void> {

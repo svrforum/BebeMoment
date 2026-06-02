@@ -2,6 +2,7 @@ import { ViewerShell } from '@/components/detail/viewer-shell'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
+import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
@@ -14,10 +15,10 @@ export default async function DetailPage({
   searchParams,
 }: {
   params: Promise<{ id: string }>
-  searchParams: Promise<{ sort?: string }>
+  searchParams: Promise<{ sort?: string; ctx?: string }>
 }) {
   const { id } = await params
-  const { sort: sortParam } = await searchParams
+  const { sort: sortParam, ctx: ctxParam } = await searchParams
   const sort = sortParam === 'uploaded' ? 'uploaded' : 'taken'
   // getContext() is `cache()`-wrapped so layout + page share one fetch.
   // resolveContext() called directly would duplicate the user/membership
@@ -26,11 +27,19 @@ export default async function DetailPage({
   if (!ctx.family || !ctx.user) return null
 
   const media = getMediaClient()
+  // 컬렉션(추억·앨범·북마크·스토리·사람)에서 열렸으면 그 컬렉션 순서로 prev/next 를 돈다.
+  const neighborIds = await resolveNeighborIds(
+    ctxParam,
+    { familyId: ctx.family.id, userId: ctx.user.id, viewerRole: ctx.membership?.role ?? 'family' },
+    prismaPublic,
+    prismaMedia,
+    media,
+  )
   // loadViewerBundle = current asset + adjacent prev/next slims (shared with
   // /api/asset/[id]/viewer-bundle so client-side swipe gets identical shape).
   // sort 는 타임라인의 정렬 모드와 일치시켜 prev/next 이웃이 그리드와 어긋나지 않게.
   const bundle = await loadViewerBundle(
-    { assetId: id, familyId: ctx.family.id, sort },
+    { assetId: id, familyId: ctx.family.id, sort, ...(neighborIds ? { neighborIds } : {}) },
     prismaMedia,
     media,
   )
@@ -134,6 +143,7 @@ export default async function DetailPage({
       initialFilename={asset.originalFilename}
       initialCaption={asset.caption}
       sort={sort}
+      viewerCtx={ctxParam ?? null}
     />
   )
 }

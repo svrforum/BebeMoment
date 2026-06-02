@@ -213,7 +213,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                       {/* 탭하면 격자와 동일하게 전체화면 뷰어로. 스와이프(드래그)는
                           Swiper 가 클릭과 구분해 처리하므로 슬라이드 넘김은 그대로. */}
                       <Link
-                        href={`/detail/${link.asset?.publicNo}`}
+                        href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
                         className="flex aspect-square w-full items-center justify-center"
                       >
                         <PictureImage
@@ -244,7 +244,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
               {sortedAssets.map((link) => (
                 <Link
                   key={link.assetId}
-                  href={`/detail/${link.asset?.publicNo}`}
+                  href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
                   className="block aspect-square"
                 >
                   <PictureImage
