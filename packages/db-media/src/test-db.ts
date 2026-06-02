@@ -60,7 +60,7 @@ export async function startTestDb(): Promise<TestDb> {
   if (sharedBaseUrl) {
     baseUrl = sharedBaseUrl
   } else {
-    ownContainer = await new PostgreSqlContainer('pgvector/pgvector:pg16')
+    ownContainer = await new PostgreSqlContainer('pgvector/pgvector:pg17')
       .withDatabase('bebe')
       .withUsername('bebe')
       .withPassword('bebe')

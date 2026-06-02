@@ -50,7 +50,7 @@ services:
   postgres:
     # pgvector 확장 포함(얼굴 인식 임베딩 벡터검색). 신규 설치는 그대로, 기존 alpine
     # 데이터에서 올리는 경우 데이터 소유권을 999(debian postgres)로 chown 후 사용.
-    image: pgvector/pgvector:pg16
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe

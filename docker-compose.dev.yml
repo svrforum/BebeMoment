@@ -1,8 +1,9 @@
 services:
   postgres:
-    # pgvector 확장 포함(얼굴 임베딩 벡터검색). pg16 동일이라 데이터 볼륨 그대로 호환.
-    # (이 인스턴스는 alpine→debian 전환 시 데이터 소유권을 999 로 chown + REINDEX 했음.)
-    image: pgvector/pgvector:pg16
+    # pgvector 확장 포함(얼굴 임베딩 벡터검색).
+    # ⚠️ pg16 → pg17 메이저 업: 데이터 디렉터리 비호환 — pg17 가 pg16 볼륨을 못 읽는다.
+    #    기존 데이터는 pg_dump(16)→restore(17) 또는 pg_upgrade 로 옮기고 ./.dev/pg 를 비울 것.
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe

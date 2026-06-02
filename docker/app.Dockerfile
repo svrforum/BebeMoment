@@ -48,8 +48,8 @@ FROM node:22-bookworm-slim AS runner
 WORKDIR /repo
 
 # ffmpeg(영상 파이프라인) + libvips42(sharp 시스템 라이브러리) + 운영 유틸.
-# postgresql-client-16: 백업 pg_dump/pg_restore 는 서버(pg16)와 major 가 같거나 높아야
-# 한다. bookworm 기본은 15 라 PGDG 저장소에서 16 을 받는다. zstd: 백업 번들 압축.
+# postgresql-client-17: 백업 pg_dump/pg_restore 는 서버(pg17)와 major 가 같거나 높아야
+# 한다. bookworm 기본은 15 라 PGDG 저장소에서 17 을 받는다. zstd: 백업 번들 압축.
 RUN apt-get update && apt-get install -y --no-install-recommends \
     tini curl openssl ca-certificates gosu bash ffmpeg libvips42 zstd gnupg \
     && install -d /usr/share/postgresql-common/pgdg \
@@ -57,7 +57,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
     && echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt bookworm-pgdg main" \
        > /etc/apt/sources.list.d/pgdg.list \
-    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-16 \
+    && apt-get update && apt-get install -y --no-install-recommends postgresql-client-17 \
     && apt-get purge -y gnupg && apt-get autoremove -y \
     && rm -rf /var/lib/apt/lists/* \
     && (userdel -r node 2>/dev/null || true) \
