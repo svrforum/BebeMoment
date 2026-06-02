@@ -73,6 +73,121 @@ describe('process-asset module', () => {
     })
   })
 
+  it('resets sha256 to a fresh placeholder when marking failed (no dedup-slot squat)', async () => {
+    // 처리 실패한 자산이 real sha256 을 들고 failed 로 남으면 (familyId, sha256)
+    // 유니크 슬롯을 영구 점유 → 같은 사진 재업로드가 거짓 '중복'으로 막힌다.
+    // 실패 커밋은 sha256 을 무작위 placeholder 로 되돌려 슬롯을 비워야 한다.
+    const asset = fakeAsset()
+    const updates: Record<string, unknown>[] = []
+    const prisma = {
+      asset: {
+        findFirst: vi.fn(async () => asset),
+        update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          updates.push(data)
+          if (data.status === 'ready') throw new Error('derivative boom')
+          return asset
+        }),
+      },
+    }
+
+    await expect(
+      processAsset({
+        job: {
+          type: 'process-asset',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          convertToCompatible: false,
+        },
+        // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+        prisma: prisma as any,
+        storage: noopStorage,
+        publishProgress: async () => {},
+        logger: silentLogger,
+        enqueueNotification: async () => {},
+      }),
+    ).rejects.toThrow('derivative boom')
+
+    const failed = updates.find((u) => u.status === 'failed')
+    expect(failed).toBeDefined()
+    expect(failed?.sha256).toMatch(/^[0-9a-f]{64}$/)
+  })
+
+  it('best-effort deletes derivative keys on the final failed attempt (no orphan leak)', async () => {
+    const asset = fakeAsset({ id: 'asset-orph' })
+    const deleted: string[] = []
+    const storage = {
+      delete: vi.fn(async (k: string) => {
+        deleted.push(k)
+      }),
+    } as unknown as StorageAdapter
+    const prisma = {
+      asset: {
+        findFirst: vi.fn(async () => asset),
+        update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          if (data.status === 'ready') throw new Error('boom')
+          return asset
+        }),
+      },
+    }
+
+    await expect(
+      processAsset({
+        job: {
+          type: 'process-asset',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          convertToCompatible: false,
+        },
+        // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+        prisma: prisma as any,
+        storage,
+        publishProgress: async () => {},
+        logger: silentLogger,
+        enqueueNotification: async () => {},
+        isFinalAttempt: true,
+      }),
+    ).rejects.toThrow('boom')
+
+    expect(deleted).toContain('derivatives/asset-orph/thumb256.webp')
+    expect(deleted).toContain('derivatives/asset-orph/display1080.jpeg')
+    expect(deleted).toContain('derivatives/asset-orph/poster.jpg')
+  })
+
+  it('does not delete derivatives on a non-final failed attempt (retry reuses them)', async () => {
+    const asset = fakeAsset({ id: 'asset-retry' })
+    const del = vi.fn(async () => {})
+    const storage = { delete: del } as unknown as StorageAdapter
+    const prisma = {
+      asset: {
+        findFirst: vi.fn(async () => asset),
+        update: vi.fn(async ({ data }: { data: Record<string, unknown> }) => {
+          if (data.status === 'ready') throw new Error('boom')
+          return asset
+        }),
+      },
+    }
+
+    await expect(
+      processAsset({
+        job: {
+          type: 'process-asset',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          convertToCompatible: false,
+        },
+        // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+        prisma: prisma as any,
+        storage,
+        publishProgress: async () => {},
+        logger: silentLogger,
+        enqueueNotification: async () => {},
+        isFinalAttempt: false,
+      }),
+    ).rejects.toThrow('boom')
+
+    expect(del).not.toHaveBeenCalled()
+  })
+
   it('does not enqueue when processing fails', async () => {
     const asset = fakeAsset()
     const prisma = fakePrisma(asset)

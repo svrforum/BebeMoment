@@ -1,3 +1,4 @@
+import { randomBytes } from 'node:crypto'
 import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
@@ -5,6 +6,7 @@ import type pino from 'pino'
 import type { ProgressEvent } from '../progress/channel'
 import { convertImageIfNeeded } from './convert'
 import { applyDedup } from './dedup'
+import { derivativeKeysFor } from './derivative-trios'
 import { type EnqueueNotification, enqueueNotification } from './enqueue-notification'
 import { processImage } from './image-pipeline'
 import type { ProcessAssetJob } from './types'
@@ -23,6 +25,9 @@ export type ProcessAssetArgs = {
   publishProgress: (event: ProgressEvent) => Promise<void>
   logger: pino.Logger
   enqueueNotification?: EnqueueNotification
+  /** BullMQ 마지막 attempt 면 true — 이때만 부분 생성된 파생물을 정리한다(재시도가
+   *  남았으면 다음 attempt 가 같은 키로 덮어쓰므로 정리하지 않는다). worker 가 계산. */
+  isFinalAttempt?: boolean
 }
 
 export async function processAsset(args: ProcessAssetArgs): Promise<void> {
@@ -165,9 +170,17 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'
+    // sha256 을 무작위 placeholder 로 되돌린다. applyDedup 이 real sha256 을 이미
+    // 커밋한 뒤 파생물 생성이 실패하면, failed 자산이 (familyId, sha256) 유니크
+    // 슬롯을 영구 점유해 같은 사진 재업로드가 거짓 '중복'으로 막혔다(initAsset 의
+    // placeholder 와 동일 형식으로 슬롯을 비운다). 재시도는 다시 real sha 를 쓴다.
     await prisma.asset.update({
       where: { id: asset.id, familyId: asset.familyId },
-      data: { status: 'failed', processingError: message },
+      data: {
+        status: 'failed',
+        processingError: message,
+        sha256: randomBytes(32).toString('hex'),
+      },
     })
     await publishProgress({
       type: 'status',
@@ -176,6 +189,20 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       status: 'failed',
       reason: message,
     })
+    // 마지막 attempt 면 부분 생성된 파생물 파일을 정리한다. 실패 자산의 derivatives
+    // 는 DB 에 안 남아 purge 가 못 찾으므로 여기서 best-effort 로 지운다(ENOENT 무시).
+    if (args.isFinalAttempt) {
+      await Promise.all(
+        derivativeKeysFor(asset.id).map((key) =>
+          storage.delete(key).catch((delErr: unknown) => {
+            logger.warn(
+              { assetId: asset.id, key, err: delErr },
+              'failed to delete orphan derivative',
+            )
+          }),
+        ),
+      )
+    }
     throw err
   }
 }

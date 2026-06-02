@@ -9,6 +9,7 @@ import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
 import sharp from 'sharp'
 import { type Trio, generateTrios } from './derivative-trios'
+import { orientedDimensions, parseDurationMs } from './video-meta'
 
 export type ProcessVideoInput = {
   originalKey: string
@@ -55,9 +56,8 @@ export async function processVideo(
     })
 
     const videoStream = metadata.streams.find((s) => s.codec_type === 'video')
-    const durationMs = Math.round(Number(metadata.format.duration ?? 0) * 1000)
-    const width = videoStream?.width
-    const height = videoStream?.height
+    const durationMs = parseDurationMs(metadata.format.duration)
+    const { width, height } = orientedDimensions(videoStream)
 
     const posterPath = path.join(work, 'poster.jpg')
     const posterTs = durationMs > 1500 ? 0.5 : 0
