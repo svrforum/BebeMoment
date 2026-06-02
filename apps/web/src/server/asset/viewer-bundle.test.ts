@@ -158,16 +158,17 @@ describe('loadViewerBundle', () => {
     const b = await makeReadyAsset(family.id, user.id, 'nb', new Date('2026-04-02'))
     const c = await makeReadyAsset(family.id, user.id, 'nc', new Date('2026-04-03'))
     const d = await makeReadyAsset(family.id, user.id, 'nd', new Date('2026-04-04'))
-    // 컬렉션 순서: [c, a, d] (b 제외). a 를 열면 컬렉션상 prev=c, next=d.
+    // 컬렉션 순서: [c, a, d] (b 제외). 전역과 같은 방향 매핑이라 a 를 열면
+    // nextId=list[i-1]=c, prevId=list[i+1]=d (좌=다음/앞쪽, 우=이전/뒤쪽).
     const bundle = await loadViewerBundle(
       { assetId: a, familyId: family.id, neighborIds: [c, a, d] },
       db.prismaMedia,
       new FakeMediaClient(),
     )
-    expect(bundle?.prevId).toBe(c)
-    expect(bundle?.nextId).toBe(d)
-    // 전역 촬영순이면 a(04-01)의 prev 는 없고 next 는 b 였을 것 — 그게 아님을 확인.
-    expect(bundle?.nextId).not.toBe(b)
+    expect(bundle?.nextId).toBe(c)
+    expect(bundle?.prevId).toBe(d)
+    // 컬렉션 밖(b)으로는 안 샘.
+    expect([bundle?.prevId, bundle?.nextId]).not.toContain(b)
   })
 
   it('neighborIds 목록의 끝 자산은 한쪽 이웃만 있다', async () => {
@@ -179,8 +180,9 @@ describe('loadViewerBundle', () => {
       db.prismaMedia,
       new FakeMediaClient(),
     )
-    expect(bundle?.prevId).toBe(a)
-    expect(bundle?.nextId).toBeUndefined()
+    // b 는 목록 끝(i=1). nextId=list[0]=a, prevId=list[2]=없음.
+    expect(bundle?.nextId).toBe(a)
+    expect(bundle?.prevId).toBeUndefined()
   })
 
   it('does not leak across families', async () => {

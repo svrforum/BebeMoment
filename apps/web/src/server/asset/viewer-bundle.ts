@@ -73,10 +73,13 @@ export async function loadViewerBundle(
   let nextAsset: Slim | null = null
 
   if (args.neighborIds && args.neighborIds.length > 0) {
-    // 컬렉션 내 이동 — 목록에서 현재 위치의 앞/뒤 자산.
+    // 컬렉션 내 이동 — 전역 타임라인과 같은 스와이프 방향을 맞춘다. 전역은 nextId=그리드
+    // 상 앞(이전 인덱스)·prevId=그리드상 뒤(다음 인덱스)로 매핑되므로(viewer-image 의
+    // 슬라이드 배열 [next,current,prev] 기준), 목록에서도 동일하게: nextId=list[i-1],
+    // prevId=list[i+1]. (반대로 하면 좌우 스와이프가 뒤집힌다.)
     const i = args.neighborIds.indexOf(asset.id)
-    const prevId = i > 0 ? args.neighborIds[i - 1] : undefined
-    const nextId = i >= 0 && i < args.neighborIds.length - 1 ? args.neighborIds[i + 1] : undefined
+    const nextId = i > 0 ? args.neighborIds[i - 1] : undefined
+    const prevId = i >= 0 && i < args.neighborIds.length - 1 ? args.neighborIds[i + 1] : undefined
     const ids = [prevId, nextId].filter((x): x is string => Boolean(x))
     const rows = ids.length
       ? await prismaMedia.asset.findMany({
