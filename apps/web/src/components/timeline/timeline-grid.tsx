@@ -26,6 +26,8 @@ type AssetRow = {
 }
 
 type BucketGroup = {
+  /** UTC 일자 키 — append 시 같은 날 버킷 병합 기준. */
+  dateKey: string
   label: string
   /** Optional age-bucket secondary line (e.g. "생후 47일"). */
   ageLabel?: string | null
@@ -36,8 +38,34 @@ type BucketGroup = {
   stories?: StoryCardData[]
 }
 
+// append 시 같은 날(dateKey) 버킷은 병합(자산·스토리 id 중복 제거), 나머지는 이어붙임.
+function mergeGroups(prev: BucketGroup[], next: BucketGroup[]): BucketGroup[] {
+  if (next.length === 0) return prev
+  const out = [...prev]
+  const last = out[out.length - 1]
+  let start = 0
+  if (last && next[0] && last.dateKey === next[0].dateKey) {
+    const seen = new Set(last.assets.map((a) => a.id))
+    const storySeen = new Set((last.stories ?? []).map((s) => s.id))
+    out[out.length - 1] = {
+      ...last,
+      assets: [...last.assets, ...next[0].assets.filter((a) => !seen.has(a.id))],
+      stories: [
+        ...(last.stories ?? []),
+        ...(next[0].stories ?? []).filter((s) => !storySeen.has(s.id)),
+      ],
+    }
+    start = 1
+  }
+  return [...out, ...next.slice(start)]
+}
+
 type Props = {
   initialGroups: BucketGroup[]
+  /** 다음 페이지 커서(null = 더 없음). 무한스크롤. */
+  initialNextCursor?: string | null
+  /** 날짜 필터(YYYY-MM-DD) — load-more 에 전달해 같은 스코프 유지. */
+  date?: string | null
   /** 이전 방문 시각 (membership.lastSeenAt 의 OLD 값). null = 첫 방문 → 디바이더 없음. */
   lastSeenAt?: Date | null
   /** 업로드 권한자만 빈 상태에 + 버튼 안내. 보기 전용은 다른 카피. */
@@ -54,6 +82,8 @@ type Props = {
 
 export function TimelineGrid({
   initialGroups,
+  initialNextCursor = null,
+  date = null,
   lastSeenAt = null,
   canUpload = true,
   canDeleteSelection = true,
@@ -64,6 +94,10 @@ export function TimelineGrid({
   const router = useRouter()
   const toast = useToast()
 
+  const [groups, setGroups] = useState<BucketGroup[]>(initialGroups)
+  const [cursor, setCursor] = useState<string | null>(initialNextCursor)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [anchor, setAnchor] = useState<string | null>(null)
   const [pickerOpen, setPickerOpen] = useState(false)
@@ -74,14 +108,11 @@ export function TimelineGrid({
 
   // Flat ordered list of asset ids — used by Shift-click range selection
   // and to clamp range bounds. Stable across re-renders via useMemo.
-  const orderedIds = useMemo(
-    () => initialGroups.flatMap((g) => g.assets.map((a) => a.id)),
-    [initialGroups],
-  )
+  const orderedIds = useMemo(() => groups.flatMap((g) => g.assets.map((a) => a.id)), [groups])
 
   const publicNoById = useMemo(
-    () => new Map(initialGroups.flatMap((g) => g.assets.map((a) => [a.id, a.publicNo] as const))),
-    [initialGroups],
+    () => new Map(groups.flatMap((g) => g.assets.map((a) => [a.id, a.publicNo] as const))),
+    [groups],
   )
 
   // SSE fires one event per asset settling. A multi-file upload would call
@@ -107,6 +138,52 @@ export function TimelineGrid({
     [router],
   )
   useFamilySSE(handleEvent)
+
+  // SSR(또는 router.refresh)이 새 initialGroups 를 주면 상태를 재동기화한다 — 새로고침
+  // 후 페이지네이션은 1페이지로 리셋(허용 가능, 새 업로드 반영 우선).
+  useEffect(() => {
+    setGroups(initialGroups)
+    setCursor(initialNextCursor)
+  }, [initialGroups, initialNextCursor])
+
+  const loadMore = useCallback(async () => {
+    if (!cursor || loadingMore) return
+    setLoadingMore(true)
+    try {
+      const qp = new URLSearchParams({ sort, cursor })
+      if (date) qp.set('date', date)
+      const res = await fetch(`/api/timeline?${qp.toString()}`)
+      if (!res.ok) throw new Error('load failed')
+      const data = (await res.json()) as { groups: BucketGroup[]; nextCursor: string | null }
+      // JSON 직렬화로 Date → 문자열이 되므로 디바이더 계산에 쓰는 ts 를 Date 로 되살린다.
+      const revived = data.groups.map((g) => ({
+        ...g,
+        assets: g.assets.map((a) => ({
+          ...a,
+          ts: new Date(a.ts as unknown as string),
+        })),
+      }))
+      setGroups((prev) => mergeGroups(prev, revived))
+      setCursor(data.nextCursor)
+    } catch {
+      toast({ title: '더 불러오지 못했어요. 잠시 후 다시 시도해주세요', variant: 'danger' })
+    } finally {
+      setLoadingMore(false)
+    }
+  }, [cursor, loadingMore, sort, date, toast])
+
+  useEffect(() => {
+    const el = sentinelRef.current
+    if (!el || !cursor) return
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries.some((e) => e.isIntersecting)) void loadMore()
+      },
+      { rootMargin: '600px' },
+    )
+    io.observe(el)
+    return () => io.disconnect()
+  }, [cursor, loadMore])
 
   const onLongPress = useCallback((id: string) => {
     setSelected((prev) => {
@@ -240,7 +317,7 @@ export function TimelineGrid({
 
   // 빈 상태 early-return 은 반드시 모든 훅 호출 뒤에 둔다. 위쪽에 두면 사진이
   // 0→1 로 바뀌는 순간(신규 가족 첫 업로드) 훅 개수가 달라져 React #310 크래시.
-  if (initialGroups.length === 0) {
+  if (groups.length === 0) {
     if (!canUpload) {
       return (
         <EmptyState
@@ -269,16 +346,14 @@ export function TimelineGrid({
   const boundaryIndex =
     lastSeenMs === null
       ? -1
-      : initialGroups.findIndex((g) =>
-          g.assets.some((a) => (a.ts ? a.ts.getTime() <= lastSeenMs : false)),
-        )
+      : groups.findIndex((g) => g.assets.some((a) => (a.ts ? a.ts.getTime() <= lastSeenMs : false)))
   const showDivider = boundaryIndex > 0
 
   return (
     <>
       <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4">
-        {initialGroups.map((g, i) => (
-          <div key={g.label}>
+        {groups.map((g, i) => (
+          <div key={g.dateKey}>
             {showDivider && i === boundaryIndex && (
               <div className="my-6 flex items-center gap-3 px-1">
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
@@ -304,6 +379,14 @@ export function TimelineGrid({
             />
           </div>
         ))}
+        {/* 무한스크롤 센티넬 — 화면 근처(600px)에 들어오면 다음 페이지 로드. */}
+        {cursor && (
+          <div ref={sentinelRef} className="flex justify-center py-6">
+            {loadingMore && (
+              <span className="h-5 w-5 animate-spin rounded-full border-2 border-base-300 border-t-point-500" />
+            )}
+          </div>
+        )}
       </div>
 
       {selectionMode && (

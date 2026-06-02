@@ -1,5 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
-import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
+import { storyCardDataFromEntry } from '@/components/story/story-card'
 import { StoryStrip } from '@/components/timeline/bucket-section'
 import { hasUnnamedPerson } from '@/server/people/list'
 import { MemoriesCard } from '@/components/timeline/memories-card'
@@ -14,8 +14,9 @@ import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
-import { babyDaysDiff, formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
+import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
 import { bucketLabel } from '@bebe/core'
+import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Sparkles, UsersRound } from 'lucide-react'
 import Link from 'next/link'
@@ -35,7 +36,7 @@ export default async function TimelinePage({
   const viewerRole = ctx.membership?.role ?? 'family'
   // TODO(multi-baby): 다아기 가족(쌍둥이 등) UX 는 추후 — 지금은 가장 먼저
   // 태어난 아기 1명 기준으로 D-day · 나이 버킷을 계산한다.
-  const [baby, { items }] = await Promise.all([
+  const [baby, { items, nextCursor }] = await Promise.all([
     prismaPublic.baby.findFirst({
       where: { familyId: ctx.family.id, deletedAt: null },
       orderBy: { birthDate: 'asc' },
@@ -64,63 +65,10 @@ export default async function TimelinePage({
   const assetItems = items.filter((it) => it.kind === 'asset')
   const storyItems = items.filter((it) => it.kind === 'story')
 
-  // 그룹의 ts (날짜 헤더 기준) 는 sort 모드를 따라간다. taken=촬영일,
-  // uploaded=업로드 시각 (createdAt). 날짜 헤더가 사용자가 토글한 축과
-  // 일치하도록 — sort=uploaded 일 때 "오늘 올린 사진" 들이 오늘 헤더 아래 모임.
-  const groups = groupAssetsByDay(
-    assetItems.map((it) => {
-      const a = it.kind === 'asset' ? it.asset : null
-      if (!a) throw new Error('unreachable')
-      return {
-        id: a.id,
-        publicNo: a.publicNo,
-        ts: sortMode === 'uploaded' ? a.createdAt : a.takenAt,
-        status: a.status as 'uploading' | 'processing' | 'ready' | 'failed',
-        kind: a.kind as 'image' | 'video',
-        urls: a.urls,
-        durationMs: a.durationMs ?? null,
-      }
-    }),
-    birthDate,
-  ).map((g) => ({
-    dateKey: g.dateKey,
-    label: g.dateLabel,
-    ageLabel: g.bucketLabel,
-    dDay: g.babyDays !== null ? formatDDay(g.babyDays) : null,
-    assets: g.assets.map((a) => ({
-      id: a.id,
-      publicNo: a.publicNo,
-      status: a.status,
-      kind: a.kind,
-      urls: a.urls,
-      ts: a.ts,
-      durationMs: a.durationMs,
-    })),
-  }))
-
-  const utcDayKey = (d: Date): string =>
-    `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
-  // 모델 B — 스토리는 entryDate 가 아니라 "안에 든 사진이 찍힌 날(takenAt)"마다
-  // 등장한다. 사진별 날짜로 흩뿌려 같은 날 그리드 위에 얹는다. 카드 대표 썸네일은
-  // (어느 날 버킷이든) 스토리의 첫 사진 1장.
-  const dayOfAsset = (a: { takenAt: Date; createdAt: Date }): string =>
-    utcDayKey(sortMode === 'uploaded' ? a.createdAt : a.takenAt)
-  // dateKey -> (storyId -> StoryCardData). 같은 날 같은 스토리는 1장(중복 방지).
-  const storiesByDate = new Map<string, Map<string, StoryCardData>>()
-  for (const it of storyItems) {
-    if (it.kind !== 'story') continue
-    const e = it.entry
-    const days = new Set(e.assets.flatMap((ea) => (ea.asset ? [dayOfAsset(ea.asset)] : [])))
-    for (const dk of days) {
-      const dayMap = storiesByDate.get(dk) ?? new Map<string, StoryCardData>()
-      if (!dayMap.has(e.id)) dayMap.set(e.id, storyCardDataFromEntry(e))
-      storiesByDate.set(dk, dayMap)
-    }
-  }
-  const mainGroups = groups.map((g) => ({
-    ...g,
-    stories: Array.from(storiesByDate.get(g.dateKey)?.values() ?? []),
-  }))
+  // items → 날짜 버킷 그룹. SSR·무한스크롤 load-more 가 같은 변환을 공유(build-groups).
+  // 날짜필터 모드는 스토리를 StoryStrip 으로 따로 보여주므로 버킷엔 안 얹는다.
+  const mainGroups = buildTimelineGroups({ items, birthDate, sortMode })
+  const dateGroups = buildTimelineGroups({ items, birthDate, sortMode, includeStories: false })
 
   // 멀티셀렉트 바 게이팅: 삭제 권한 / 앨범에 추가(앨범 권한 + 일반가족 앨범숨김 아님).
   const isManager = viewerRole === 'owner' || viewerRole === 'guardian'
@@ -178,7 +126,9 @@ export default async function TimelinePage({
           </div>
         ) : photoCount > 0 ? (
           <TimelineGrid
-            initialGroups={groups}
+            initialGroups={dateGroups}
+            initialNextCursor={nextCursor}
+            date={dateFilter}
             canDeleteSelection={canDeleteSelection}
             canAddAlbum={canAddAlbum}
             sort={sortMode}
@@ -286,6 +236,7 @@ export default async function TimelinePage({
           얹혀 보인다(아래 TimelineGrid → BucketSection 의 StoryStrip). */}
       <TimelineGrid
         initialGroups={mainGroups}
+        initialNextCursor={nextCursor}
         lastSeenAt={prevLastSeenAt}
         canUpload={canUpload}
         canDeleteSelection={canDeleteSelection}
