@@ -56,6 +56,11 @@ export const filesRoute: FastifyPluginAsync = async (app) => {
     const stream = await storage.read(payload.key)
     reply.header('cache-control', `private, max-age=${FILE_SERVE_CACHE_SEC}`)
     reply.header('content-type', 'application/octet-stream')
+    // 미디어는 /media/* rewrite 로 앱과 동일 오리진에서 서빙된다. nosniff 없이는 업로드된
+    // 파일을 브라우저가 text/html 로 스니핑해 앱 오리진에서 실행할 수 있어(저장형 XSS),
+    // 반드시 스니핑 차단 + inline(네비게이션 가능한 HTML 문서가 되지 않게).
+    reply.header('x-content-type-options', 'nosniff')
+    reply.header('content-disposition', 'inline')
     return reply.status(200).send(stream)
   })
 }

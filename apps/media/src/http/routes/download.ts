@@ -40,6 +40,8 @@ async function stripJpegMetadata(buf: Buffer): Promise<Buffer> {
 function setDownloadHeaders(reply: FastifyReply, payload: DownloadTokenPayload): void {
   reply.header('content-disposition', contentDisposition(payload.filename))
   reply.header('cache-control', 'private, max-age=0, must-revalidate')
+  // 저장된 mimeType 을 그대로 내려주는 경로(원본)도 있으므로 스니핑 차단(동일 오리진).
+  reply.header('x-content-type-options', 'nosniff')
 }
 
 async function serveOriginal(

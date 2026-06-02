@@ -44,6 +44,9 @@ describe('GET /media/v1/files/:signed', () => {
     })
     expect(res.statusCode).toBe(200)
     expect(res.body).toBe('hello-bebe')
+    // 동일 오리진 저장형 XSS 방어 — 스니핑 차단 + inline.
+    expect(res.headers['x-content-type-options']).toBe('nosniff')
+    expect(res.headers['content-type']).toBe('application/octet-stream')
     await app.close()
   })
 
