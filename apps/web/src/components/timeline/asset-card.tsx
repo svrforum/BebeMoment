@@ -2,10 +2,12 @@
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
-import { Check, Play } from 'lucide-react'
+import { Check, Play, RotateCw, Trash2 } from 'lucide-react'
 import Link from 'next/link'
-import { type CSSProperties, type MouseEvent, useRef } from 'react'
+import { useRouter } from 'next/navigation'
+import { type CSSProperties, type MouseEvent, useRef, useState } from 'react'
 
 export type TapModifiers = { ctrl: boolean; shift: boolean }
 
@@ -78,6 +80,36 @@ export function AssetCard({
   const fallbackUrl = pickThumbUrl(urls)
   const blurhash = pickBlurhash(urls)
   const hasImage = trio !== null || fallbackUrl !== null
+
+  const router = useRouter()
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+
+  const retryFailed = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/asset/${id}/retry`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      toast({ title: '다시 처리하고 있어요', variant: 'success' })
+      router.refresh()
+    } catch {
+      toast({ title: '다시 시도하지 못했어요', variant: 'danger' })
+      setBusy(false)
+    }
+  }
+  const deleteFailed = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/asset/${id}/delete`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      router.refresh()
+    } catch {
+      toast({ title: '삭제하지 못했어요', variant: 'danger' })
+      setBusy(false)
+    }
+  }
 
   const pressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const longFired = useRef(false)
@@ -183,6 +215,38 @@ export function AssetCard({
     selected && 'scale-[0.95]',
   )
   const styleProp = { viewTransitionName: `asset-${id}` } as CSSProperties
+
+  // 실패한 자산은 막다른 길이 되지 않게 — 재시도·삭제 어포던스를 타일에 직접 노출(§6).
+  if (status === 'failed' && !selectionMode) {
+    return (
+      <div
+        className={cn(baseClass, 'flex flex-col items-center justify-center gap-2 p-2 text-center')}
+        style={styleProp}
+      >
+        <span className="text-[11px] font-medium text-rose-500">업로드 실패</span>
+        <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={retryFailed}
+            disabled={busy}
+            aria-label="다시 시도"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-base-700 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90 dark:text-base-200"
+          >
+            <RotateCw size={15} strokeWidth={2.2} />
+          </button>
+          <button
+            type="button"
+            onClick={deleteFailed}
+            disabled={busy}
+            aria-label="삭제"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-rose-500 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90"
+          >
+            <Trash2 size={15} strokeWidth={2.2} />
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   if (selectionMode) {
     return (

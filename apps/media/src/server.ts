@@ -4,6 +4,7 @@ import { registerErrorHandler } from './http/middleware/error-handler'
 import { requestIdPlugin } from './http/middleware/request-id'
 import { assetsInitRoute } from './http/routes/assets-init'
 import { assetsPurgeRoute } from './http/routes/assets-purge'
+import { assetsRetryRoute } from './http/routes/assets-retry'
 import { assetsUpdateRoute } from './http/routes/assets-update'
 import { assetsUrlsRoute } from './http/routes/assets-urls'
 import { assetsUrlsBatchRoute } from './http/routes/assets-urls-batch'
@@ -49,6 +50,7 @@ export function buildApp(): FastifyInstance {
   app.register(assetsUrlsRoute)
   app.register(assetsUrlsBatchRoute)
   app.register(assetsPurgeRoute)
+  app.register(assetsRetryRoute)
   app.register(filesRoute)
   app.register(downloadMintRoute)
   app.register(downloadRoute)
