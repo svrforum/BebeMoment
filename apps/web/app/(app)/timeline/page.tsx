@@ -101,7 +101,8 @@ export default async function TimelinePage({
           subtitle={subtitle}
           left={
             <Link
-              href="/calendar"
+              // 그 날짜가 속한 달로 돌아간다(예전엔 항상 현재월로 리셋). dateFilter=YYYY-MM-DD.
+              href={`/calendar?month=${dateFilter.slice(0, 7)}`}
               className="-ml-1.5 flex h-9 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
               aria-label="캘린더로 돌아가기"
             >
