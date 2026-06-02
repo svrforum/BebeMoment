@@ -17,6 +17,21 @@ export type RemoteConfig = {
   secretAccessKey: string
 }
 
+/**
+ * 에러 메시지를 설정(`backup.*.last_error`)에 저장하기 전에 자격/시크릿 흔적을 가린다.
+ * 이 값은 관리자 API(GET)로 노출되므로, S3 SDK·pg 에러에 섞여 들어올 수 있는 access
+ * key id·DB URL 비밀번호·전달된 시크릿 리터럴을 마스킹한다. 진단용 나머지 텍스트는 유지.
+ */
+export function redactSecrets(msg: string, extra: string[] = []): string {
+  let out = msg
+  for (const lit of extra) {
+    if (lit && lit.length >= 4) out = out.split(lit).join('***')
+  }
+  out = out.replace(/A[KS]IA[0-9A-Z]{16}/g, '***') // AWS access key id
+  out = out.replace(/(postgres(?:ql)?:\/\/[^:@/\s]+:)[^@\s]+@/gi, '$1***@') // DB URL 비번
+  return out
+}
+
 function makeClient(cfg: RemoteConfig): S3Client {
   return new S3Client({
     region: cfg.region || 'us-east-1',

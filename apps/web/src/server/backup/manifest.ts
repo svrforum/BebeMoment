@@ -27,6 +27,16 @@ export function makeBackupId(type: BackupType, now: Date): string {
   return `bebe-backup-${ts}-${type}-${suffix}`
 }
 
+// 백업 id 형식 검증(라우트 입력 가드). makeBackupId 와 동기화 — hex6 suffix 는
+// 옛 백업 호환을 위해 선택적. 3개 라우트(download/delete/restore)가 각자 정규식을
+// 복제하다 download 만 suffix 패턴 누락으로 모든 다운로드가 깨졌던 회귀를 막기 위해
+// 단일 함수로 통일한다.
+const BACKUP_ID_RE = /^bebe-backup-\d{8}-\d{6}-(full|incr)(-[0-9a-f]{6})?$/
+
+export function isValidBackupId(id: string): boolean {
+  return BACKUP_ID_RE.test(id)
+}
+
 export function bundleName(id: string): string {
   return `${id}.tar.zst`
 }

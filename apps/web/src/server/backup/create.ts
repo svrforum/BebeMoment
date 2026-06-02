@@ -97,7 +97,12 @@ export async function createBackup(
     })
 
     // 2. 스토리지 파일 스캔(incr 이면 부모 이후만). tus-tmp 는 항상 제외.
-    const sinceMs = parent ? new Date(parent.createdAt).getTime() : 0
+    // 부모의 createdAt 은 스캔/덤프 시작 전에 캡처된 순간이라, 부모 백업이 도는 동안
+    // 올라온 사진이 부모(스캔이 이미 지나감)·자식(mtime ≤ 부모 createdAt) 양쪽에서
+    // 누락될 수 있다. 경계를 슬랙만큼 앞당겨 그 창의 파일을 자식에 포함시킨다 — 중복
+    // 포함은 자산 불변이라 무해(전개 시 동일 내용 덮어쓰기)하고, 누락이 훨씬 위험하다.
+    const INCR_SLACK_MS = 5 * 60 * 1000
+    const sinceMs = parent ? new Date(parent.createdAt).getTime() - INCR_SLACK_MS : 0
     const includeDerivatives = args.includeDerivatives ?? true
     const scan = await scanDataFiles(args.dataDir, sinceMs, includeDerivatives)
 

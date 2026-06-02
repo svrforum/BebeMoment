@@ -2,17 +2,16 @@ import { requireAdmin } from '@/lib/require-admin'
 import { backupDir } from '@/server/backup/config'
 import { findBackup, listBackups } from '@/server/backup/list'
 import { deleteBackupFiles, hasDependentDescendant } from '@/server/backup/retention'
+import { isValidBackupId } from '@/server/backup/manifest'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
-
-const ID_RE = /^bebe-backup-\d{8}-\d{6}-(full|incr)(-[0-9a-f]{6})?$/
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   const { id } = await params
-  if (!ID_RE.test(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
+  if (!isValidBackupId(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
   const dir = backupDir()
   const found = await findBackup(dir, id)
   if (!found) return NextResponse.json({ error: '백업을 찾을 수 없어요' }, { status: 404 })

@@ -1,6 +1,7 @@
 import { requireAdmin } from '@/lib/require-admin'
 import { backupDir, ownerDatabaseUrl, storageDataDir } from '@/server/backup/config'
 import { findBackup } from '@/server/backup/list'
+import { isValidBackupId } from '@/server/backup/manifest'
 import { restoreBackup } from '@/server/backup/restore'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -8,7 +9,6 @@ import { z } from 'zod'
 export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
-const ID_RE = /^bebe-backup-\d{8}-\d{6}-(full|incr)(-[0-9a-f]{6})?$/
 const BodySchema = z.object({ confirm: z.string() })
 
 /**
@@ -21,7 +21,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   const { id } = await params
-  if (!ID_RE.test(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
+  if (!isValidBackupId(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
 
   const body = BodySchema.safeParse(await req.json().catch(() => ({})))
   if (!body.success || body.data.confirm !== id) {
@@ -41,6 +41,8 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
         web: process.env.BEBE_WEB_DB_PASSWORD ?? process.env.POSTGRES_PASSWORD ?? 'bebe',
         media: process.env.BEBE_MEDIA_DB_PASSWORD ?? process.env.POSTGRES_PASSWORD ?? 'bebe',
       },
+      // 인앱 복구는 라이브 DB 를 덮어쓰므로 사전 안전 스냅샷을 남긴다.
+      safetySnapshot: true,
       log: (m) => console.log('[restore]', m),
     })
     // 응답을 흘려보낸 뒤 프로세스 종료 → 컨테이너 재시작(깨끗한 상태로 복구 반영).

@@ -3,7 +3,7 @@ import type { PrismaClient } from '@bebe/db-public'
 import { backupDir, ownerDatabaseUrl, storageDataDir } from './config'
 import { type CreateBackupArgs, createBackup } from './create'
 import type { BackupManifest, BackupType } from './manifest'
-import { loadRemoteConfig, uploadBackupToRemote } from './remote'
+import { loadRemoteConfig, redactSecrets, type RemoteConfig, uploadBackupToRemote } from './remote'
 
 async function gatherSchemaMigrations(prisma: PrismaClient): Promise<string[]> {
   try {
@@ -39,17 +39,21 @@ export async function runBackup(
 
   // 원격 미러(설정 시) — best-effort. 실패해도 로컬 백업은 성공으로 두고 오류만 기록.
   let remoteMirrored = false
+  let cfg: RemoteConfig | null = null
   try {
-    const cfg = await loadRemoteConfig(prisma, process.env.SECRET_KEY ?? '')
+    cfg = await loadRemoteConfig(prisma, process.env.SECRET_KEY ?? '')
     if (cfg) {
       await uploadBackupToRemote({ cfg, backupDir: backupDir(), id: manifest.id })
       remoteMirrored = true
       await setSetting('backup.remote.last_error', null, null, prisma).catch(() => {})
     }
   } catch (e) {
+    // 에러 메시지에 섞일 수 있는 자격(accessKeyId·secret·endpoint)을 가린 뒤 저장 — 이
+    // 값은 관리자 GET 으로 노출된다.
+    const extra = cfg ? [cfg.accessKeyId, cfg.secretAccessKey, cfg.endpoint] : []
     await setSetting(
       'backup.remote.last_error',
-      `${manifest.id}: ${(e as Error).message}`.slice(0, 300),
+      redactSecrets(`${manifest.id}: ${(e as Error).message}`, extra).slice(0, 300),
       null,
       prisma,
     ).catch(() => {})

@@ -45,7 +45,29 @@ async function decompress(bundlePath: string, outTar: string): Promise<void> {
   await runFile('zstd', ['-d', '-q', '-f', '--long=27', bundlePath, '-o', outTar])
 }
 
+/** 파괴적 복구 전에 체인의 모든 번들 무결성을 검증한다(`zstd -t`). 손상 번들로 DB 를
+ *  덮어쓰기 시작한 뒤 중간에 깨지면 라이브 DB 가 파손된다 — 오프사이트 미디어에서
+ *  복구할 때(at-rest 손상 가능성이 가장 큼) 특히 중요. 하나라도 깨지면 시작 전에 중단. */
+async function verifyChainIntegrity(
+  dir: string,
+  chain: BackupManifest[],
+  log: Logger,
+): Promise<void> {
+  for (const m of chain) {
+    const bundle = path.join(dir, bundleName(m.id))
+    await runFile('zstd', ['-t', '--long=27', bundle]).catch((e) => {
+      throw new Error(`백업 번들이 손상됐어요(${m.id}): ${(e as Error).message.slice(0, 200)}`)
+    })
+  }
+  log(`번들 무결성 검증 완료(${chain.length}개)`)
+}
+
+// 롤 이름은 SQL 식별자라 파라미터화 불가(CREATE ROLE ${name}) → 고정 allowlist 로만
+// 허용한다. 현재는 항상 이 둘이지만, 호출부가 동적이 되더라도 인젝션을 원천 차단.
+const ALLOWED_ROLES = new Set(['bebe_web', 'bebe_media'])
+
 async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
+  if (!ALLOWED_ROLES.has(name)) throw new Error(`허용되지 않은 롤 이름: ${name}`)
   const { stdout } = await runFile('psql', [
     ownerUrl,
     '-tAc',
@@ -68,6 +90,9 @@ export type RestoreArgs = {
   dataDir: string
   databaseUrl: string
   rolePasswords: { web: string; media: string }
+  /** 인앱 복구처럼 라이브 DB 를 덮어쓰기 전, 현재 DB 의 안전 스냅샷을 먼저 떠둔다
+   *  (실패 시 수동 롤백용). CLI 새 기기 복구에선 불필요(기본 false). */
+  safetySnapshot?: boolean
   log?: Logger
 }
 
@@ -87,6 +112,9 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
   const log = args.log ?? (() => {})
   const chain = await resolveChain(args.backupDir, args.targetId)
   log(`복구 체인: ${chain.map((m) => m.id).join(' → ')}`)
+
+  // 파괴적 단계 전에 번들 무결성을 먼저 검증 — 손상 번들로 DB 를 반쯤 덮어쓰는 사고 방지.
+  await verifyChainIntegrity(args.backupDir, chain, log)
 
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'bebe-restore-'))
   let dataFilesExtracted = 0
@@ -124,6 +152,17 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
     // 2. 롤 보장(덤프의 GRANT 대상). 없으면 생성.
     await ensureRole(args.databaseUrl, 'bebe_web', args.rolePasswords.web)
     await ensureRole(args.databaseUrl, 'bebe_media', args.rolePasswords.media)
+
+    // 2.5 인앱 복구: 라이브 DB 를 덮어쓰기 전 현재 상태를 안전 스냅샷으로 떠둔다.
+    // best-effort — 새 기기(빈 DB)면 실패해도 계속(수동 롤백용 안전망).
+    if (args.safetySnapshot) {
+      const safetyPath = path.join(args.backupDir, 'pre-restore-safety.dump')
+      await runFile('pg_dump', ['-Fc', '-f', safetyPath, args.databaseUrl], {
+        maxBuffer: 1024 * 1024 * 64,
+      })
+        .then(() => log(`사전 안전 스냅샷 저장: ${safetyPath}`))
+        .catch((e) => log(`사전 안전 스냅샷 실패(계속): ${(e as Error).message.slice(0, 200)}`))
+    }
 
     // 3. 다른 연결 종료(--clean 의 DROP 이 막히지 않게).
     await runFile('psql', [

@@ -3,6 +3,7 @@ import { setSetting } from '@/server/settings/set'
 import type { PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { backupDir } from './config'
+import { redactSecrets } from './remote'
 import { applyRetention } from './retention'
 import { runBackup } from './run'
 import { DEFAULT_SCHEDULE, type ScheduleSettings, dayKey, decideScheduledBackup } from './schedule'
@@ -67,7 +68,7 @@ export async function runScheduledBackupTick(
 
     if (onCreated) await onCreated(manifest.id)
   } catch (e) {
-    const msg = `${dayKey(now)}: ${(e as Error).message}`.slice(0, 300)
+    const msg = redactSecrets(`${dayKey(now)}: ${(e as Error).message}`).slice(0, 300)
     log(`scheduled backup FAILED: ${msg}`)
     await setSetting('backup.last_error', msg, null, prisma).catch(() => {})
   }
