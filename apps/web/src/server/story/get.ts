@@ -9,7 +9,9 @@ export async function getStoryEntry(
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
-  viewerRole: 'owner' | 'guardian' | 'family' = 'owner',
+  // 기본값은 제한적인 'family' — 호출부가 역할을 빠뜨려도 guardians-only 스토리가
+  // 새지 않게(defense-in-depth). 실제 소비자는 모두 명시적 role 을 넘긴다.
+  viewerRole: 'owner' | 'guardian' | 'family' = 'family',
 ): Promise<
   | (Story & {
       assets: (StoryAsset & { asset: AssetWithUrls | null })[]

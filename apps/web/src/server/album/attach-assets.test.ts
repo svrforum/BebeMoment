@@ -1,6 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import type { NotificationJob } from '@bebe/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
+import { setSetting } from '@/server/settings/set'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
@@ -79,6 +80,29 @@ describe('attachAssetsToAlbum notifications', () => {
       type: 'album.asset_added',
       payload: { albumId: album.id },
     })
+  })
+
+  it('family 역할은 비밀 앨범에 attach 할 수 없다(존재 비노출)', async () => {
+    const { user, family, album } = await setup()
+    await db.prismaPublic.album.update({ where: { id: album.id }, data: { secret: true } })
+    // family 에게 album.asset.attach 부여(그래도 secret 가드에서 막혀야 한다).
+    await setSetting('permissions.family', ['album.asset.attach'], null, db.prismaPublic)
+    const { user: fam } = await signup(
+      { username: `fam${Date.now()}`, password: 'password123', displayName: 'G' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    const a1 = await makeAsset(family.id, user.id, 'sx')
+    await expect(
+      attachAssetsToAlbum(
+        { albumId: album.id, familyId: family.id, byUserId: fam.id, assetIds: [a1.id] },
+        db.prismaPublic,
+        db.prismaMedia,
+        vi.fn(),
+      ),
+    ).rejects.toThrow('album not found')
   })
 
   it('does not enqueue when nothing is attached', async () => {

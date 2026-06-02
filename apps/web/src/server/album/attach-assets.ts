@@ -1,5 +1,6 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
+import { isAlbumSecretForViewer } from './secret-visibility'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -44,6 +45,16 @@ export async function attachAssetsToAlbum(
     !resolveCan(membership.role, 'album.asset.attach', familyCaps)
   ) {
     throw new Error('No permission')
+  }
+  // family 역할에겐 비밀(또는 조상-secret) 앨범을 읽기 경로처럼 가린다 — 존재 비노출을
+  // 위해 read 와 동일한 'album not found' 로 거부(§21).
+  if (
+    await isAlbumSecretForViewer(
+      { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+      prismaPublic,
+    )
+  ) {
+    throw new Error('album not found')
   }
 
   const validAssets = await prismaMedia.asset.findMany({

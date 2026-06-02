@@ -3,6 +3,7 @@ import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
+import { isAlbumSecretForViewer } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -39,6 +40,14 @@ export async function attachEntriesToAlbum(
     !resolveCan(membership.role, 'album.asset.attach', familyCaps)
   ) {
     throw new Error('No permission')
+  }
+  if (
+    await isAlbumSecretForViewer(
+      { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+      prismaPublic,
+    )
+  ) {
+    throw new Error('album not found')
   }
 
   const valid = await prismaPublic.story.findMany({
