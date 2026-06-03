@@ -4,7 +4,7 @@ import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useRouter } from 'next/navigation'
+import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
 
@@ -47,6 +47,19 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
   const [year, setYear] = useState(initialYear)
   const [month, setMonth] = useState(initialMonth)
   const router = useRouter()
+  const searchParams = useSearchParams()
+
+  // URL 의 ?month=YYYY-MM 를 클라이언트에서 직접 읽어 표시 월을 동기화한다.
+  // Next App Router 의 클라이언트 캐시는 searchParams 만 다른 내비게이션에서 이전
+  // 페이지 셸(예: 6월)을 재사용할 수 있어, 서버 initialMonth 만 믿으면 '캘린더로'·
+  // 뒤로가기로 5월 URL 에 와도 6월이 보였다. URL 기준으로 맞춰 그 문제를 막는다.
+  useEffect(() => {
+    const m = searchParams.get('month')
+    if (m && /^\d{4}-\d{2}$/.test(m)) {
+      setYear(Number(m.slice(0, 4)))
+      setMonth(Number(m.slice(5, 7)) - 1)
+    }
+  }, [searchParams])
 
   // 보이는 달만 서버에서 받는다(전역 take:500 제거). 초기 달은 SSR props 를 그대로 쓰고,
   // 다른 달로 이동하면 /api/calendar 로 받아 캐시. SSE 새로고침 시 캐시를 비워 재요청.
