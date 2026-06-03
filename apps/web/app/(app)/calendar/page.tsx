@@ -14,10 +14,10 @@ export default async function CalendarPage({
   const ctx = await getContext()
   if (!ctx.family) return null
 
-  // 보이는 달만 조달한다(전역 take:500 → 월 범위). MonthGrid 는 달 이동 시
-  // /api/calendar 로 해당 달을 다시 가져온다 — 오래된 사진이 누락되지 않는다.
-  // 월은 URL(?month=YYYY-MM)에서 읽는다 — 날짜를 눌러 타임라인으로 갔다가 돌아와도
-  // 보던 달이 유지된다(예전엔 항상 현재월로 리셋됐다). MonthGrid 가 이동 시 URL 동기화.
+  // 보이는 달만 조달한다(전역 take:500 → 월 범위). 월은 URL(?month=YYYY-MM)에서 읽는다 —
+  // MonthGrid 의 prev/next/picker 가 router.push 로 ?month 만 바꾸면 서버가 그 달을 다시
+  // SSR 한다(헤더+데이터가 항상 같은 SSR 달). 날짜를 눌러 타임라인으로 갔다 돌아와도 그
+  // 달이 유지되고, 캐시된 셸이 오면 MonthGrid 가 router.refresh 로 자가복구.
   const { month: monthParam } = await searchParams
   const now = new Date()
   const m = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : null
