@@ -56,11 +56,20 @@ export default async function TimelinePage({
   ])
   const birthDate: Date | null = baby?.birthDate ?? null
   // 가족 이름 아래 부제: "아기이름 · D+89 · 생후 2개월" (출생일 기준 D-day + 나이 버킷).
-  const babySubtitle = baby
-    ? birthDate
-      ? `${baby.name} · ${formatDDay(babyDaysDiff(birthDate, new Date()))} · ${bucketLabel(birthDate, new Date())}`
-      : baby.name
-    : null
+  // 출생 전엔 D-day(formatDDay)와 나이버킷(bucketLabel)이 둘 다 'D-85'로 같아 중복 → D-day 만.
+  let babySubtitle: string | null = null
+  if (baby) {
+    if (birthDate) {
+      const now = new Date()
+      const diff = babyDaysDiff(birthDate, now)
+      babySubtitle =
+        diff < 0
+          ? `${baby.name} · ${formatDDay(diff)}`
+          : `${baby.name} · ${formatDDay(diff)} · ${bucketLabel(birthDate, now)}`
+    } else {
+      babySubtitle = baby.name
+    }
+  }
 
   const assetItems = items.filter((it) => it.kind === 'asset')
   const storyItems = items.filter((it) => it.kind === 'story')
