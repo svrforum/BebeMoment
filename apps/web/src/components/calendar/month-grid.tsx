@@ -9,7 +9,6 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
 
 type Asset = { id: string; takenAtISO: string; urls: AssetUrls | null }
-type MonthData = { assets: Asset[]; storyDays: string[] }
 
 // 0..11 — picker 의 월 버튼 키로 인덱스 대신 값을 쓰기 위한 상수 배열.
 const MONTHS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11]
@@ -44,56 +43,36 @@ function daysInMonth(year: number, month: number): Date[] {
 }
 
 export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }: Props) {
-  const [year, setYear] = useState(initialYear)
-  const [month, setMonth] = useState(initialMonth)
   const router = useRouter()
   const searchParams = useSearchParams()
 
-  // URL 의 ?month=YYYY-MM 를 클라이언트에서 직접 읽어 표시 월을 동기화한다.
-  // Next App Router 의 클라이언트 캐시는 searchParams 만 다른 내비게이션에서 이전
-  // 페이지 셸(예: 6월)을 재사용할 수 있어, 서버 initialMonth 만 믿으면 '캘린더로'·
-  // 뒤로가기로 5월 URL 에 와도 6월이 보였다. URL 기준으로 맞춰 그 문제를 막는다.
+  // 표시 월 = 서버가 ?month 로 SSR 한 그 달(initialYear/initialMonth). 클라이언트 월 state·
+  // /api/calendar 캐시를 두지 않는다 — 헤더와 데이터가 항상 같은 달(SSR)이라 "헤더는 5월인데
+  // 사진 없음" 같은 불일치가 원천 차단된다. 월 이동은 router.push 로 URL 만 바꾸면 서버가
+  // 그 달을 다시 SSR.
+  const year = initialYear
+  const month = initialMonth
+
+  // 자가복구: Next App Router 의 클라이언트 캐시가 searchParams 만 다른 내비게이션에서
+  // 이전 페이지 셸(예: 6월)을 재사용할 수 있다. URL 의 ?month 가 SSR 한 달과 다르면
+  // (= 캐시된 셸이 옴) 서버에서 올바른 달을 다시 받는다(router.refresh). 일치하면 아무 일도 안 함.
   useEffect(() => {
     const m = searchParams.get('month')
-    if (m && /^\d{4}-\d{2}$/.test(m)) {
-      setYear(Number(m.slice(0, 4)))
-      setMonth(Number(m.slice(5, 7)) - 1)
-    }
-  }, [searchParams])
+    if (!m || !/^\d{4}-\d{2}$/.test(m)) return
+    const uy = Number(m.slice(0, 4))
+    const um = Number(m.slice(5, 7)) - 1
+    if (uy !== initialYear || um !== initialMonth) router.refresh()
+  }, [searchParams, initialYear, initialMonth, router])
 
-  // 보이는 달만 서버에서 받는다(전역 take:500 제거). 초기 달은 SSR props 를 그대로 쓰고,
-  // 다른 달로 이동하면 /api/calendar 로 받아 캐시. SSE 새로고침 시 캐시를 비워 재요청.
-  const initialKey = `${initialYear}-${initialMonth}`
-  const monthKey = `${year}-${month}`
-  const [cache, setCache] = useState<Record<string, MonthData>>({})
-  useEffect(() => {
-    if (monthKey === initialKey || cache[monthKey]) return
-    let cancelled = false
-    fetch(`/api/calendar?year=${year}&month=${month}`)
-      .then((r) => (r.ok ? (r.json() as Promise<MonthData>) : null))
-      .then((d) => {
-        if (d && !cancelled) setCache((prev) => ({ ...prev, [monthKey]: d }))
-      })
-      .catch(() => {})
-    return () => {
-      cancelled = true
-    }
-  }, [monthKey, initialKey, year, month, cache])
+  const go = useCallback(
+    (y: number, m0: number) => {
+      router.push(`/calendar?month=${y}-${String(m0 + 1).padStart(2, '0')}`)
+    },
+    [router],
+  )
 
-  // 보던 달을 URL(?month=YYYY-MM)에 반영 — 날짜 셀을 눌러 타임라인으로 갔다 뒤로가기로
-  // 돌아와도 그 달이 유지된다(예전엔 항상 현재월로 리셋). history.replaceState 로 Next
-  // 재렌더 없이 URL 만 갱신해 빠른 클라 월 이동은 그대로 둔다.
-  useEffect(() => {
-    const mm = `${year}-${String(month + 1).padStart(2, '0')}`
-    window.history.replaceState(null, '', `/calendar?month=${mm}`)
-  }, [year, month])
-
-  const monthData: MonthData =
-    monthKey === initialKey
-      ? { assets, storyDays }
-      : (cache[monthKey] ?? { assets: [], storyDays: [] })
-  const viewAssets = monthData.assets
-  const storySet = useMemo(() => new Set(monthData.storyDays), [monthData.storyDays])
+  const viewAssets = assets
+  const storySet = useMemo(() => new Set(storyDays), [storyDays])
   // 년·월 빠른 선택 picker
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerYear, setPickerYear] = useState(initialYear)
@@ -110,10 +89,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
         (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed'))
       ) {
         if (refreshTimer.current) clearTimeout(refreshTimer.current)
-        refreshTimer.current = setTimeout(() => {
-          setCache({}) // 다른 달 캐시 무효화 → 현재 달 재요청. 초기 달은 router.refresh.
-          router.refresh()
-        }, 800)
+        refreshTimer.current = setTimeout(() => router.refresh(), 800)
       }
     },
     [router],
@@ -144,26 +120,9 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     [viewAssets, year, month],
   )
 
-  const prev = () => {
-    if (month === 0) {
-      setMonth(11)
-      setYear(year - 1)
-    } else {
-      setMonth(month - 1)
-    }
-  }
-  const next = () => {
-    if (month === 11) {
-      setMonth(0)
-      setYear(year + 1)
-    } else {
-      setMonth(month + 1)
-    }
-  }
-  const jumpToday = () => {
-    setYear(today.getUTCFullYear())
-    setMonth(today.getUTCMonth())
-  }
+  const prev = () => (month === 0 ? go(year - 1, 11) : go(year, month - 1))
+  const next = () => (month === 11 ? go(year + 1, 0) : go(year, month + 1))
+  const jumpToday = () => go(today.getUTCFullYear(), today.getUTCMonth())
 
   // 좌우 스와이프 → 다음/이전 달. 가로 이동이 충분히 크고 세로보다 우세할 때만(셀 탭과 구분).
   const onTouchStart = (e: React.TouchEvent) => {
@@ -187,9 +146,8 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     setPickerOpen((v) => !v)
   }
   const pickMonth = (m: number) => {
-    setYear(pickerYear)
-    setMonth(m)
     setPickerOpen(false)
+    go(pickerYear, m)
   }
 
   const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('ko-KR', {
