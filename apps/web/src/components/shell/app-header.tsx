@@ -76,7 +76,7 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
       style={{ WebkitBackdropFilter: scrolled ? 'blur(20px) saturate(180%)' : undefined }}
     >
       <div className={cn('mx-auto px-5', maxW)}>
-        <div className="flex min-h-12 items-center justify-between gap-3 pb-3 pt-[calc(env(safe-area-inset-top)+2.75rem)]">
+        <div className="flex min-h-12 items-center justify-between gap-3 pb-3 pt-[calc(env(safe-area-inset-top)+35px)]">
           <div className="flex min-w-0 flex-1 items-center gap-2">
             {left && <div className="flex flex-shrink-0 items-center gap-2">{left}</div>}
             <div className="min-w-0">
