@@ -29,6 +29,7 @@ export async function getWidgetData(
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
   media: MediaClient,
+  config?: { source?: string | null; pinnedAssetId?: string | null },
 ): Promise<WidgetData | null> {
   const membership = await prismaPublic.membership.findFirst({
     where: { userId, deletedAt: null },
@@ -44,13 +45,47 @@ export async function getWidgetData(
     duplicateOf: null,
   }
 
-  const [assets, baby, newCount] = await Promise.all([
+  const source = config?.source ?? 'recent'
+
+  const selectRecent = () =>
     prismaMedia.asset.findMany({
       where: baseWhere,
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: WIDGET_PHOTO_POOL,
       select: { id: true, takenAt: true },
-    }),
+    })
+
+  // 북마크 소스: 사용자의 북마크 자산(public)을 최신순으로, media 에서 ready 만 추린다.
+  // bookmark_pinned 면 고정 1장(여전히 북마크일 때), 아니면 풀(네이티브가 랜덤).
+  const selectBookmarks = async (): Promise<{ id: string; takenAt: Date }[]> => {
+    const bms = await prismaPublic.assetBookmark.findMany({
+      where: { familyId, userId },
+      orderBy: { createdAt: 'desc' },
+      select: { assetId: true },
+      take: 100,
+    })
+    let order = bms.map((b) => b.assetId)
+    if (
+      source === 'bookmark_pinned' &&
+      config?.pinnedAssetId &&
+      order.includes(config.pinnedAssetId)
+    ) {
+      order = [config.pinnedAssetId]
+    }
+    if (order.length === 0) return []
+    const rows = await prismaMedia.asset.findMany({
+      where: { id: { in: order }, ...baseWhere },
+      select: { id: true, takenAt: true },
+    })
+    const byId = new Map(rows.map((a) => [a.id, a]))
+    return order
+      .map((id) => byId.get(id))
+      .filter((a): a is { id: string; takenAt: Date } => Boolean(a))
+      .slice(0, WIDGET_PHOTO_POOL)
+  }
+
+  const [assetsRaw, baby, newCount] = await Promise.all([
+    source === 'recent' ? selectRecent() : selectBookmarks(),
     prismaPublic.baby.findFirst({
       where: { familyId, deletedAt: null },
       orderBy: { birthDate: 'asc' },
@@ -62,6 +97,8 @@ export async function getWidgetData(
         })
       : Promise.resolve(0),
   ])
+  // 북마크 소스인데 결과가 비면(북마크 0·전부 삭제 등) 전체 최신으로 폴백 — 빈 위젯 방지.
+  const assets = assetsRaw.length > 0 || source === 'recent' ? assetsRaw : await selectRecent()
 
   const ids = assets.map((a) => a.id)
   const urlsMap = ids.length ? await media.getAssetUrlsBatch(familyId, ids) : {}

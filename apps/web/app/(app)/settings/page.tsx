@@ -11,6 +11,7 @@ import {
   Baby,
   Bell,
   ChevronRight,
+  LayoutGrid,
   type LucideIcon,
   SlidersHorizontal,
   Trash2,
@@ -140,6 +141,16 @@ export default async function SettingsPage() {
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <ThemeToggle />
           </div>
+          <LinkRows
+            rows={[
+              {
+                href: '/settings/widget',
+                label: '홈 위젯',
+                sublabel: '위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤',
+                icon: LayoutGrid,
+              },
+            ]}
+          />
         </section>
 
         {/* 관리자 */}

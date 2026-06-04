@@ -61,11 +61,14 @@ model User {
 }
 
 model WidgetToken {
-  token      String    @id
-  userId     String    @unique @map("user_id") @db.Uuid
-  user       User      @relation(fields: [userId], references: [id], onDelete: Cascade)
-  createdAt  DateTime  @default(now()) @map("created_at")
-  lastUsedAt DateTime? @map("last_used_at")
+  token               String    @id
+  userId              String    @unique @map("user_id") @db.Uuid
+  user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  lastUsedAt          DateTime? @map("last_used_at")
+  // 위젯 사진 소스: 'recent'(전체 최신·기본) | 'bookmark_random' | 'bookmark_pinned'
+  widgetSource        String    @default("recent") @map("widget_source")
+  widgetPinnedAssetId String?   @map("widget_pinned_asset_id") @db.Uuid
 
   @@map("widget_tokens")
   @@schema("public")

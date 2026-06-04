@@ -119,4 +119,71 @@ describe('getWidgetData', () => {
     expect(data?.photoUrls).toEqual([])
     expect(data?.newCount).toBe(0)
   })
+
+  it('bookmark_random 은 북마크한 사진만 반환', async () => {
+    const { user, family } = await setup()
+    const a1 = await makeAsset(family.id, user.id, new Date('2026-06-01'))
+    const a2 = await makeAsset(family.id, user.id, new Date('2026-06-02'))
+    await makeAsset(family.id, user.id, new Date('2026-06-03')) // 북마크 안 함
+    await db.prismaPublic.assetBookmark.createMany({
+      data: [
+        { assetId: a1.id, userId: user.id, familyId: family.id },
+        { assetId: a2.id, userId: user.id, familyId: family.id },
+      ],
+    })
+    const media = new FakeMediaClient()
+    media.setUrlsForAsset(a1.id, fakeUrls())
+    media.setUrlsForAsset(a2.id, fakeUrls())
+    const data = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
+      source: 'bookmark_random',
+      pinnedAssetId: null,
+    })
+    expect(data?.photoUrls.length).toBe(2)
+  })
+
+  it('bookmark_pinned 은 고정 1장만, 북마크 없으면 전체로 폴백', async () => {
+    const { user, family } = await setup()
+    const a1 = await makeAsset(family.id, user.id, new Date('2026-06-01'))
+    const a2 = await makeAsset(family.id, user.id, new Date('2026-06-02'))
+    await db.prismaPublic.assetBookmark.createMany({
+      data: [
+        { assetId: a1.id, userId: user.id, familyId: family.id },
+        { assetId: a2.id, userId: user.id, familyId: family.id },
+      ],
+    })
+    const media = new FakeMediaClient()
+    media.setUrlsForAsset(a1.id, fakeUrls())
+    media.setUrlsForAsset(a2.id, fakeUrls())
+    const pinned = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
+      source: 'bookmark_pinned',
+      pinnedAssetId: a1.id,
+    })
+    expect(pinned?.photoUrls.length).toBe(1)
+
+    await db.prismaPublic.assetBookmark.deleteMany()
+    const fallback = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
+      source: 'bookmark_random',
+      pinnedAssetId: null,
+    })
+    expect(fallback?.photoUrls.length).toBe(2)
+  })
 })
+
+function fakeUrls() {
+  return {
+    blurhash: null,
+    dominantColor: null,
+    aspectRatio: 1,
+    thumb256: null,
+    thumb512: null,
+    display1080: {
+      avif: 'https://m/display.avif',
+      webp: 'https://m/display.webp',
+      jpeg: 'https://m/display.jpg',
+    },
+    original: null,
+    videoPoster: null,
+    videoCompat: null,
+    expiresAt: '2026-05-30T00:00:00Z',
+  }
+}
