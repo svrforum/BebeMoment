@@ -7,6 +7,35 @@ import { MediaHttpError } from '../middleware/error-handler'
 
 const FILE_SERVE_CACHE_SEC = 600
 
+// key 확장자로 안전한 image/video mime 을 준다. nosniff 와 함께 쓰면 보안(HTML 스니핑→
+// 저장형 XSS 차단)은 유지하면서, 크롤러(카톡 OG)·브라우저가 이미지로 정확히 인식한다.
+// 알 수 없는 확장자는 octet-stream(기존 안전 기본값).
+function contentTypeForKey(key: string): string {
+  const ext = key.toLowerCase().split('.').pop() ?? ''
+  switch (ext) {
+    case 'jpg':
+    case 'jpeg':
+      return 'image/jpeg'
+    case 'webp':
+      return 'image/webp'
+    case 'avif':
+      return 'image/avif'
+    case 'png':
+      return 'image/png'
+    case 'gif':
+      return 'image/gif'
+    case 'mp4':
+    case 'm4v':
+      return 'video/mp4'
+    case 'mov':
+      return 'video/quicktime'
+    case 'webm':
+      return 'video/webm'
+    default:
+      return 'application/octet-stream'
+  }
+}
+
 export const filesRoute: FastifyPluginAsync = async (app) => {
   app.get('/media/v1/files/:signed', async (req, reply) => {
     const { signed } = req.params as { signed: string }
@@ -55,7 +84,7 @@ export const filesRoute: FastifyPluginAsync = async (app) => {
 
     const stream = await storage.read(payload.key)
     reply.header('cache-control', `private, max-age=${FILE_SERVE_CACHE_SEC}`)
-    reply.header('content-type', 'application/octet-stream')
+    reply.header('content-type', contentTypeForKey(payload.key))
     // 미디어는 /media/* rewrite 로 앱과 동일 오리진에서 서빙된다. nosniff 없이는 업로드된
     // 파일을 브라우저가 text/html 로 스니핑해 앱 오리진에서 실행할 수 있어(저장형 XSS),
     // 반드시 스니핑 차단 + inline(네비게이션 가능한 HTML 문서가 되지 않게).

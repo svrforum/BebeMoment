@@ -119,7 +119,7 @@ export default async function StoryDetailPage({
           <BulkDownloadButton assetIds={storyAssetIds} label="사진 저장" />
           {features.share && (
             <ShareLinkButton
-              path={`/story/${publicNo}`}
+              path={`/s/${publicNo}`}
               showLabel
               iconSize={13}
               className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"

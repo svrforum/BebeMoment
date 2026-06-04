@@ -18,6 +18,11 @@ describe('GET /media/v1/files/:signed', () => {
     const full = path.join(storageRoot, key)
     fs.mkdirSync(path.dirname(full), { recursive: true })
     fs.writeFileSync(full, 'hello-bebe')
+
+    const jpegKey = 'derivatives/asset/display1080.jpeg'
+    const jpegFull = path.join(storageRoot, jpegKey)
+    fs.mkdirSync(path.dirname(jpegFull), { recursive: true })
+    fs.writeFileSync(jpegFull, 'jpeg-bytes')
   })
 
   test('401 with invalid token', async () => {
@@ -47,6 +52,22 @@ describe('GET /media/v1/files/:signed', () => {
     // 동일 오리진 저장형 XSS 방어 — 스니핑 차단 + inline.
     expect(res.headers['x-content-type-options']).toBe('nosniff')
     expect(res.headers['content-type']).toBe('application/octet-stream')
+    await app.close()
+  })
+
+  test('serves image derivative with image/jpeg content-type (OG 크롤러용) + nosniff', async () => {
+    const { signFileServeToken } = await import('@/lib/jwt')
+    const token = await signFileServeToken({
+      familyId: 'fam',
+      assetId: 'asset',
+      key: 'derivatives/asset/display1080.jpeg',
+    })
+    const app = buildApp()
+    const res = await app.inject({ method: 'GET', url: `/media/v1/files/${token}` })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-type']).toBe('image/jpeg')
+    // 올바른 mime + nosniff = 보안(HTML 스니핑 차단) 유지하면서 이미지 인식.
+    expect(res.headers['x-content-type-options']).toBe('nosniff')
     await app.close()
   })
 

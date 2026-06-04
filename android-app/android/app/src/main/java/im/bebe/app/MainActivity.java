@@ -57,6 +57,7 @@ public class MainActivity extends BridgeActivity {
         handleDeepLink(getIntent());
         handleAuthDeepLink(getIntent());
         handleInviteDeepLink(getIntent());
+        handleOpenDeepLink(getIntent());
         handleShareIntent(getIntent());
         setupDownloadListener();
         setupExternalSchemeHandler();
@@ -405,6 +406,7 @@ public class MainActivity extends BridgeActivity {
         handleDeepLink(intent);
         handleAuthDeepLink(intent);
         handleInviteDeepLink(intent);
+        handleOpenDeepLink(intent);
         handleShareIntent(intent);
     }
 
@@ -802,6 +804,51 @@ public class MainActivity extends BridgeActivity {
     private void loadInvite(String base, String token) {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().loadUrl(base + "/invite/" + Uri.encode(token));
+        }
+    }
+
+    /**
+     * 공유 링크 "앱에서 이어보기" 딥링크 (bebe://open?server=&path=/story/3). 같은 서버면
+     * 바로 해당 경로 로드, 다른/새 서버면 사용자 확인(피싱 방지 — invite 와 동일 패턴).
+     */
+    private void handleOpenDeepLink(Intent intent) {
+        if (intent == null) return;
+        final Uri data = intent.getData();
+        if (data == null || !"bebe".equals(data.getScheme()) || !"open".equals(data.getHost())) return;
+        final String server = data.getQueryParameter("server");
+        final String path = data.getQueryParameter("path");
+        if (server == null || server.isEmpty() || path == null || path.isEmpty()) return;
+        // 같은-출처 절대경로만 (//·/\ 프로토콜-상대 우회 차단).
+        if (!path.startsWith("/") || path.startsWith("//") || path.startsWith("/\\")) return;
+        final Uri s = safeParse(server);
+        final String scheme = s != null ? s.getScheme() : null;
+        if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) return;
+        final String base = server.replaceAll("/+$", "");
+        final String current = readServerUrl();
+        final String currentBase = current != null ? current.replaceAll("/+$", "") : null;
+        if (currentBase != null && sameOrigin(currentBase, base)) {
+            loadPath(base, path);
+            return;
+        }
+        runOnUiThread(() ->
+            new AlertDialog.Builder(MainActivity.this)
+                .setTitle("이 서버에 연결할까요?")
+                .setMessage(base + "\n\n공유 링크가 가리키는 서버 주소예요. 모르는 주소라면 취소하세요.")
+                .setPositiveButton("연결", (d, w) -> {
+                    getApplicationContext()
+                        .getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE)
+                        .edit()
+                        .putString("serverUrl", base)
+                        .apply();
+                    loadPath(base, path);
+                })
+                .setNegativeButton("취소", null)
+                .show());
+    }
+
+    private void loadPath(String base, String path) {
+        if (getBridge() != null && getBridge().getWebView() != null) {
+            getBridge().getWebView().loadUrl(base + path);
         }
     }
 

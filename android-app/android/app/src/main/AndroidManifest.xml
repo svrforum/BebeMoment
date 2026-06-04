@@ -39,6 +39,14 @@
                 <data android:scheme="bebe" android:host="invite" />
             </intent-filter>
 
+            <!-- 공유 링크 "앱에서 이어보기" 딥링크 (웹 /s intent:// → bebe://open?server=&path=) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="bebe" android:host="open" />
+            </intent-filter>
+
             <!-- 갤러리 "공유 → bebe" 로 사진·영상 업로드 (ACTION_SEND / SEND_MULTIPLE) -->
             <intent-filter>
                 <action android:name="android.intent.action.SEND" />
