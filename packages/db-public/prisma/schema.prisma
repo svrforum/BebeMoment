@@ -514,6 +514,24 @@ model StoryBookmark {
   @@schema("public")
 }
 
+// 스토리 공유 링크. token = 예측 불가 난수(PK). 영구(expiresAt=null) 또는 기간제, revoke 가능.
+// DB FK(story/family, ON DELETE CASCADE)는 마이그레이션에만 — Prisma 관계로는 모델하지 않음
+// (back-relation 불필요, 공개 라우트는 token raw 조회). family_id 로 tenant-scoped.
+model ShareLink {
+  token           String    @id
+  familyId        String    @map("family_id") @db.Uuid
+  storyId         String    @map("story_id") @db.Uuid
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  expiresAt       DateTime? @map("expires_at")
+  revokedAt       DateTime? @map("revoked_at")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  lastAccessedAt  DateTime? @map("last_accessed_at")
+
+  @@index([familyId, storyId])
+  @@map("share_links")
+  @@schema("public")
+}
+
 model AssetComment {
   id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   assetId          String    @map("asset_id") @db.Uuid

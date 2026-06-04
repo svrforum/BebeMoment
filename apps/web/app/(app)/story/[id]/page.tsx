@@ -4,7 +4,7 @@ import { StoryDeleteButton } from '@/components/story/StoryDeleteButton'
 import { StoryDetail } from '@/components/story/StoryDetail'
 import { StoryEditForm } from '@/components/story/StoryEditForm'
 import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
-import { ShareLinkButton } from '@/components/detail/share-link-button'
+import { StoryShareButton } from '@/components/detail/story-share-button'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -118,10 +118,8 @@ export default async function StoryDetailPage({
           {features.albums && !albumsHidden && <StoryAlbumButton entryId={uuid} />}
           <BulkDownloadButton assetIds={storyAssetIds} label="사진 저장" />
           {features.share && (
-            <ShareLinkButton
-              path={`/s/${publicNo}`}
-              showLabel
-              iconSize={13}
+            <StoryShareButton
+              storyId={uuid}
               className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
             />
           )}

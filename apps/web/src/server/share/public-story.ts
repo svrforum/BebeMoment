@@ -24,38 +24,41 @@ export type PublicStoryPreview = {
   title: string | null
   body: string
   imageUrl: string | null
+  totalPhotos: number
   publicNo: number
 }
 
 /**
  * 공유 링크용 공개 스토리 프리뷰(OG 태그·랜딩). 세션/familyId 없는 공개 라우트라 tenant
- * 미들웨어를 raw 쿼리로 우회한다(§8, isRegistrationOpen 과 동일 패턴). **family-공개
- * (visibility='family') 스토리만** — guardians 전용은 null(프리뷰 없음). 대표사진은
- * story_assets.order 가 가장 앞선 ready 자산. og:image 는 미디어 signed display URL을
- * 그대로 쓴다(JWT 가 URL 에 있어 쿠키 없이 공개 fetch, TTL 10분이라 공유 시점에 유효).
+ * 미들웨어를 raw 쿼리로 우회한다(§8, isRegistrationOpen 과 동일 패턴). storyId 는 공유
+ * 토큰 해석(resolveShareLink)에서 받은 UUID. **family-공개(visibility='family') 스토리만**
+ * — 발급 후 guardians 전용으로 바뀌면 null(프리뷰 차단, 방어). 대표사진은 story_assets.order
+ * 가 가장 앞선 ready 자산. og:image 는 미디어 signed display URL을 그대로 쓴다(JWT 가 URL 에
+ * 있어 쿠키 없이 공개 fetch, TTL 10분이라 공유 시점에 유효).
  */
 export async function getPublicStoryPreview(
-  publicNo: number,
+  storyId: string,
   baseUrl: string,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<PublicStoryPreview | null> {
-  if (!Number.isInteger(publicNo) || publicNo <= 0) return null
+  if (!storyId) return null
 
   const rows = await prismaPublic.$queryRaw<
     {
       id: string
       family_id: string
+      public_no: number
       title: string | null
       body: string
       visibility: string
       family_name: string
     }[]
   >`
-    SELECT s.id, s.family_id, s.title, s.body, s.visibility::text AS visibility, f.name AS family_name
+    SELECT s.id, s.family_id, s.public_no, s.title, s.body, s.visibility::text AS visibility, f.name AS family_name
     FROM stories s JOIN families f ON f.id = s.family_id
-    WHERE s.public_no = ${publicNo} AND s.deleted_at IS NULL
+    WHERE s.id = ${storyId}::uuid AND s.deleted_at IS NULL
     LIMIT 1
   `
   const row = rows[0]
@@ -66,12 +69,14 @@ export async function getPublicStoryPreview(
   `
   const orderedIds = assetRows.map((a) => a.asset_id)
   let imageUrl: string | null = null
+  let totalPhotos = 0
   if (orderedIds.length) {
     const ready = await prismaMedia.asset.findMany({
       where: { id: { in: orderedIds }, familyId: row.family_id, status: 'ready', deletedAt: null },
       select: { id: true },
     })
     const readySet = new Set(ready.map((a) => a.id))
+    totalPhotos = readySet.size
     const firstId = orderedIds.find((id) => readySet.has(id))
     if (firstId) {
       try {
@@ -84,5 +89,12 @@ export async function getPublicStoryPreview(
     }
   }
 
-  return { familyName: row.family_name, title: row.title, body: row.body, imageUrl, publicNo }
+  return {
+    familyName: row.family_name,
+    title: row.title,
+    body: row.body,
+    imageUrl,
+    totalPhotos,
+    publicNo: row.public_no,
+  }
 }

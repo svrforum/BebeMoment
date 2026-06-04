@@ -19,6 +19,7 @@ export const TENANT_SCOPED_MODELS = new Set([
   'Album',
   'AlbumAsset',
   'AlbumStory',
+  'ShareLink',
   // NOTE: PushSubscription, NotificationPref are user-scoped (not family-scoped),
   // like Session — queried by userId, no familyId filter required.
 ])
@@ -43,6 +44,7 @@ export const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
   'Album',
   'AlbumAsset',
   'AlbumStory',
+  'ShareLink',
 ])
 
 const READ_LIKE_OPERATIONS = new Set([
