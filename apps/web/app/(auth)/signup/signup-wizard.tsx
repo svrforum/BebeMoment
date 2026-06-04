@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Check, Eye, EyeOff } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
@@ -55,6 +56,7 @@ function SignupWizardInner({
   inviteTokenProp?: string | undefined
   embedded?: boolean | undefined
 }) {
+  const t = useTranslations('auth')
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = inviteTokenProp ?? params?.get('invite') ?? null
@@ -142,7 +144,7 @@ function SignupWizardInner({
               body: JSON.stringify({ token: inviteToken }),
             })
             if (!acceptRes.ok) {
-              setError('가족 합류에 실패했어요. 초대 링크를 다시 열어 합류해주세요.')
+              setError(t('signup.joinFailed'))
               setSubmitting(false)
               return
             }
@@ -153,7 +155,7 @@ function SignupWizardInner({
           return
         }
         const data = (await res.json().catch(() => ({}))) as { error?: string }
-        const message = data.error ?? '가입에 실패했어요'
+        const message = data.error ?? t('signup.failed')
         lastError = message
         // 자동 생성 중 username 충돌이면 재시도, 그 외(이메일 충돌·검증 등)는 즉시 중단.
         if (shouldAutogen && message.includes('이미 사용 중인 아이디')) {
@@ -169,13 +171,13 @@ function SignupWizardInner({
         return
       }
       // 재시도 한계 도달
-      setError(lastError ?? '아이디 자동 생성에 실패했어요. 직접 입력해 주세요.')
+      setError(lastError ?? t('signup.autoUsernameFailed'))
       setSubmitting(false)
     } catch {
-      setError('네트워크 오류가 발생했어요')
+      setError(t('signup.networkError'))
       setSubmitting(false)
     }
-  }, [username, password, displayName, email, inviteToken, invited])
+  }, [username, password, displayName, email, inviteToken, invited, t])
 
   const goNext = useCallback(() => {
     if (!stepValid || submitting) return
@@ -200,16 +202,17 @@ function SignupWizardInner({
     'mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80'
 
   const ctaLabel = (() => {
-    if (submitting) return '가입하는 중…'
-    if (!isLast) return '다음'
-    if (step === 'email') return email.trim() ? '가입하기' : '건너뛰고 가입'
+    if (submitting) return t('signup.cta.submitting')
+    if (!isLast) return t('signup.cta.next')
+    if (step === 'email')
+      return email.trim() ? t('signup.cta.submit') : t('signup.cta.skipAndSubmit')
     if (step === 'optional') {
       const u = username.trim()
       const e = email.trim()
-      if (u === '' && e === '') return '자동 아이디로 가입'
-      return '가입하기'
+      if (u === '' && e === '') return t('signup.cta.autoUsernameSubmit')
+      return t('signup.cta.submit')
     }
-    return '가입하기'
+    return t('signup.cta.submit')
   })()
 
   return (
@@ -226,7 +229,7 @@ function SignupWizardInner({
         <button
           type="button"
           onClick={goBack}
-          aria-label="이전"
+          aria-label={t('signup.back')}
           className="-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800"
         >
           <ArrowLeft size={20} />
@@ -263,25 +266,23 @@ function SignupWizardInner({
           >
             {invited && idx === 0 && (
               <p className="mb-4 rounded-2xl bg-point-500/10 px-4 py-3 text-sm text-point-500">
-                가족에 합류하시는군요. 1분 안에 끝나요.
+                {t('signup.inviteBanner')}
               </p>
             )}
 
             {step === 'username' && (
               <>
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  아이디를 정해주세요
+                  {t('signup.username.title')}
                 </h1>
-                <p className="mt-3 text-base text-base-500">
-                  로그인에 쓸 아이디 (이메일 대신 쓸 수 있어요). 영문 소문자·숫자·._- 3~30자.
-                </p>
+                <p className="mt-3 text-base text-base-500">{t('signup.username.body')}</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="예: minjun"
+                  placeholder={t('signup.username.placeholder')}
                   autoComplete="username"
                   className={inputCls}
                 />
@@ -291,11 +292,9 @@ function SignupWizardInner({
             {step === 'password' && (
               <>
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  비밀번호를 만들어주세요
+                  {t('signup.password.title')}
                 </h1>
-                <p className="mt-3 text-base text-base-500">
-                  8자 이상, 다른 곳에서 쓰지 않은 값으로.
-                </p>
+                <p className="mt-3 text-base text-base-500">{t('signup.password.body')}</p>
                 <div className="relative mt-8">
                   <input
                     // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
@@ -309,14 +308,14 @@ function SignupWizardInner({
                         confirmRef.current?.focus()
                       }
                     }}
-                    placeholder="비밀번호"
+                    placeholder={t('signup.password.placeholder')}
                     autoComplete="new-password"
                     className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
                   <button
                     type="button"
                     onClick={() => setShowPw((s) => !s)}
-                    aria-label={showPw ? '비밀번호 가리기' : '비밀번호 보기'}
+                    aria-label={showPw ? t('password.hide') : t('password.show')}
                     className="absolute right-4 top-1/2 -translate-y-1/2 rounded-lg p-1.5 text-base-500 transition hover:bg-base-200/60 hover:text-base-900 dark:hover:bg-base-700 dark:hover:text-base-100"
                   >
                     {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -330,7 +329,7 @@ function SignupWizardInner({
                     value={confirm}
                     onChange={(e) => setConfirm(e.target.value)}
                     onKeyDown={onKeyDown}
-                    placeholder="비밀번호 확인"
+                    placeholder={t('signup.password.confirmPlaceholder')}
                     autoComplete="new-password"
                     className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 pr-12 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
@@ -342,7 +341,7 @@ function SignupWizardInner({
                   )}
                 </div>
                 {confirm.length > 0 && confirm !== password && (
-                  <p className="mt-3 text-sm text-danger">비밀번호가 일치하지 않아요</p>
+                  <p className="mt-3 text-sm text-danger">{t('signup.password.mismatch')}</p>
                 )}
               </>
             )}
@@ -350,16 +349,16 @@ function SignupWizardInner({
             {step === 'name' && (
               <>
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  {invited ? '가족에게 보여줄 이름은요?' : '어떻게 불러드릴까요?'}
+                  {invited ? t('signup.name.titleInvited') : t('signup.name.title')}
                 </h1>
-                <p className="mt-3 text-base text-base-500">가족에게 보여질 이름이에요.</p>
+                <p className="mt-3 text-base text-base-500">{t('signup.name.body')}</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="예: ○○ 아빠"
+                  placeholder={t('signup.name.placeholder')}
                   autoComplete="name"
                   maxLength={80}
                   className={inputCls}
@@ -370,11 +369,9 @@ function SignupWizardInner({
             {step === 'email' && (
               <>
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  이메일을 추가할까요?
+                  {t('signup.email.title')}
                 </h1>
-                <p className="mt-3 text-base text-base-500">
-                  선택이에요. 추가하면 이메일로도 로그인할 수 있어요.
-                </p>
+                <p className="mt-3 text-base text-base-500">{t('signup.email.body')}</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
@@ -382,7 +379,7 @@ function SignupWizardInner({
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="name@example.com (선택)"
+                  placeholder={t('signup.email.placeholder')}
                   inputMode="email"
                   autoComplete="email"
                   className={inputCls}
@@ -393,38 +390,34 @@ function SignupWizardInner({
             {step === 'optional' && (
               <>
                 <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                  (옵션) 아이디 또는 이메일
+                  {t('signup.optional.title')}
                 </h1>
-                <p className="mt-3 text-base text-base-500">
-                  비워두면 임시 아이디를 자동으로 만들어 드려요.
-                </p>
+                <p className="mt-3 text-base text-base-500">{t('signup.optional.body')}</p>
                 <input
                   // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                   autoFocus
                   value={username}
                   onChange={(e) => setUsername(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="아이디 (영문 소문자·숫자·._-)"
+                  placeholder={t('signup.optional.usernamePlaceholder')}
                   autoComplete="username"
                   className={inputCls}
                 />
                 {username.trim() !== '' && !USERNAME_RE.test(username.trim().toLowerCase()) && (
-                  <p className="mt-2 text-sm text-danger">
-                    아이디는 영문 소문자·숫자·._- 3~30자여야 해요
-                  </p>
+                  <p className="mt-2 text-sm text-danger">{t('signup.optional.usernameError')}</p>
                 )}
                 <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="이메일 (선택)"
+                  placeholder={t('signup.optional.emailPlaceholder')}
                   inputMode="email"
                   autoComplete="email"
                   className="mt-4 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                 />
                 {email.trim() !== '' && !EMAIL_RE.test(email.trim()) && (
-                  <p className="mt-2 text-sm text-danger">올바른 이메일을 입력해주세요</p>
+                  <p className="mt-2 text-sm text-danger">{t('signup.optional.emailError')}</p>
                 )}
               </>
             )}
@@ -450,9 +443,9 @@ function SignupWizardInner({
         </Button>
         {idx === 0 && (
           <p className="pt-4 text-center text-sm text-base-500">
-            이미 계정이 있으신가요?{' '}
+            {t('signup.haveAccount')}{' '}
             <Link href="/login" className="font-medium text-point-500">
-              로그인
+              {t('signup.loginLink')}
             </Link>
           </p>
         )}
@@ -462,9 +455,16 @@ function SignupWizardInner({
 }
 
 function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible: boolean }) {
+  const t = useTranslations('auth')
   if (!visible) return <div className="mt-6 h-6" />
   const label =
-    score === 0 ? '너무 짧아요' : score === 1 ? '약해요' : score === 2 ? '보통' : '강해요'
+    score === 0
+      ? t('signup.password.strength.tooShort')
+      : score === 1
+        ? t('signup.password.strength.weak')
+        : score === 2
+          ? t('signup.password.strength.fair')
+          : t('signup.password.strength.strong')
   return (
     <div className="mt-6">
       <div className="flex gap-1.5">

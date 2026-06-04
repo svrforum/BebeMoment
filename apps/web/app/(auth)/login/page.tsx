@@ -1,19 +1,20 @@
 import { BrandLockup } from '@/components/brand/brand-mark'
 import { prismaPublic } from '@/lib/db-init'
 import { getSetting } from '@/server/settings/get'
+import { getTranslations } from 'next-intl/server'
 import { z } from 'zod'
 import { LoginForm } from './login-form'
 import { ServerChangeLink } from './server-change-link'
 
 export const dynamic = 'force-dynamic'
 
-const ERROR_MESSAGES: Record<string, string> = {
-  suspended: '관리자에 의해 일시 정지된 계정이에요. 관리자에게 문의해주세요.',
-  invite_required: '초대가 필요한 인스턴스예요. 관리자에게 초대 링크를 요청해주세요.',
-  state: '로그인 요청이 만료됐어요. 다시 시도해주세요.',
-  oidc: '로그인 중 문제가 발생했어요. 다시 시도해주세요.',
-  oidc_exchange: '로그인 중 문제가 발생했어요. 다시 시도해주세요.',
-  provider: '사용할 수 없는 로그인 방식이에요.',
+const ERROR_KEYS: Record<string, string> = {
+  suspended: 'login.error.suspended',
+  invite_required: 'login.error.inviteRequired',
+  state: 'login.error.state',
+  oidc: 'login.error.oidc',
+  oidc_exchange: 'login.error.oidc',
+  provider: 'login.error.provider',
 }
 
 export default async function LoginPage({
@@ -22,7 +23,9 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error } = await searchParams
-  const errorMessage = error ? ERROR_MESSAGES[error] : undefined
+  const t = await getTranslations('auth')
+  const errorKey = error ? ERROR_KEYS[error] : undefined
+  const errorMessage = errorKey ? t(errorKey) : undefined
   const providers = await prismaPublic.oidcProvider.findMany({
     where: { enabled: true },
     select: { id: true, name: true },
@@ -37,9 +40,9 @@ export default async function LoginPage({
       </div>
       <div className="flex-1">
         <h1 className="mt-10 text-[32px] font-bold leading-tight tracking-tight md:mt-0">
-          다시 만나서 반가워요
+          {t('login.title')}
         </h1>
-        <p className="mt-3 text-base text-base-500">계정에 로그인해주세요.</p>
+        <p className="mt-3 text-base text-base-500">{t('login.subtitle')}</p>
         {errorMessage && (
           <p className="mt-6 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
             {errorMessage}

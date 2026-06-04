@@ -1,5 +1,6 @@
 'use client'
 import { SnsButton } from '@/components/auth/sns-brand'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 /**
@@ -14,6 +15,7 @@ export function InviteOidcButtons({
   token: string
   providers: { id: string; name: string }[]
 }) {
+  const t = useTranslations('invite')
   const [name, setName] = useState('')
   const suffix = name.trim() ? `&name=${encodeURIComponent(name.trim())}` : ''
 
@@ -21,7 +23,7 @@ export function InviteOidcButtons({
     <div className="mt-6 space-y-3">
       <div className="relative flex items-center">
         <div className="flex-grow border-t border-base-200 dark:border-base-800" />
-        <span className="mx-3 text-xs text-base-400">또는 SNS 계정으로</span>
+        <span className="mx-3 text-xs text-base-400">{t('oidc.divider')}</span>
         <div className="flex-grow border-t border-base-200 dark:border-base-800" />
       </div>
 
@@ -31,10 +33,10 @@ export function InviteOidcButtons({
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={60}
-          placeholder="가족 안에서 보일 이름 (선택)"
+          placeholder={t('oidc.namePlaceholder')}
           className="h-12 w-full rounded-2xl border border-base-200 bg-transparent px-4 text-sm text-base-900 placeholder:text-base-400 focus:border-point-500 focus:outline-none dark:border-base-800 dark:text-base-50"
         />
-        <p className="px-1 text-[12px] text-base-400">비워두면 SNS 계정 이름으로 합류해요.</p>
+        <p className="px-1 text-[12px] text-base-400">{t('oidc.nameHint')}</p>
       </div>
 
       {providers.map((p) => (

@@ -2,6 +2,7 @@
 import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
@@ -20,6 +21,7 @@ function safeNext(): string {
 }
 
 export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
+  const t = useTranslations('auth')
   const [identifier, setIdentifier] = useState('')
   const [password, setPassword] = useState('')
   const [showPw, setShowPw] = useState(false)
@@ -44,7 +46,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
     })
     if (!res.ok) {
       const data = await res.json().catch(() => ({}))
-      setError(data.error ?? '로그인 실패')
+      setError(data.error ?? t('login.failed'))
       setSubmitting(false)
       return
     }
@@ -57,7 +59,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
         <form onSubmit={submit} className="space-y-4">
           <div>
             <label htmlFor="identifier" className="mb-1.5 block text-xs font-medium text-base-500">
-              아이디 또는 이메일
+              {t('login.identifierLabel')}
             </label>
             <input
               id="identifier"
@@ -66,13 +68,13 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
               onChange={(e) => setIdentifier(e.target.value)}
               required
               autoComplete="username"
-              placeholder="아이디 또는 name@example.com"
+              placeholder={t('login.identifierPlaceholder')}
               className="h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
             />
           </div>
           <div>
             <label htmlFor="password" className="mb-1.5 block text-xs font-medium text-base-500">
-              비밀번호
+              {t('login.passwordLabel')}
             </label>
             <div className="relative">
               <input
@@ -88,7 +90,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
               <button
                 type="button"
                 onClick={() => setShowPw((s) => !s)}
-                aria-label={showPw ? '비밀번호 가리기' : '비밀번호 보기'}
+                aria-label={showPw ? t('password.hide') : t('password.show')}
                 className="absolute right-3 top-1/2 -translate-y-1/2 p-1 text-base-500 hover:text-base-900 dark:hover:text-base-100"
               >
                 {showPw ? <EyeOff size={18} /> : <Eye size={18} />}
@@ -101,7 +103,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
             </p>
           )}
           <Button type="submit" size="lg" className="w-full" disabled={submitting}>
-            {submitting ? '로그인하는 중…' : '로그인'}
+            {submitting ? t('login.submitting') : t('login.submit')}
           </Button>
         </form>
       )}
@@ -110,7 +112,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
           {passwordEnabled && (
             <div className="relative flex items-center">
               <div className="flex-grow border-t border-base-200 dark:border-base-800" />
-              <span className="mx-3 text-xs text-base-400">또는</span>
+              <span className="mx-3 text-xs text-base-400">{t('login.or')}</span>
               <div className="flex-grow border-t border-base-200 dark:border-base-800" />
             </div>
           )}
@@ -122,9 +124,9 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
         </>
       )}
       <p className="text-center text-sm text-base-500">
-        계정이 없으신가요?{' '}
+        {t('login.noAccount')}{' '}
         <Link href="/signup" className="font-semibold text-point-500">
-          가입하기
+          {t('login.signupLink')}
         </Link>
       </p>
     </div>

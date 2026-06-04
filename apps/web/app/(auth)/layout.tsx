@@ -1,7 +1,9 @@
 import { BrandLockup } from '@/components/brand/brand-mark'
+import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 
-export default function AuthLayout({ children }: { children: ReactNode }) {
+export default async function AuthLayout({ children }: { children: ReactNode }) {
+  const t = await getTranslations('auth')
   return (
     <div className="relative min-h-[100dvh] bg-base-50 dark:bg-base-950 md:grid md:grid-cols-[1.15fr_1fr] lg:grid-cols-[1.3fr_1fr]">
       {/* Brand hero — desktop only */}
@@ -21,22 +23,22 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
           <BrandLockup iconClassName="h-10 w-10" textClassName="text-[18px]" />
           <div className="max-w-xl">
             <h2 className="text-balance font-bold leading-[1.05] tracking-tight text-base-900 dark:text-base-50 text-[clamp(2.5rem,4.2vw,4.25rem)]">
-              우리 아기의
+              {t('layout.hero.before')}
               <br />
               <span className="bg-gradient-to-br from-point-500 to-[oklch(0.72_0.2_330)] bg-clip-text text-transparent">
-                모든 순간
+                {t('layout.hero.highlight')}
               </span>
-              을,
+              {t('layout.hero.after')}
               <br />
-              가족과 함께.
+              {t('layout.hero.line3')}
             </h2>
             <p className="mt-6 max-w-md text-[16px] leading-relaxed text-base-600 dark:text-base-400">
-              사진 · 영상 · 성장 · 마일스톤 · 스토리를 한 곳에.
+              {t('layout.hero.tagline1')}
               <br />
-              원본 그대로 안전하게 보관하고, 가족과 실시간으로 나눠요.
+              {t('layout.hero.tagline2')}
             </p>
           </div>
-          <p className="text-xs text-base-500">Self-hosted · 오픈소스 · 가족 단위 격리</p>
+          <p className="text-xs text-base-500">{t('layout.hero.footer')}</p>
         </div>
       </aside>
 

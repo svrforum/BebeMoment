@@ -1,10 +1,12 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { ArrowRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export function AcceptButton({ token }: { token: string }) {
+  const t = useTranslations('invite')
   const router = useRouter()
   const [submitting, setSubmitting] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -20,7 +22,7 @@ export function AcceptButton({ token }: { token: string }) {
     if (!res.ok) {
       setSubmitting(false)
       const data = await res.json().catch(() => ({}))
-      setError(data.error ?? '수락에 실패했어요. 잠시 후 다시 시도해 주세요.')
+      setError(data.error ?? t('accept.error'))
       return
     }
     router.push('/timeline')
@@ -39,11 +41,11 @@ export function AcceptButton({ token }: { token: string }) {
         {submitting ? (
           <span className="inline-flex items-center gap-2">
             <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/40 border-t-white" />
-            합류하는 중…
+            {t('accept.joining')}
           </span>
         ) : (
           <span className="inline-flex items-center gap-2">
-            수락하고 들어가기
+            {t('accept.cta')}
             <ArrowRight size={18} />
           </span>
         )}

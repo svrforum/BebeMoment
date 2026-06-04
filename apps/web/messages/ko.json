@@ -23,5 +23,146 @@
       "ko": "한국어",
       "en": "English"
     }
+  },
+  "auth": {
+    "login": {
+      "title": "다시 만나서 반가워요",
+      "subtitle": "계정에 로그인해주세요.",
+      "identifierLabel": "아이디 또는 이메일",
+      "identifierPlaceholder": "아이디 또는 name@example.com",
+      "passwordLabel": "비밀번호",
+      "submit": "로그인",
+      "submitting": "로그인하는 중…",
+      "failed": "로그인 실패",
+      "or": "또는",
+      "noAccount": "계정이 없으신가요?",
+      "signupLink": "가입하기",
+      "changeServer": "다른 서버에 연결",
+      "error": {
+        "suspended": "관리자에 의해 일시 정지된 계정이에요. 관리자에게 문의해주세요.",
+        "inviteRequired": "초대가 필요한 인스턴스예요. 관리자에게 초대 링크를 요청해주세요.",
+        "state": "로그인 요청이 만료됐어요. 다시 시도해주세요.",
+        "oidc": "로그인 중 문제가 발생했어요. 다시 시도해주세요.",
+        "provider": "사용할 수 없는 로그인 방식이에요."
+      }
+    },
+    "password": {
+      "show": "비밀번호 보기",
+      "hide": "비밀번호 가리기"
+    },
+    "signup": {
+      "back": "이전",
+      "haveAccount": "이미 계정이 있으신가요?",
+      "loginLink": "로그인",
+      "inviteBanner": "가족에 합류하시는군요. 1분 안에 끝나요.",
+      "joinFailed": "가족 합류에 실패했어요. 초대 링크를 다시 열어 합류해주세요.",
+      "failed": "가입에 실패했어요",
+      "autoUsernameFailed": "아이디 자동 생성에 실패했어요. 직접 입력해 주세요.",
+      "networkError": "네트워크 오류가 발생했어요",
+      "closed": {
+        "title": "초대를 통해서만 가입할 수 있어요",
+        "body": "이 가족 인스턴스는 이미 설정이 완료됐어요. 가족 구성원에게 초대 링크를 받아 가입해주세요."
+      },
+      "username": {
+        "title": "아이디를 정해주세요",
+        "body": "로그인에 쓸 아이디 (이메일 대신 쓸 수 있어요). 영문 소문자·숫자·._- 3~30자.",
+        "placeholder": "예: minjun"
+      },
+      "password": {
+        "title": "비밀번호를 만들어주세요",
+        "body": "8자 이상, 다른 곳에서 쓰지 않은 값으로.",
+        "placeholder": "비밀번호",
+        "confirmPlaceholder": "비밀번호 확인",
+        "mismatch": "비밀번호가 일치하지 않아요",
+        "strength": {
+          "tooShort": "너무 짧아요",
+          "weak": "약해요",
+          "fair": "보통",
+          "strong": "강해요"
+        }
+      },
+      "name": {
+        "title": "어떻게 불러드릴까요?",
+        "titleInvited": "가족에게 보여줄 이름은요?",
+        "body": "가족에게 보여질 이름이에요.",
+        "placeholder": "예: ○○ 아빠"
+      },
+      "email": {
+        "title": "이메일을 추가할까요?",
+        "body": "선택이에요. 추가하면 이메일로도 로그인할 수 있어요.",
+        "placeholder": "name@example.com (선택)"
+      },
+      "optional": {
+        "title": "(옵션) 아이디 또는 이메일",
+        "body": "비워두면 임시 아이디를 자동으로 만들어 드려요.",
+        "usernamePlaceholder": "아이디 (영문 소문자·숫자·._-)",
+        "usernameError": "아이디는 영문 소문자·숫자·._- 3~30자여야 해요",
+        "emailPlaceholder": "이메일 (선택)",
+        "emailError": "올바른 이메일을 입력해주세요"
+      },
+      "cta": {
+        "submit": "가입하기",
+        "submitting": "가입하는 중…",
+        "next": "다음",
+        "skipAndSubmit": "건너뛰고 가입",
+        "autoUsernameSubmit": "자동 아이디로 가입"
+      }
+    },
+    "layout": {
+      "hero": {
+        "before": "우리 아기의",
+        "highlight": "모든 순간",
+        "after": "을,",
+        "line3": "가족과 함께.",
+        "tagline1": "사진 · 영상 · 성장 · 마일스톤 · 스토리를 한 곳에.",
+        "tagline2": "원본 그대로 안전하게 보관하고, 가족과 실시간으로 나눠요.",
+        "footer": "Self-hosted · 오픈소스 · 가족 단위 격리"
+      }
+    }
+  },
+  "invite": {
+    "shell": {
+      "title": "가족 초대"
+    },
+    "join": {
+      "eyebrow": "가족 앨범 초대",
+      "invitedBy": "{name} 님이 함께하자고 보냈어요",
+      "roleBadge": "{role} 권한으로 합류",
+      "footnote": "수락하면 {family} 가족의 사진과 기록을 함께 볼 수 있어요."
+    },
+    "role": {
+      "guardian": "보호자",
+      "family": "가족"
+    },
+    "accept": {
+      "cta": "수락하고 들어가기",
+      "joining": "합류하는 중…",
+      "error": "수락에 실패했어요. 잠시 후 다시 시도해 주세요."
+    },
+    "app": {
+      "continue": "앱에서 이어하기",
+      "installHint": "앱이 없으면 설치 페이지로 안내해요"
+    },
+    "oidc": {
+      "divider": "또는 SNS 계정으로",
+      "namePlaceholder": "가족 안에서 보일 이름 (선택)",
+      "nameHint": "비워두면 SNS 계정 이름으로 합류해요."
+    },
+    "errors": {
+      "toLogin": "로그인 화면으로",
+      "toHome": "홈으로",
+      "invalid": {
+        "title": "초대 링크가 잘못되었어요",
+        "message": "링크가 깨졌거나 잘못 복사된 것 같아요. 보낸 사람에게 다시 받아 주세요."
+      },
+      "used": {
+        "title": "이미 사용된 초대예요",
+        "message": "이 링크는 한 번만 쓸 수 있어요. 이미 합류한 계정으로 로그인해 보세요."
+      },
+      "expired": {
+        "title": "만료된 초대예요",
+        "message": "유효 기간이 지났거나 철회된 초대예요. 새 링크를 받아서 다시 시도해 주세요."
+      }
+    }
   }
 }

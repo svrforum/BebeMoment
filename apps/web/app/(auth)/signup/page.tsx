@@ -1,6 +1,7 @@
 import { BrandLockup } from '@/components/brand/brand-mark'
 import { prismaPublic } from '@/lib/db-init'
 import { isRegistrationOpen } from '@/server/auth/registration'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { SignupWizard } from './signup-wizard'
 
@@ -13,6 +14,7 @@ export default async function SignupPage({
 }) {
   const { invite } = await searchParams
   const open = await isRegistrationOpen(prismaPublic)
+  const t = await getTranslations('auth')
 
   if (!open && !invite) {
     return (
@@ -22,16 +24,13 @@ export default async function SignupPage({
         </div>
         <div className="mt-10 md:mt-0">
           <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-            초대를 통해서만 가입할 수 있어요
+            {t('signup.closed.title')}
           </h1>
-          <p className="mt-3 text-base text-base-500">
-            이 가족 인스턴스는 이미 설정이 완료됐어요. 가족 구성원에게 초대 링크를 받아
-            가입해주세요.
-          </p>
+          <p className="mt-3 text-base text-base-500">{t('signup.closed.body')}</p>
           <p className="mt-8 text-sm text-base-500">
-            이미 계정이 있으신가요?{' '}
+            {t('signup.haveAccount')}{' '}
             <Link href="/login" className="font-medium text-point-500">
-              로그인
+              {t('signup.loginLink')}
             </Link>
           </p>
         </div>

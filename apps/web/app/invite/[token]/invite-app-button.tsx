@@ -1,5 +1,6 @@
 'use client'
 import { Smartphone } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 // 앱 미설치 시 보낼 설치 안내(릴리스 페이지). intent 의 browser_fallback_url 로.
@@ -12,6 +13,7 @@ const INSTALL_URL = 'https://github.com/svrforum/bebe-moment/releases/latest'
  * 안드로이드가 아니면 숨긴다(웹 가입 흐름 그대로).
  */
 export function InviteAppButton({ token }: { token: string }) {
+  const t = useTranslations('invite')
   const [href, setHref] = useState<string | null>(null)
 
   useEffect(() => {
@@ -34,9 +36,9 @@ export function InviteAppButton({ token }: { token: string }) {
         className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-point-500 px-5 text-[16px] font-semibold text-white transition active:scale-[0.98] hover:bg-point-600"
       >
         <Smartphone size={18} strokeWidth={2.2} />
-        앱에서 이어하기
+        {t('app.continue')}
       </a>
-      <p className="text-center text-[12px] text-base-400">앱이 없으면 설치 페이지로 안내해요</p>
+      <p className="text-center text-[12px] text-base-400">{t('app.installHint')}</p>
     </div>
   )
 }

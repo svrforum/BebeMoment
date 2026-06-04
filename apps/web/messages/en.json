@@ -23,5 +23,146 @@
       "ko": "한국어",
       "en": "English"
     }
+  },
+  "auth": {
+    "login": {
+      "title": "Welcome back",
+      "subtitle": "Sign in to your account.",
+      "identifierLabel": "Username or email",
+      "identifierPlaceholder": "Username or name@example.com",
+      "passwordLabel": "Password",
+      "submit": "Sign in",
+      "submitting": "Signing in…",
+      "failed": "Sign-in failed",
+      "or": "or",
+      "noAccount": "Don't have an account?",
+      "signupLink": "Sign up",
+      "changeServer": "Connect to a different server",
+      "error": {
+        "suspended": "This account has been suspended by an administrator. Please contact your admin.",
+        "inviteRequired": "This instance requires an invite. Please ask your admin for an invite link.",
+        "state": "Your sign-in request expired. Please try again.",
+        "oidc": "Something went wrong while signing in. Please try again.",
+        "provider": "That sign-in method isn't available."
+      }
+    },
+    "password": {
+      "show": "Show password",
+      "hide": "Hide password"
+    },
+    "signup": {
+      "back": "Back",
+      "haveAccount": "Already have an account?",
+      "loginLink": "Sign in",
+      "inviteBanner": "You're joining a family — this takes under a minute.",
+      "joinFailed": "Couldn't join the family. Please reopen the invite link and try again.",
+      "failed": "Sign-up failed",
+      "autoUsernameFailed": "Couldn't auto-generate a username. Please enter one yourself.",
+      "networkError": "A network error occurred",
+      "closed": {
+        "title": "You can only join by invite",
+        "body": "This family instance is already set up. Ask a family member for an invite link to sign up."
+      },
+      "username": {
+        "title": "Pick a username",
+        "body": "The username you'll sign in with (you can use it instead of an email). Lowercase letters, numbers, and ._- , 3–30 characters.",
+        "placeholder": "e.g. minjun"
+      },
+      "password": {
+        "title": "Create a password",
+        "body": "At least 8 characters, and one you don't use elsewhere.",
+        "placeholder": "Password",
+        "confirmPlaceholder": "Confirm password",
+        "mismatch": "Passwords don't match",
+        "strength": {
+          "tooShort": "Too short",
+          "weak": "Weak",
+          "fair": "Fair",
+          "strong": "Strong"
+        }
+      },
+      "name": {
+        "title": "What should we call you?",
+        "titleInvited": "What name should your family see?",
+        "body": "This is the name your family will see.",
+        "placeholder": "e.g. Min's dad"
+      },
+      "email": {
+        "title": "Add an email?",
+        "body": "Optional. If you add one, you can also sign in with your email.",
+        "placeholder": "name@example.com (optional)"
+      },
+      "optional": {
+        "title": "(Optional) Username or email",
+        "body": "Leave this blank and we'll create a temporary username for you.",
+        "usernamePlaceholder": "Username (lowercase letters, numbers, ._-)",
+        "usernameError": "Username must be 3–30 lowercase letters, numbers, or ._-",
+        "emailPlaceholder": "Email (optional)",
+        "emailError": "Please enter a valid email"
+      },
+      "cta": {
+        "submit": "Sign up",
+        "submitting": "Signing up…",
+        "next": "Next",
+        "skipAndSubmit": "Skip and sign up",
+        "autoUsernameSubmit": "Sign up with auto username"
+      }
+    },
+    "layout": {
+      "hero": {
+        "before": "Every moment",
+        "highlight": "of your little one",
+        "after": ",",
+        "line3": "shared with family.",
+        "tagline1": "Photos, videos, growth, milestones, and stories — all in one place.",
+        "tagline2": "Kept safe in their original quality, shared with family in real time.",
+        "footer": "Self-hosted · Open source · Family-isolated"
+      }
+    }
+  },
+  "invite": {
+    "shell": {
+      "title": "Family invite"
+    },
+    "join": {
+      "eyebrow": "Family album invite",
+      "invitedBy": "{name} invited you to join",
+      "roleBadge": "Joining as {role}",
+      "footnote": "Accept to share in {family}'s photos and memories."
+    },
+    "role": {
+      "guardian": "Guardian",
+      "family": "Family"
+    },
+    "accept": {
+      "cta": "Accept and join",
+      "joining": "Joining…",
+      "error": "Couldn't accept the invite. Please try again in a moment."
+    },
+    "app": {
+      "continue": "Continue in the app",
+      "installHint": "No app? We'll point you to the install page."
+    },
+    "oidc": {
+      "divider": "or with a social account",
+      "namePlaceholder": "Name shown in the family (optional)",
+      "nameHint": "Leave blank to join with your social account name."
+    },
+    "errors": {
+      "toLogin": "Go to login",
+      "toHome": "Go home",
+      "invalid": {
+        "title": "This invite link is invalid",
+        "message": "The link looks broken or mis-copied. Ask the sender to share it again."
+      },
+      "used": {
+        "title": "This invite was already used",
+        "message": "This link works only once. Try logging in with the account that already joined."
+      },
+      "expired": {
+        "title": "This invite has expired",
+        "message": "It's past its valid period or was revoked. Get a new link and try again."
+      }
+    }
   }
 }

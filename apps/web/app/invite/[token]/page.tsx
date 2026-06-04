@@ -5,16 +5,12 @@ import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { Home, LinkIcon, LogIn, ShieldCheck, Users } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { SignupWizard } from '../../(auth)/signup/signup-wizard'
 import { AcceptButton } from './accept-button'
 import { InviteAppButton } from './invite-app-button'
 import { InviteOidcButtons } from './invite-oidc-buttons'
-
-const ROLE_LABEL: Record<string, string> = {
-  guardian: '보호자',
-  family: '가족',
-}
 
 function InviteShell({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -29,13 +25,19 @@ function InviteErrorCard({
   icon,
   title,
   message,
+  shellTitle,
+  loginLabel,
+  homeLabel,
 }: {
   icon: React.ReactNode
   title: string
   message: string
+  shellTitle: string
+  loginLabel: string
+  homeLabel: string
 }) {
   return (
-    <InviteShell title="가족 초대">
+    <InviteShell title={shellTitle}>
       <Card>
         <CardBody className="space-y-5 py-8 text-center">
           <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-full bg-base-100 text-base-500 dark:bg-base-800">
@@ -49,13 +51,13 @@ function InviteErrorCard({
             <Button asChild size="lg" className="w-full">
               <Link href="/login">
                 <LogIn size={18} />
-                로그인 화면으로
+                {loginLabel}
               </Link>
             </Button>
             <Button asChild variant="ghost" size="md" className="w-full">
               <Link href="/">
                 <Home size={16} />
-                홈으로
+                {homeLabel}
               </Link>
             </Button>
           </div>
@@ -67,17 +69,25 @@ function InviteErrorCard({
 
 export default async function InvitePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
+  const t = await getTranslations('invite')
   const invite = await prismaPublic.invite.findUnique({
     where: { token },
     include: { family: true, invitedBy: true },
   })
 
+  const errorShellProps = {
+    shellTitle: t('shell.title'),
+    loginLabel: t('errors.toLogin'),
+    homeLabel: t('errors.toHome'),
+  }
+
   if (!invite) {
     return (
       <InviteErrorCard
         icon={<LinkIcon size={26} />}
-        title="초대 링크가 잘못되었어요"
-        message="링크가 깨졌거나 잘못 복사된 것 같아요. 보낸 사람에게 다시 받아 주세요."
+        title={t('errors.invalid.title')}
+        message={t('errors.invalid.message')}
+        {...errorShellProps}
       />
     )
   }
@@ -86,8 +96,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     return (
       <InviteErrorCard
         icon={<ShieldCheck size={26} />}
-        title="이미 사용된 초대예요"
-        message="이 링크는 한 번만 쓸 수 있어요. 이미 합류한 계정으로 로그인해 보세요."
+        title={t('errors.used.title')}
+        message={t('errors.used.message')}
+        {...errorShellProps}
       />
     )
   }
@@ -96,8 +107,9 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     return (
       <InviteErrorCard
         icon={<LinkIcon size={26} />}
-        title="만료된 초대예요"
-        message="유효 기간이 지났거나 철회된 초대예요. 새 링크를 받아서 다시 시도해 주세요."
+        title={t('errors.expired.title')}
+        message={t('errors.expired.message')}
+        {...errorShellProps}
       />
     )
   }
@@ -123,10 +135,11 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     )
   }
 
-  const roleLabel = ROLE_LABEL[invite.role] ?? invite.role
+  const roleLabel =
+    invite.role === 'guardian' || invite.role === 'family' ? t(`role.${invite.role}`) : invite.role
 
   return (
-    <InviteShell title="가족 초대">
+    <InviteShell title={t('shell.title')}>
       <div className="space-y-5">
         <Card>
           <CardBody className="space-y-6 py-7 text-center">
@@ -136,20 +149,20 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
 
             <div className="space-y-2">
               <p className="text-[13px] font-medium uppercase tracking-wide text-base-400">
-                가족 앨범 초대
+                {t('join.eyebrow')}
               </p>
               <h2 className="text-[28px] font-bold leading-tight tracking-tight text-base-900 dark:text-base-50">
                 {invite.family.name}
               </h2>
               <p className="text-[15px] text-base-500">
-                {invite.invitedBy.displayName} 님이 함께하자고 보냈어요
+                {t('join.invitedBy', { name: invite.invitedBy.displayName })}
               </p>
             </div>
 
             <div className="flex justify-center">
               <span className="inline-flex items-center gap-1.5 rounded-full bg-base-100 px-3 py-1 text-[12px] font-medium text-base-600 dark:bg-base-800 dark:text-base-300">
                 <ShieldCheck size={12} />
-                {roleLabel} 권한으로 합류
+                {t('join.roleBadge', { role: roleLabel })}
               </span>
             </div>
 
@@ -158,7 +171,7 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
         </Card>
 
         <p className="px-2 text-center text-[12px] text-base-400">
-          수락하면 {invite.family.name} 가족의 사진과 기록을 함께 볼 수 있어요.
+          {t('join.footnote', { family: invite.family.name })}
         </p>
       </div>
     </InviteShell>
