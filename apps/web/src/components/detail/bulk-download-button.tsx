@@ -13,6 +13,7 @@ export function BulkDownloadButton({
   className,
 }: {
   assetIds: string[]
+  // 빈 문자열이면 아이콘 전용(좁은 멀티셀렉트 바에서 텍스트 줄바꿈 방지).
   label?: string
   className?: string
 }) {
@@ -43,13 +44,18 @@ export function BulkDownloadButton({
       type="button"
       onClick={downloadAll}
       disabled={busy}
+      aria-label={label || '저장'}
       className={
         className ??
-        'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
+        'inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
       }
     >
-      <Download size={13} strokeWidth={2.2} />
-      <span>{busy ? `저장 중… (${assetIds.length})` : label}</span>
+      <Download size={label ? 13 : 18} strokeWidth={2.2} />
+      {label ? (
+        <span className="whitespace-nowrap">{busy ? `저장 중… (${assetIds.length})` : label}</span>
+      ) : busy ? (
+        <span className="tabular-nums">{assetIds.length}</span>
+      ) : null}
     </button>
   )
 }

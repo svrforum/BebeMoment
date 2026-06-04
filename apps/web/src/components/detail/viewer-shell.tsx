@@ -326,7 +326,6 @@ export function ViewerShell({
       <div className="md:hidden">
         <ViewerActionBar
           assetId={currentSlim.id}
-          publicNo={currentSlim.publicNo}
           liked={liked}
           setLiked={setLiked}
           count={count}

@@ -2,6 +2,7 @@ import { AlbumBreadcrumbs } from '@/components/albums/album-breadcrumbs'
 import { AlbumCard } from '@/components/albums/album-card'
 import { AlbumCreateButton } from '@/components/albums/album-create-button'
 import { AlbumMenu } from '@/components/albums/album-menu'
+import { AlbumShareButton } from '@/components/albums/album-share-button'
 import { AlbumStoryItem } from '@/components/albums/album-story-item'
 import { AppHeader } from '@/components/shell/app-header'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -15,6 +16,7 @@ import { listAlbumAssets } from '@/server/album/list-assets'
 import { listAlbumEntries } from '@/server/album/list-entries'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
+import { isFeatureEnabled } from '@/server/settings/features'
 import { ImagePlus } from 'lucide-react'
 import { notFound } from 'next/navigation'
 
@@ -34,6 +36,9 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
     prismaPublic,
   )
   if (!album) notFound()
+
+  // 비밀 앨범은 공유 불가(§21 — family 역할에게 숨김). 공유 기능 플래그도 게이트.
+  const shareEnabled = !album.secret && (await isFeatureEnabled('share', prismaPublic))
 
   const [children, assetsResult, entries] = await Promise.all([
     listAlbums({ familyId: ctx.family.id, parentId: album.id, viewerRole }, prismaPublic),
@@ -91,6 +96,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
         right={
           <div className="flex items-center gap-2">
             {canCreate && <AlbumCreateButton parentId={album.id} parentName={album.name} />}
+            {shareEnabled && <AlbumShareButton albumId={album.id} albumName={album.name} />}
             <AlbumMenu
               albumId={album.id}
               currentName={album.name}

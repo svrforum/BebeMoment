@@ -3,28 +3,22 @@ import { Share2 } from 'lucide-react'
 import { useState } from 'react'
 import { ShareSheet } from './share-sheet'
 
-export function StoryShareButton({
-  storyId,
-  title,
+export function AssetShareButton({
+  assetId,
+  iconSize = 22,
   className,
 }: {
-  storyId: string
-  title?: string
+  assetId: string
+  iconSize?: number
   className?: string
 }) {
   const [open, setOpen] = useState(false)
   return (
     <>
       <button type="button" onClick={() => setOpen(true)} aria-label="공유" className={className}>
-        <Share2 size={13} strokeWidth={2.2} />
-        <span>공유</span>
+        <Share2 size={iconSize} strokeWidth={2} />
       </button>
-      <ShareSheet
-        target={{ kind: 'story', storyId }}
-        title={title}
-        open={open}
-        onOpenChange={setOpen}
-      />
+      <ShareSheet target={{ kind: 'asset', assetId }} open={open} onOpenChange={setOpen} />
     </>
   )
 }

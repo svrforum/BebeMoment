@@ -1,4 +1,5 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { DateShareButton } from '@/components/detail/date-share-button'
 import { storyCardDataFromEntry } from '@/components/story/story-card'
 import { StoryStrip } from '@/components/timeline/bucket-section'
 import { hasUnnamedPerson } from '@/server/people/list'
@@ -119,6 +120,7 @@ export default async function TimelinePage({
               <span>캘린더로</span>
             </Link>
           }
+          right={photoCount > 0 ? <DateShareButton date={dateFilter} /> : undefined}
           wide
         />
         {storyItems.length > 0 && (

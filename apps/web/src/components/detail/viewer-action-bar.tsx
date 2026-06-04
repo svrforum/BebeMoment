@@ -3,13 +3,12 @@ import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Download, FolderPlus, MessageCircle } from 'lucide-react'
+import { AssetShareButton } from './asset-share-button'
 import { BookmarkButton } from './bookmark-button'
 import { LikeButton } from './like-button'
-import { ShareLinkButton } from './share-link-button'
 
 export function ViewerActionBar({
   assetId,
-  publicNo,
   liked,
   setLiked,
   count,
@@ -23,7 +22,6 @@ export function ViewerActionBar({
   onAlbumTap,
 }: {
   assetId: string
-  publicNo: number
   liked: boolean
   setLiked: (next: boolean) => void
   count: number
@@ -78,8 +76,8 @@ export function ViewerActionBar({
         </a>
       )}
       {features.share && (
-        <ShareLinkButton
-          path={`/detail/${publicNo}`}
+        <AssetShareButton
+          assetId={assetId}
           iconSize={22}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
         />

@@ -520,7 +520,10 @@ model StoryBookmark {
 model ShareLink {
   token           String    @id
   familyId        String    @map("family_id") @db.Uuid
-  storyId         String    @map("story_id") @db.Uuid
+  storyId         String?   @map("story_id") @db.Uuid
+  assetId         String?   @map("asset_id") @db.Uuid
+  albumId         String?   @map("album_id") @db.Uuid
+  targetDate      DateTime? @map("target_date") @db.Date
   createdByUserId String    @map("created_by_user_id") @db.Uuid
   expiresAt       DateTime? @map("expires_at")
   revokedAt       DateTime? @map("revoked_at")
@@ -528,6 +531,8 @@ model ShareLink {
   lastAccessedAt  DateTime? @map("last_accessed_at")
 
   @@index([familyId, storyId])
+  @@index([familyId, assetId])
+  @@index([familyId, albumId])
   @@map("share_links")
   @@schema("public")
 }

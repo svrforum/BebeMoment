@@ -15,7 +15,7 @@ export async function GET(req: Request) {
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const url = new URL(req.url)
   const cursor = url.searchParams.get('cursor') ?? undefined
-  const limit = Number(url.searchParams.get('limit') ?? '30')
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit')) || 30), 100)
   const page = await listMyBookmarks(
     ctx.family.id,
     ctx.user.id,

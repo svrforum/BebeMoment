@@ -48,6 +48,10 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
   if (!resolveCan(ctx.membership.role, 'asset.upload', familyCaps)) {
     throw new Error('업로드 권한이 없어요. 관리자에게 문의하세요.')
   }
+  // 미디어(이미지/영상)만 — 클라가 보낸 mime 으로 워커 파이프라인이 분기하므로 경계에서 제한.
+  if (!/^(image|video)\//.test(input.mime)) {
+    throw new Error('이미지·영상만 올릴 수 있어요.')
+  }
 
   const result = await initAssetViaMedia({
     familyId: ctx.family.id,

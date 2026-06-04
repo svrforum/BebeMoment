@@ -48,6 +48,9 @@ export async function verifyIdToken(
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: args.issuer,
     audience: args.clientId,
+    // 비대칭 서명만 허용 — alg=none/HS 대칭키 혼동으로 email_verified 등을 위조하지 못하게.
+    // 카카오·구글 등 표준 IdP 는 RS256 이라 정상 로그인엔 영향 없음(위조 토큰만 차단).
+    algorithms: ['RS256', 'RS384', 'RS512', 'ES256', 'ES384', 'PS256'],
   })
   if (args.nonce && payload.nonce !== args.nonce) {
     throw new Error('id_token nonce mismatch')

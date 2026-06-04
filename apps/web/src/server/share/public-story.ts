@@ -6,7 +6,7 @@ import type { MediaClient } from '@bebe/media-client'
 // 내부(localhost)·루트-상대 URL 을 줄 수 있어, 경로만 떼어 baseUrl(요청 도메인)로 재절대화.
 // baseUrl 은 PUBLIC_URL(LAN일 수 있음)이 아니라 크롤러가 실제로 친 도메인(x-forwarded-host)
 // 을 써야 외부에서 받을 수 있다(§17#28, 리버스 프록시 뒤 도메인≠PUBLIC_URL).
-function toAbsolute(u: string | null, baseUrl: string): string | null {
+export function toAbsolute(u: string | null, baseUrl: string): string | null {
   if (!u) return null
   const base = baseUrl.replace(/\/$/, '')
   if (!base) return u

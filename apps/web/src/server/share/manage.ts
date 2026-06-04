@@ -1,4 +1,5 @@
 import type { PrismaClient } from '@bebe/db-public'
+import type { ShareTarget } from './create'
 
 export type ShareLinkInfo = {
   token: string
@@ -8,14 +9,24 @@ export type ShareLinkInfo = {
   expired: boolean
 }
 
-// 한 스토리의 해제 안 된 공유 링크 목록(관리 UI). 만료된 것도 보여주되 expired 플래그로 구분.
+// 한 타깃(스토리/사진)의 해제 안 된 공유 링크 목록(관리 UI). 만료된 것도 보여주되 expired 로 구분.
 export async function listShareLinks(
-  storyId: string,
+  target: ShareTarget,
   familyId: string,
   prisma: PrismaClient,
 ): Promise<ShareLinkInfo[]> {
+  // 선택(컬렉션)은 안정적 식별자가 없어 기존 링크 목록을 만들 수 없다 — 빈 목록.
+  if (target.kind === 'selection') return []
+  const where =
+    target.kind === 'story'
+      ? { storyId: target.storyId, familyId, revokedAt: null }
+      : target.kind === 'asset'
+        ? { assetId: target.assetId, familyId, revokedAt: null }
+        : target.kind === 'album'
+          ? { albumId: target.albumId, familyId, revokedAt: null }
+          : { targetDate: new Date(`${target.date}T00:00:00.000Z`), familyId, revokedAt: null }
   const rows = await prisma.shareLink.findMany({
-    where: { storyId, familyId, revokedAt: null },
+    where,
     orderBy: { createdAt: 'desc' },
     select: { token: true, expiresAt: true, createdAt: true, lastAccessedAt: true },
   })

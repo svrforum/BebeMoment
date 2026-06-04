@@ -20,7 +20,7 @@ export async function GET(req: Request) {
   const cursor = url.searchParams.get('cursor') ?? undefined
   const q = url.searchParams.get('q')?.trim() || undefined
   const date = url.searchParams.get('date')?.trim() || undefined
-  const limit = Number(url.searchParams.get('limit') ?? '20')
+  const limit = Math.min(Math.max(1, Number(url.searchParams.get('limit')) || 20), 100)
   const page = await listStoryEntries(
     ctx.family.id,
     {

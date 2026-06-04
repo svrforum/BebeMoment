@@ -33,11 +33,21 @@ export async function rateLimit(
   }
 }
 
-/** 프록시 뒤 클라이언트 IP 추정(x-forwarded-for 첫 항목 → x-real-ip). 없으면 'unknown'. */
+/**
+ * 프록시 뒤 클라이언트 IP. **신뢰 프록시가 설정하는 `x-real-ip` 우선**, 없으면 XFF 의
+ * **마지막**(가장 가까운 프록시가 덧붙인) 항목을 쓴다 — XFF 첫 항목은 클라이언트가 위조 가능해
+ * 레이트리밋 우회(무한 버킷)에 악용되므로 신뢰하지 않는다. (리버스 프록시가 클라이언트의
+ * x-real-ip 를 덮어쓰고 x-forwarded-for 를 append 하는 표준 구성을 전제.)
+ */
 export function clientIp(req: Request): string {
+  const realIp = req.headers.get('x-real-ip')?.trim()
+  if (realIp) return realIp
   const xff = req.headers.get('x-forwarded-for')
-  if (xff) return xff.split(',')[0]?.trim() || 'unknown'
-  return req.headers.get('x-real-ip')?.trim() || 'unknown'
+  if (xff) {
+    const parts = xff.split(',')
+    return parts[parts.length - 1]?.trim() || 'unknown'
+  }
+  return 'unknown'
 }
 
 /** 초과 시 표준 429 응답(Retry-After 헤더 + 한국어 메시지). */

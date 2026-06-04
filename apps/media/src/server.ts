@@ -40,8 +40,10 @@ export function buildApp(): FastifyInstance {
   // 미디어 라우트는 쿠키 인증을 쓰지 않는다(파일/다운로드=URL 내 JWT, 제어=Bearer
   // 서비스토큰). credentials 를 끄면 자격증명 동반 교차출처 읽기 위험이 사라진다.
   // 브라우저는 /media/* rewrite 로 동일 오리진 접근이라 CORS 가 필요 없고, origin 은
-  // 알려진 PUBLIC_URL 로 스코프(미설정 시 reflect — dev 편의).
-  app.register(cors, { origin: process.env.PUBLIC_URL || true, credentials: false })
+  // 알려진 PUBLIC_URL 로 스코프. **프로덕션에서 PUBLIC_URL 미설정 시 any-origin reflect
+  // 대신 fail-closed**(false) — dev 에서만 reflect 편의(true).
+  const corsOrigin = process.env.PUBLIC_URL || process.env.NODE_ENV !== 'production'
+  app.register(cors, { origin: corsOrigin, credentials: false })
   app.register(requestIdPlugin)
   registerErrorHandler(app)
   app.register(healthRoute)

@@ -1,6 +1,7 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
 import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
+import { SelectionShareButton } from '@/components/detail/selection-share-button'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useFamilySSE } from '@/lib/sse'
@@ -458,7 +459,7 @@ function SelectionBar({
 }) {
   return (
     <div
-      className="fixed inset-x-0 bottom-16 z-40 mx-auto flex max-w-md items-center gap-2 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
+      className="fixed inset-x-0 bottom-16 z-40 mx-auto flex max-w-md items-center gap-1.5 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
       style={{ marginInline: 'max(env(safe-area-inset-left), 16px)' }}
     >
       <button
@@ -469,18 +470,22 @@ function SelectionBar({
       >
         <X size={18} strokeWidth={2} />
       </button>
-      <span className="flex-1 px-1 text-[13px] font-medium tabular-nums">{count}장 선택됨</span>
+      <span className="shrink-0 whitespace-nowrap px-1 text-[13px] font-medium tabular-nums">
+        {count}장 선택됨
+      </span>
+      <div className="flex-1" />
       <BulkDownloadButton
         assetIds={selectedIds}
-        label="저장"
-        className="inline-flex h-9 items-center gap-1 rounded-full px-3 text-[13px] font-medium text-base-600 transition hover:bg-base-100 disabled:opacity-60 dark:text-base-300 dark:hover:bg-base-800"
+        label=""
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 disabled:opacity-60 dark:text-base-300 dark:hover:bg-base-800"
       />
+      <SelectionShareButton assetIds={selectedIds} />
       {canDelete && (
         <button
           type="button"
           onClick={onDelete}
           aria-label="삭제"
-          className="flex h-9 w-9 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
         >
           <Trash2 size={18} strokeWidth={2.2} />
         </button>
@@ -489,7 +494,7 @@ function SelectionBar({
         <button
           type="button"
           onClick={onAlbum}
-          className="inline-flex items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-500 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
         >
           <FolderPlus size={14} strokeWidth={2.4} />
           앨범에 추가

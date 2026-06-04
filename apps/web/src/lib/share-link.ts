@@ -1,5 +1,5 @@
 // 링크 공유/복사 3단 폴백. 네이티브 앱(Capacitor) → navigator.share(보안 컨텍스트) →
-// 클립보드(execCommand 폴백). ShareLinkButton(asset)·StoryShareButton(스토리) 공용.
+// 클립보드(execCommand 폴백). ShareSheet(스토리·사진·앨범) 공용.
 
 type CapacitorWindow = Window & {
   Capacitor?: {
