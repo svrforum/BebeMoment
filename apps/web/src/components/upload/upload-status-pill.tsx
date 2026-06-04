@@ -2,6 +2,7 @@
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { Check, ImagePlus, Loader2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
 import { useUploadManager } from './upload-manager'
 
@@ -11,6 +12,7 @@ type Props = {
 
 export function UploadStatusPill({ onClick }: Props) {
   const { files, totalActive, uploadingCount, processingCount } = useUploadManager()
+  const t = useTranslations('upload')
 
   // Compute aggregate progress across in-flight uploads (bytes-weighted).
   const { percent, label } = useMemo(() => {
@@ -31,11 +33,11 @@ export function UploadStatusPill({ onClick }: Props) {
     if (uploadingCount > 0) {
       return {
         percent: overallPct,
-        label: `${uploadingCount}개 업로드 중 · ${overallPct}%`,
+        label: t('status.uploading', { n: uploadingCount, pct: overallPct }),
       }
     }
-    return { percent: 100, label: `${processingCount}개 처리 중…` }
-  }, [files, totalActive, uploadingCount, processingCount])
+    return { percent: 100, label: t('status.processing', { n: processingCount }) }
+  }, [files, totalActive, uploadingCount, processingCount, t])
 
   // After a batch completes (totalActive transitions to 0), keep the pill
   // visible for ~1.4s in "완료" state so the user gets confirmation.
@@ -72,7 +74,7 @@ export function UploadStatusPill({ onClick }: Props) {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: 12, scale: 0.95 }}
           transition={{ type: 'spring', stiffness: 480, damping: 28 }}
-          aria-label="업로드 상태"
+          aria-label={t('status.aria')}
           className={cn(
             'fixed bottom-36 right-4 z-30 flex items-center gap-2.5 overflow-hidden rounded-full pl-3 pr-4 py-2.5 text-[13px] font-medium shadow-elevated ring-1 backdrop-blur-xl md:bottom-24',
             completed
@@ -113,7 +115,7 @@ export function UploadStatusPill({ onClick }: Props) {
               <Loader2 className="h-4 w-4 animate-spin text-point-500" strokeWidth={2.4} />
             )}
           </span>
-          <span className="truncate">{completed ? '업로드 완료' : label}</span>
+          <span className="truncate">{completed ? t('status.done') : label}</span>
         </motion.button>
       )}
     </AnimatePresence>

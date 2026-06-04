@@ -10,6 +10,7 @@ import {
 } from '@/lib/push-client'
 import { useToast } from '@/lib/toast'
 import { Bell, Share } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { Toggle } from '../ui/toggle'
 
@@ -20,6 +21,7 @@ export function PushToggle(): React.JSX.Element {
   const [enabled, setEnabled] = useState(false)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+  const t = useTranslations('settings')
 
   useEffect(() => {
     if (isNativeApp()) {
@@ -45,18 +47,18 @@ export function PushToggle(): React.JSX.Element {
       if (enabled) {
         await unsubscribeFromPush()
         setEnabled(false)
-        toast({ title: '이 기기에서 알림을 껐어요' })
+        toast({ title: t('push.turnedOff') })
       } else {
         const ok = await subscribeToPush()
         if (!ok) {
-          toast({ title: '브라우저에서 알림이 차단되어 있어요', variant: 'danger' })
+          toast({ title: t('push.blocked'), variant: 'danger' })
           return
         }
         setEnabled(true)
-        toast({ title: '이 기기에서 알림을 켰어요', variant: 'success' })
+        toast({ title: t('push.turnedOn'), variant: 'success' })
       }
     } catch {
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({ title: t('push.retry'), variant: 'danger' })
     } finally {
       setPending(false)
     }
@@ -69,12 +71,10 @@ export function PushToggle(): React.JSX.Element {
   if (support === 'ios-install') {
     return (
       <div className="rounded-xl bg-base-100 px-4 py-3 text-[13px] leading-relaxed text-base-600 dark:bg-base-800/60 dark:text-base-300">
-        <p className="font-medium text-base-900 dark:text-base-50">
-          iOS에서는 홈 화면에 추가한 뒤 알림을 켤 수 있어요
-        </p>
+        <p className="font-medium text-base-900 dark:text-base-50">{t('push.iosInstallTitle')}</p>
         <p className="mt-1.5 flex items-center gap-1.5">
           <Share className="h-4 w-4 flex-shrink-0 text-base-400" strokeWidth={1.9} />
-          <span>공유 → 홈 화면에 추가</span>
+          <span>{t('push.iosInstallStep')}</span>
         </p>
       </div>
     )
@@ -87,30 +87,30 @@ export function PushToggle(): React.JSX.Element {
       <div className="flex items-center gap-3">
         <Bell className="h-[18px] w-[18px] flex-shrink-0 text-point-500" strokeWidth={1.9} />
         <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">
-          앱에서 알림을 받고 있어요
+          {t('push.nativeOn')}
         </span>
         <span className="rounded-full bg-point-500/12 px-2.5 py-1 text-[12px] font-semibold text-point-600 dark:text-point-300">
-          켜짐
+          {t('push.nativeBadge')}
         </span>
       </div>
     )
   }
 
   if (support === 'unsupported') {
-    return <p className="text-[13px] text-base-500">이 브라우저는 알림을 지원하지 않아요</p>
+    return <p className="text-[13px] text-base-500">{t('push.unsupported')}</p>
   }
 
   return (
     <div className="flex items-center gap-3">
       <Bell className="h-[18px] w-[18px] flex-shrink-0 text-base-400" strokeWidth={1.9} />
       <span className="flex-1 text-[15px] text-base-900 dark:text-base-50">
-        이 기기에서 알림 받기
+        {t('push.receiveOnDevice')}
       </span>
       <Toggle
         checked={enabled}
         disabled={pending}
         onChange={onToggle}
-        aria-label="이 기기에서 알림 받기"
+        aria-label={t('push.receiveOnDevice')}
       />
     </div>
   )

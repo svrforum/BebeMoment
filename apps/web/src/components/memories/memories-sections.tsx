@@ -2,9 +2,11 @@ import { StoryCard, storyCardDataFromEntry } from '@/components/story/story-card
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { MemoryGroup } from '@/server/memories/list'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
-export function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
+export async function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
+  const t = await getTranslations('memories')
   return (
     <div className="space-y-7">
       {groups.map((g) => (
@@ -15,8 +17,8 @@ export function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
             </span>
             <span className="text-[12px] tabular-nums text-base-400">
               {[
-                g.assets.length > 0 ? `사진 ${g.assets.length}` : null,
-                g.stories.length > 0 ? `스토리 ${g.stories.length}` : null,
+                g.assets.length > 0 ? t('photoCount', { n: g.assets.length }) : null,
+                g.stories.length > 0 ? t('storyCount', { n: g.stories.length }) : null,
               ]
                 .filter(Boolean)
                 .join(' · ')}

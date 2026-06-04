@@ -126,6 +126,33 @@
         "step4": "Turn on the alert categories you want delivered.",
         "open": "Open admin notification settings"
       }
+    },
+    "push": {
+      "turnedOff": "Notifications turned off on this device",
+      "blocked": "Notifications are blocked in your browser",
+      "turnedOn": "Notifications turned on for this device",
+      "retry": "Please try again in a moment",
+      "iosInstallTitle": "On iOS, add to your Home Screen first to turn on notifications",
+      "iosInstallStep": "Share → Add to Home Screen",
+      "nativeOn": "You're getting notifications in the app",
+      "nativeBadge": "On",
+      "unsupported": "This browser doesn't support notifications",
+      "receiveOnDevice": "Get notifications on this device"
+    },
+    "widgetSource": {
+      "savedSuccess": "Widget settings saved",
+      "saveFailed": "Couldn't save",
+      "pickPinned": "Choose a photo to pin",
+      "noBookmarks": "No bookmarked photos yet. Bookmark (save) a photo to choose it here.",
+      "pinThisPhoto": "Pin this photo",
+      "options": {
+        "recentLabel": "All recent photos",
+        "recentDesc": "Rotates randomly through all your photos (default)",
+        "bookmarkRandomLabel": "Bookmarks, random",
+        "bookmarkRandomDesc": "Rotates randomly through your bookmarked photos",
+        "bookmarkPinnedLabel": "Bookmarks, pinned",
+        "bookmarkPinnedDesc": "Shows just one bookmarked photo you choose"
+      }
     }
   },
   "auth": {
@@ -222,6 +249,21 @@
         "tagline2": "Kept safe in their original quality, shared with family in real time.",
         "footer": "Self-hosted · Open source · Family-isolated"
       }
+    },
+    "reset": {
+      "checkLinkTitle": "Please check the link",
+      "checkLinkBody": "Make sure this link is correct. You can ask an admin for a new one.",
+      "tooShort": "Password must be at least 8 characters",
+      "mismatch": "Passwords don't match",
+      "retry": "Please try again in a moment",
+      "doneTitle": "All done",
+      "doneBody": "Taking you to the login screen with your new password.",
+      "title": "Set a new password",
+      "subtitle": "Enter the password you'd like to use.",
+      "newPasswordPlaceholder": "New password (8+ characters)",
+      "confirmPlaceholder": "Confirm new password",
+      "changing": "Changing…",
+      "submit": "Change password"
     }
   },
   "invite": {
@@ -1645,5 +1687,57 @@
     "admin": {
       "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"
     }
+  },
+  "upload": {
+    "addAtLeastOne": "Add at least one photo",
+    "uploadNotFinished": "Your photos are still uploading. They'll be saved to the timeline, so check back there in a moment.",
+    "storyFailed": "Couldn't post the story",
+    "dropHere": "Drag photos or videos here, or",
+    "selectFile": "Choose files",
+    "maxSize": "Up to 2GB · photos & videos",
+    "remove": "Remove",
+    "edit": "Edit",
+    "addMore": "Add photos & videos",
+    "more": "Add",
+    "toPhotos": "As photos",
+    "toStory": "As a story",
+    "storyPlaceholder": "What happened today? (optional)",
+    "optimize": "Optimize size",
+    "optimizeOn": "Nearly identical quality, smaller size (long side 4096px · keeps EXIF)",
+    "optimizeOff": "Upload originals as is",
+    "uploadingStory": "Posting story…",
+    "postStory": "Post a story with {n} photos",
+    "uploadCount": "Upload {n}",
+    "waitingToProcess": "Waiting to process…",
+    "editor": {
+      "rotateFailed": "Couldn't rotate the photo",
+      "applyFailed": "Couldn't apply the edits",
+      "cancel": "Cancel",
+      "apply": "Apply",
+      "title": "Edit photo",
+      "resetBrightness": "Reset brightness",
+      "brightness": "Brightness",
+      "rotate": "Rotate",
+      "mode": {
+        "free": "Free",
+        "square": "1:1",
+        "landscape": "4:3",
+        "portrait": "3:4"
+      }
+    },
+    "status": {
+      "aria": "Upload status",
+      "uploading": "Uploading {n} · {pct}%",
+      "processing": "Processing {n}…",
+      "done": "Upload complete"
+    }
+  },
+  "memories": {
+    "title": "Memories",
+    "subtitle": "Moments from this day in the past",
+    "emptyTitle": "No memories for today yet",
+    "emptyDescription": "As time goes by, you'll find photos and stories from 'a few months ago today' and 'a year ago today' right here",
+    "photoCount": "{n} photos",
+    "storyCount": "{n} stories"
   }
 }

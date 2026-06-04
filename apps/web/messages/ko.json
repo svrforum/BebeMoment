@@ -126,6 +126,33 @@
         "step4": "받게 할 알림 카테고리를 켜요.",
         "open": "관리자 알림 설정 열기"
       }
+    },
+    "push": {
+      "turnedOff": "이 기기에서 알림을 껐어요",
+      "blocked": "브라우저에서 알림이 차단되어 있어요",
+      "turnedOn": "이 기기에서 알림을 켰어요",
+      "retry": "잠시 후 다시 시도해주세요",
+      "iosInstallTitle": "iOS에서는 홈 화면에 추가한 뒤 알림을 켤 수 있어요",
+      "iosInstallStep": "공유 → 홈 화면에 추가",
+      "nativeOn": "앱에서 알림을 받고 있어요",
+      "nativeBadge": "켜짐",
+      "unsupported": "이 브라우저는 알림을 지원하지 않아요",
+      "receiveOnDevice": "이 기기에서 알림 받기"
+    },
+    "widgetSource": {
+      "savedSuccess": "위젯 설정을 저장했어요",
+      "saveFailed": "저장하지 못했어요",
+      "pickPinned": "고정할 사진 선택",
+      "noBookmarks": "북마크한 사진이 없어요. 사진을 북마크(저장)하면 여기서 고를 수 있어요.",
+      "pinThisPhoto": "이 사진으로 고정",
+      "options": {
+        "recentLabel": "전체 최신 사진",
+        "recentDesc": "모든 사진 중 무작위로 바뀌어요 (기본)",
+        "bookmarkRandomLabel": "북마크 랜덤",
+        "bookmarkRandomDesc": "북마크한 사진 중 무작위로 바뀌어요",
+        "bookmarkPinnedLabel": "북마크 고정",
+        "bookmarkPinnedDesc": "고른 북마크 사진 한 장만 보여요"
+      }
     }
   },
   "auth": {
@@ -222,6 +249,21 @@
         "tagline2": "원본 그대로 안전하게 보관하고, 가족과 실시간으로 나눠요.",
         "footer": "Self-hosted · 오픈소스 · 가족 단위 격리"
       }
+    },
+    "reset": {
+      "checkLinkTitle": "링크를 확인해주세요",
+      "checkLinkBody": "이 링크가 올바른지 확인해주세요. 관리자에게 새 링크를 요청할 수 있어요.",
+      "tooShort": "비밀번호는 8자 이상이어야 해요",
+      "mismatch": "비밀번호가 일치하지 않아요",
+      "retry": "잠시 후 다시 시도해주세요",
+      "doneTitle": "완료됐어요",
+      "doneBody": "새 비밀번호로 로그인 화면으로 이동할게요.",
+      "title": "새 비밀번호 설정",
+      "subtitle": "새로 사용할 비밀번호를 입력해주세요.",
+      "newPasswordPlaceholder": "새 비밀번호 (8자 이상)",
+      "confirmPlaceholder": "새 비밀번호 확인",
+      "changing": "변경 중…",
+      "submit": "비밀번호 변경"
     }
   },
   "invite": {
@@ -1645,5 +1687,57 @@
     "admin": {
       "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"
     }
+  },
+  "upload": {
+    "addAtLeastOne": "사진을 최소 1장 추가해주세요",
+    "uploadNotFinished": "사진 업로드가 아직 끝나지 않았어요. 업로드 중인 사진은 타임라인에 저장되니 잠시 후 타임라인에서 확인해주세요.",
+    "storyFailed": "스토리 등록 실패",
+    "dropHere": "사진이나 영상을 끌어다 놓거나",
+    "selectFile": "파일 선택",
+    "maxSize": "최대 2GB · 이미지·영상",
+    "remove": "제거",
+    "edit": "편집",
+    "addMore": "사진·영상 추가",
+    "more": "추가",
+    "toPhotos": "사진으로",
+    "toStory": "스토리로",
+    "storyPlaceholder": "오늘 어떤 이야기가 있었어요? (선택)",
+    "optimize": "용량 최적화",
+    "optimizeOn": "화질 거의 그대로 용량↓ (긴 변 4096px·EXIF 보존)",
+    "optimizeOff": "원본 그대로 업로드",
+    "uploadingStory": "스토리 올리는 중…",
+    "postStory": "사진 {n}장으로 스토리 올리기",
+    "uploadCount": "{n}개 업로드",
+    "waitingToProcess": "처리 대기 중…",
+    "editor": {
+      "rotateFailed": "회전을 적용하지 못했어요",
+      "applyFailed": "편집을 적용하지 못했어요",
+      "cancel": "취소",
+      "apply": "적용",
+      "title": "사진 편집",
+      "resetBrightness": "밝기 초기화",
+      "brightness": "밝기",
+      "rotate": "회전",
+      "mode": {
+        "free": "자유",
+        "square": "1:1",
+        "landscape": "4:3",
+        "portrait": "3:4"
+      }
+    },
+    "status": {
+      "aria": "업로드 상태",
+      "uploading": "{n}개 업로드 중 · {pct}%",
+      "processing": "{n}개 처리 중…",
+      "done": "업로드 완료"
+    }
+  },
+  "memories": {
+    "title": "추억",
+    "subtitle": "오늘과 같은 날의 지난 순간들",
+    "emptyTitle": "오늘은 추억이 없어요",
+    "emptyDescription": "시간이 쌓이면 '몇 달 전 오늘', '작년 오늘'의 사진과 스토리를 여기서 다시 만나요",
+    "photoCount": "사진 {n}",
+    "storyCount": "스토리 {n}"
   }
 }

@@ -2,6 +2,7 @@
 import { isOptimizeEnabled, setOptimizeEnabled } from '@/lib/image-optimize'
 import { useToast } from '@/lib/toast'
 import { ImagePlus, Images, Pencil, PencilLine, Plus, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { useUploadSheet } from './upload-sheet'
@@ -74,6 +75,7 @@ export function UploadDashboard({
   } = useUploadManager()
   const router = useRouter()
   const toast = useToast()
+  const t = useTranslations('upload')
   const { close } = useUploadSheet()
   const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
@@ -96,7 +98,7 @@ export function UploadDashboard({
   const submitStory = useCallback(async () => {
     const stagedFiles = filesRef.current.filter((f) => !f.progress?.uploadStarted)
     if (stagedFiles.length === 0) {
-      toast({ title: '사진을 최소 1장 추가해주세요', variant: 'danger' })
+      toast({ title: t('addAtLeastOne'), variant: 'danger' })
       return
     }
     if (submittingStory) return
@@ -122,9 +124,7 @@ export function UploadDashboard({
         // 타임아웃 — startStagedUploads 로 시작된 업로드는 계속 진행돼 타임라인에
         // 저장된다(사진은 유실되지 않음). "재시도"로 오안내하지 않는다: 이미 시작된
         // 파일은 재제출에서 제외되므로 재시도해도 다시 안 올라간다(§6 정직한 안내).
-        throw new Error(
-          '사진 업로드가 아직 끝나지 않았어요. 업로드 중인 사진은 타임라인에 저장되니 잠시 후 타임라인에서 확인해주세요.',
-        )
+        throw new Error(t('uploadNotFinished'))
       }
 
       const today = new Date().toISOString().slice(0, 10)
@@ -140,7 +140,7 @@ export function UploadDashboard({
       })
       if (!res.ok) {
         const err = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(err.error ?? '스토리 등록 실패')
+        throw new Error(err.error ?? t('storyFailed'))
       }
       const { id } = (await res.json()) as { id: string }
       setStoryBody('')
@@ -162,6 +162,7 @@ export function UploadDashboard({
     router,
     toast,
     pauseAutoDismiss,
+    t,
   ])
 
   const onPick = useCallback(
@@ -218,15 +219,15 @@ export function UploadDashboard({
           }`}
         >
           <ImagePlus className="mx-auto h-10 w-10 text-base-400" />
-          <p className="mt-3 text-sm font-medium">사진이나 영상을 끌어다 놓거나</p>
+          <p className="mt-3 text-sm font-medium">{t('dropHere')}</p>
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
             className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-95 dark:bg-base-50 dark:text-base-900"
           >
-            파일 선택
+            {t('selectFile')}
           </button>
-          <p className="mt-2 text-xs text-base-500">최대 2GB · 이미지·영상</p>
+          <p className="mt-2 text-xs text-base-500">{t('maxSize')}</p>
         </div>
       )}
 
@@ -238,7 +239,7 @@ export function UploadDashboard({
                 <Thumb file={f} />
                 <button
                   type="button"
-                  aria-label="제거"
+                  aria-label={t('remove')}
                   onClick={() => removeFile(f.id)}
                   className="absolute top-1 right-1 rounded-full bg-black/55 p-1 text-white"
                 >
@@ -247,7 +248,7 @@ export function UploadDashboard({
                 {f.type && EDITABLE.has(f.type) && (
                   <button
                     type="button"
-                    aria-label="편집"
+                    aria-label={t('edit')}
                     onClick={() => openEditor(f)}
                     className="absolute right-1 bottom-1 rounded-full bg-black/55 p-1 text-white"
                   >
@@ -260,11 +261,11 @@ export function UploadDashboard({
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              aria-label="사진·영상 추가"
+              aria-label={t('addMore')}
               className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-base-200 text-base-400 transition hover:border-point-400 hover:text-point-500 dark:border-base-700"
             >
               <Plus size={22} strokeWidth={2} />
-              <span className="text-[11px] font-medium">추가</span>
+              <span className="text-[11px] font-medium">{t('more')}</span>
             </button>
           </div>
           {canCreateStory && (
@@ -279,7 +280,7 @@ export function UploadDashboard({
                 }`}
               >
                 <Images size={15} strokeWidth={2.2} />
-                사진으로
+                {t('toPhotos')}
               </button>
               <button
                 type="button"
@@ -291,7 +292,7 @@ export function UploadDashboard({
                 }`}
               >
                 <PencilLine size={15} strokeWidth={2.2} />
-                스토리로
+                {t('toStory')}
               </button>
             </div>
           )}
@@ -299,7 +300,7 @@ export function UploadDashboard({
             <textarea
               value={storyBody}
               onChange={(e) => setStoryBody(e.target.value)}
-              placeholder="오늘 어떤 이야기가 있었어요? (선택)"
+              placeholder={t('storyPlaceholder')}
               rows={3}
               maxLength={20000}
               className="w-full resize-none rounded-2xl border border-base-200 bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-base-400 focus:border-point-400 dark:border-base-700"
@@ -316,12 +317,10 @@ export function UploadDashboard({
           >
             <span>
               <span className="block text-sm font-medium text-base-900 dark:text-base-50">
-                용량 최적화
+                {t('optimize')}
               </span>
               <span className="block text-[12px] text-base-400">
-                {optimize
-                  ? '화질 거의 그대로 용량↓ (긴 변 4096px·EXIF 보존)'
-                  : '원본 그대로 업로드'}
+                {optimize ? t('optimizeOn') : t('optimizeOff')}
               </span>
             </span>
             <span
@@ -344,9 +343,9 @@ export function UploadDashboard({
           >
             {dest === 'story'
               ? submittingStory
-                ? '스토리 올리는 중…'
-                : `사진 ${staged.length}장으로 스토리 올리기`
-              : `${staged.length}개 업로드`}
+                ? t('uploadingStory')
+                : t('postStory', { n: staged.length })
+              : t('uploadCount', { n: staged.length })}
           </button>
         </>
       )}
@@ -374,7 +373,7 @@ export function UploadDashboard({
                           onComplete={() => markAssetDone(assetId)}
                         />
                       ) : (
-                        <div className="text-xs text-base-500">처리 대기 중…</div>
+                        <div className="text-xs text-base-500">{t('waitingToProcess')}</div>
                       )
                     ) : (
                       <div className="flex items-center gap-2">

@@ -4,14 +4,15 @@ import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { PictureImage } from '@/components/ui/picture-image'
 import { Check } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
 type Bookmark = { id: string; thumb: string }
 
 const OPTIONS = [
-  { value: 'recent', label: '전체 최신 사진', desc: '모든 사진 중 무작위로 바뀌어요 (기본)' },
-  { value: 'bookmark_random', label: '북마크 랜덤', desc: '북마크한 사진 중 무작위로 바뀌어요' },
-  { value: 'bookmark_pinned', label: '북마크 고정', desc: '고른 북마크 사진 한 장만 보여요' },
+  { value: 'recent', labelKey: 'recentLabel', descKey: 'recentDesc' },
+  { value: 'bookmark_random', labelKey: 'bookmarkRandomLabel', descKey: 'bookmarkRandomDesc' },
+  { value: 'bookmark_pinned', labelKey: 'bookmarkPinnedLabel', descKey: 'bookmarkPinnedDesc' },
 ] as const
 
 export function WidgetSourceForm({
@@ -27,14 +28,15 @@ export function WidgetSourceForm({
   const [pinned, setPinned] = useState<string | null>(initialPinned)
   const [pending, startTransition] = useTransition()
   const toast = useToast()
+  const t = useTranslations('settings.widgetSource')
 
   const save = (nextSource: string, nextPinned: string | null) => {
     startTransition(async () => {
       const res = await saveWidgetConfig({ source: nextSource, pinnedAssetId: nextPinned })
       toast(
         res.ok
-          ? { title: '위젯 설정을 저장했어요', variant: 'success' }
-          : { title: '저장하지 못했어요', variant: 'danger' },
+          ? { title: t('savedSuccess'), variant: 'success' }
+          : { title: t('saveFailed'), variant: 'danger' },
       )
     })
   }
@@ -75,9 +77,9 @@ export function WidgetSourceForm({
             >
               <div className="min-w-0">
                 <p className="text-[15px] font-semibold text-base-900 dark:text-base-50">
-                  {o.label}
+                  {t(`options.${o.labelKey}`)}
                 </p>
-                <p className="mt-0.5 text-[13px] text-base-500">{o.desc}</p>
+                <p className="mt-0.5 text-[13px] text-base-500">{t(`options.${o.descKey}`)}</p>
               </div>
               <span
                 className={cn(
@@ -94,10 +96,10 @@ export function WidgetSourceForm({
 
       {source === 'bookmark_pinned' && (
         <div className="space-y-2">
-          <p className="px-1 text-[13px] font-semibold text-base-500">고정할 사진 선택</p>
+          <p className="px-1 text-[13px] font-semibold text-base-500">{t('pickPinned')}</p>
           {bookmarks.length === 0 ? (
             <p className="rounded-2xl border border-base-200/70 bg-base-0 px-4 py-6 text-center text-[13px] text-base-400 dark:border-base-800/70 dark:bg-base-900">
-              북마크한 사진이 없어요. 사진을 북마크(저장)하면 여기서 고를 수 있어요.
+              {t('noBookmarks')}
             </p>
           ) : (
             <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
@@ -109,7 +111,7 @@ export function WidgetSourceForm({
                     type="button"
                     onClick={() => pickPhoto(b.id)}
                     disabled={pending}
-                    aria-label="이 사진으로 고정"
+                    aria-label={t('pinThisPhoto')}
                     className={cn(
                       'relative aspect-square overflow-hidden rounded-xl transition active:scale-95',
                       sel ? 'ring-[3px] ring-point-500' : 'ring-1 ring-base-200/60',

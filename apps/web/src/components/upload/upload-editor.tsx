@@ -5,6 +5,7 @@ import { applyFilterJpeg, getCroppedJpeg, rotateJpeg90 } from '@/lib/crop-image'
 import { reinjectExif } from '@/lib/exif-reinject'
 import { useToast } from '@/lib/toast'
 import { Check, RotateCw, Sun, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
 import ReactCrop, { centerCrop, type Crop, makeAspectCrop, type PixelCrop } from 'react-image-crop'
@@ -15,11 +16,11 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> {
 }
 
 type AspectMode = 'free' | 'square' | 'landscape' | 'portrait'
-const ASPECT_PRESETS: { mode: AspectMode; label: string; aspect: number | undefined }[] = [
-  { mode: 'free', label: '자유', aspect: undefined },
-  { mode: 'square', label: '1:1', aspect: 1 },
-  { mode: 'landscape', label: '4:3', aspect: 4 / 3 },
-  { mode: 'portrait', label: '3:4', aspect: 3 / 4 },
+const ASPECT_PRESETS: { mode: AspectMode; aspect: number | undefined }[] = [
+  { mode: 'free', aspect: undefined },
+  { mode: 'square', aspect: 1 },
+  { mode: 'landscape', aspect: 4 / 3 },
+  { mode: 'portrait', aspect: 3 / 4 },
 ]
 
 export function UploadEditor({
@@ -44,6 +45,7 @@ export function UploadEditor({
   const [brightness, setBrightness] = useState(0)
   const imgRef = useRef<HTMLImageElement>(null)
   const toast = useToast()
+  const t = useTranslations('upload')
 
   const aspect = ASPECT_PRESETS.find((p) => p.mode === aspectMode)?.aspect
   const filterCss = brightness !== 0 ? `brightness(${1 + brightness / 100})` : undefined
@@ -58,14 +60,14 @@ export function UploadEditor({
       setCompleted(null)
     } catch (e) {
       toast({
-        title: '회전을 적용하지 못했어요',
+        title: t('editor.rotateFailed'),
         description: (e as Error).message,
         variant: 'danger',
       })
     } finally {
       setBusy(false)
     }
-  }, [working, busy, toast])
+  }, [working, busy, toast, t])
 
   /** 표시된 이미지 영역(displayed px) 기준으로 aspect 비율의 최대 크기 중앙 정렬 크롭을
    *  만들어 setCrop/setCompleted 한다. img 가 아직 안 떴으면 false. */
@@ -145,14 +147,14 @@ export function UploadEditor({
       // 캔버스 2D 컨텍스트·디코드 실패 등 — 조용히 멈추지 않고 알린다(§6). 시트는
       // 닫지 않아 사용자가 다시 시도하거나 취소할 수 있게 한다.
       toast({
-        title: '편집을 적용하지 못했어요',
+        title: t('editor.applyFailed'),
         description: (e as Error).message,
         variant: 'danger',
       })
     } finally {
       setBusy(false)
     }
-  }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose, filterCss, toast])
+  }, [busy, completed, working, originalDataUrl, fileId, onApply, onClose, filterCss, toast, t])
 
   // Portal to <body>: the editor is opened from inside the upload sheet (a
   // vaul drawer), and vaul uses a CSS transform for its drag animation — a
@@ -177,15 +179,15 @@ export function UploadEditor({
       }}
     >
       <div className="flex shrink-0 items-center justify-between p-4 text-white">
-        <button type="button" onClick={onClose} aria-label="취소" className="p-2">
+        <button type="button" onClick={onClose} aria-label={t('editor.cancel')} className="p-2">
           <X size={22} />
         </button>
-        <span className="text-sm font-medium">사진 편집</span>
+        <span className="text-sm font-medium">{t('editor.title')}</span>
         <button
           type="button"
           onClick={apply}
           disabled={busy}
-          aria-label="적용"
+          aria-label={t('editor.apply')}
           className="p-2 text-point-400 disabled:opacity-50"
         >
           <Check size={22} />
@@ -226,7 +228,7 @@ export function UploadEditor({
                 : 'bg-white/12 text-white hover:bg-white/20',
             )}
           >
-            {p.label}
+            {t(`editor.mode.${p.mode}`)}
           </button>
         ))}
       </div>
@@ -239,7 +241,7 @@ export function UploadEditor({
         <button
           type="button"
           onClick={() => setBrightness(0)}
-          aria-label="밝기 초기화"
+          aria-label={t('editor.resetBrightness')}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-white/12 hover:bg-white/20"
         >
           <Sun size={18} />
@@ -252,7 +254,7 @@ export function UploadEditor({
           value={brightness}
           onInput={(e) => setBrightness(Number((e.target as HTMLInputElement).value))}
           onChange={(e) => setBrightness(Number(e.target.value))}
-          aria-label="밝기"
+          aria-label={t('editor.brightness')}
           className="editor-slider flex-1"
         />
         <span className="w-10 text-right text-[12px] tabular-nums text-white/80">
@@ -267,7 +269,7 @@ export function UploadEditor({
           disabled={busy}
           className="flex items-center gap-1.5 rounded-full bg-white/12 px-4 py-2 text-sm hover:bg-white/20 disabled:opacity-50"
         >
-          <RotateCw size={18} /> 회전
+          <RotateCw size={18} /> {t('editor.rotate')}
         </button>
       </div>
     </div>,
