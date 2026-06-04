@@ -10,6 +10,7 @@ export type UploadTokenPayload = {
   mime: string
   maxBytes: number
   convertToCompatible: boolean
+  notify?: boolean
   v: 1
 }
 
@@ -37,6 +38,7 @@ export async function signUploadToken(args: SignUploadTokenArgs): Promise<string
     mime: args.mime,
     maxBytes: args.maxBytes,
     convertToCompatible: args.convertToCompatible,
+    notify: args.notify ?? true,
   }
   return await new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })

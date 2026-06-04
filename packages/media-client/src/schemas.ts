@@ -22,6 +22,9 @@ export const initAssetRequest = z.object({
   clientWidth: z.number().int().positive().optional(),
   clientHeight: z.number().int().positive().optional(),
   convertToCompatible: z.boolean().optional().default(false),
+  // false 면 처리 완료 후 개별 'asset.uploaded' 푸시를 생략(스토리 첨부 사진 — 스토리
+  // 푸시 하나로 갈음). 얼굴 인식 등 다른 후처리는 그대로 동작.
+  notify: z.boolean().optional().default(true),
 })
 export type InitAssetRequest = z.input<typeof initAssetRequest>
 

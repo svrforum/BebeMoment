@@ -16,6 +16,7 @@ export type InitAssetInput = {
   clientWidth?: number | undefined
   clientHeight?: number | undefined
   convertToCompatible?: boolean | undefined
+  notify?: boolean | undefined
 }
 
 export type InitAssetResult = {
@@ -34,6 +35,7 @@ export async function initAsset(
 ): Promise<InitAssetResult> {
   const assetId = randomUUID()
   const convertToCompatible = input.convertToCompatible ?? false
+  const notify = input.notify ?? true
 
   await prismaMedia.asset.create({
     data: {
@@ -77,6 +79,7 @@ export async function initAsset(
     mime: input.mime,
     maxBytes: input.sizeBytes,
     convertToCompatible,
+    notify,
   })
 
   const expiresAt = new Date(Date.now() + UPLOAD_TOKEN_TTL_MS).toISOString()

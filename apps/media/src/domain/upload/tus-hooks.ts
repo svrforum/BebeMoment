@@ -97,6 +97,7 @@ export async function onUploadFinishMedia(args: {
       familyId: token.familyId,
       assetId: token.assetId,
       convertToCompatible: token.convertToCompatible,
+      notify: token.notify ?? true,
     },
     {
       attempts: 3,

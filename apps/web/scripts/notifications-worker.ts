@@ -393,6 +393,11 @@ async function main(): Promise<void> {
           })
         }
       }
+      // 스토리 첨부 사진은 개별 푸시를 생략(얼굴 인식 등 후처리는 위에서 이미 처리). 스토리
+      // 생성이 보내는 diary.created 푸시 하나로 갈음 — 중복 알림(사진+스토리) 방지.
+      if (job.data.type === 'asset.uploaded' && job.data.payload.suppressPush === 'true') {
+        return
+      }
       // 발송 방식 게이트 — memory.*·digest.summary 는 이미 예약/요약이라 면제.
       // comment.created(개인 멘션)도 면제 — 다이제스트 스캔은 가족 단위 콘텐츠만 모으고
       // 멘션은 개인 대상이라 브로드캐스트로 묶지 않고 즉시 발송(야간 보류는 적용). 그 외

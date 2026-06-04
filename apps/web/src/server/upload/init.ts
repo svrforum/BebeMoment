@@ -15,6 +15,7 @@ export type WebInitAssetInput = {
   clientAspectRatio?: number
   clientWidth?: number
   clientHeight?: number
+  notify?: boolean
 }
 
 export async function initAssetViaMedia(input: WebInitAssetInput): Promise<InitAssetResponse> {

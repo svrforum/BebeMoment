@@ -165,7 +165,8 @@ export function StoryEditForm({
     if (submitting) return
     setSubmitting(true)
     try {
-      if (attachments.length > 0) startStagedUploads()
+      // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
+      if (attachments.length > 0) startStagedUploads({ notify: false })
       const fileIds = attachments.map((a) => a.fileId)
       const resolveIds = () =>
         fileIds

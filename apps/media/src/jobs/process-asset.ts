@@ -174,11 +174,16 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       derivatives,
     })
 
+    // asset.uploaded 잡은 항상 enqueue 한다(얼굴 인식 트리거 등). 단 notify:false
+    // (스토리 첨부 사진)면 payload 에 suppressPush 를 실어 워커가 푸시만 건너뛴다.
     await enqueue({
       familyId: asset.familyId,
       actorUserId: asset.uploadedByUserId,
       type: 'asset.uploaded',
-      payload: { assetId: asset.id },
+      payload: {
+        assetId: asset.id,
+        ...(job.notify === false ? { suppressPush: 'true' } : {}),
+      },
     })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Unknown error'

@@ -32,6 +32,7 @@ export type StartUploadInput = {
   clientAspectRatio?: number
   clientWidth?: number
   clientHeight?: number
+  notify?: boolean
 }
 
 export async function startUpload(input: StartUploadInput): Promise<InitAssetResponse> {
@@ -58,6 +59,7 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
     ...(input.clientAspectRatio !== undefined && { clientAspectRatio: input.clientAspectRatio }),
     ...(input.clientWidth !== undefined && { clientWidth: input.clientWidth }),
     ...(input.clientHeight !== undefined && { clientHeight: input.clientHeight }),
+    ...(input.notify !== undefined && { notify: input.notify }),
   })
   return { ...result, tusUploadUrl: await absolutizeTusUrl(result.tusUploadUrl) }
 }

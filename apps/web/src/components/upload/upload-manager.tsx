@@ -43,7 +43,9 @@ export type UploadManager = {
   addFiles: (list: FileList | File[]) => Promise<string[]>
   removeFile: (id: string) => void
   markAssetDone: (assetId: string) => void
-  startStagedUploads: () => void
+  /** opts.notify=false 면 이 배치 사진들의 개별 'asset.uploaded' 푸시를 생략한다
+   *  (스토리 첨부 — 스토리 푸시 하나로 갈음). 기본 true. */
+  startStagedUploads: (opts?: { notify?: boolean }) => void
   replaceFileData: (id: string, blob: Blob) => void
   /** 비동기 제출 중 자동정리(cancelAll) 일시중지 — 스테이징 파일 보호용. */
   pauseAutoDismiss: (paused: boolean) => void
@@ -82,6 +84,9 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   // (cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다(POST 실패 후 재시도 보호).
   const [autoDismissPaused, setAutoDismissPaused] = useState(false)
   const initLock = useRef<Promise<UppyInstance> | null>(null)
+  // 현재 배치의 푸시 여부 — startStagedUploads(opts) 가 세팅, 프리프로세서의
+  // startUpload 가 읽는다(스토리 첨부 업로드는 false → 개별 사진 푸시 생략).
+  const notifyRef = useRef(true)
 
   const initUppy = useCallback(async (): Promise<UppyInstance> => {
     if (uppy) return uppy
@@ -191,6 +196,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
               mime: file.type ?? 'application/octet-stream',
               sizeBytes: file.size ?? 0,
               originalName: file.name ?? `upload-${id}`,
+              notify: notifyRef.current,
             })
             u.setFileMeta(id, { uploadToken: init.uploadToken, assetId: init.assetId })
             u.setFileState(id, { tus: { uploadUrl: init.tusUploadUrl } })
@@ -329,12 +335,16 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   // `startStagedUploads()` in the same handler, `setUppy()` hasn't
   // re-rendered yet, so the `uppy` state closure is still null. The cached
   // instance from initUppy()/initLock is the source of truth.
-  const startStagedUploads = useCallback(() => {
-    void (async () => {
-      const u = uppy ?? (await initUppy())
-      await u.upload?.()
-    })()
-  }, [uppy, initUppy])
+  const startStagedUploads = useCallback(
+    (opts?: { notify?: boolean }) => {
+      notifyRef.current = opts?.notify ?? true
+      void (async () => {
+        const u = uppy ?? (await initUppy())
+        await u.upload?.()
+      })()
+    },
+    [uppy, initUppy],
+  )
 
   const replaceFileData = useCallback(
     (id: string, blob: Blob) => {

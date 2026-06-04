@@ -106,7 +106,8 @@ export function UploadDashboard({
     pauseAutoDismiss(true)
     try {
       const fileIds = stagedFiles.map((f) => f.id)
-      startStagedUploads()
+      // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
+      startStagedUploads({ notify: false })
       const resolveIds = () =>
         fileIds
           .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
@@ -337,7 +338,7 @@ export function UploadDashboard({
           </button>
           <button
             type="button"
-            onClick={dest === 'story' ? submitStory : startStagedUploads}
+            onClick={dest === 'story' ? submitStory : () => startStagedUploads()}
             disabled={submittingStory}
             className="rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
           >

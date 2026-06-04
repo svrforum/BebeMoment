@@ -241,8 +241,9 @@ export function TimelineComposer({
     if (submitting) return
     setSubmitting(true)
     try {
-      // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다.
-      if (attachments.length > 0) startStagedUploads()
+      // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다. notify:false 로 올려
+      // 개별 '사진 추가' 푸시를 막는다 — 스토리 생성이 보내는 푸시 하나로 갈음(중복 방지).
+      if (attachments.length > 0) startStagedUploads({ notify: false })
       const fileIds = attachments.map((a) => a.fileId)
       // assetId 는 매니저 files 의 meta 로 들어온다. 닫힌 attachments 가 아니라
       // filesRef(매 렌더 갱신)에서 읽어야 업로드 진행분이 보인다.

@@ -73,6 +73,37 @@ describe('process-asset module', () => {
     })
   })
 
+  it('still enqueues asset.uploaded with suppressPush when job.notify is false (story photo)', async () => {
+    // 스토리 첨부 사진: 잡은 보내되(얼굴 인식 등 유지) payload.suppressPush 로 워커가 푸시만 생략.
+    const asset = fakeAsset()
+    const prisma = fakePrisma(asset)
+    const enqueue = vi.fn<(job: NotificationJob) => Promise<void>>(async () => {})
+
+    await processAsset({
+      job: {
+        type: 'process-asset',
+        assetId: asset.id,
+        familyId: asset.familyId,
+        convertToCompatible: false,
+        notify: false,
+      },
+      // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+      prisma: prisma as any,
+      storage: noopStorage,
+      publishProgress: async () => {},
+      logger: silentLogger,
+      enqueueNotification: enqueue,
+    })
+
+    expect(enqueue).toHaveBeenCalledTimes(1)
+    expect(enqueue).toHaveBeenCalledWith({
+      familyId: asset.familyId,
+      actorUserId: asset.uploadedByUserId,
+      type: 'asset.uploaded',
+      payload: { assetId: asset.id, suppressPush: 'true' },
+    })
+  })
+
   it('resets sha256 to a fresh placeholder when marking failed (no dedup-slot squat)', async () => {
     // 처리 실패한 자산이 real sha256 을 들고 failed 로 남으면 (familyId, sha256)
     // 유니크 슬롯을 영구 점유 → 같은 사진 재업로드가 거짓 '중복'으로 막힌다.
