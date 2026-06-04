@@ -551,6 +551,12 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
+        // WebView 세션 쿠키를 디스크에 즉시 영구화 — 백그라운드/종료 직후 프로세스가 죽어도
+        // 세션이 살아남는다. 안 하면 로그인 후 앱을 끄면 쿠키가 디스크에 안 남아 재로그인.
+        try {
+            CookieManager.getInstance().flush();
+        } catch (Throwable ignored) {
+        }
         // 앱을 나갈 때(예: 사진 업로드 후 홈으로) 위젯을 한 번 갱신한다 — onResume(재진입)
         // 만으로는 "올리고 바로 홈 화면 위젯 확인" 케이스를 못 잡아 갱신이 느리게 느껴졌다.
         try {
