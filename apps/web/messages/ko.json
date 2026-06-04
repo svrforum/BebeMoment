@@ -28,100 +28,98 @@
       "ko": "한국어",
       "en": "English"
     },
-    "settings": {
-      "title": "설정",
-      "logout": "로그아웃",
-      "sections": {
-        "sns": "SNS 계정 연동",
-        "family": "가족",
-        "notifications": "알림",
-        "display": "화면",
-        "admin": "관리자"
+    "title": "설정",
+    "logout": "로그아웃",
+    "sections": {
+      "sns": "SNS 계정 연동",
+      "family": "가족",
+      "notifications": "알림",
+      "display": "화면",
+      "admin": "관리자"
+    },
+    "roles": {
+      "owner": "관리자",
+      "guardian": "보호자",
+      "family": "가족"
+    },
+    "rows": {
+      "members": "가족 멤버",
+      "membersSub": "구성원·초대",
+      "babies": "아기 관리",
+      "push": "푸시 알림",
+      "pushSub": "기기 등록 · 테스트 · 받을 알림 설정",
+      "widget": "홈 위젯",
+      "widgetSub": "위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤",
+      "instanceAdmin": "인스턴스 관리",
+      "instanceAdminSub": "인증·기능·테마·SMTP·스토리지",
+      "trash": "휴지통"
+    },
+    "account": {
+      "nameRequired": "이름을 입력해주세요.",
+      "editName": "이름 변경",
+      "save": "저장",
+      "cancel": "취소"
+    },
+    "theme": {
+      "auto": "자동",
+      "light": "라이트",
+      "dark": "다크"
+    },
+    "sns": {
+      "linked": "SNS 계정을 연동했어요",
+      "conflict": "이미 다른 계정에 연결된 SNS 예요",
+      "empty": "관리자가 SNS 로그인(카카오·네이버 등)을 설정하면 여기서 연동할 수 있어요.",
+      "connected": "연동됨",
+      "connect": "연동"
+    },
+    "widget": {
+      "title": "홈 위젯",
+      "back": "설정으로",
+      "intro": "홈 화면 위젯에 어떤 사진을 보여줄지 고르세요."
+    },
+    "notifications": {
+      "title": "푸시 알림",
+      "intro": "새 사진·댓글·기록이 올라오면 휴대폰으로 바로 알려드려요. 아래에서 이 기기의 알림을 켜고 테스트해보세요.",
+      "thisDevice": {
+        "title": "이 기기",
+        "hint": "알림을 켠 뒤 <b>테스트 알림 보내기</b>를 누르면 이 기기로 샘플 알림이 와요. 안 오면 아래 플랫폼별 안내를 확인해주세요."
       },
-      "roles": {
-        "owner": "관리자",
-        "guardian": "보호자",
-        "family": "가족"
+      "android": {
+        "title": "안드로이드 앱",
+        "badge": "권장",
+        "step1": "bebe 앱을 설치하고 <b>서버 주소</b>를 입력해 로그인해요.",
+        "step2": "위 <b>이 기기에서 알림 받기</b>를 켜고, 안드로이드 알림 권한을 <b>허용</b>해요.",
+        "step3": "<b>테스트 알림 보내기</b>로 도착하는지 확인해요.",
+        "note": "앱 푸시는 관리자가 Firebase(FCM)를 설정해야 동작해요. 권한 팝업이 안 떴거나 거부했다면 휴대폰 <b>설정 → 앱 → bebe → 알림</b>에서 켤 수 있어요."
       },
-      "rows": {
-        "members": "가족 멤버",
-        "membersSub": "구성원·초대",
-        "babies": "아기 관리",
-        "push": "푸시 알림",
-        "pushSub": "기기 등록 · 테스트 · 받을 알림 설정",
-        "widget": "홈 위젯",
-        "widgetSub": "위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤",
-        "instanceAdmin": "인스턴스 관리",
-        "instanceAdminSub": "인증·기능·테마·SMTP·스토리지",
-        "trash": "휴지통"
+      "web": {
+        "title": "웹 브라우저",
+        "badge": "안드로이드·데스크탑",
+        "step1": "크롬·엣지 등에서 사이트를 열고 위 <b>이 기기에서 알림 받기</b>를 켜요.",
+        "step2": "브라우저가 물어보면 <b>허용</b>을 눌러요.",
+        "step3": "<b>테스트 알림 보내기</b>로 확인해요.",
+        "note": "실수로 차단했다면 주소창 왼쪽 <b>자물쇠 아이콘 → 알림 → 허용</b>으로 바꾼 뒤 다시 켜주세요. 홈 화면에 설치(PWA)하면 더 안정적으로 와요."
       },
-      "account": {
-        "nameRequired": "이름을 입력해주세요.",
-        "editName": "이름 변경",
-        "save": "저장",
-        "cancel": "취소"
+      "ios": {
+        "title": "아이폰 · 아이패드",
+        "badge": "iOS 16.4+",
+        "step1": "<b>Safari</b>로 사이트를 열고, 공유 버튼 → <b>홈 화면에 추가</b>를 눌러요.",
+        "step2": "홈 화면에 생긴 bebe 아이콘으로 사이트를 다시 열어요.",
+        "step3": "위 <b>이 기기에서 알림 받기</b>를 켜고 권한을 허용한 뒤 테스트해요.",
+        "note": "아이폰은 <b>홈 화면에 추가한 경우에만</b> 푸시가 와요. Safari 탭에서 연 상태로는 켤 수 없어요(Apple 정책)."
       },
-      "theme": {
-        "auto": "자동",
-        "light": "라이트",
-        "dark": "다크"
+      "categories": {
+        "title": "받을 알림 고르기",
+        "hint": "아래에서 받고 싶은 알림 종류를 켜고 끌 수 있어요. (기기별이 아니라 내 계정 전체에 적용돼요.)"
       },
-      "sns": {
-        "linked": "SNS 계정을 연동했어요",
-        "conflict": "이미 다른 계정에 연결된 SNS 예요",
-        "empty": "관리자가 SNS 로그인(카카오·네이버 등)을 설정하면 여기서 연동할 수 있어요.",
-        "connected": "연동됨",
-        "connect": "연동"
-      },
-      "widget": {
-        "title": "홈 위젯",
-        "back": "설정으로",
-        "intro": "홈 화면 위젯에 어떤 사진을 보여줄지 고르세요."
-      },
-      "notifications": {
-        "title": "푸시 알림",
-        "intro": "새 사진·댓글·기록이 올라오면 휴대폰으로 바로 알려드려요. 아래에서 이 기기의 알림을 켜고 테스트해보세요.",
-        "thisDevice": {
-          "title": "이 기기",
-          "hint": "알림을 켠 뒤 <b>테스트 알림 보내기</b>를 누르면 이 기기로 샘플 알림이 와요. 안 오면 아래 플랫폼별 안내를 확인해주세요."
-        },
-        "android": {
-          "title": "안드로이드 앱",
-          "badge": "권장",
-          "step1": "bebe 앱을 설치하고 <b>서버 주소</b>를 입력해 로그인해요.",
-          "step2": "위 <b>이 기기에서 알림 받기</b>를 켜고, 안드로이드 알림 권한을 <b>허용</b>해요.",
-          "step3": "<b>테스트 알림 보내기</b>로 도착하는지 확인해요.",
-          "note": "앱 푸시는 관리자가 Firebase(FCM)를 설정해야 동작해요. 권한 팝업이 안 떴거나 거부했다면 휴대폰 <b>설정 → 앱 → bebe → 알림</b>에서 켤 수 있어요."
-        },
-        "web": {
-          "title": "웹 브라우저",
-          "badge": "안드로이드·데스크탑",
-          "step1": "크롬·엣지 등에서 사이트를 열고 위 <b>이 기기에서 알림 받기</b>를 켜요.",
-          "step2": "브라우저가 물어보면 <b>허용</b>을 눌러요.",
-          "step3": "<b>테스트 알림 보내기</b>로 확인해요.",
-          "note": "실수로 차단했다면 주소창 왼쪽 <b>자물쇠 아이콘 → 알림 → 허용</b>으로 바꾼 뒤 다시 켜주세요. 홈 화면에 설치(PWA)하면 더 안정적으로 와요."
-        },
-        "ios": {
-          "title": "아이폰 · 아이패드",
-          "badge": "iOS 16.4+",
-          "step1": "<b>Safari</b>로 사이트를 열고, 공유 버튼 → <b>홈 화면에 추가</b>를 눌러요.",
-          "step2": "홈 화면에 생긴 bebe 아이콘으로 사이트를 다시 열어요.",
-          "step3": "위 <b>이 기기에서 알림 받기</b>를 켜고 권한을 허용한 뒤 테스트해요.",
-          "note": "아이폰은 <b>홈 화면에 추가한 경우에만</b> 푸시가 와요. Safari 탭에서 연 상태로는 켤 수 없어요(Apple 정책)."
-        },
-        "categories": {
-          "title": "받을 알림 고르기",
-          "hint": "아래에서 받고 싶은 알림 종류를 켜고 끌 수 있어요. (기기별이 아니라 내 계정 전체에 적용돼요.)"
-        },
-        "admin": {
-          "title": "관리자 설정",
-          "hint": "가족 전체에 알림이 가려면 관리자가 한 번 켜줘야 해요:",
-          "step1": "<b>알림 마스터 스위치</b>를 켜요.",
-          "step2": "웹 푸시용 <b>VAPID 키</b>를 생성해요(버튼 한 번).",
-          "step3": "앱 푸시용 <b>Firebase 서비스 계정 + 클라이언트 설정</b>을 입력해요.",
-          "step4": "받게 할 알림 카테고리를 켜요.",
-          "open": "관리자 알림 설정 열기"
-        }
+      "admin": {
+        "title": "관리자 설정",
+        "hint": "가족 전체에 알림이 가려면 관리자가 한 번 켜줘야 해요:",
+        "step1": "<b>알림 마스터 스위치</b>를 켜요.",
+        "step2": "웹 푸시용 <b>VAPID 키</b>를 생성해요(버튼 한 번).",
+        "step3": "앱 푸시용 <b>Firebase 서비스 계정 + 클라이언트 설정</b>을 입력해요.",
+        "step4": "받게 할 알림 카테고리를 켜요.",
+        "open": "관리자 알림 설정 열기"
       }
     }
   },
@@ -834,146 +832,144 @@
     }
   },
   "family": {
-    "family": {
-      "title": "가족",
-      "settings": {
-        "title": "설정",
-        "subtitle": "알림·화면·계정"
+    "title": "가족",
+    "settings": {
+      "title": "설정",
+      "subtitle": "알림·화면·계정"
+    },
+    "roles": {
+      "owner": "관리자",
+      "guardian": "보호자",
+      "family": "가족"
+    },
+    "members": {
+      "heading": "구성원 {count}명",
+      "you": "나",
+      "suspended": "일시정지",
+      "removed": "제외됨"
+    },
+    "invite": {
+      "heading": "초대",
+      "role": "역할",
+      "optionFamily": "가족 (조부모·친척)",
+      "optionGuardian": "보호자 (부모급)",
+      "create": "초대 링크 생성",
+      "creating": "생성 중…",
+      "createFailed": "초대 생성 실패",
+      "created": "초대 링크가 생성됐어요. 복사하거나 공유해 전달하세요.",
+      "copyLink": "링크 복사",
+      "share": "공유",
+      "shareTitle": "가족 앨범 초대",
+      "shareText": "가족 앨범에 함께해요",
+      "showQr": "QR 코드",
+      "hideQr": "QR 숨기기",
+      "qrAlt": "초대 링크 QR 코드",
+      "qrHint": "할머니·할아버지 폰 카메라로 비춰 주세요",
+      "pending": "대기 중인 초대",
+      "pendingLabel": "{role} 초대",
+      "expires": "만료",
+      "revoke": "철회"
+    },
+    "roleModal": {
+      "title": "{name} 님의 역할",
+      "subtitle": "권한 수준을 선택하세요.",
+      "selected": "선택됨",
+      "desc": {
+        "guardian": "업로드·기록·앨범·멤버 초대까지 가능",
+        "family": "기본은 보기·댓글·좋아요 (관리자 설정으로 확장 가능)"
       },
-      "roles": {
-        "owner": "관리자",
-        "guardian": "보호자",
-        "family": "가족"
-      },
-      "members": {
-        "heading": "구성원 {count}명",
-        "you": "나",
-        "suspended": "일시정지",
-        "removed": "제외됨"
-      },
-      "invite": {
-        "heading": "초대",
-        "role": "역할",
-        "optionFamily": "가족 (조부모·친척)",
-        "optionGuardian": "보호자 (부모급)",
-        "create": "초대 링크 생성",
-        "creating": "생성 중…",
-        "createFailed": "초대 생성 실패",
-        "created": "초대 링크가 생성됐어요. 복사하거나 공유해 전달하세요.",
-        "copyLink": "링크 복사",
-        "share": "공유",
-        "shareTitle": "가족 앨범 초대",
-        "shareText": "가족 앨범에 함께해요",
-        "showQr": "QR 코드",
-        "hideQr": "QR 숨기기",
-        "qrAlt": "초대 링크 QR 코드",
-        "qrHint": "할머니·할아버지 폰 카메라로 비춰 주세요",
-        "pending": "대기 중인 초대",
-        "pendingLabel": "{role} 초대",
-        "expires": "만료",
-        "revoke": "철회"
-      },
-      "roleModal": {
-        "title": "{name} 님의 역할",
-        "subtitle": "권한 수준을 선택하세요.",
-        "selected": "선택됨",
-        "desc": {
-          "guardian": "업로드·기록·앨범·멤버 초대까지 가능",
-          "family": "기본은 보기·댓글·좋아요 (관리자 설정으로 확장 가능)"
+      "change": "역할 변경",
+      "changing": "변경 중…",
+      "currentRole": "현재 역할",
+      "error": "역할 변경에 실패했어요"
+    },
+    "actions": {
+      "menuLabel": "멤버 관리",
+      "changeRole": "역할 변경",
+      "suspend": "일시정지",
+      "unsuspend": "정지 해제",
+      "unsuspendError": "정지 해제에 실패했어요",
+      "resetPassword": "비밀번호 재설정",
+      "remove": "가족에서 제외",
+      "cancel": "취소",
+      "close": "닫기"
+    },
+    "suspendModal": {
+      "title": "{name} 님을 일시정지할까요?",
+      "subtitle": "정지하면 로그인과 모든 세션이 즉시 차단돼요.",
+      "reasonPlaceholder": "정지 사유 (선택)",
+      "confirm": "일시정지",
+      "suspending": "정지 중…",
+      "error": "정지에 실패했어요"
+    },
+    "removeModal": {
+      "title": "{name} 님을 가족에서 제외할까요?",
+      "subtitle": "그 멤버는 더 이상 사진·일기를 볼 수 없어요. 올린 사진은 그대로 남아요. 추후 다시 초대할 수 있어요.",
+      "confirmWord": "제외",
+      "confirmHint": "확인하려면 <b>{word}</b> 라고 입력해주세요",
+      "confirm": "가족에서 제외",
+      "removing": "제외 중…",
+      "error": "제외에 실패했어요"
+    },
+    "resetModal": {
+      "title": "{name} 님 비밀번호 재설정",
+      "subtitle": "링크를 만들어 멤버에게 직접 전달해주세요. 한 번만 사용할 수 있어요.",
+      "generate": "재설정 링크 만들기",
+      "generating": "생성 중…",
+      "copy": "복사",
+      "copied": "복사됨",
+      "copyError": "복사에 실패했어요. 링크를 길게 눌러 직접 복사해주세요",
+      "validUntil": "{date} 까지 유효",
+      "error": "링크 생성에 실패했어요"
+    },
+    "permissions": {
+      "heading": "구성원 권한",
+      "description": "가족 구성원은 기본적으로 보기·댓글·좋아요만 가능해요. 아래를 켜면 모든 가족 구성원에게 적용돼요.",
+      "groups": {
+        "upload": {
+          "label": "사진·영상 업로드",
+          "description": "직접 사진과 영상을 올리고 자신이 올린 항목을 수정·삭제할 수 있어요."
         },
-        "change": "역할 변경",
-        "changing": "변경 중…",
-        "currentRole": "현재 역할",
-        "error": "역할 변경에 실패했어요"
-      },
-      "actions": {
-        "menuLabel": "멤버 관리",
-        "changeRole": "역할 변경",
-        "suspend": "일시정지",
-        "unsuspend": "정지 해제",
-        "unsuspendError": "정지 해제에 실패했어요",
-        "resetPassword": "비밀번호 재설정",
-        "remove": "가족에서 제외",
-        "cancel": "취소",
-        "close": "닫기"
-      },
-      "suspendModal": {
-        "title": "{name} 님을 일시정지할까요?",
-        "subtitle": "정지하면 로그인과 모든 세션이 즉시 차단돼요.",
-        "reasonPlaceholder": "정지 사유 (선택)",
-        "confirm": "일시정지",
-        "suspending": "정지 중…",
-        "error": "정지에 실패했어요"
-      },
-      "removeModal": {
-        "title": "{name} 님을 가족에서 제외할까요?",
-        "subtitle": "그 멤버는 더 이상 사진·일기를 볼 수 없어요. 올린 사진은 그대로 남아요. 추후 다시 초대할 수 있어요.",
-        "confirmWord": "제외",
-        "confirmHint": "확인하려면 <b>{word}</b> 라고 입력해주세요",
-        "confirm": "가족에서 제외",
-        "removing": "제외 중…",
-        "error": "제외에 실패했어요"
-      },
-      "resetModal": {
-        "title": "{name} 님 비밀번호 재설정",
-        "subtitle": "링크를 만들어 멤버에게 직접 전달해주세요. 한 번만 사용할 수 있어요.",
-        "generate": "재설정 링크 만들기",
-        "generating": "생성 중…",
-        "copy": "복사",
-        "copied": "복사됨",
-        "copyError": "복사에 실패했어요. 링크를 길게 눌러 직접 복사해주세요",
-        "validUntil": "{date} 까지 유효",
-        "error": "링크 생성에 실패했어요"
-      },
-      "permissions": {
-        "heading": "구성원 권한",
-        "description": "가족 구성원은 기본적으로 보기·댓글·좋아요만 가능해요. 아래를 켜면 모든 가족 구성원에게 적용돼요.",
-        "groups": {
-          "upload": {
-            "label": "사진·영상 업로드",
-            "description": "직접 사진과 영상을 올리고 자신이 올린 항목을 수정·삭제할 수 있어요."
-          },
-          "records": {
-            "label": "기록 작성 (성장·마일스톤·스토리)",
-            "description": "성장 기록, 마일스톤, 스토리를 작성하고 자신의 기록을 수정·삭제할 수 있어요."
-          },
-          "albums": {
-            "label": "앨범 만들기·정리",
-            "description": "앨범을 만들고 사진을 담거나 빼며 자신의 앨범을 수정·삭제할 수 있어요."
-          }
+        "records": {
+          "label": "기록 작성 (성장·마일스톤·스토리)",
+          "description": "성장 기록, 마일스톤, 스토리를 작성하고 자신의 기록을 수정·삭제할 수 있어요."
         },
-        "save": "저장",
-        "saved": "저장됨",
-        "failed": "실패"
+        "albums": {
+          "label": "앨범 만들기·정리",
+          "description": "앨범을 만들고 사진을 담거나 빼며 자신의 앨범을 수정·삭제할 수 있어요."
+        }
       },
-      "navMenus": {
-        "heading": "일반 가족에게 보일 메뉴",
-        "description": "끄면 일반 가족 구성원의 메뉴(하단 탭·사이드바)에서 숨겨져요. 타임라인·캘린더는 항상 보여요.",
-        "story": "스토리",
-        "albums": "앨범",
-        "save": "저장",
-        "saving": "저장 중…",
-        "saved": "저장됐어요"
-      },
-      "babies": {
-        "title": "아기",
-        "add": "추가",
-        "addLink": "추가하기",
-        "empty": "아기가 없어요.",
-        "addTitle": "아기 추가",
-        "name": "이름",
-        "birthDate": "생년월일",
-        "growth": "성장 기록",
-        "growthSubtitle": "키 · 몸무게 · 머리둘레",
-        "milestones": "마일스톤",
-        "milestonesSubtitle": "발달 체크리스트",
-        "addRecord": "기록 추가",
-        "addGrowthTitle": "성장 기록 추가",
-        "editGrowthTitle": "성장 기록 편집",
-        "customMilestone": "커스텀 마일스톤",
-        "edit": "수정",
-        "delete": "삭제"
-      }
+      "save": "저장",
+      "saved": "저장됨",
+      "failed": "실패"
+    },
+    "navMenus": {
+      "heading": "일반 가족에게 보일 메뉴",
+      "description": "끄면 일반 가족 구성원의 메뉴(하단 탭·사이드바)에서 숨겨져요. 타임라인·캘린더는 항상 보여요.",
+      "story": "스토리",
+      "albums": "앨범",
+      "save": "저장",
+      "saving": "저장 중…",
+      "saved": "저장됐어요"
+    },
+    "babies": {
+      "title": "아기",
+      "add": "추가",
+      "addLink": "추가하기",
+      "empty": "아기가 없어요.",
+      "addTitle": "아기 추가",
+      "name": "이름",
+      "birthDate": "생년월일",
+      "growth": "성장 기록",
+      "growthSubtitle": "키 · 몸무게 · 머리둘레",
+      "milestones": "마일스톤",
+      "milestonesSubtitle": "발달 체크리스트",
+      "addRecord": "기록 추가",
+      "addGrowthTitle": "성장 기록 추가",
+      "editGrowthTitle": "성장 기록 편집",
+      "customMilestone": "커스텀 마일스톤",
+      "edit": "수정",
+      "delete": "삭제"
     }
   },
   "admin": {
@@ -1364,6 +1360,147 @@
       "group4Title": "4. 마무리",
       "g4s1": "이 페이지에서 <b>안드로이드 앱 푸시(FCM)</b> 토글과 맨 위 <b>알림 마스터</b>를 켜요.",
       "g4s2": "가족 구성원은 앱 <b>설정 → 알림 → 푸시 알림</b>에서 알림을 켜고 <b>테스트 알림 보내기</b>로 확인하면 돼요."
+    }
+  },
+  "onboarding": {
+    "closed": {
+      "title": "초대를 받아 합류해주세요",
+      "body": "이 인스턴스는 이미 가족 설정이 끝났어요. 가족 구성원이 보낸 초대 링크를 다시 열면 이 계정으로 합류할 수 있어요.",
+      "switchAccount": "다른 계정으로 로그인"
+    },
+    "family": {
+      "title": "가족 이름을 지어주세요",
+      "subtitle": "가족 구성원들이 함께 볼 공간의 이름이에요.",
+      "placeholder": "예: 김씨네 가족"
+    },
+    "baby": {
+      "title": "아기 이름을 알려주세요",
+      "subtitle": "태명도 괜찮아요. 나중에 바꿀 수 있어요.",
+      "placeholder": "예: 예준, 콩콩이"
+    },
+    "date": {
+      "title": "생년월일을 알려주세요",
+      "subtitle": "아직 태어나지 않았다면 예정일을 선택해주세요.",
+      "placeholder": "날짜 선택",
+      "label": "생년월일"
+    },
+    "cta": {
+      "next": "다음",
+      "start": "시작하기",
+      "creating": "만드는 중…"
+    },
+    "actions": {
+      "back": "이전"
+    },
+    "errors": {
+      "familyNameRequired": "가족 이름을 입력해주세요",
+      "babyNameRequired": "아기 이름을 입력해주세요",
+      "birthDateRequired": "생년월일을 입력해주세요 (예: 2026-01-01)",
+      "invalidInput": "입력값을 확인해주세요",
+      "birthDateTooFar": "생년월일이 1년 이후일 수 없어요",
+      "createFailed": "가족을 만들지 못했어요"
+    }
+  },
+  "share": {
+    "frame": {
+      "appContinue": "앱에서 이어보기",
+      "webLoginViewAll": "로그인하고 전체 보기",
+      "familyOnly": "가족 구성원만 전체를 볼 수 있어요"
+    },
+    "story": {
+      "meta": "우리 가족 이야기",
+      "metaWithCount": "우리 가족 이야기 · 사진 {n}장",
+      "morePhotos": "사진 {n}장이 더 있어요 · 로그인하면 전체를 볼 수 있어요"
+    },
+    "album": {
+      "meta": "앨범",
+      "metaWithCount": "앨범 · 사진 {n}장",
+      "appView": "앱에서 보기",
+      "loginToView": "로그인하면 앨범의 사진을 전부 볼 수 있어요"
+    },
+    "photoset": {
+      "metaFamilyPhoto": "우리 가족의 사진",
+      "metaCount": "사진 {n}장",
+      "metaDateCount": "{date} · 사진 {n}장",
+      "morePhotos": "사진 {n}장이 더 있어요",
+      "savePhotos": "사진 {n}장 저장",
+      "loginToSave": "로그인하고 사진 저장하기",
+      "familyOnlyDownload": "원본 사진 저장은 가족만 할 수 있어요"
+    },
+    "gone": {
+      "expiredTitle": "만료된 공유 링크예요",
+      "expiredBody": "공유한 가족에게 새 링크를 요청해주세요.",
+      "revokedTitle": "해제된 공유 링크예요",
+      "revokedBody": "이 링크는 더 이상 사용할 수 없어요. 새 링크를 요청해주세요.",
+      "notfoundTitle": "찾을 수 없는 링크예요",
+      "notfoundBody": "링크가 올바른지 다시 확인해주세요."
+    }
+  },
+  "misc": {
+    "people": {
+      "title": "사람",
+      "subtitle": "얼굴로 모은 사람들",
+      "emptyTitle": "아직 인식된 사람이 없어요",
+      "emptyDescription": "새 사진을 올리면 얼굴을 인식해 사람별로 모아드려요. 처리에는 잠시 시간이 걸릴 수 있어요.",
+      "unnamed": "이름 없음",
+      "showingFirst": "먼저 {count}장 표시 중",
+      "photoCount": "사진 {count}장",
+      "cardPhotoCount": "사진 {count}",
+      "listAria": "사람 목록",
+      "noPhotosTitle": "사진이 없어요",
+      "noPhotosDescription": "이 사람의 사진이 아직 없어요.",
+      "saveFailed": "저장에 실패했어요",
+      "editName": "이름 수정",
+      "addName": "이름 붙이기",
+      "namePlaceholder": "이름",
+      "save": "저장",
+      "cancel": "취소"
+    },
+    "growth": {
+      "empty": "첫 성장 기록을 남겨보세요.",
+      "heightCm": "키 (cm)",
+      "weightKg": "몸무게 (kg)",
+      "headCm": "머리 (cm)",
+      "headCircumferenceCm": "머리둘레 (cm)",
+      "headValue": "머리 {value}cm",
+      "measuredAt": "측정일",
+      "noteOptional": "메모 (선택)",
+      "save": "저장"
+    },
+    "milestone": {
+      "categoryMotor": "운동",
+      "categoryLanguage": "언어",
+      "categorySocial": "사회성",
+      "categoryCognitive": "인지",
+      "categoryLife": "생활",
+      "addCustom": "직접 추가",
+      "achieved": "달성 ({count})",
+      "noneAchieved": "아직 달성한 마일스톤이 없어요.",
+      "ageRangeMonths": "{from}–{to}개월",
+      "label": "마일스톤",
+      "customLabel": "마일스톤 이름",
+      "achievedAt": "달성일",
+      "note": "메모",
+      "photos": "사진",
+      "selectPhotos": "사진 선택 ({count})",
+      "save": "저장"
+    },
+    "trash": {
+      "title": "휴지통",
+      "empty": "휴지통이 비어 있어요.",
+      "purgeConfirm": "\"{name}\" 을 영구 삭제할까요?\n\n원본과 모든 미리보기 파일을 저장소에서 지웁니다. 이 작업은 되돌릴 수 없어요.",
+      "purgeSuccess": "영구 삭제 완료",
+      "purgeFailed": "영구 삭제 실패",
+      "viewPhoto": "사진 보기",
+      "deletedOn": "삭제됨 {date}",
+      "restore": "복원",
+      "purge": "영구 삭제",
+      "close": "닫기"
+    },
+    "saved": {
+      "title": "북마크",
+      "emptyTitle": "저장한 항목이 없어요",
+      "emptyDescription": "사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요"
     }
   }
 }

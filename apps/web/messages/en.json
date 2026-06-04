@@ -28,100 +28,98 @@
       "ko": "한국어",
       "en": "English"
     },
-    "settings": {
-      "title": "Settings",
-      "logout": "Sign out",
-      "sections": {
-        "sns": "Social account links",
-        "family": "Family",
-        "notifications": "Notifications",
-        "display": "Display",
-        "admin": "Admin"
+    "title": "Settings",
+    "logout": "Sign out",
+    "sections": {
+      "sns": "Social account links",
+      "family": "Family",
+      "notifications": "Notifications",
+      "display": "Display",
+      "admin": "Admin"
+    },
+    "roles": {
+      "owner": "Admin",
+      "guardian": "Guardian",
+      "family": "Family"
+    },
+    "rows": {
+      "members": "Family members",
+      "membersSub": "Members · invites",
+      "babies": "Babies",
+      "push": "Push notifications",
+      "pushSub": "Register device · test · choose alerts",
+      "widget": "Home widget",
+      "widgetSub": "Widget photo · all random / bookmark pinned · random",
+      "instanceAdmin": "Instance settings",
+      "instanceAdminSub": "Auth · features · theme · SMTP · storage",
+      "trash": "Trash"
+    },
+    "account": {
+      "nameRequired": "Please enter a name.",
+      "editName": "Edit name",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "theme": {
+      "auto": "Auto",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "sns": {
+      "linked": "Social account linked",
+      "conflict": "This account is already linked to another user",
+      "empty": "Once an admin sets up social login (Kakao, Naver, etc.), you can link your account here.",
+      "connected": "Linked",
+      "connect": "Link"
+    },
+    "widget": {
+      "title": "Home widget",
+      "back": "Back to settings",
+      "intro": "Choose which photos to show in the home screen widget."
+    },
+    "notifications": {
+      "title": "Push notifications",
+      "intro": "Get notified on your phone the moment a new photo, comment, or entry is added. Turn on and test notifications for this device below.",
+      "thisDevice": {
+        "title": "This device",
+        "hint": "After turning notifications on, tap <b>Send test notification</b> to get a sample on this device. If it doesn't arrive, check the platform guides below."
       },
-      "roles": {
-        "owner": "Admin",
-        "guardian": "Guardian",
-        "family": "Family"
+      "android": {
+        "title": "Android app",
+        "badge": "Recommended",
+        "step1": "Install the bebe app, enter your <b>server address</b>, and sign in.",
+        "step2": "Turn on <b>Receive notifications on this device</b> above, then <b>Allow</b> the Android notification permission.",
+        "step3": "Tap <b>Send test notification</b> to confirm it arrives.",
+        "note": "App push only works once an admin sets up Firebase (FCM). If the permission prompt didn't appear or was declined, you can enable it in your phone's <b>Settings → Apps → bebe → Notifications</b>."
       },
-      "rows": {
-        "members": "Family members",
-        "membersSub": "Members · invites",
-        "babies": "Babies",
-        "push": "Push notifications",
-        "pushSub": "Register device · test · choose alerts",
-        "widget": "Home widget",
-        "widgetSub": "Widget photo · all random / bookmark pinned · random",
-        "instanceAdmin": "Instance settings",
-        "instanceAdminSub": "Auth · features · theme · SMTP · storage",
-        "trash": "Trash"
+      "web": {
+        "title": "Web browser",
+        "badge": "Android · desktop",
+        "step1": "Open the site in Chrome, Edge, etc. and turn on <b>Receive notifications on this device</b> above.",
+        "step2": "When the browser asks, tap <b>Allow</b>.",
+        "step3": "Confirm with <b>Send test notification</b>.",
+        "note": "If you blocked it by mistake, change it via the <b>lock icon → Notifications → Allow</b> on the left of the address bar, then turn it on again. Installing to your home screen (PWA) makes delivery more reliable."
       },
-      "account": {
-        "nameRequired": "Please enter a name.",
-        "editName": "Edit name",
-        "save": "Save",
-        "cancel": "Cancel"
+      "ios": {
+        "title": "iPhone · iPad",
+        "badge": "iOS 16.4+",
+        "step1": "Open the site in <b>Safari</b>, tap the share button → <b>Add to Home Screen</b>.",
+        "step2": "Reopen the site from the bebe icon now on your home screen.",
+        "step3": "Turn on <b>Receive notifications on this device</b> above, allow the permission, then test.",
+        "note": "On iPhone, push only works <b>when added to the home screen</b>. You can't enable it from a Safari tab (Apple policy)."
       },
-      "theme": {
-        "auto": "Auto",
-        "light": "Light",
-        "dark": "Dark"
+      "categories": {
+        "title": "Choose which alerts to receive",
+        "hint": "Turn the alert types you want on or off below. (This applies to your whole account, not per device.)"
       },
-      "sns": {
-        "linked": "Social account linked",
-        "conflict": "This account is already linked to another user",
-        "empty": "Once an admin sets up social login (Kakao, Naver, etc.), you can link your account here.",
-        "connected": "Linked",
-        "connect": "Link"
-      },
-      "widget": {
-        "title": "Home widget",
-        "back": "Back to settings",
-        "intro": "Choose which photos to show in the home screen widget."
-      },
-      "notifications": {
-        "title": "Push notifications",
-        "intro": "Get notified on your phone the moment a new photo, comment, or entry is added. Turn on and test notifications for this device below.",
-        "thisDevice": {
-          "title": "This device",
-          "hint": "After turning notifications on, tap <b>Send test notification</b> to get a sample on this device. If it doesn't arrive, check the platform guides below."
-        },
-        "android": {
-          "title": "Android app",
-          "badge": "Recommended",
-          "step1": "Install the bebe app, enter your <b>server address</b>, and sign in.",
-          "step2": "Turn on <b>Receive notifications on this device</b> above, then <b>Allow</b> the Android notification permission.",
-          "step3": "Tap <b>Send test notification</b> to confirm it arrives.",
-          "note": "App push only works once an admin sets up Firebase (FCM). If the permission prompt didn't appear or was declined, you can enable it in your phone's <b>Settings → Apps → bebe → Notifications</b>."
-        },
-        "web": {
-          "title": "Web browser",
-          "badge": "Android · desktop",
-          "step1": "Open the site in Chrome, Edge, etc. and turn on <b>Receive notifications on this device</b> above.",
-          "step2": "When the browser asks, tap <b>Allow</b>.",
-          "step3": "Confirm with <b>Send test notification</b>.",
-          "note": "If you blocked it by mistake, change it via the <b>lock icon → Notifications → Allow</b> on the left of the address bar, then turn it on again. Installing to your home screen (PWA) makes delivery more reliable."
-        },
-        "ios": {
-          "title": "iPhone · iPad",
-          "badge": "iOS 16.4+",
-          "step1": "Open the site in <b>Safari</b>, tap the share button → <b>Add to Home Screen</b>.",
-          "step2": "Reopen the site from the bebe icon now on your home screen.",
-          "step3": "Turn on <b>Receive notifications on this device</b> above, allow the permission, then test.",
-          "note": "On iPhone, push only works <b>when added to the home screen</b>. You can't enable it from a Safari tab (Apple policy)."
-        },
-        "categories": {
-          "title": "Choose which alerts to receive",
-          "hint": "Turn the alert types you want on or off below. (This applies to your whole account, not per device.)"
-        },
-        "admin": {
-          "title": "Admin settings",
-          "hint": "For notifications to reach the whole family, an admin needs to turn them on once:",
-          "step1": "Turn on the <b>notification master switch</b>.",
-          "step2": "Generate the <b>VAPID keys</b> for web push (one button).",
-          "step3": "Enter the <b>Firebase service account + client config</b> for app push.",
-          "step4": "Turn on the alert categories you want delivered.",
-          "open": "Open admin notification settings"
-        }
+      "admin": {
+        "title": "Admin settings",
+        "hint": "For notifications to reach the whole family, an admin needs to turn them on once:",
+        "step1": "Turn on the <b>notification master switch</b>.",
+        "step2": "Generate the <b>VAPID keys</b> for web push (one button).",
+        "step3": "Enter the <b>Firebase service account + client config</b> for app push.",
+        "step4": "Turn on the alert categories you want delivered.",
+        "open": "Open admin notification settings"
       }
     }
   },
@@ -834,146 +832,144 @@
     }
   },
   "family": {
-    "family": {
-      "title": "Family",
-      "settings": {
-        "title": "Settings",
-        "subtitle": "Notifications · Display · Account"
+    "title": "Family",
+    "settings": {
+      "title": "Settings",
+      "subtitle": "Notifications · Display · Account"
+    },
+    "roles": {
+      "owner": "Admin",
+      "guardian": "Guardian",
+      "family": "Family"
+    },
+    "members": {
+      "heading": "{count} members",
+      "you": "You",
+      "suspended": "Suspended",
+      "removed": "Removed"
+    },
+    "invite": {
+      "heading": "Invite",
+      "role": "Role",
+      "optionFamily": "Family (grandparents · relatives)",
+      "optionGuardian": "Guardian (parent-level)",
+      "create": "Create invite link",
+      "creating": "Creating…",
+      "createFailed": "Failed to create invite",
+      "created": "Invite link created. Copy or share it to send.",
+      "copyLink": "Copy link",
+      "share": "Share",
+      "shareTitle": "Family album invite",
+      "shareText": "Join our family album",
+      "showQr": "QR code",
+      "hideQr": "Hide QR",
+      "qrAlt": "Invite link QR code",
+      "qrHint": "Scan it with grandma or grandpa's phone camera",
+      "pending": "Pending invites",
+      "pendingLabel": "{role} invite",
+      "expires": "expires",
+      "revoke": "Revoke"
+    },
+    "roleModal": {
+      "title": "{name}'s role",
+      "subtitle": "Choose a permission level.",
+      "selected": "Selected",
+      "desc": {
+        "guardian": "Can upload, record, manage albums, and invite members",
+        "family": "View, comment, and like by default (expandable via admin settings)"
       },
-      "roles": {
-        "owner": "Admin",
-        "guardian": "Guardian",
-        "family": "Family"
-      },
-      "members": {
-        "heading": "{count} members",
-        "you": "You",
-        "suspended": "Suspended",
-        "removed": "Removed"
-      },
-      "invite": {
-        "heading": "Invite",
-        "role": "Role",
-        "optionFamily": "Family (grandparents · relatives)",
-        "optionGuardian": "Guardian (parent-level)",
-        "create": "Create invite link",
-        "creating": "Creating…",
-        "createFailed": "Failed to create invite",
-        "created": "Invite link created. Copy or share it to send.",
-        "copyLink": "Copy link",
-        "share": "Share",
-        "shareTitle": "Family album invite",
-        "shareText": "Join our family album",
-        "showQr": "QR code",
-        "hideQr": "Hide QR",
-        "qrAlt": "Invite link QR code",
-        "qrHint": "Scan it with grandma or grandpa's phone camera",
-        "pending": "Pending invites",
-        "pendingLabel": "{role} invite",
-        "expires": "expires",
-        "revoke": "Revoke"
-      },
-      "roleModal": {
-        "title": "{name}'s role",
-        "subtitle": "Choose a permission level.",
-        "selected": "Selected",
-        "desc": {
-          "guardian": "Can upload, record, manage albums, and invite members",
-          "family": "View, comment, and like by default (expandable via admin settings)"
+      "change": "Change role",
+      "changing": "Changing…",
+      "currentRole": "Current role",
+      "error": "Failed to change role"
+    },
+    "actions": {
+      "menuLabel": "Manage member",
+      "changeRole": "Change role",
+      "suspend": "Suspend",
+      "unsuspend": "Unsuspend",
+      "unsuspendError": "Failed to unsuspend",
+      "resetPassword": "Reset password",
+      "remove": "Remove from family",
+      "cancel": "Cancel",
+      "close": "Close"
+    },
+    "suspendModal": {
+      "title": "Suspend {name}?",
+      "subtitle": "Suspending blocks login and all sessions immediately.",
+      "reasonPlaceholder": "Reason for suspension (optional)",
+      "confirm": "Suspend",
+      "suspending": "Suspending…",
+      "error": "Failed to suspend"
+    },
+    "removeModal": {
+      "title": "Remove {name} from the family?",
+      "subtitle": "They will no longer be able to see photos or journals. Photos they uploaded stay. You can invite them again later.",
+      "confirmWord": "REMOVE",
+      "confirmHint": "Type <b>{word}</b> to confirm",
+      "confirm": "Remove from family",
+      "removing": "Removing…",
+      "error": "Failed to remove"
+    },
+    "resetModal": {
+      "title": "Reset {name}'s password",
+      "subtitle": "Create a link and hand it to the member directly. It can be used only once.",
+      "generate": "Create reset link",
+      "generating": "Creating…",
+      "copy": "Copy",
+      "copied": "Copied",
+      "copyError": "Couldn't copy. Long-press the link to copy it manually",
+      "validUntil": "Valid until {date}",
+      "error": "Failed to create link"
+    },
+    "permissions": {
+      "heading": "Member permissions",
+      "description": "Family members can only view, comment, and like by default. Turning the options below on applies them to all family members.",
+      "groups": {
+        "upload": {
+          "label": "Upload photos & videos",
+          "description": "Upload photos and videos directly, and edit or delete their own items."
         },
-        "change": "Change role",
-        "changing": "Changing…",
-        "currentRole": "Current role",
-        "error": "Failed to change role"
-      },
-      "actions": {
-        "menuLabel": "Manage member",
-        "changeRole": "Change role",
-        "suspend": "Suspend",
-        "unsuspend": "Unsuspend",
-        "unsuspendError": "Failed to unsuspend",
-        "resetPassword": "Reset password",
-        "remove": "Remove from family",
-        "cancel": "Cancel",
-        "close": "Close"
-      },
-      "suspendModal": {
-        "title": "Suspend {name}?",
-        "subtitle": "Suspending blocks login and all sessions immediately.",
-        "reasonPlaceholder": "Reason for suspension (optional)",
-        "confirm": "Suspend",
-        "suspending": "Suspending…",
-        "error": "Failed to suspend"
-      },
-      "removeModal": {
-        "title": "Remove {name} from the family?",
-        "subtitle": "They will no longer be able to see photos or journals. Photos they uploaded stay. You can invite them again later.",
-        "confirmWord": "REMOVE",
-        "confirmHint": "Type <b>{word}</b> to confirm",
-        "confirm": "Remove from family",
-        "removing": "Removing…",
-        "error": "Failed to remove"
-      },
-      "resetModal": {
-        "title": "Reset {name}'s password",
-        "subtitle": "Create a link and hand it to the member directly. It can be used only once.",
-        "generate": "Create reset link",
-        "generating": "Creating…",
-        "copy": "Copy",
-        "copied": "Copied",
-        "copyError": "Couldn't copy. Long-press the link to copy it manually",
-        "validUntil": "Valid until {date}",
-        "error": "Failed to create link"
-      },
-      "permissions": {
-        "heading": "Member permissions",
-        "description": "Family members can only view, comment, and like by default. Turning the options below on applies them to all family members.",
-        "groups": {
-          "upload": {
-            "label": "Upload photos & videos",
-            "description": "Upload photos and videos directly, and edit or delete their own items."
-          },
-          "records": {
-            "label": "Write records (growth · milestones · stories)",
-            "description": "Write growth records, milestones, and stories, and edit or delete their own records."
-          },
-          "albums": {
-            "label": "Create & organize albums",
-            "description": "Create albums, add or remove photos, and edit or delete their own albums."
-          }
+        "records": {
+          "label": "Write records (growth · milestones · stories)",
+          "description": "Write growth records, milestones, and stories, and edit or delete their own records."
         },
-        "save": "Save",
-        "saved": "Saved",
-        "failed": "Failed"
+        "albums": {
+          "label": "Create & organize albums",
+          "description": "Create albums, add or remove photos, and edit or delete their own albums."
+        }
       },
-      "navMenus": {
-        "heading": "Menus visible to regular family",
-        "description": "Turning these off hides them from regular family members' menus (bottom tabs · sidebar). Timeline and Calendar are always visible.",
-        "story": "Stories",
-        "albums": "Albums",
-        "save": "Save",
-        "saving": "Saving…",
-        "saved": "Saved"
-      },
-      "babies": {
-        "title": "Babies",
-        "add": "Add",
-        "addLink": "Add one",
-        "empty": "No babies yet.",
-        "addTitle": "Add baby",
-        "name": "Name",
-        "birthDate": "Date of birth",
-        "growth": "Growth records",
-        "growthSubtitle": "Height · Weight · Head circumference",
-        "milestones": "Milestones",
-        "milestonesSubtitle": "Development checklist",
-        "addRecord": "Add record",
-        "addGrowthTitle": "Add growth record",
-        "editGrowthTitle": "Edit growth record",
-        "customMilestone": "Custom milestone",
-        "edit": "Edit",
-        "delete": "Delete"
-      }
+      "save": "Save",
+      "saved": "Saved",
+      "failed": "Failed"
+    },
+    "navMenus": {
+      "heading": "Menus visible to regular family",
+      "description": "Turning these off hides them from regular family members' menus (bottom tabs · sidebar). Timeline and Calendar are always visible.",
+      "story": "Stories",
+      "albums": "Albums",
+      "save": "Save",
+      "saving": "Saving…",
+      "saved": "Saved"
+    },
+    "babies": {
+      "title": "Babies",
+      "add": "Add",
+      "addLink": "Add one",
+      "empty": "No babies yet.",
+      "addTitle": "Add baby",
+      "name": "Name",
+      "birthDate": "Date of birth",
+      "growth": "Growth records",
+      "growthSubtitle": "Height · Weight · Head circumference",
+      "milestones": "Milestones",
+      "milestonesSubtitle": "Development checklist",
+      "addRecord": "Add record",
+      "addGrowthTitle": "Add growth record",
+      "editGrowthTitle": "Edit growth record",
+      "customMilestone": "Custom milestone",
+      "edit": "Edit",
+      "delete": "Delete"
     }
   },
   "admin": {
@@ -1364,6 +1360,147 @@
       "group4Title": "4. Finish",
       "g4s1": "On this page, turn on the <b>Android app push (FCM)</b> toggle and the <b>notification master</b> at the top.",
       "g4s2": "Family members turn on notifications in the app under <b>Settings → Notifications → Push notifications</b> and confirm with <b>Send test notification</b>."
+    }
+  },
+  "onboarding": {
+    "closed": {
+      "title": "Join with an invite",
+      "body": "This instance already has a family set up. Reopen the invite link a family member sent you to join with this account.",
+      "switchAccount": "Sign in with a different account"
+    },
+    "family": {
+      "title": "Name your family",
+      "subtitle": "This is the name of the space everyone will share.",
+      "placeholder": "e.g. The Kim Family"
+    },
+    "baby": {
+      "title": "What's your baby's name?",
+      "subtitle": "A nickname works too. You can change it later.",
+      "placeholder": "e.g. Yejun, Kongkong"
+    },
+    "date": {
+      "title": "When was your baby born?",
+      "subtitle": "Not born yet? Pick the due date.",
+      "placeholder": "Pick a date",
+      "label": "Date of birth"
+    },
+    "cta": {
+      "next": "Next",
+      "start": "Get started",
+      "creating": "Creating…"
+    },
+    "actions": {
+      "back": "Back"
+    },
+    "errors": {
+      "familyNameRequired": "Please enter a family name",
+      "babyNameRequired": "Please enter your baby's name",
+      "birthDateRequired": "Please enter a date of birth (e.g. 2026-01-01)",
+      "invalidInput": "Please check your input",
+      "birthDateTooFar": "The date of birth can't be more than a year ahead",
+      "createFailed": "Couldn't create your family"
+    }
+  },
+  "share": {
+    "frame": {
+      "appContinue": "Continue in the app",
+      "webLoginViewAll": "Log in to see everything",
+      "familyOnly": "Only family members can see the full collection"
+    },
+    "story": {
+      "meta": "Our family's story",
+      "metaWithCount": "Our family's story · {n} photos",
+      "morePhotos": "{n} more photos · Log in to see them all"
+    },
+    "album": {
+      "meta": "Album",
+      "metaWithCount": "Album · {n} photos",
+      "appView": "Open in the app",
+      "loginToView": "Log in to see every photo in this album"
+    },
+    "photoset": {
+      "metaFamilyPhoto": "A photo from our family",
+      "metaCount": "{n} photos",
+      "metaDateCount": "{date} · {n} photos",
+      "morePhotos": "{n} more photos",
+      "savePhotos": "Save {n} photos",
+      "loginToSave": "Log in to save photos",
+      "familyOnlyDownload": "Only family can save the original photos"
+    },
+    "gone": {
+      "expiredTitle": "This share link has expired",
+      "expiredBody": "Ask the family who shared it for a new link.",
+      "revokedTitle": "This share link was turned off",
+      "revokedBody": "This link can no longer be used. Please request a new one.",
+      "notfoundTitle": "We couldn't find this link",
+      "notfoundBody": "Please double-check that the link is correct."
+    }
+  },
+  "misc": {
+    "people": {
+      "title": "People",
+      "subtitle": "Gathered by face",
+      "emptyTitle": "No people recognized yet",
+      "emptyDescription": "Upload new photos and we'll recognize faces and group them by person. This may take a little while.",
+      "unnamed": "Unnamed",
+      "showingFirst": "Showing first {count}",
+      "photoCount": "{count} photos",
+      "cardPhotoCount": "{count} photos",
+      "listAria": "People list",
+      "noPhotosTitle": "No photos",
+      "noPhotosDescription": "This person doesn't have any photos yet.",
+      "saveFailed": "Couldn't save",
+      "editName": "Edit name",
+      "addName": "Add name",
+      "namePlaceholder": "Name",
+      "save": "Save",
+      "cancel": "Cancel"
+    },
+    "growth": {
+      "empty": "Add your first growth record.",
+      "heightCm": "Height (cm)",
+      "weightKg": "Weight (kg)",
+      "headCm": "Head (cm)",
+      "headCircumferenceCm": "Head circumference (cm)",
+      "headValue": "Head {value}cm",
+      "measuredAt": "Measured on",
+      "noteOptional": "Note (optional)",
+      "save": "Save"
+    },
+    "milestone": {
+      "categoryMotor": "Motor",
+      "categoryLanguage": "Language",
+      "categorySocial": "Social",
+      "categoryCognitive": "Cognitive",
+      "categoryLife": "Daily life",
+      "addCustom": "Add your own",
+      "achieved": "Achieved ({count})",
+      "noneAchieved": "No milestones achieved yet.",
+      "ageRangeMonths": "{from}–{to} months",
+      "label": "Milestone",
+      "customLabel": "Milestone name",
+      "achievedAt": "Date achieved",
+      "note": "Note",
+      "photos": "Photos",
+      "selectPhotos": "Select photos ({count})",
+      "save": "Save"
+    },
+    "trash": {
+      "title": "Trash",
+      "empty": "Trash is empty.",
+      "purgeConfirm": "Permanently delete \"{name}\"?\n\nThis removes the original and all preview files from storage. This can't be undone.",
+      "purgeSuccess": "Permanently deleted",
+      "purgeFailed": "Couldn't delete permanently",
+      "viewPhoto": "View photo",
+      "deletedOn": "Deleted {date}",
+      "restore": "Restore",
+      "purge": "Delete forever",
+      "close": "Close"
+    },
+    "saved": {
+      "title": "Bookmarks",
+      "emptyTitle": "Nothing saved yet",
+      "emptyDescription": "Tap the bookmark icon on a photo or story and it'll gather here"
     }
   }
 }
