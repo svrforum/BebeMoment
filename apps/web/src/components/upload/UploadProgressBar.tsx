@@ -55,9 +55,9 @@ export function UploadProgressBar({ assetId, uploadToken, onComplete }: Props) {
   }, [assetId, uploadToken, onComplete])
 
   return (
-    <div aria-label={t('progressAria')} className="flex items-center gap-2">
+    <div aria-label={t('progress.aria')} className="flex items-center gap-2">
       <progress value={progress} max={1} className="h-1 flex-1" />
-      <span className="text-xs text-base-500">{t(`status.${status}`)}</span>
+      <span className="text-xs text-base-500">{t(`progress.${status}`)}</span>
     </div>
   )
 }

@@ -441,156 +441,41 @@
       "dow5": "금",
       "dow6": "토",
       "hasStory": "스토리 있음"
-    },
-    "timeline": {
-      "composer": {
-        "writeToday": "오늘 이야기 쓰기",
-        "placeholder": "오늘 어떤 이야기가 있었어요?",
-        "photosAttached": "사진 {count}장 첨부됨",
-        "collapse": "접기",
-        "close": "닫기",
-        "file": "파일",
-        "remove": "제거",
-        "edit": "편집",
-        "attachPhoto": "사진 첨부",
-        "visibility": "공개 범위",
-        "visibilityFamily": "전체 공개",
-        "visibilityGuardians": "보호자만",
-        "visibilityFamilyDesc": "가족 모두가 볼 수 있어요",
-        "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요",
-        "preparingPhotos": "사진 준비 중…",
-        "cancel": "취소",
-        "submit": "올리기",
-        "submitting": "올리는 중…",
-        "needPhoto": "사진을 최소 1장 추가해주세요",
-        "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
-        "submitFailed": "글 등록 실패"
-      },
-      "sort": {
-        "ariaLabel": "타임라인 정렬",
-        "taken": "촬영일순",
-        "uploaded": "업로드순"
-      },
-      "card": {
-        "statusUploading": "올리는 중",
-        "statusProcessing": "처리 중",
-        "statusPending": "준비 중",
-        "statusFailed": "업로드 실패",
-        "retry": "다시 시도",
-        "delete": "삭제",
-        "retrying": "다시 처리하고 있어요",
-        "retryFailed": "다시 시도하지 못했어요",
-        "deleteFailed": "삭제하지 못했어요"
-      },
-      "bucket": {
-        "photoCount": "{count}장",
-        "morePhotos": "사진 {count}장 더보기",
-        "moreStories": "스토리 {count}개 더보기"
-      },
-      "memories": {
-        "view": "추억 보기",
-        "empty": "그날의 스토리를 다시 만나보세요"
-      },
-      "grid": {
-        "loadMoreFailed": "더 불러오지 못했어요. 잠시 후 다시 시도해주세요",
-        "deletePartialFailed": "일부 삭제 실패",
-        "deletePartialDesc": "{done}/{total}개 삭제됨. 다시 시도해주세요.",
-        "deletedCount": "{count}장 삭제됨",
-        "deletedDesc": "휴지통에서 복구할 수 있어요",
-        "emptyTitle": "아직 올라온 사진이 없어요",
-        "emptyViewerDesc": "곧 새로운 사진이 올라올 거예요",
-        "emptyUploaderDesc": "우측 하단 + 버튼을 눌러 첫 사진을 올려보세요",
-        "seenUpTo": "여기까지 봤어요",
-        "confirmDeleteTitle": "{count}장을 삭제할까요?",
-        "confirmDeleteDesc": "휴지통으로 옮겨지고, 거기서 30일 안에 복구할 수 있어요.",
-        "clearSelection": "선택 해제",
-        "selectedCount": "{count}장 선택됨",
-        "delete": "삭제",
-        "addToAlbum": "앨범에 추가",
-        "menuDetail": "상세 보기",
-        "menuSelect": "선택에 추가",
-        "menuDeselect": "선택에서 제거",
-        "menuSave": "저장",
-        "menuAddToAlbum": "앨범에 추가",
-        "menuDelete": "삭제"
-      },
-      "page": {
-        "dateTitle": "{month}월 {day}일",
-        "weekday0": "일요일",
-        "weekday1": "월요일",
-        "weekday2": "화요일",
-        "weekday3": "수요일",
-        "weekday4": "목요일",
-        "weekday5": "금요일",
-        "weekday6": "토요일",
-        "photoCount": "사진 {count}",
-        "storyCount": "스토리 {count}",
-        "backToCalendar": "캘린더로 돌아가기",
-        "toCalendar": "캘린더로",
-        "dateEmpty": "이 날짜에 올린 게 없어요.",
-        "memories": "추억",
-        "memoriesNew": "추억 (새 추억)",
-        "people": "사람",
-        "peopleNew": "사람 (새 사람)",
-        "me": "나"
-      },
-      "calendar": {
-        "title": "캘린더",
-        "photoCount": "{count}장",
-        "close": "닫기",
-        "prevYear": "이전 해",
-        "nextYear": "다음 해",
-        "year": "{year}년",
-        "monthShort": "{month}월",
-        "today": "오늘",
-        "prevMonth": "이전 달",
-        "nextMonth": "다음 달",
-        "dow0": "일",
-        "dow1": "월",
-        "dow2": "화",
-        "dow3": "수",
-        "dow4": "목",
-        "dow5": "금",
-        "dow6": "토",
-        "hasStory": "스토리 있음"
-      }
     }
   },
   "viewer": {
-    "viewer": {
-      "actions": {
-        "close": "닫기",
-        "download": "다운로드",
-        "downloadOriginal": "원본 다운로드",
-        "savingPhoto": "사진을 저장하고 있어요",
-        "menu": "메뉴",
-        "info": "정보",
-        "moveToTrash": "휴지통으로 이동",
-        "prevPhoto": "이전 사진",
-        "nextPhoto": "다음 사진",
-        "comments": "댓글",
-        "addToAlbum": "앨범에 추가",
-        "movedToTrash": "휴지통으로 옮겼어요",
-        "deleteFailed": "삭제하지 못했어요. 잠시 후 다시 시도해주세요",
-        "trashConfirmTitle": "휴지통으로 옮길까요?",
-        "trashConfirmDescription": "휴지통에서 다시 복원할 수 있어요.",
-        "trashConfirmLabel": "휴지통으로",
-        "trashConfirmingLabel": "옮기는 중…"
-      },
-      "info": {
-        "details": "세부정보",
-        "comments": "댓글",
-        "commentsTitle": "댓글 {count}",
-        "photoInfo": "사진 정보"
-      },
-      "story": {
-        "count": "{index}/{total}"
-      },
-      "video": {
-        "processing": "처리 중…",
-        "unsupportedFormat": "이 기기에서 재생할 수 없는 형식이에요.",
-        "play": "재생"
-      }
+    "actions": {
+      "close": "닫기",
+      "download": "다운로드",
+      "downloadOriginal": "원본 다운로드",
+      "savingPhoto": "사진을 저장하고 있어요",
+      "menu": "메뉴",
+      "info": "정보",
+      "moveToTrash": "휴지통으로 이동",
+      "prevPhoto": "이전 사진",
+      "nextPhoto": "다음 사진",
+      "comments": "댓글",
+      "addToAlbum": "앨범에 추가",
+      "movedToTrash": "휴지통으로 옮겼어요",
+      "deleteFailed": "삭제하지 못했어요. 잠시 후 다시 시도해주세요",
+      "trashConfirmTitle": "휴지통으로 옮길까요?",
+      "trashConfirmDescription": "휴지통에서 다시 복원할 수 있어요.",
+      "trashConfirmLabel": "휴지통으로",
+      "trashConfirmingLabel": "옮기는 중…"
+    },
+    "info": {
+      "details": "세부정보",
+      "comments": "댓글",
+      "commentsTitle": "댓글 {count}",
+      "photoInfo": "사진 정보"
+    },
+    "story": {
+      "count": "{index}/{total}"
+    },
+    "video": {
+      "processing": "처리 중…",
+      "unsupportedFormat": "이 기기에서 재생할 수 없는 형식이에요.",
+      "play": "재생"
     }
   },
   "social": {
@@ -690,192 +575,188 @@
     }
   },
   "story": {
-    "story": {
-      "list": {
-        "title": "스토리",
-        "write": "쓰기",
-        "writeStory": "스토리 쓰기",
-        "searchPlaceholder": "스토리 검색 (제목·내용)",
-        "growth": "성장 기록",
-        "growthSub": "키 · 몸무게",
-        "milestones": "마일스톤",
-        "milestonesSub": "발달 기록",
-        "noResults": "검색 결과가 없어요",
-        "emptyTitle": "첫 스토리를 시작해볼까요",
-        "emptyDesc": "오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요",
-        "emptyViewerTitle": "아직 올라온 스토리가 없어요",
-        "emptyViewerDesc": "곧 새로운 이야기가 올라올 거예요",
-        "enableNotifications": "알림 켜기",
-        "monthLabel": "{year}년 {month}월"
-      },
-      "detail": {
-        "headerTitle": "스토리",
-        "back": "뒤로",
-        "cancel": "취소",
-        "editTitle": "스토리 편집",
-        "edit": "편집",
-        "savePhotos": "사진 저장",
-        "storyFallback": "스토리",
-        "guardiansOnly": "보호자만",
-        "dateLine": "{date} · {day}요일",
-        "monthDay": "{m}월 {d}일",
-        "photoMeta": "사진 {n}장",
-        "photoMetaWithRange": "사진 {n}장 · {range}",
-        "viewSlide": "슬라이드 보기",
-        "viewGrid": "격자 보기",
-        "addToAlbum": "앨범에 추가",
-        "retryLater": "잠시 후 다시 시도해주세요",
-        "bookmark": "북마크",
-        "bookmarked": "북마크됨",
-        "bookmarkAdd": "북마크에 추가",
-        "bookmarkRemove": "북마크 취소",
-        "weekday": {
-          "sun": "일",
-          "mon": "월",
-          "tue": "화",
-          "wed": "수",
-          "thu": "목",
-          "fri": "금",
-          "sat": "토"
-        }
-      },
-      "edit": {
-        "bodyPlaceholder": "오늘 어떤 이야기가 있었어요?",
-        "addPhoto": "사진 추가",
-        "remove": "제거",
-        "editPhoto": "편집",
-        "processing": "처리 중",
-        "file": "파일",
-        "save": "저장",
-        "saving": "저장 중…",
-        "maxPhotos": "사진은 최대 {max}장까지예요",
-        "needContent": "내용이나 사진을 추가해주세요",
-        "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
-        "saveFailed": "저장에 실패했어요"
-      },
-      "delete": {
-        "trigger": "삭제",
-        "confirmTitle": "스토리를 삭제할까요?",
-        "confirmDesc": "삭제한 스토리는 복구할 수 없어요.",
-        "alsoPhotos": "포함된 사진 {n}장도 함께 삭제",
-        "photosToTrash": "사진도 휴지통으로 이동해요",
-        "photosKept": "사진은 그대로 남겨둬요",
-        "deleting": "삭제 중…",
-        "deleteStoryAndPhotos": "스토리 + 사진 {n}장 삭제",
-        "deleteStoryOnly": "스토리만 삭제",
-        "cancel": "취소"
-      },
-      "picker": {
-        "title": "사진 선택 ({n}/{max})",
-        "processing": "처리 중",
-        "confirm": "확인"
-      },
-      "mood": {
-        "happy": "기뻐요",
-        "grateful": "감사해요",
-        "tired": "지쳐요",
-        "sad": "슬퍼요",
-        "proud": "자랑스러워요",
-        "calm": "차분해요"
-      },
-      "card": {
-        "label": "스토리"
-      },
-      "dateFilter": {
-        "filterByDate": "날짜로 필터",
-        "clear": "날짜 필터 지우기"
+    "list": {
+      "title": "스토리",
+      "write": "쓰기",
+      "writeStory": "스토리 쓰기",
+      "searchPlaceholder": "스토리 검색 (제목·내용)",
+      "growth": "성장 기록",
+      "growthSub": "키 · 몸무게",
+      "milestones": "마일스톤",
+      "milestonesSub": "발달 기록",
+      "noResults": "검색 결과가 없어요",
+      "emptyTitle": "첫 스토리를 시작해볼까요",
+      "emptyDesc": "오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요",
+      "emptyViewerTitle": "아직 올라온 스토리가 없어요",
+      "emptyViewerDesc": "곧 새로운 이야기가 올라올 거예요",
+      "enableNotifications": "알림 켜기",
+      "monthLabel": "{year}년 {month}월"
+    },
+    "detail": {
+      "headerTitle": "스토리",
+      "back": "뒤로",
+      "cancel": "취소",
+      "editTitle": "스토리 편집",
+      "edit": "편집",
+      "savePhotos": "사진 저장",
+      "storyFallback": "스토리",
+      "guardiansOnly": "보호자만",
+      "dateLine": "{date} · {day}요일",
+      "monthDay": "{m}월 {d}일",
+      "photoMeta": "사진 {n}장",
+      "photoMetaWithRange": "사진 {n}장 · {range}",
+      "viewSlide": "슬라이드 보기",
+      "viewGrid": "격자 보기",
+      "addToAlbum": "앨범에 추가",
+      "retryLater": "잠시 후 다시 시도해주세요",
+      "bookmark": "북마크",
+      "bookmarked": "북마크됨",
+      "bookmarkAdd": "북마크에 추가",
+      "bookmarkRemove": "북마크 취소",
+      "weekday": {
+        "sun": "일",
+        "mon": "월",
+        "tue": "화",
+        "wed": "수",
+        "thu": "목",
+        "fri": "금",
+        "sat": "토"
       }
+    },
+    "edit": {
+      "bodyPlaceholder": "오늘 어떤 이야기가 있었어요?",
+      "addPhoto": "사진 추가",
+      "remove": "제거",
+      "editPhoto": "편집",
+      "processing": "처리 중",
+      "file": "파일",
+      "save": "저장",
+      "saving": "저장 중…",
+      "maxPhotos": "사진은 최대 {max}장까지예요",
+      "needContent": "내용이나 사진을 추가해주세요",
+      "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
+      "saveFailed": "저장에 실패했어요"
+    },
+    "delete": {
+      "trigger": "삭제",
+      "confirmTitle": "스토리를 삭제할까요?",
+      "confirmDesc": "삭제한 스토리는 복구할 수 없어요.",
+      "alsoPhotos": "포함된 사진 {n}장도 함께 삭제",
+      "photosToTrash": "사진도 휴지통으로 이동해요",
+      "photosKept": "사진은 그대로 남겨둬요",
+      "deleting": "삭제 중…",
+      "deleteStoryAndPhotos": "스토리 + 사진 {n}장 삭제",
+      "deleteStoryOnly": "스토리만 삭제",
+      "cancel": "취소"
+    },
+    "picker": {
+      "title": "사진 선택 ({n}/{max})",
+      "processing": "처리 중",
+      "confirm": "확인"
+    },
+    "mood": {
+      "happy": "기뻐요",
+      "grateful": "감사해요",
+      "tired": "지쳐요",
+      "sad": "슬퍼요",
+      "proud": "자랑스러워요",
+      "calm": "차분해요"
+    },
+    "card": {
+      "label": "스토리"
+    },
+    "dateFilter": {
+      "filterByDate": "날짜로 필터",
+      "clear": "날짜 필터 지우기"
     }
   },
   "album": {
-    "album": {
-      "list": {
-        "title": "앨범",
-        "people": "사람",
-        "bookmarks": "북마크",
-        "searchPlaceholder": "앨범 이름 검색",
-        "noResults": "검색 결과가 없어요",
-        "emptyCreateTitle": "첫 앨범을 만들어보세요",
-        "emptyCreateDescription": "\"2026 → 여행\" 처럼 폴더로 묶어서 정리할 수 있어요",
-        "emptyTitle": "아직 앨범이 없어요",
-        "emptyDescription": "관리자가 사진을 모아 앨범으로 만들면 여기에 보여요"
-      },
-      "detail": {
-        "assetCount": "{count}장",
-        "storyCount": " · 스토리 {count}개",
-        "childCount": "{count}개 하위 앨범",
-        "childAlbums": "하위 앨범",
-        "stories": "스토리",
-        "media": "사진 · 영상",
-        "emptyTitle": "아직 사진이 없어요",
-        "emptyDescription": "사진을 보고 우상단 메뉴 → \"앨범에 추가\" 로 담아보세요",
-        "truncated": "먼저 {shown}장 표시 중 · 전체 {total}장"
-      },
-      "create": {
-        "button": "새 앨범",
-        "title": "새 앨범",
-        "parent": "상위: {name}",
-        "namePlaceholder": "앨범 이름",
-        "close": "닫기",
-        "cancel": "취소",
-        "submit": "만들기",
-        "failed": "앨범 생성 실패"
-      },
-      "menu": {
-        "menu": "메뉴",
-        "close": "닫기",
-        "cancel": "취소",
-        "save": "저장",
-        "rename": "이름 바꾸기",
-        "renameTitle": "이름 바꾸기",
-        "renameFailed": "이름 변경 실패",
-        "move": "다른 앨범으로 이동",
-        "moveTitle": "다른 앨범으로 이동",
-        "moveDescription": "\"{name}\" 을(를) 넣을 위치를 골라주세요.",
-        "moveToRoot": "최상위 (앨범 목록)",
-        "moveFailed": "이동 실패",
-        "movedToChild": "하위 앨범으로 이동했어요",
-        "movedToRoot": "최상위로 이동했어요",
-        "delete": "앨범 삭제",
-        "deleteConfirm": "안에 사진이나 하위 앨범이 있어요. 함께 삭제할까요?",
-        "deleteFailed": "삭제 실패",
-        "makeSecret": "비밀 앨범으로 전환",
-        "unsecret": "비밀 해제",
-        "secretEnabled": "비밀 앨범으로 전환됨",
-        "secretRemoved": "비밀 해제됨",
-        "changeFailed": "변경 실패",
-        "loadFailed": "앨범 목록을 불러오지 못했어요"
-      },
-      "picker": {
-        "header": "앨범에 추가",
-        "headerStory": "스토리 앨범에 추가",
-        "headerPhotos": "사진 {count}장 앨범에 추가",
-        "empty": "아직 앨범이 없어요. 위에 입력해서 첫 앨범을 만들어보세요.",
-        "loadFailed": "앨범 목록을 불러오지 못했어요",
-        "addFailed": "추가 실패",
-        "added": "{count}장 추가됨",
-        "duplicates": "{count}장은 이미 있었어요",
-        "expand": "펼치기",
-        "collapse": "접기",
-        "create": "만들기",
-        "createPlaceholder": "새 앨범 만들기",
-        "createFailed": "앨범 생성 실패"
-      },
-      "share": {
-        "button": "공유"
-      },
-      "breadcrumbs": {
-        "ariaPath": "앨범 경로",
-        "albums": "앨범"
-      },
-      "story": {
-        "days": ["일", "월", "화", "수", "목", "금", "토"],
-        "date": "{month}월 {day}일 ({weekday})",
-        "photoCount": "· 사진 {count}",
-        "noContent": "내용 없음",
-        "remove": "앨범에서 제거",
-        "removeFailed": "앨범에서 제거하지 못했어요"
-      }
+    "list": {
+      "title": "앨범",
+      "people": "사람",
+      "bookmarks": "북마크",
+      "searchPlaceholder": "앨범 이름 검색",
+      "noResults": "검색 결과가 없어요",
+      "emptyCreateTitle": "첫 앨범을 만들어보세요",
+      "emptyCreateDescription": "\"2026 → 여행\" 처럼 폴더로 묶어서 정리할 수 있어요",
+      "emptyTitle": "아직 앨범이 없어요",
+      "emptyDescription": "관리자가 사진을 모아 앨범으로 만들면 여기에 보여요"
+    },
+    "detail": {
+      "assetCount": "{count}장",
+      "storyCount": " · 스토리 {count}개",
+      "childCount": "{count}개 하위 앨범",
+      "childAlbums": "하위 앨범",
+      "stories": "스토리",
+      "media": "사진 · 영상",
+      "emptyTitle": "아직 사진이 없어요",
+      "emptyDescription": "사진을 보고 우상단 메뉴 → \"앨범에 추가\" 로 담아보세요",
+      "truncated": "먼저 {shown}장 표시 중 · 전체 {total}장"
+    },
+    "create": {
+      "button": "새 앨범",
+      "title": "새 앨범",
+      "parent": "상위: {name}",
+      "namePlaceholder": "앨범 이름",
+      "close": "닫기",
+      "cancel": "취소",
+      "submit": "만들기",
+      "failed": "앨범 생성 실패"
+    },
+    "menu": {
+      "menu": "메뉴",
+      "close": "닫기",
+      "cancel": "취소",
+      "save": "저장",
+      "rename": "이름 바꾸기",
+      "renameTitle": "이름 바꾸기",
+      "renameFailed": "이름 변경 실패",
+      "move": "다른 앨범으로 이동",
+      "moveTitle": "다른 앨범으로 이동",
+      "moveDescription": "\"{name}\" 을(를) 넣을 위치를 골라주세요.",
+      "moveToRoot": "최상위 (앨범 목록)",
+      "moveFailed": "이동 실패",
+      "movedToChild": "하위 앨범으로 이동했어요",
+      "movedToRoot": "최상위로 이동했어요",
+      "delete": "앨범 삭제",
+      "deleteConfirm": "안에 사진이나 하위 앨범이 있어요. 함께 삭제할까요?",
+      "deleteFailed": "삭제 실패",
+      "makeSecret": "비밀 앨범으로 전환",
+      "unsecret": "비밀 해제",
+      "secretEnabled": "비밀 앨범으로 전환됨",
+      "secretRemoved": "비밀 해제됨",
+      "changeFailed": "변경 실패",
+      "loadFailed": "앨범 목록을 불러오지 못했어요"
+    },
+    "picker": {
+      "header": "앨범에 추가",
+      "headerStory": "스토리 앨범에 추가",
+      "headerPhotos": "사진 {count}장 앨범에 추가",
+      "empty": "아직 앨범이 없어요. 위에 입력해서 첫 앨범을 만들어보세요.",
+      "loadFailed": "앨범 목록을 불러오지 못했어요",
+      "addFailed": "추가 실패",
+      "added": "{count}장 추가됨",
+      "duplicates": "{count}장은 이미 있었어요",
+      "expand": "펼치기",
+      "collapse": "접기",
+      "create": "만들기",
+      "createPlaceholder": "새 앨범 만들기",
+      "createFailed": "앨범 생성 실패"
+    },
+    "share": {
+      "button": "공유"
+    },
+    "breadcrumbs": {
+      "ariaPath": "앨범 경로",
+      "albums": "앨범"
+    },
+    "story": {
+      "days": ["일", "월", "화", "수", "목", "금", "토"],
+      "date": "{month}월 {day}일 ({weekday})",
+      "photoCount": "· 사진 {count}",
+      "noContent": "내용 없음",
+      "remove": "앨범에서 제거",
+      "removeFailed": "앨범에서 제거하지 못했어요"
     }
   },
   "family": {
@@ -1726,13 +1607,19 @@
       }
     },
     "status": {
+      "aria": "업로드 상태",
+      "uploading": "{n}개 업로드 중 · {pct}%",
+      "processing": "{n}개 처리 중…",
+      "done": "업로드 완료"
+    },
+    "sheetTitle": "사진 · 영상 올리기",
+    "progress": {
       "uploading": "업로드 중",
       "processing": "처리 중",
       "ready": "완료",
-      "failed": "실패"
-    },
-    "sheetTitle": "사진 · 영상 올리기",
-    "progressAria": "업로드 진행 상황"
+      "failed": "실패",
+      "aria": "업로드 진행 상황"
+    }
   },
   "memories": {
     "title": "추억",
