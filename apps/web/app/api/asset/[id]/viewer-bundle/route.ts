@@ -4,6 +4,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
+import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { likersForAsset } from '@/server/like/list-for-asset'
 import { NextResponse } from 'next/server'
 
@@ -20,8 +21,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const { id } = await params
     const sp = new URL(req.url).searchParams
     const sort = sp.get('sort') === 'uploaded' ? 'uploaded' : 'taken'
+    const ctxParam = sp.get('ctx') ?? undefined
     const neighborIds = await resolveNeighborIds(
-      sp.get('ctx') ?? undefined,
+      ctxParam,
       {
         familyId: ctx.family.id,
         userId: ctx.user.id,
@@ -37,6 +39,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       getMediaClient(),
     )
     if (!bundle) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+
+    const storyCtx = await resolveStoryViewerCtx(
+      ctxParam,
+      neighborIds,
+      bundle.current.id,
+      ctx.family.id,
+      prismaPublic,
+    )
 
     // 새 자산의 social state (좋아요·북마크·댓글수·좋아요 목록) — chrome 컴포넌트가
     // 마운트 시 자체 fetch 하지 않으므로 ViewerShell 이 navigateTo 응답으로 controlled
@@ -101,6 +111,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
       filename: assetRow.originalFilename,
       caption: assetRow.caption,
+      storyCtx,
       canDelete: {
         uploadedByUserId: assetRow.uploadedByUserId,
       },

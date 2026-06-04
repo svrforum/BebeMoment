@@ -3,6 +3,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
+import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { likersForAsset } from '@/server/like/list-for-asset'
@@ -108,6 +109,14 @@ export default async function DetailPage({
     deletedAt: c.deletedAt?.toISOString() ?? null,
   }))
 
+  const storyCtx = await resolveStoryViewerCtx(
+    ctxParam,
+    neighborIds,
+    bundle.current.id,
+    ctx.family.id,
+    prismaPublic,
+  )
+
   return (
     <ViewerShell
       initialCurrent={bundle.current}
@@ -142,6 +151,7 @@ export default async function DetailPage({
       initialComments={initialComments}
       initialFilename={asset.originalFilename}
       initialCaption={asset.caption}
+      initialStoryCtx={storyCtx}
       sort={sort}
       viewerCtx={ctxParam ?? null}
     />

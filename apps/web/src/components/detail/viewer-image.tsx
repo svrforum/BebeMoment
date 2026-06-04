@@ -1,6 +1,7 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
@@ -35,6 +36,7 @@ export function ViewerImage({
   navigateTo,
   chromeVisible,
   onToggleChrome,
+  storyCtx,
 }: {
   current: AssetSlim
   siblings: {
@@ -48,6 +50,8 @@ export function ViewerImage({
    *  action bar so chrome doesn't sit on top of the photo. */
   chromeVisible: boolean
   onToggleChrome?: () => void
+  /** 스토리에서 열렸을 때 하단에 스토리 본문 + 순번(1/4)을 보여준다. */
+  storyCtx?: StoryViewerCtx | null
 }) {
   const router = useRouter()
 
@@ -97,6 +101,7 @@ export function ViewerImage({
       onPrev={goPrev}
       onClose={goBack}
       onTap={onToggleChrome}
+      storyCtx={storyCtx ?? null}
     />
   )
 }
@@ -110,6 +115,7 @@ function SwiperViewport({
   onPrev,
   onClose,
   onTap,
+  storyCtx,
 }: {
   current: AssetSlim
   prev: AssetSlim | null
@@ -119,6 +125,7 @@ function SwiperViewport({
   onPrev: () => void
   onClose: () => void
   onTap: (() => void) | undefined
+  storyCtx?: StoryViewerCtx | null
 }) {
   // 슬라이드 배열 + initialSlide 계산. 타임라인 = 최신이 위 → 카루셀에서
   // "다음으로 넘기는 방향(왼쪽 스와이프)" = 더 newer. 그래서 slot 0 = next(older),
@@ -332,6 +339,23 @@ function SwiperViewport({
         >
           <ChevronRight className="h-6 w-6" />
         </button>
+      )}
+
+      {/* 스토리에서 열렸을 때 — 사진 아래 빈 영역에 스토리 본문 + 순번(1/4). chrome 토글에
+          맞춰 같이 사라진다. pointer-events-none 으로 사진 탭/스와이프는 그대로. */}
+      {storyCtx && chromeVisible && (
+        <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-20 px-5 md:bottom-6">
+          <div className="mx-auto max-w-2xl">
+            <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-[12px] font-semibold tabular-nums text-white/80 backdrop-blur-sm">
+              {storyCtx.index}/{storyCtx.total}
+            </span>
+            {storyCtx.body.trim() && (
+              <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-[14px] leading-snug text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
+                {storyCtx.body}
+              </p>
+            )}
+          </div>
+        </div>
       )}
     </div>
   )

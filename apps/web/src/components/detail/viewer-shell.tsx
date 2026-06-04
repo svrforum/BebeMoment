@@ -12,6 +12,7 @@ import { ViewerBottomSheet } from './viewer-bottom-sheet'
 import { ViewerImage } from './viewer-image'
 import { ViewerInfoPanel } from './viewer-info-panel'
 import { ViewerTopBar } from './viewer-top-bar'
+import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 
 type Member = { id: string; displayName: string }
 type User = { id: string; displayName: string; avatarPath: string | null }
@@ -48,6 +49,7 @@ export function ViewerShell({
   initialComments,
   initialFilename,
   initialCaption,
+  initialStoryCtx,
   sort = 'taken',
   viewerCtx = null,
 }: {
@@ -65,6 +67,7 @@ export function ViewerShell({
   initialComments: CommentWithAuthor[]
   initialFilename: string
   initialCaption: string | null
+  initialStoryCtx: StoryViewerCtx | null
   sort?: 'taken' | 'uploaded'
   /** 어느 컬렉션에서 열렸는지(memories·saved·album:id 등) — 스와이프 이웃 스코프 유지용. */
   viewerCtx?: string | null
@@ -91,6 +94,7 @@ export function ViewerShell({
     setMetaState(meta)
     setFilenameState(initialFilename)
     setCaptionState(initialCaption)
+    setStoryCtxState(initialStoryCtx ?? null)
   }, [initialCurrent.id])
 
   // 크롬(상단바·액션바)은 항상 표시 — 사진 탭으로 전체화면(크롬 숨김)되던 동작 제거(사용자 요청).
@@ -108,6 +112,7 @@ export function ViewerShell({
   const [metaState, setMetaState] = useState<MetaProps>(meta)
   const [filenameState, setFilenameState] = useState<string>(initialFilename)
   const [captionState, setCaptionState] = useState<string | null>(initialCaption)
+  const [storyCtxState, setStoryCtxState] = useState<StoryViewerCtx | null>(initialStoryCtx ?? null)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const router = useRouter()
   const toast = useToast()
@@ -176,6 +181,7 @@ export function ViewerShell({
           }
           filename?: string
           caption?: string | null
+          storyCtx?: StoryViewerCtx | null
         }
         // 사용자가 그 사이에 또 swipe 했으면 (assetId !== lastNavRef.current) 덮어쓰지 않는다.
         if (lastNavRef.current !== assetId) return
@@ -222,6 +228,7 @@ export function ViewerShell({
         }
         if (typeof next.filename === 'string') setFilenameState(next.filename)
         if (next.caption !== undefined) setCaptionState(next.caption)
+        if (next.storyCtx !== undefined) setStoryCtxState(next.storyCtx)
       } catch {
         // 무음 실패: optimistic state 유지. 다음 swipe 에서 다시 시도.
       }
@@ -311,6 +318,7 @@ export function ViewerShell({
           siblings={siblings}
           navigateTo={navigateTo}
           chromeVisible={chromeVisible}
+          storyCtx={storyCtxState}
         />
       </div>
 
