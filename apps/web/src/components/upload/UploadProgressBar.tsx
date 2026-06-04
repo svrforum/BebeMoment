@@ -1,4 +1,5 @@
 'use client'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 type ProgressEvent =
@@ -21,6 +22,7 @@ type Props = {
 export function UploadProgressBar({ assetId, uploadToken, onComplete }: Props) {
   const [progress, setProgress] = useState(0)
   const [status, setStatus] = useState<UploadStatus>('uploading')
+  const t = useTranslations('upload')
 
   useEffect(() => {
     const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_BASE_URL ?? ''
@@ -53,22 +55,9 @@ export function UploadProgressBar({ assetId, uploadToken, onComplete }: Props) {
   }, [assetId, uploadToken, onComplete])
 
   return (
-    <div aria-label="업로드 진행 상황" className="flex items-center gap-2">
+    <div aria-label={t('progressAria')} className="flex items-center gap-2">
       <progress value={progress} max={1} className="h-1 flex-1" />
-      <span className="text-xs text-base-500">{statusLabel(status)}</span>
+      <span className="text-xs text-base-500">{t(`status.${status}`)}</span>
     </div>
   )
-}
-
-function statusLabel(status: UploadStatus): string {
-  switch (status) {
-    case 'uploading':
-      return '업로드 중'
-    case 'processing':
-      return '처리 중'
-    case 'ready':
-      return '완료'
-    case 'failed':
-      return '실패'
-  }
 }

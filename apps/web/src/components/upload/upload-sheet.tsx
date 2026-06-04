@@ -1,5 +1,6 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
+import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
 import { type ReactNode, createContext, useContext, useMemo, useState } from 'react'
 import { UploadManagerProvider } from './upload-manager'
@@ -40,6 +41,7 @@ export function UploadSheetProvider({
   storyBabyId?: string | null
 }) {
   const [isOpen, setOpen] = useState(false)
+  const t = useTranslations('upload')
 
   const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
 
@@ -47,7 +49,7 @@ export function UploadSheetProvider({
     <UploadManagerProvider>
       <UploadSheetContext.Provider value={value}>
         {children}
-        <Sheet open={isOpen} onOpenChange={setOpen} title="사진 · 영상 올리기">
+        <Sheet open={isOpen} onOpenChange={setOpen} title={t('sheetTitle')}>
           {isOpen && (
             <LazyUploadDashboard canCreateStory={canCreateStory} storyBabyId={storyBabyId} />
           )}

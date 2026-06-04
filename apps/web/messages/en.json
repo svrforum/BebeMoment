@@ -1726,11 +1726,13 @@
       }
     },
     "status": {
-      "aria": "Upload status",
-      "uploading": "Uploading {n} · {pct}%",
-      "processing": "Processing {n}…",
-      "done": "Upload complete"
-    }
+      "uploading": "Uploading",
+      "processing": "Processing",
+      "ready": "Done",
+      "failed": "Failed"
+    },
+    "sheetTitle": "Upload photos & videos",
+    "progressAria": "Upload progress"
   },
   "memories": {
     "title": "Memories",

@@ -1726,11 +1726,13 @@
       }
     },
     "status": {
-      "aria": "업로드 상태",
-      "uploading": "{n}개 업로드 중 · {pct}%",
-      "processing": "{n}개 처리 중…",
-      "done": "업로드 완료"
-    }
+      "uploading": "업로드 중",
+      "processing": "처리 중",
+      "ready": "완료",
+      "failed": "실패"
+    },
+    "sheetTitle": "사진 · 영상 올리기",
+    "progressAria": "업로드 진행 상황"
   },
   "memories": {
     "title": "추억",
