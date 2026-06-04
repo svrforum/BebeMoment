@@ -51,18 +51,18 @@ describe('resetPasswordWithToken', () => {
     const { token } = await seedToken({ expiresAt: new Date(Date.now() - 1000) })
     await expect(
       resetPasswordWithToken({ token, newPassword: 'brandnewpw' }, db.prismaPublic),
-    ).rejects.toThrow('만료')
+    ).rejects.toThrow('auth.resetLinkExpired')
   })
   it('이미 사용된 토큰은 거부한다', async () => {
     const { token } = await seedToken({ usedAt: new Date() })
     await expect(
       resetPasswordWithToken({ token, newPassword: 'brandnewpw' }, db.prismaPublic),
-    ).rejects.toThrow('만료')
+    ).rejects.toThrow('auth.resetLinkExpired')
   })
   it('존재하지 않는 토큰은 거부한다', async () => {
     await expect(
       resetPasswordWithToken({ token: 'nope', newPassword: 'brandnewpw' }, db.prismaPublic),
-    ).rejects.toThrow('만료')
+    ).rejects.toThrow('auth.resetLinkExpired')
   })
   it('8자 미만 비번은 거부한다', async () => {
     const { token } = await seedToken()

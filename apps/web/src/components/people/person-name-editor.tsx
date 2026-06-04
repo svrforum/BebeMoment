@@ -1,5 +1,6 @@
 'use client'
 import { Check, Pencil, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -10,6 +11,7 @@ export function PersonNameEditor({
   personId: string
   initialName: string | null
 }) {
+  const t = useTranslations('misc')
   const router = useRouter()
   const [editing, setEditing] = useState(false)
   const [value, setValue] = useState(initialName ?? '')
@@ -32,7 +34,7 @@ export function PersonNameEditor({
       })
       if (!res.ok) {
         const body = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(body.error ?? '저장에 실패했어요')
+        throw new Error(body.error ?? t('people.saveFailed'))
       }
       setEditing(false)
       router.refresh()
@@ -51,7 +53,7 @@ export function PersonNameEditor({
         className="inline-flex items-center gap-1.5 rounded-full bg-base-100 px-3 py-1.5 text-sm font-medium text-base-700 transition-colors active:bg-base-200 dark:bg-base-800 dark:text-base-200"
       >
         <Pencil size={13} />
-        {initialName ? '이름 수정' : '이름 붙이기'}
+        {initialName ? t('people.editName') : t('people.addName')}
       </button>
     )
   }
@@ -68,7 +70,7 @@ export function PersonNameEditor({
             if (e.key === 'Escape') setEditing(false)
           }}
           maxLength={100}
-          placeholder="이름"
+          placeholder={t('people.namePlaceholder')}
           className="min-w-0 flex-1 rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm outline-none focus:border-point-400 dark:border-base-700 dark:bg-base-900"
         />
         <button
@@ -76,7 +78,7 @@ export function PersonNameEditor({
           onClick={() => void save()}
           disabled={saving}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-point-500 text-white disabled:opacity-50"
-          aria-label="저장"
+          aria-label={t('people.save')}
         >
           <Check size={17} />
         </button>
@@ -87,7 +89,7 @@ export function PersonNameEditor({
             setValue(initialName ?? '')
           }}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-500 dark:bg-base-800"
-          aria-label="취소"
+          aria-label={t('people.cancel')}
         >
           <X size={17} />
         </button>

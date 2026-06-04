@@ -1,18 +1,20 @@
 import type { PublicAlbumPreview } from '@/server/share/public-album'
 import { Images } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { ShareViewFrame, appDeepLink } from './share-frame'
 
-export function AlbumShareView({ p, base }: { p: PublicAlbumPreview; base: string }) {
+export async function AlbumShareView({ p, base }: { p: PublicAlbumPreview; base: string }) {
+  const t = await getTranslations('share')
   const webUrl = `${base}/albums/${p.albumId}`
   const appHref = appDeepLink(base, `/albums/${p.albumId}`, webUrl)
 
   return (
     <ShareViewFrame
       familyName={p.familyName}
-      meta={`앨범${p.photoCount > 0 ? ` · 사진 ${p.photoCount}장` : ''}`}
+      meta={p.photoCount > 0 ? t('album.metaWithCount', { n: p.photoCount }) : t('album.meta')}
       appHref={appHref}
       webUrl={webUrl}
-      appLabel="앱에서 보기"
+      appLabel={t('album.appView')}
     >
       {p.imageUrl ? (
         <div className="mt-4 overflow-hidden rounded-2xl shadow-card">
@@ -28,7 +30,7 @@ export function AlbumShareView({ p, base }: { p: PublicAlbumPreview; base: strin
       <p className="mt-4 text-[19px] font-bold tracking-tight text-base-900 dark:text-base-50">
         {p.name}
       </p>
-      <p className="mt-1 text-[14px] text-base-500">로그인하면 앨범의 사진을 전부 볼 수 있어요</p>
+      <p className="mt-1 text-[14px] text-base-500">{t('album.loginToView')}</p>
     </ShareViewFrame>
   )
 }

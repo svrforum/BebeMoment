@@ -3,6 +3,7 @@ import { type AssetEvent, channelForFamily, resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type IORedis from 'ioredis'
+import { ForbiddenError, NotFoundError } from '../error'
 
 export async function softDeleteAsset(
   args: { assetId: string; familyId: string; byUserId: string },
@@ -14,20 +15,20 @@ export async function softDeleteAsset(
     where: { familyId_userId: { familyId: args.familyId, userId: args.byUserId } },
   })
   if (!membership || membership.deletedAt) {
-    throw new Error('Not a member of this family')
+    throw new ForbiddenError('asset.memberOnly')
   }
 
   const asset = await prismaMedia.asset.findFirst({
     where: { id: args.assetId, familyId: args.familyId, deletedAt: null },
   })
-  if (!asset) throw new Error('Asset not found')
+  if (!asset) throw new NotFoundError('asset.notFound')
 
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   const canDelete =
     (asset.uploadedByUserId === args.byUserId &&
       resolveCan(membership.role, 'asset.delete.own', familyCaps)) ||
     resolveCan(membership.role, 'asset.delete.any', familyCaps)
-  if (!canDelete) throw new Error('No permission to delete this asset')
+  if (!canDelete) throw new ForbiddenError('asset.deleteDenied')
 
   await prismaMedia.asset.update({
     where: { id: args.assetId, familyId: args.familyId },

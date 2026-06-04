@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Calendar } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useActionState, useCallback, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { completeOnboarding } from './actions'
@@ -13,9 +14,10 @@ const STEPS: Step[] = ['family', 'baby', 'date']
 
 function SubmitButton({ disabled }: { disabled: boolean }) {
   const { pending } = useFormStatus()
+  const t = useTranslations('onboarding')
   return (
     <Button type="submit" size="lg" className="w-full" disabled={disabled || pending}>
-      {pending ? '만드는 중…' : '시작하기'}
+      {pending ? t('cta.creating') : t('cta.start')}
     </Button>
   )
 }
@@ -32,6 +34,7 @@ function daysFromNowISO(days: number): string {
 }
 
 export function OnboardingWizard() {
+  const t = useTranslations('onboarding')
   const [state, formAction] = useActionState(completeOnboarding, null)
 
   const [step, setStep] = useState<Step>('family')
@@ -97,7 +100,7 @@ export function OnboardingWizard() {
         <button
           type="button"
           onClick={goBack}
-          aria-label="이전"
+          aria-label={t('actions.back')}
           disabled={idx === 0}
           className={cn(
             '-ml-2 flex h-9 w-9 items-center justify-center rounded-full text-base-700 transition hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
@@ -143,18 +146,16 @@ export function OnboardingWizard() {
               {step === 'family' && (
                 <>
                   <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    가족 이름을 지어주세요
+                    {t('family.title')}
                   </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    가족 구성원들이 함께 볼 공간의 이름이에요.
-                  </p>
+                  <p className="mt-3 text-base text-base-500">{t('family.subtitle')}</p>
                   <input
                     // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                     autoFocus
                     value={familyName}
                     onChange={(e) => setFamilyName(e.target.value)}
                     onKeyDown={onKeyDown}
-                    placeholder="예: 김씨네 가족"
+                    placeholder={t('family.placeholder')}
                     maxLength={80}
                     className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
@@ -164,18 +165,16 @@ export function OnboardingWizard() {
               {step === 'baby' && (
                 <>
                   <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    아기 이름을 알려주세요
+                    {t('baby.title')}
                   </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    태명도 괜찮아요. 나중에 바꿀 수 있어요.
-                  </p>
+                  <p className="mt-3 text-base text-base-500">{t('baby.subtitle')}</p>
                   <input
                     // biome-ignore lint/a11y/noAutofocus: wizard step entry needs keyboard focus
                     autoFocus
                     value={babyName}
                     onChange={(e) => setBabyName(e.target.value)}
                     onKeyDown={onKeyDown}
-                    placeholder="예: 예준, 콩콩이"
+                    placeholder={t('baby.placeholder')}
                     maxLength={40}
                     className="mt-8 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                   />
@@ -185,11 +184,9 @@ export function OnboardingWizard() {
               {step === 'date' && (
                 <>
                   <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-                    생년월일을 알려주세요
+                    {t('date.title')}
                   </h1>
-                  <p className="mt-3 text-base text-base-500">
-                    아직 태어나지 않았다면 예정일을 선택해주세요.
-                  </p>
+                  <p className="mt-3 text-base text-base-500">{t('date.subtitle')}</p>
                   <button
                     type="button"
                     onClick={openDatePicker}
@@ -208,7 +205,7 @@ export function OnboardingWizard() {
                             day: 'numeric',
                             weekday: 'short',
                           })
-                        : '날짜 선택'}
+                        : t('date.placeholder')}
                     </span>
                     <Calendar size={18} className="text-base-500" />
                   </button>
@@ -220,7 +217,7 @@ export function OnboardingWizard() {
                     min={minDate}
                     max={maxDate}
                     required
-                    aria-label="생년월일"
+                    aria-label={t('date.label')}
                     className="sr-only"
                   />
                 </>
@@ -246,7 +243,7 @@ export function OnboardingWizard() {
               disabled={!stepValid}
               onClick={goNext}
             >
-              다음
+              {t('cta.next')}
             </Button>
           )}
         </div>

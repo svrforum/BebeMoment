@@ -1,9 +1,9 @@
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { authenticate } from '@/server/auth/authenticate'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
-import { ServiceError } from '@/server/error'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
@@ -24,7 +24,7 @@ export async function POST(req: Request) {
     if (!rlId.ok) return tooManyRequests(rlId.retryAfter)
     const user = await authenticate(input, prismaPublic)
     if (!user) {
-      return NextResponse.json({ error: '아이디 또는 비밀번호가 올바르지 않아요' }, { status: 400 })
+      return errorJsonKey('auth.invalidCredentials', 400)
     }
     const currentFamilyId = await resolveCurrentFamilyForUser(user.id, prismaPublic)
     await createSessionAndSetCookie(user.id, currentFamilyId)
@@ -36,9 +36,6 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
-    if (e instanceof ServiceError) {
-      return NextResponse.json({ error: e.message }, { status: e.status })
-    }
-    return NextResponse.json({ error: '로그인에 실패했어요' }, { status: 400 })
+    return errorJson(e)
   }
 }

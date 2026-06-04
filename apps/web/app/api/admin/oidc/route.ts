@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { createProvider, listProviders } from '@/server/oidc/providers'
+import { errorJson } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -44,6 +45,6 @@ export async function POST(req: Request) {
     const p = await createProvider(body, ctx.env.SECRET_KEY, prismaPublic)
     return NextResponse.json({ id: p.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

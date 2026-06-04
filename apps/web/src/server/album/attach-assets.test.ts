@@ -102,7 +102,7 @@ describe('attachAssetsToAlbum notifications', () => {
         db.prismaMedia,
         vi.fn(),
       ),
-    ).rejects.toThrow('album not found')
+    ).rejects.toThrow('album.notFound')
   })
 
   it('does not enqueue when nothing is attached', async () => {

@@ -1,3 +1,4 @@
+import { ConflictError } from '@/server/error'
 import type { Family, Membership, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { toSlug } from './slug'
@@ -31,7 +32,7 @@ export async function createFamily(
     if (opts.enforceSingle) {
       const rows = await tx.$queryRaw<{ count: bigint }[]>`SELECT count(*) AS count FROM families`
       if ((rows[0]?.count ?? 0n) > 0n) {
-        throw new Error('이미 가족이 설정되어 있어요')
+        throw new ConflictError('family.alreadyExists')
       }
     }
     const family = await tx.family.create({

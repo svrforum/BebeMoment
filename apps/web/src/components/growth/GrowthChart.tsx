@@ -1,5 +1,6 @@
 'use client'
 import type { GrowthRecord } from '@bebe/db-public'
+import { useTranslations } from 'next-intl'
 import {
   CartesianGrid,
   Legend,
@@ -28,10 +29,11 @@ function toPoints(records: GrowthRecord[]): Point[] {
 }
 
 export function GrowthChart({ records }: { records: GrowthRecord[] }) {
+  const t = useTranslations('misc')
   if (records.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-base-300 p-8 text-center text-sm text-base-500">
-        첫 성장 기록을 남겨보세요.
+        {t('growth.empty')}
       </div>
     )
   }
@@ -45,9 +47,27 @@ export function GrowthChart({ records }: { records: GrowthRecord[] }) {
           <YAxis fontSize={11} />
           <Tooltip />
           <Legend />
-          <Line type="monotone" dataKey="height" name="키 (cm)" stroke="#2563eb" connectNulls />
-          <Line type="monotone" dataKey="weight" name="몸무게 (kg)" stroke="#16a34a" connectNulls />
-          <Line type="monotone" dataKey="head" name="머리둘레 (cm)" stroke="#dc2626" connectNulls />
+          <Line
+            type="monotone"
+            dataKey="height"
+            name={t('growth.heightCm')}
+            stroke="#2563eb"
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="weight"
+            name={t('growth.weightKg')}
+            stroke="#16a34a"
+            connectNulls
+          />
+          <Line
+            type="monotone"
+            dataKey="head"
+            name={t('growth.headCircumferenceCm')}
+            stroke="#dc2626"
+            connectNulls
+          />
         </LineChart>
       </ResponsiveContainer>
     </div>

@@ -6,6 +6,7 @@ import { pickDisplayTrio, pickDisplayUrl, pickThumbTrio, pickThumbUrl } from '@/
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -19,6 +20,7 @@ type Asset = {
 type Props = { assets: Asset[]; canPurge: boolean }
 
 export function TrashList({ assets, canPurge }: Props) {
+  const t = useTranslations('misc')
   const router = useRouter()
   const toast = useToast()
   const [preview, setPreview] = useState<Asset | null>(null)
@@ -33,31 +35,27 @@ export function TrashList({ assets, canPurge }: Props) {
   }
 
   async function purge(asset: Asset) {
-    if (
-      !window.confirm(
-        `"${asset.originalFilename}" 을 영구 삭제할까요?\n\n원본과 모든 미리보기 파일을 저장소에서 지웁니다. 이 작업은 되돌릴 수 없어요.`,
-      )
-    ) {
+    if (!window.confirm(t('trash.purgeConfirm', { name: asset.originalFilename }))) {
       return
     }
     setBusyId(asset.id)
     try {
       const res = await fetch(`/api/asset/${asset.id}/purge`, { method: 'POST' })
       if (res.ok) {
-        toast({ title: '영구 삭제 완료', variant: 'success' })
+        toast({ title: t('trash.purgeSuccess'), variant: 'success' })
         setPreview(null)
         router.refresh()
       } else {
         const body = (await res.json().catch(() => null)) as { error?: string } | null
         toast({
-          title: '영구 삭제 실패',
+          title: t('trash.purgeFailed'),
           description: body?.error ?? `HTTP ${res.status}`,
           variant: 'danger',
         })
       }
     } catch (e) {
       toast({
-        title: '영구 삭제 실패',
+        title: t('trash.purgeFailed'),
         description: e instanceof Error ? e.message : 'unknown error',
         variant: 'danger',
       })
@@ -67,7 +65,7 @@ export function TrashList({ assets, canPurge }: Props) {
   }
 
   if (assets.length === 0) {
-    return <p className="text-sm text-base-500 px-5 py-8 text-center">휴지통이 비어 있어요.</p>
+    return <p className="text-sm text-base-500 px-5 py-8 text-center">{t('trash.empty')}</p>
   }
 
   return (
@@ -82,7 +80,7 @@ export function TrashList({ assets, canPurge }: Props) {
               <button
                 type="button"
                 onClick={() => setPreview(a)}
-                aria-label="사진 보기"
+                aria-label={t('trash.viewPhoto')}
                 className="h-14 w-14 shrink-0 overflow-hidden rounded-lg transition active:scale-95"
               >
                 {hasImage ? (
@@ -105,11 +103,13 @@ export function TrashList({ assets, canPurge }: Props) {
               >
                 <div className="font-medium truncate">{a.originalFilename}</div>
                 <div className="text-xs text-base-500">
-                  삭제됨 {new Date(a.deletedAtISO).toLocaleDateString('ko-KR')}
+                  {t('trash.deletedOn', {
+                    date: new Date(a.deletedAtISO).toLocaleDateString('ko-KR'),
+                  })}
                 </div>
               </button>
               <Button variant="secondary" size="sm" onClick={() => restore(a.id)}>
-                복원
+                {t('trash.restore')}
               </Button>
               {canPurge && (
                 <Button
@@ -118,7 +118,7 @@ export function TrashList({ assets, canPurge }: Props) {
                   disabled={busyId === a.id}
                   onClick={() => purge(a)}
                 >
-                  영구 삭제
+                  {t('trash.purge')}
                 </Button>
               )}
             </CardBody>
@@ -135,7 +135,7 @@ export function TrashList({ assets, canPurge }: Props) {
             <button
               type="button"
               onClick={() => setPreview(null)}
-              aria-label="닫기"
+              aria-label={t('trash.close')}
               className="rounded-full bg-white/10 p-2 text-white"
             >
               <X size={22} />
@@ -152,7 +152,7 @@ export function TrashList({ assets, canPurge }: Props) {
           </div>
           <div className="flex justify-center gap-3 p-5" onClick={(e) => e.stopPropagation()}>
             <Button variant="secondary" onClick={() => restore(preview.id)}>
-              복원
+              {t('trash.restore')}
             </Button>
             {canPurge && (
               <Button
@@ -160,7 +160,7 @@ export function TrashList({ assets, canPurge }: Props) {
                 disabled={busyId === preview.id}
                 onClick={() => purge(preview)}
               >
-                영구 삭제
+                {t('trash.purge')}
               </Button>
             )}
           </div>

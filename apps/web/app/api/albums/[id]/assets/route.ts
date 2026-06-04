@@ -2,21 +2,21 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { attachAssetsToAlbum } from '@/server/album/attach-assets'
 import { resolveContext } from '@/server/context'
-import { toHttpError } from '@/server/error'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { revalidatePath } from 'next/cache'
 import { NextResponse } from 'next/server'
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('albums', prismaPublic)))
-    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
+    return errorJsonKey('album.featureOff', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     const body = (await req.json()) as { assetIds: string[] }
@@ -33,9 +33,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     revalidatePath('/albums', 'layout')
     return NextResponse.json(result)
   } catch (e) {
-    {
-      const { status, message } = toHttpError(e)
-      return NextResponse.json({ error: message }, { status })
-    }
+    return errorJson(e)
   }
 }

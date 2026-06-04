@@ -37,7 +37,7 @@ export async function authenticate(
 
   // 비번은 맞지만 가족 멤버십이 모두 정지된 계정은 차단한다(단일 가족 모델에선 보통 1개).
   if (await isUserFullySuspended(user.id, prisma)) {
-    throw new ServiceError(403, '관리자에 의해 일시 정지된 계정이에요. 관리자에게 문의해주세요.')
+    throw new ServiceError(403, 'auth.accountSuspended')
   }
 
   return user

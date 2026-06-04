@@ -1,4 +1,5 @@
 import { prismaPublic } from '@/lib/db-init'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
@@ -27,10 +28,7 @@ export async function POST(req: Request) {
         ? await validateInviteForSignup(input.inviteToken, prismaPublic)
         : false
       if (!okInvite) {
-        return NextResponse.json(
-          { error: '공개 가입이 닫혀 있어요. 초대 링크로 가입해주세요.' },
-          { status: 403 },
-        )
+        return errorJsonKey('auth.registrationClosed', 403)
       }
     }
 
@@ -55,7 +53,6 @@ export async function POST(req: Request) {
         { status: 400 },
       )
     }
-    const message = e instanceof Error ? e.message : '가입에 실패했어요'
-    return NextResponse.json({ error: message }, { status: 400 })
+    return errorJson(e)
   }
 }

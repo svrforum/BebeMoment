@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { resolveContext } from '@/server/context'
 import { createInvite } from '@/server/invite/create'
 import { NextResponse } from 'next/server'
@@ -12,14 +13,13 @@ const BodySchema = z.object({
 
 export async function POST(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
 
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No current family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
 
   try {
     const body = BodySchema.parse(await req.json())
@@ -38,6 +38,6 @@ export async function POST(req: Request) {
       expiresAt: invite.expiresAt,
     })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

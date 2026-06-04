@@ -16,5 +16,5 @@ export async function assertActorIsOwner(
     where: { userId: actorUserId, familyId, deletedAt: null },
     select: { role: true },
   })
-  if (actor?.role !== 'owner') throw new ForbiddenError('소유자(관리자)만 할 수 있는 작업이에요')
+  if (actor?.role !== 'owner') throw new ForbiddenError('member.ownerOnly')
 }

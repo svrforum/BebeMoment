@@ -33,7 +33,7 @@ export async function deleteAlbum(
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  if (!membership || membership.deletedAt) throw new ForbiddenError('album.memberOnly')
   const familyCaps = await getFamilyCapabilities(prismaPublic)
 
   return prismaPublic
@@ -41,13 +41,13 @@ export async function deleteAlbum(
       const album = await tx.album.findFirst({
         where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
       })
-      if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
+      if (!album) throw new NotFoundError('album.notFound')
 
       const allowed =
         (album.createdByUserId === input.byUserId &&
           resolveCan(membership.role, 'album.delete.own', familyCaps)) ||
         resolveCan(membership.role, 'album.delete.any', familyCaps)
-      if (!allowed) throw new ForbiddenError('이 앨범을 삭제할 권한이 없어요')
+      if (!allowed) throw new ForbiddenError('album.deleteDenied')
 
       const [childCount, attachmentCount] = await Promise.all([
         tx.album.count({

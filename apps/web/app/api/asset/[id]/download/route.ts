@@ -2,20 +2,20 @@ import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { getSetting } from '@/server/settings/get'
-import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
 const QUERY = z.object({ q: z.enum(['original', 'hd', 'sd']).default('original') })
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
 
   const url = new URL(req.url)
   const { q } = QUERY.parse(Object.fromEntries(url.searchParams))
@@ -45,10 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const internalBase = process.env.MEDIA_INTERNAL_URL || 'http://localhost:3001'
     const upstream = await fetch(`${internalBase}${path}`)
     if (!upstream.ok || !upstream.body) {
-      return NextResponse.json(
-        { error: '미디어를 가져오지 못했어요' },
-        { status: upstream.status || 502 },
-      )
+      return errorJsonKey('asset.mediaFetchFailed', upstream.status || 502)
     }
     // 응답 본문을 그대로 스트리밍 — Node fetch 의 ReadableStream 을 Next Response 에
     // 넘기면 chunked encoding 으로 흐른다. ffmpeg fragmented MP4 처럼 길이 미상도 OK.
@@ -63,6 +60,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     }
     return new Response(upstream.body, { status: 200, headers })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

@@ -1,4 +1,5 @@
 import { prismaPublic } from '@/lib/db-init'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { mintSessionCookie } from '@/lib/oidc-session'
 import { exchangeAppHandoff } from '@/server/auth/app-handoff'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
@@ -18,13 +19,13 @@ export async function POST(req: Request) {
     const { code, verifier } = Body.parse(await req.json())
     const { userId, currentFamilyId } = await exchangeAppHandoff({ code, verifier }, prismaPublic)
     if (await isUserFullySuspended(userId, prismaPublic)) {
-      return NextResponse.json({ error: '정지된 계정이에요' }, { status: 403 })
+      return errorJsonKey('auth.accountSuspendedShort', 403)
     }
     const cookie = await mintSessionCookie(userId, currentFamilyId)
     return NextResponse.json({
       cookie: { name: cookie.name, value: cookie.value, maxAge: cookie.maxAge },
     })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

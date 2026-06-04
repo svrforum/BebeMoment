@@ -51,7 +51,7 @@ describe('removeMember', () => {
         { membershipId: membership.id, familyId: family.id, actorUserId: guardian.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/소유자/)
+    ).rejects.toThrow('member.ownerOnly')
     const updated = await db.prismaPublic.membership.findFirst({ where: { id: membership.id } })
     expect(updated?.deletedAt).toBeNull()
   })
@@ -81,7 +81,7 @@ describe('removeMember', () => {
         { membershipId: ownerMembership!.id, familyId: family.id, actorUserId: owner.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('본인')
+    ).rejects.toThrow('member.selfAction')
   })
   it('owner 역할 멤버는 거부한다', async () => {
     const { owner, family, member, membership } = await setup()
@@ -94,6 +94,6 @@ describe('removeMember', () => {
         { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('관리자')
+    ).rejects.toThrow('member.ownerRemove')
   })
 })

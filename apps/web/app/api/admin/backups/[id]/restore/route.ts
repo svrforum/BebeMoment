@@ -3,6 +3,7 @@ import { backupDir, ownerDatabaseUrl, storageDataDir } from '@/server/backup/con
 import { findBackup } from '@/server/backup/list'
 import { isValidBackupId } from '@/server/backup/manifest'
 import { restoreBackup } from '@/server/backup/restore'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -21,15 +22,15 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   const { id } = await params
-  if (!isValidBackupId(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
+  if (!isValidBackupId(id)) return errorJsonKey('backup.invalidId', 400)
 
   const body = BodySchema.safeParse(await req.json().catch(() => ({})))
   if (!body.success || body.data.confirm !== id) {
-    return NextResponse.json({ error: '확인 문자열이 백업 id 와 일치하지 않아요' }, { status: 400 })
+    return errorJsonKey('backup.confirmMismatch', 400)
   }
 
   const found = await findBackup(backupDir(), id)
-  if (!found) return NextResponse.json({ error: '백업을 찾을 수 없어요' }, { status: 404 })
+  if (!found) return errorJsonKey('backup.notFound', 404)
 
   try {
     const result = await restoreBackup({
@@ -49,6 +50,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     setTimeout(() => process.exit(0), 1500)
     return NextResponse.json({ ok: true, result, restarting: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 500 })
+    return errorJson(e)
   }
 }

@@ -1,4 +1,5 @@
 import { createSign } from 'node:crypto'
+import { ServiceError } from '@/server/error'
 
 export type FcmServiceAccount = { projectId: string; clientEmail: string; privateKey: string }
 
@@ -46,9 +47,9 @@ export async function getFcmAccessToken(
       assertion: buildSignedJwt(sa),
     }),
   })
-  if (!res.ok) throw new Error(`FCM access token 발급 실패 (${res.status})`)
+  if (!res.ok) throw new ServiceError(502, 'notif.fcmTokenFailed')
   const json = (await res.json()) as { access_token?: string; expires_in?: number }
-  if (!json.access_token) throw new Error('FCM access token 응답에 토큰이 없습니다')
+  if (!json.access_token) throw new ServiceError(502, 'notif.fcmTokenMissing')
   const expiresIn =
     typeof json.expires_in === 'number' && json.expires_in > 0 ? json.expires_in : 3600
   return { token: json.access_token, expiresIn }

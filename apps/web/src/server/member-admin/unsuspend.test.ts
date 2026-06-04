@@ -74,7 +74,7 @@ describe('unsuspendMember', () => {
         { membershipId: membership.id, familyId: family.id, actorUserId: guardian.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('소유자')
+    ).rejects.toThrow('member.ownerOnly')
   })
 
   it('정지 상태가 아니면 거부한다', async () => {
@@ -84,6 +84,6 @@ describe('unsuspendMember', () => {
         { membershipId: membership.id, familyId: family.id, actorUserId: owner.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('정지된 상태가 아니')
+    ).rejects.toThrow('member.notSuspended')
   })
 })

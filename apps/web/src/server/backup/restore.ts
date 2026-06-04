@@ -3,6 +3,7 @@ import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { promisify } from 'node:util'
+import { ServiceError } from '@/server/error'
 import { findBackup } from './list'
 import { type BackupManifest, bundleName } from './manifest'
 
@@ -28,15 +29,15 @@ async function resolveChain(dir: string, targetId: string): Promise<BackupManife
   let id: string | null = targetId
   const seen = new Set<string>()
   while (id) {
-    if (seen.has(id)) throw new Error(`백업 체인 순환: ${id}`)
+    if (seen.has(id)) throw new ServiceError(500, `백업 체인 순환: ${id}`)
     seen.add(id)
     const m = await findBackup(dir, id)
-    if (!m) throw new Error(`백업을 찾을 수 없어요: ${id}`)
+    if (!m) throw new ServiceError(500, `백업을 찾을 수 없어요: ${id}`)
     chain.unshift(m)
     id = m.parentId
   }
   if (chain[0]?.type !== 'full') {
-    throw new Error('체인의 베이스가 full 백업이 아니에요 — 베이스 백업이 누락됐어요')
+    throw new ServiceError(400, 'backup.chainBaseNotFull')
   }
   return chain
 }
@@ -56,7 +57,10 @@ async function verifyChainIntegrity(
   for (const m of chain) {
     const bundle = path.join(dir, bundleName(m.id))
     await runFile('zstd', ['-t', '--long=27', bundle]).catch((e) => {
-      throw new Error(`백업 번들이 손상됐어요(${m.id}): ${(e as Error).message.slice(0, 200)}`)
+      throw new ServiceError(
+        500,
+        `백업 번들이 손상됐어요(${m.id}): ${(e as Error).message.slice(0, 200)}`,
+      )
     })
   }
   log(`번들 무결성 검증 완료(${chain.length}개)`)
@@ -67,7 +71,7 @@ async function verifyChainIntegrity(
 const ALLOWED_ROLES = new Set(['bebe_web', 'bebe_media'])
 
 async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
-  if (!ALLOWED_ROLES.has(name)) throw new Error(`허용되지 않은 롤 이름: ${name}`)
+  if (!ALLOWED_ROLES.has(name)) throw new ServiceError(500, `허용되지 않은 롤 이름: ${name}`)
   const { stdout } = await runFile('psql', [
     ownerUrl,
     '-tAc',
@@ -135,7 +139,7 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
           '--strip-components=1',
           'data',
         ]).catch((e) => {
-          throw new Error(`데이터 전개 실패(${m.id}): ${(e as Error).message}`)
+          throw new ServiceError(500, `데이터 전개 실패(${m.id}): ${(e as Error).message}`)
         })
         dataFilesExtracted += m.dataFileCount
       }
@@ -191,7 +195,7 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
       const err = e as { stderr?: string; message?: string }
       const stderr = `${err.stderr ?? ''}\n${err.message ?? ''}`
       if (isFatalPgRestoreError(stderr)) {
-        throw new Error(`DB 복원 실패: ${stderr.trim().slice(-800)}`)
+        throw new ServiceError(500, `DB 복원 실패: ${stderr.trim().slice(-800)}`)
       }
       log(`pg_restore 경고: ${stderr.trim().slice(0, 500)}`)
     })

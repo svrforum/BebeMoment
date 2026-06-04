@@ -37,7 +37,7 @@ describe('app handoff', () => {
     expect(result.userId).toBe(user.id)
     // 단일 사용 — 두 번째 교환은 실패
     await expect(exchangeAppHandoff({ code, verifier }, db.prismaPublic)).rejects.toThrow(
-      '유효하지',
+      'auth.handoffInvalidCode',
     )
   })
 
@@ -48,7 +48,7 @@ describe('app handoff', () => {
       db.prismaPublic,
     )
     await expect(exchangeAppHandoff({ code, verifier: 'wrong' }, db.prismaPublic)).rejects.toThrow(
-      '검증',
+      'auth.handoffVerifyFailed',
     )
   })
 
@@ -63,12 +63,14 @@ describe('app handoff', () => {
       where: { code },
       data: { expiresAt: new Date(Date.now() - 1000) },
     })
-    await expect(exchangeAppHandoff({ code, verifier }, db.prismaPublic)).rejects.toThrow('만료')
+    await expect(exchangeAppHandoff({ code, verifier }, db.prismaPublic)).rejects.toThrow(
+      'auth.handoffExpiredCode',
+    )
   })
 
   it('rejects an unknown code', async () => {
     await expect(
       exchangeAppHandoff({ code: 'nope', verifier: 'x' }, db.prismaPublic),
-    ).rejects.toThrow('유효하지')
+    ).rejects.toThrow('auth.handoffInvalidCode')
   })
 })

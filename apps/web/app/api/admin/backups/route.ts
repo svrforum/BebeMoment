@@ -4,6 +4,7 @@ import { backupDir } from '@/server/backup/config'
 import { listBackups } from '@/server/backup/list'
 import { runBackup } from '@/server/backup/run'
 import { getSetting } from '@/server/settings/get'
+import { errorJson } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -44,6 +45,6 @@ export async function POST(req: Request) {
       remoteMirrored: result.remoteMirrored,
     })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

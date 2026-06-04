@@ -6,6 +6,7 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { initAssetViaMedia } from '@/server/upload/init'
 import { resolveCan } from '@bebe/core'
 import type { InitAssetResponse } from '@bebe/media-client'
+import { getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 
 // media 는 tus 업로드 URL 을 상대경로(/media/v1/tus/...)로 준다. tus-js-client 는 절대
@@ -44,13 +45,14 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
   )
   if (!ctx.family || !ctx.user) throw new Error('No current family')
   if (!ctx.membership) throw new Error('No current family')
+  const t = await getTranslations('errors')
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   if (!resolveCan(ctx.membership.role, 'asset.upload', familyCaps)) {
-    throw new Error('업로드 권한이 없어요. 관리자에게 문의하세요.')
+    throw new Error(t('asset.uploadDenied'))
   }
   // 미디어(이미지/영상)만 — 클라가 보낸 mime 으로 워커 파이프라인이 분기하므로 경계에서 제한.
   if (!/^(image|video)\//.test(input.mime)) {
-    throw new Error('이미지·영상만 올릴 수 있어요.')
+    throw new Error(t('asset.mediaOnly'))
   }
 
   const result = await initAssetViaMedia({

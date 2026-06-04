@@ -4,14 +4,9 @@ import { prismaPublic } from '@/lib/db-init'
 import { createBaby } from '@/server/baby/create'
 import { createFamily } from '@/server/family/create'
 import { isRegistrationOpen } from '@/server/auth/registration'
+import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
-
-const Input = z.object({
-  familyName: z.string().min(1, '가족 이름을 입력해주세요').max(80),
-  babyName: z.string().min(1, '아기 이름을 입력해주세요').max(40),
-  birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, '생년월일을 입력해주세요 (예: 2026-01-01)'),
-})
 
 export type OnboardingState = { error?: string } | null
 
@@ -19,10 +14,18 @@ export async function completeOnboarding(
   _prev: OnboardingState,
   formData: FormData,
 ): Promise<OnboardingState> {
+  const t = await getTranslations('onboarding')
+  const tErrors = await getTranslations('errors')
   const { user, session } = await getAuth()
   if (!user || !session) redirect('/login')
 
   if (!(await isRegistrationOpen(prismaPublic))) redirect('/')
+
+  const Input = z.object({
+    familyName: z.string().min(1, t('errors.familyNameRequired')).max(80),
+    babyName: z.string().min(1, t('errors.babyNameRequired')).max(40),
+    birthDate: z.string().regex(/^\d{4}-\d{2}-\d{2}$/, t('errors.birthDateRequired')),
+  })
 
   const parsed = Input.safeParse({
     familyName: formData.get('familyName'),
@@ -30,12 +33,12 @@ export async function completeOnboarding(
     birthDate: formData.get('birthDate'),
   })
   if (!parsed.success) {
-    return { error: parsed.error.issues[0]?.message ?? '입력값을 확인해주세요' }
+    return { error: parsed.error.issues[0]?.message ?? t('errors.invalidInput') }
   }
 
   const birth = new Date(`${parsed.data.birthDate}T00:00:00Z`)
   if (birth.getTime() > Date.now() + 400 * 86400_000) {
-    return { error: '생년월일이 1년 이후일 수 없어요' }
+    return { error: t('errors.birthDateTooFar') }
   }
 
   try {
@@ -59,7 +62,9 @@ export async function completeOnboarding(
       data: { currentFamilyId: family.id },
     })
   } catch (e) {
-    return { error: (e as Error).message || '가족을 만들지 못했어요' }
+    const msg = (e as Error).message
+    if (msg && tErrors.has(msg)) return { error: tErrors(msg) }
+    return { error: msg || t('errors.createFailed') }
   }
 
   redirect('/')

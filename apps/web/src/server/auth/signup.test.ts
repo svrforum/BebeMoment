@@ -41,7 +41,7 @@ describe('signup helper', () => {
         { email: 'a@b.com', password: 'strong-password-2', displayName: 'B' },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/이미 가입/)
+    ).rejects.toThrow('auth.emailTaken')
   })
 
   it('rejects short password', async () => {
@@ -86,14 +86,14 @@ describe('signup with username', () => {
   it('rejects invalid username', async () => {
     await expect(
       signup({ username: 'ab', password: 'password123', displayName: 'X' }, db.prismaPublic),
-    ).rejects.toThrow(/아이디/)
+    ).rejects.toThrow('auth.usernameInvalid')
   })
 
   it('rejects duplicate username (case-insensitive)', async () => {
     await signup({ username: 'dad', password: 'password123', displayName: 'D' }, db.prismaPublic)
     await expect(
       signup({ username: 'DAD', password: 'password123', displayName: 'D2' }, db.prismaPublic),
-    ).rejects.toThrow(/이미 사용/)
+    ).rejects.toThrow('auth.usernameTaken')
   })
 
   it('requires at least one of username or email', async () => {

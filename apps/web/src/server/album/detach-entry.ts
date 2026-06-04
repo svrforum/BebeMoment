@@ -3,6 +3,7 @@ import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
+import { ForbiddenError } from '../error'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -26,7 +27,7 @@ export async function detachEntryFromAlbum(
     membership.deletedAt ||
     !resolveCan(membership.role, 'album.asset.detach', familyCaps)
   ) {
-    throw new Error('No permission')
+    throw new ForbiddenError('album.permissionDenied')
   }
 
   await prismaPublic.albumStory.deleteMany({

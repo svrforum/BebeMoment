@@ -29,17 +29,17 @@ export async function signup(raw: unknown, prisma: PrismaClient): Promise<Signup
   if (input.username !== undefined) {
     username = normalizeUsername(input.username)
     if (!isValidUsername(username)) {
-      throw new Error('아이디는 영문 소문자·숫자·._- 3~30자여야 해요')
+      throw new Error('auth.usernameInvalid')
     }
     if (await prisma.user.findUnique({ where: { username } })) {
-      throw new Error('이미 사용 중인 아이디예요')
+      throw new Error('auth.usernameTaken')
     }
   }
 
   const email = input.email ? input.email.toLowerCase() : null
   if (email) {
     if (await prisma.user.findUnique({ where: { email } })) {
-      throw new Error('이미 가입된 이메일이에요')
+      throw new Error('auth.emailTaken')
     }
   }
 

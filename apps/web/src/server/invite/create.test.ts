@@ -58,7 +58,7 @@ describe('createInvite', () => {
         { familyId: family.id, email: 'x@x.com', role: 'family', byUserId: user.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/permission/i)
+    ).rejects.toThrow('invite.noPermission')
   })
 
   it('duplicate active invite rejected', async () => {
@@ -72,6 +72,6 @@ describe('createInvite', () => {
         { familyId: family.id, email: 'dup@x.com', role: 'family', byUserId: user.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/already invited/i)
+    ).rejects.toThrow('invite.emailAlreadyInvited')
   })
 })

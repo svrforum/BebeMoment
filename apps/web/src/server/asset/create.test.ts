@@ -76,7 +76,7 @@ describe('createAsset', () => {
         db.prismaPublic,
         db.prismaMedia,
       ),
-    ).rejects.toThrow(/permission|member/i)
+    ).rejects.toThrow('asset.uploadDenied')
   })
 
   it('rejects family-role member when upload not granted', async () => {
@@ -105,6 +105,6 @@ describe('createAsset', () => {
         db.prismaPublic,
         db.prismaMedia,
       ),
-    ).rejects.toThrow(/권한|permission/i)
+    ).rejects.toThrow('asset.uploadDenied')
   })
 })

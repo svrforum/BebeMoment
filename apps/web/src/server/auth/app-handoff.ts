@@ -16,7 +16,7 @@ export async function createAppHandoff(
 ): Promise<{ code: string }> {
   // sha256(verifier) base64url = 정확히 43자 [A-Za-z0-9_-]. 형식 강제로 full-entropy
   // verifier 에 대응하는 해시만 저장한다(약한 challenge 거부).
-  if (!/^[A-Za-z0-9_-]{43}$/.test(input.challenge)) throw new Error('잘못된 challenge 형식이에요')
+  if (!/^[A-Za-z0-9_-]{43}$/.test(input.challenge)) throw new Error('auth.handoffBadChallenge')
   // 버려진(미교환) 만료 핸드오프 청소 — 이 테이블엔 usedAt 톰스톤이 없어 미교환 행이
   // 영원히 남으므로 발급 시점에 만료분을 쓸어낸다(베스트에포트).
   await prisma.appAuthHandoff
@@ -47,9 +47,9 @@ export async function exchangeAppHandoff(
   try {
     row = await prisma.appAuthHandoff.delete({ where: { code: input.code } })
   } catch {
-    throw new Error('유효하지 않은 코드예요')
+    throw new Error('auth.handoffInvalidCode')
   }
-  if (row.expiresAt.getTime() < Date.now()) throw new Error('만료된 코드예요')
-  if (hashVerifier(input.verifier) !== row.verifierHash) throw new Error('검증에 실패했어요')
+  if (row.expiresAt.getTime() < Date.now()) throw new Error('auth.handoffExpiredCode')
+  if (hashVerifier(input.verifier) !== row.verifierHash) throw new Error('auth.handoffVerifyFailed')
   return { userId: row.userId, currentFamilyId: row.currentFamilyId }
 }

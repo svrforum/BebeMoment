@@ -1530,5 +1530,120 @@
     "digestPhotos": "{photos} new photos were added 📷",
     "digestOthers": "{others} new updates 💌",
     "digestEmpty": "New updates 💌"
+  },
+  "errors": {
+    "unauthorized": "Sign in required",
+    "noFamily": "No family selected",
+    "forbidden": "You don't have permission",
+    "badRequest": "Couldn't process the request",
+    "notFound": "Not found",
+    "invalidInput": "Please check your input",
+    "serverError": "Please try again in a moment",
+    "auth": {
+      "accountSuspended": "This account has been suspended by an admin. Please contact your administrator.",
+      "accountSuspendedShort": "This account is suspended.",
+      "invalidCredentials": "Incorrect username or password.",
+      "registrationClosed": "Public sign-up is closed. Please join with an invite link.",
+      "usernameInvalid": "Username must be 3-30 lowercase letters, digits, or ._-",
+      "usernameTaken": "That username is already taken.",
+      "emailTaken": "That email is already registered.",
+      "resetLinkExpired": "This link has expired. Please ask your administrator for a new one.",
+      "handoffBadChallenge": "Invalid challenge format.",
+      "handoffInvalidCode": "Invalid code.",
+      "handoffExpiredCode": "Code has expired.",
+      "handoffVerifyFailed": "Verification failed.",
+      "oidcProviderNotFound": "Provider not found."
+    },
+    "invite": {
+      "notFound": "Invite not found",
+      "alreadyAccepted": "This invite has already been accepted",
+      "revoked": "This invite has been revoked",
+      "expired": "This invite has expired",
+      "userNotFound": "User not found",
+      "alreadyMember": "You're already a member of this family",
+      "noPermission": "You don't have permission to invite",
+      "emailAlreadyInvited": "This email already has a pending invite",
+      "noRevokePermission": "You don't have permission to revoke invites"
+    },
+    "member": {
+      "notFound": "Member not found",
+      "ownerOnly": "Only the owner (admin) can do this",
+      "selfRole": "You can't change your own role",
+      "selfAction": "You can't use this on yourself",
+      "invalidRole": "That role can't be assigned",
+      "ownerRoleImmutable": "The admin role can't be changed",
+      "ownerSuspend": "The admin can't be suspended",
+      "ownerRemove": "The admin can't be removed",
+      "alreadySuspended": "Already suspended",
+      "notSuspended": "This member isn't suspended",
+      "oidcPassword": "Members who signed up with OIDC must change their password at the OIDC provider"
+    },
+    "family": {
+      "alreadyExists": "A family is already set up"
+    },
+    "album": {
+      "notFound": "앨범을 찾을 수 없어요",
+      "memberOnly": "가족 멤버가 아니에요",
+      "createDenied": "앨범을 만들 권한이 없어요",
+      "secretGuardianOnly": "비밀 앨범은 보호자만 만들 수 있어요",
+      "secretToggleGuardianOnly": "비밀 앨범 설정은 보호자만 바꿀 수 있어요",
+      "editDenied": "이 앨범을 편집할 권한이 없어요",
+      "deleteDenied": "이 앨범을 삭제할 권한이 없어요",
+      "moveDenied": "이 앨범을 옮길 권한이 없어요",
+      "parentNotFound": "상위 앨범을 찾을 수 없어요",
+      "duplicateName": "같은 위치에 같은 이름의 앨범이 이미 있어요",
+      "coverMustBelong": "이 앨범에 속한 사진만 커버로 설정할 수 있어요",
+      "coverNotFound": "커버로 쓸 사진이 없어요",
+      "selfParent": "자기 자신을 부모로 둘 수 없어요",
+      "moveTargetNotFound": "이동할 위치를 찾을 수 없어요",
+      "descendantParent": "하위 앨범을 부모로 둘 수 없어요",
+      "duplicateNameAtTarget": "이동할 위치에 같은 이름의 앨범이 이미 있어요",
+      "permissionDenied": "권한이 없어요",
+      "featureOff": "앨범 기능이 꺼져 있어요"
+    },
+    "asset": {
+      "uploadDenied": "업로드 권한이 없어요. 관리자에게 문의하세요.",
+      "mediaOnly": "이미지·영상만 올릴 수 있어요.",
+      "memberOnly": "가족 멤버가 아니에요",
+      "notFound": "사진을 찾을 수 없어요",
+      "restoreDenied": "복원 권한이 없어요",
+      "deleteDenied": "이 사진을 삭제할 권한이 없어요",
+      "purgeDenied": "영구 삭제 권한이 없어요",
+      "notInTrash": "휴지통에 있는 사진이 아니에요",
+      "permissionDenied": "권한이 없어요",
+      "editDenied": "이 사진을 편집할 권한이 없어요",
+      "retryDenied": "재처리 권한이 없어요",
+      "mediaFetchFailed": "미디어를 가져오지 못했어요"
+    },
+    "share": {
+      "storyNotFound": "스토리를 찾을 수 없어요",
+      "storyNotFamily": "가족 전체 공개 스토리만 공유 링크를 만들 수 있어요",
+      "assetNotFound": "사진을 찾을 수 없어요",
+      "albumNotFound": "앨범을 찾을 수 없어요",
+      "albumSecret": "비밀 앨범은 공유 링크를 만들 수 없어요",
+      "selectionEmpty": "공유할 사진을 선택해주세요",
+      "selectionTooMany": "한 번에 100장까지 공유할 수 있어요",
+      "selectionNotFound": "공유할 사진을 찾을 수 없어요",
+      "featureOff": "공유 기능이 꺼져 있어요",
+      "targetRequired": "공유 대상이 필요해요"
+    },
+    "notif": {
+      "fcmTokenFailed": "FCM 액세스 토큰 발급에 실패했어요",
+      "fcmTokenMissing": "FCM 액세스 토큰 응답에 토큰이 없어요",
+      "testCooldown": "잠시 후 다시 시도해주세요"
+    },
+    "backup": {
+      "databaseUrlRequired": "DATABASE_URL이 필요해요 (백업/복구)",
+      "chainBaseNotFull": "체인의 베이스가 full 백업이 아니에요 — 베이스 백업이 누락됐어요",
+      "invalidId": "잘못된 백업 id 예요",
+      "notFound": "백업을 찾을 수 없어요",
+      "bundleMissing": "번들 파일이 없어요",
+      "hasDependents": "이 백업에 의존하는 증분 백업이 있어 삭제할 수 없어요",
+      "confirmMismatch": "확인 문자열이 백업 id 와 일치하지 않아요",
+      "remoteMissingCreds": "버킷·키를 모두 입력하세요"
+    },
+    "admin": {
+      "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"
+    }
   }
 }

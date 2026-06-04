@@ -1,5 +1,6 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient } from '@bebe/db-public'
+import { ServiceError } from '@/server/error'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
 export type ShareTarget =
@@ -30,33 +31,31 @@ export async function createShareLink(
       where: { id: t.storyId, familyId: input.familyId, deletedAt: null },
       select: { id: true, visibility: true },
     })
-    if (!story) throw new Error('스토리를 찾을 수 없어요')
-    if (story.visibility !== 'family')
-      throw new Error('가족 전체 공개 스토리만 공유 링크를 만들 수 있어요')
+    if (!story) throw new ServiceError(404, 'share.storyNotFound')
+    if (story.visibility !== 'family') throw new ServiceError(400, 'share.storyNotFamily')
   } else if (t.kind === 'asset') {
     const asset = await prismaMedia.asset.findFirst({
       where: { id: t.assetId, familyId: input.familyId, status: 'ready', deletedAt: null },
       select: { id: true },
     })
-    if (!asset) throw new Error('사진을 찾을 수 없어요')
+    if (!asset) throw new ServiceError(404, 'share.assetNotFound')
   } else if (t.kind === 'album') {
     const album = await prismaPublic.album.findFirst({
       where: { id: t.albumId, familyId: input.familyId, deletedAt: null },
       select: { id: true, secret: true },
     })
-    if (!album) throw new Error('앨범을 찾을 수 없어요')
-    if (album.secret) throw new Error('비밀 앨범은 공유 링크를 만들 수 없어요')
+    if (!album) throw new ServiceError(404, 'share.albumNotFound')
+    if (album.secret) throw new ServiceError(400, 'share.albumSecret')
   } else if (t.kind === 'selection') {
-    if (t.assetIds.length === 0) throw new Error('공유할 사진을 선택해주세요')
-    if (t.assetIds.length > SELECTION_MAX)
-      throw new Error(`한 번에 ${SELECTION_MAX}장까지 공유할 수 있어요`)
+    if (t.assetIds.length === 0) throw new ServiceError(400, 'share.selectionEmpty')
+    if (t.assetIds.length > SELECTION_MAX) throw new ServiceError(400, 'share.selectionTooMany')
     const rows = await prismaMedia.asset.findMany({
       where: { id: { in: t.assetIds }, familyId: input.familyId, status: 'ready', deletedAt: null },
       select: { id: true },
     })
     const ok = new Set(rows.map((r) => r.id))
     validAssetIds = t.assetIds.filter((id) => ok.has(id))
-    if (validAssetIds.length === 0) throw new Error('공유할 사진을 찾을 수 없어요')
+    if (validAssetIds.length === 0) throw new ServiceError(404, 'share.selectionNotFound')
   }
 
   const token = generateShareToken()

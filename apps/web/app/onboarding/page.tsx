@@ -1,12 +1,14 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { isRegistrationOpen } from '@/server/auth/registration'
+import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { OnboardingWizard } from './onboarding-wizard'
 
 export const dynamic = 'force-dynamic'
 
 export default async function OnboardingPage() {
+  const t = await getTranslations('onboarding')
   const { user } = await getAuth()
   if (!user) redirect('/login')
 
@@ -22,16 +24,11 @@ export default async function OnboardingPage() {
   if (!(await isRegistrationOpen(prismaPublic))) {
     return (
       <main className="mx-auto flex min-h-[100dvh] max-w-md flex-col justify-center px-6 py-10 md:max-w-[480px]">
-        <h1 className="text-[32px] font-bold leading-tight tracking-tight">
-          초대를 받아 합류해주세요
-        </h1>
-        <p className="mt-3 text-base text-base-500">
-          이 인스턴스는 이미 가족 설정이 끝났어요. 가족 구성원이 보낸 초대 링크를 다시 열면 이
-          계정으로 합류할 수 있어요.
-        </p>
+        <h1 className="text-[32px] font-bold leading-tight tracking-tight">{t('closed.title')}</h1>
+        <p className="mt-3 text-base text-base-500">{t('closed.body')}</p>
         <form action="/api/auth/logout" method="post" className="mt-8">
           <button type="submit" className="text-sm font-medium text-point-500">
-            다른 계정으로 로그인
+            {t('closed.switchAccount')}
           </button>
         </form>
       </main>

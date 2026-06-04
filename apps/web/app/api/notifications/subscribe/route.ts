@@ -1,6 +1,7 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { deleteSubscription, saveSubscription } from '@/server/notifications/subscriptions'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -18,7 +19,7 @@ const unsubscribeSchema = z.object({
 
 export async function POST(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   try {
     const body = subscribeSchema.parse(await req.json())
     await saveSubscription(
@@ -33,18 +34,18 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
 export async function DELETE(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   try {
     const body = unsubscribeSchema.parse(await req.json())
     await deleteSubscription({ userId: session.userId, endpoint: body.endpoint }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

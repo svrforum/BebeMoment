@@ -84,6 +84,6 @@ describe('softDeleteAsset', () => {
         db.prismaPublic,
         db.prismaMedia,
       ),
-    ).rejects.toThrow(/permission|member/i)
+    ).rejects.toThrow('asset.memberOnly')
   })
 })

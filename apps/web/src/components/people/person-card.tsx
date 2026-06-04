@@ -3,9 +3,11 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { PersonSummary } from '@/server/people/list'
 import { UserRound } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
 export function PersonCard({ person }: { person: PersonSummary }) {
+  const t = useTranslations('misc')
   const { cover } = person
   const trio = cover ? pickThumbTrio(cover.urls) : null
   const fallbackUrl = cover ? pickThumbUrl(cover.urls) : null
@@ -15,7 +17,7 @@ export function PersonCard({ person }: { person: PersonSummary }) {
         (cover.bbox.y + cover.bbox.h / 2) * 100,
       )}%`
     : '50% 50%'
-  const label = person.name ?? '이름 없음'
+  const label = person.name ?? t('people.unnamed')
 
   return (
     <Link href={`/people/${person.id}`} className="block">
@@ -45,7 +47,9 @@ export function PersonCard({ person }: { person: PersonSummary }) {
         >
           {label}
         </div>
-        <div className="text-xs tabular-nums text-base-500">사진 {person.faceCount}</div>
+        <div className="text-xs tabular-nums text-base-500">
+          {t('people.cardPhotoCount', { count: person.faceCount })}
+        </div>
       </div>
     </Link>
   )

@@ -55,7 +55,7 @@ describe('changeMemberRole', () => {
         { membershipId: membership.id, familyId: family.id, actorUserId: owner.id, role: 'owner' },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('지정할 수 없는')
+    ).rejects.toThrow('member.invalidRole')
   })
 
   it('owner 가 아닌 actor 의 역할 변경을 거부한다', async () => {
@@ -77,7 +77,7 @@ describe('changeMemberRole', () => {
         },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('소유자')
+    ).rejects.toThrow('member.ownerOnly')
   })
 
   it('본인 역할은 변경할 수 없다', async () => {
@@ -95,6 +95,6 @@ describe('changeMemberRole', () => {
         },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('본인')
+    ).rejects.toThrow('member.selfRole')
   })
 })

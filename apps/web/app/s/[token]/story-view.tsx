@@ -1,8 +1,10 @@
 import type { PublicStoryPreview } from '@/server/share/public-story'
 import { Lock } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { ShareViewFrame, appDeepLink } from './share-frame'
 
-export function StoryShareView({ p, base }: { p: PublicStoryPreview; base: string }) {
+export async function StoryShareView({ p, base }: { p: PublicStoryPreview; base: string }) {
+  const t = await getTranslations('share')
   const webUrl = `${base}/story/${p.publicNo}`
   const appHref = appDeepLink(base, `/story/${p.publicNo}`, webUrl)
   const remaining = p.totalPhotos > 1 ? p.totalPhotos - 1 : 0
@@ -11,7 +13,7 @@ export function StoryShareView({ p, base }: { p: PublicStoryPreview; base: strin
   return (
     <ShareViewFrame
       familyName={p.familyName}
-      meta={`우리 가족 이야기${p.totalPhotos > 0 ? ` · 사진 ${p.totalPhotos}장` : ''}`}
+      meta={p.totalPhotos > 0 ? t('story.metaWithCount', { n: p.totalPhotos }) : t('story.meta')}
       appHref={appHref}
       webUrl={webUrl}
     >
@@ -49,7 +51,7 @@ export function StoryShareView({ p, base }: { p: PublicStoryPreview; base: strin
             ))}
           </div>
           <p className="mt-3 text-center text-[13px] font-medium text-base-700 dark:text-base-200">
-            사진 {remaining}장이 더 있어요 · 로그인하면 전체를 볼 수 있어요
+            {t('story.morePhotos', { n: remaining })}
           </p>
         </a>
       )}

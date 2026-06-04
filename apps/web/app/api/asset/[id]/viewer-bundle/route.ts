@@ -6,17 +6,17 @@ import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
 import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { likersForAsset } from '@/server/like/list-for-asset'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user)
-    return NextResponse.json({ error: 'No current family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     const sp = new URL(req.url).searchParams
@@ -38,7 +38,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       prismaMedia,
       getMediaClient(),
     )
-    if (!bundle) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!bundle) return errorJsonKey('notFound', 404)
 
     const storyCtx = await resolveStoryViewerCtx(
       ctxParam,
@@ -55,7 +55,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const assetRow = await prismaMedia.asset.findFirst({
       where: { id: bundle.current.id, familyId: ctx.family.id, deletedAt: null },
     })
-    if (!assetRow) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    if (!assetRow) return errorJsonKey('notFound', 404)
 
     const [likers, myLike, myBookmark, commentRows, assetBabyLinks] = await Promise.all([
       likersForAsset(ctx.family.id, bundle.current.id, prismaPublic),
@@ -117,6 +117,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       },
     })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

@@ -2,17 +2,18 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { softDeleteAsset } from '@/server/asset/soft-delete'
 import { resolveContext } from '@/server/context'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { getPublisher } from '@/server/upload/pubsub'
 import { NextResponse } from 'next/server'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     await softDeleteAsset(
@@ -23,6 +24,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

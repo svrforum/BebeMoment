@@ -19,6 +19,7 @@ import { getSetting } from '@/server/settings/get'
 import { listMyStoryBookmarks } from '@/server/story-bookmark/list-mine'
 import { formatDDay, groupAssetsByDay } from '@/server/timeline/group-by-day'
 import { Bookmark } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 
@@ -31,6 +32,7 @@ function utcDayKey(d: Date): string {
 export const dynamic = 'force-dynamic'
 
 export default async function SavedPage() {
+  const t = await getTranslations('misc')
   const ctx = await getContext()
   if (!ctx.family || !ctx.user) redirect('/onboarding')
   const role = ctx.membership?.role ?? 'family'
@@ -131,7 +133,7 @@ export default async function SavedPage() {
     <>
       <RefreshOnMount />
       <PullToRefresh />
-      <AppHeader title="북마크" wide />
+      <AppHeader title={t('saved.title')} wide />
       {features.faces && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-4">
           <PeopleEntry count={peopleCount} />
@@ -140,8 +142,8 @@ export default async function SavedPage() {
       {empty ? (
         <EmptyState
           icon={Bookmark}
-          title="저장한 항목이 없어요"
-          description="사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요"
+          title={t('saved.emptyTitle')}
+          description={t('saved.emptyDescription')}
         />
       ) : (
         <>

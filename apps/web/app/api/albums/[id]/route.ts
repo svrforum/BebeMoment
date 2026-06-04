@@ -5,37 +5,34 @@ import { getAlbumWithBreadcrumbs } from '@/server/album/get'
 import { moveAlbum } from '@/server/album/move'
 import { updateAlbum } from '@/server/album/update'
 import { resolveContext } from '@/server/context'
-import { toHttpError } from '@/server/error'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { NextResponse } from 'next/server'
 
 async function getCtx() {
   const { session } = await getAuth()
-  if (!session) return { error: 'Unauthorized', status: 401 } as const
+  if (!session) return { error: 'unauthorized', status: 401 } as const
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return { error: 'No family', status: 400 } as const
+  if (!ctx.family || !ctx.user) return { error: 'noFamily', status: 400 } as const
   return { ctx } as const
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
-  if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if ('error' in r) return errorJsonKey(r.error, r.status as number)
   try {
     const { id } = await params
     const album = await getAlbumWithBreadcrumbs(
       { albumId: id, familyId: r.ctx.family!.id, viewerRole: r.ctx.membership?.role ?? 'family' },
       prismaPublic,
     )
-    if (!album) return NextResponse.json({ error: 'not found' }, { status: 404 })
+    if (!album) return errorJsonKey('album.notFound', 404)
     return NextResponse.json({ album })
   } catch (e) {
-    {
-      const { status, message } = toHttpError(e)
-      return NextResponse.json({ error: message }, { status })
-    }
+    return errorJson(e)
   }
 }
 
@@ -47,9 +44,9 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
  */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
-  if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if ('error' in r) return errorJsonKey(r.error, r.status as number)
   if (!(await isFeatureEnabled('albums', prismaPublic)))
-    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
+    return errorJsonKey('album.featureOff', 403)
   try {
     const { id } = await params
     const body = (await req.json()) as {
@@ -108,18 +105,15 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json({ album })
   } catch (e) {
-    {
-      const { status, message } = toHttpError(e)
-      return NextResponse.json({ error: message }, { status })
-    }
+    return errorJson(e)
   }
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const r = await getCtx()
-  if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if ('error' in r) return errorJsonKey(r.error, r.status as number)
   if (!(await isFeatureEnabled('albums', prismaPublic)))
-    return NextResponse.json({ error: '앨범 기능이 꺼져 있어요' }, { status: 403 })
+    return errorJsonKey('album.featureOff', 403)
   try {
     const { id } = await params
     const url = new URL(req.url)
@@ -135,7 +129,6 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     )
     return NextResponse.json(result)
   } catch (e) {
-    const { status, message } = toHttpError(e)
-    return NextResponse.json({ error: message }, { status })
+    return errorJson(e)
   }
 }

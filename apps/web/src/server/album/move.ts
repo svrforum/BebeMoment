@@ -38,7 +38,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  if (!membership || membership.deletedAt) throw new ForbiddenError('album.memberOnly')
   const familyCaps = await getFamilyCapabilities(prismaPublic)
 
   try {
@@ -46,15 +46,15 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       const album = await tx.album.findFirst({
         where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
       })
-      if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
+      if (!album) throw new NotFoundError('album.notFound')
 
       const allowed =
         (album.createdByUserId === input.byUserId &&
           resolveCan(membership.role, 'album.update.own', familyCaps)) ||
         resolveCan(membership.role, 'album.update.any', familyCaps)
-      if (!allowed) throw new ForbiddenError('이 앨범을 옮길 권한이 없어요')
+      if (!allowed) throw new ForbiddenError('album.moveDenied')
 
-      if (input.newParentId === album.id) throw new ConflictError('자기 자신을 부모로 둘 수 없어요')
+      if (input.newParentId === album.id) throw new ConflictError('album.selfParent')
       if (input.newParentId === album.parentId) return album
 
       let newParentPath: string | null = null
@@ -67,9 +67,9 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
             deletedAt: null,
           },
         })
-        if (!parent) throw new NotFoundError('이동할 위치를 찾을 수 없어요')
+        if (!parent) throw new NotFoundError('album.moveTargetNotFound')
         if (isDescendant(parent.path, album.path)) {
-          throw new ConflictError('하위 앨범을 부모로 둘 수 없어요')
+          throw new ConflictError('album.descendantParent')
         }
         newParentPath = parent.path
         newParentDepth = parent.depth
@@ -98,7 +98,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
           id: { not: album.id },
         },
       })
-      if (conflict) throw new ConflictError('이동할 위치에 같은 이름의 앨범이 이미 있어요')
+      if (conflict) throw new ConflictError('album.duplicateNameAtTarget')
 
       const newPath = computePath(newParentPath, album.id)
       const newDepth = newParentDepth + 1
@@ -140,7 +140,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
     return moved
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new ConflictError('이동할 위치에 같은 이름의 앨범이 이미 있어요')
+      throw new ConflictError('album.duplicateNameAtTarget')
     }
     throw err
   }

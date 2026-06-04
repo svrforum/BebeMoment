@@ -5,6 +5,7 @@ import { requireAdmin } from '@/lib/require-admin'
 import { backupDir } from '@/server/backup/config'
 import { findBackup } from '@/server/backup/list'
 import { bundleName, isValidBackupId } from '@/server/backup/manifest'
+import { errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -14,13 +15,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   const { id } = await params
-  if (!isValidBackupId(id)) return NextResponse.json({ error: '잘못된 백업 id' }, { status: 400 })
+  if (!isValidBackupId(id)) return errorJsonKey('backup.invalidId', 400)
   const found = await findBackup(backupDir(), id)
-  if (!found) return NextResponse.json({ error: '백업을 찾을 수 없어요' }, { status: 404 })
+  if (!found) return errorJsonKey('backup.notFound', 404)
 
   const file = path.join(backupDir(), bundleName(id))
   const stat = await fs.stat(file).catch(() => null)
-  if (!stat) return NextResponse.json({ error: '번들 파일이 없어요' }, { status: 404 })
+  if (!stat) return errorJsonKey('backup.bundleMissing', 404)
 
   const stream = Readable.toWeb(createReadStream(file)) as unknown as ReadableStream<Uint8Array>
   return new Response(stream, {

@@ -17,11 +17,10 @@ export async function suspendMember(
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })
-  if (!membership) throw new NotFoundError('멤버를 찾을 수 없어요')
-  if (membership.userId === input.actorUserId)
-    throw new ForbiddenError('본인에게는 사용할 수 없는 기능이에요')
-  if (membership.role === 'owner') throw new ForbiddenError('관리자는 정지할 수 없어요')
-  if (membership.suspendedAt) throw new ConflictError('이미 정지된 상태에요')
+  if (!membership) throw new NotFoundError('member.notFound')
+  if (membership.userId === input.actorUserId) throw new ForbiddenError('member.selfAction')
+  if (membership.role === 'owner') throw new ForbiddenError('member.ownerSuspend')
+  if (membership.suspendedAt) throw new ConflictError('member.alreadySuspended')
 
   const suspendedAt = new Date()
   await prisma.$transaction(async (tx) => {

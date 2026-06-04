@@ -1,10 +1,11 @@
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { useTranslations } from 'next-intl'
 
 export function GrowthForm({
   action,
   defaults,
-  submitLabel = '저장',
+  submitLabel,
 }: {
   action: (fd: FormData) => void
   defaults?: {
@@ -16,11 +17,13 @@ export function GrowthForm({
   }
   submitLabel?: string
 }) {
+  const t = useTranslations('misc')
   const d = defaults ?? {}
+  const label = submitLabel ?? t('growth.save')
   return (
     <form action={action} className="space-y-3">
       <div>
-        <Label htmlFor="measuredAt">측정일</Label>
+        <Label htmlFor="measuredAt">{t('growth.measuredAt')}</Label>
         <Input
           id="measuredAt"
           name="measuredAt"
@@ -31,7 +34,7 @@ export function GrowthForm({
       </div>
       <div className="grid grid-cols-3 gap-2">
         <div>
-          <Label htmlFor="heightCm">키 (cm)</Label>
+          <Label htmlFor="heightCm">{t('growth.heightCm')}</Label>
           <Input
             id="heightCm"
             name="heightCm"
@@ -43,7 +46,7 @@ export function GrowthForm({
           />
         </div>
         <div>
-          <Label htmlFor="weightKg">몸무게 (kg)</Label>
+          <Label htmlFor="weightKg">{t('growth.weightKg')}</Label>
           <Input
             id="weightKg"
             name="weightKg"
@@ -55,7 +58,7 @@ export function GrowthForm({
           />
         </div>
         <div>
-          <Label htmlFor="headCm">머리 (cm)</Label>
+          <Label htmlFor="headCm">{t('growth.headCm')}</Label>
           <Input
             id="headCm"
             name="headCm"
@@ -68,11 +71,11 @@ export function GrowthForm({
         </div>
       </div>
       <div>
-        <Label htmlFor="note">메모 (선택)</Label>
+        <Label htmlFor="note">{t('growth.noteOptional')}</Label>
         <Input id="note" name="note" type="text" defaultValue={d.note ?? ''} maxLength={500} />
       </div>
       <Button type="submit" className="w-full">
-        {submitLabel}
+        {label}
       </Button>
     </form>
   )

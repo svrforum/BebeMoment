@@ -1,3 +1,4 @@
+import { ForbiddenError } from '@/server/error'
 import { can } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-public'
 
@@ -9,7 +10,7 @@ export async function revokeInvite(
     where: { familyId_userId: { familyId: args.familyId, userId: args.byUserId } },
   })
   if (!membership || !can(membership.role, 'member.invite')) {
-    throw new Error('No permission to revoke invites')
+    throw new ForbiddenError('invite.noRevokePermission')
   }
   await prisma.invite.update({
     where: { id: args.inviteId, familyId: args.familyId },

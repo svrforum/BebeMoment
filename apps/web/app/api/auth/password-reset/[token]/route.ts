@@ -1,7 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
+import { errorJson } from '@/lib/error-response'
 import { resetPasswordWithToken } from '@/server/auth/password-reset'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
-import { toHttpError } from '@/server/error'
 import { NextResponse } from 'next/server'
 import { ZodError } from 'zod'
 
@@ -20,7 +20,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ token: 
         { status: 400 },
       )
     }
-    const { status, message } = toHttpError(e)
-    return NextResponse.json({ error: message }, { status })
+    return errorJson(e)
   }
 }

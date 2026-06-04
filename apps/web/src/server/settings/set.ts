@@ -1,3 +1,4 @@
+import { ServiceError } from '@/server/error'
 import { GRANTABLE_FAMILY_CAPABILITIES } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-public'
 
@@ -9,7 +10,7 @@ const GRANTABLE = new Set<string>(GRANTABLE_FAMILY_CAPABILITIES)
 function validateSettingValue(key: string, value: unknown): void {
   if (key === 'permissions.family') {
     if (!Array.isArray(value) || value.some((c) => typeof c !== 'string' || !GRANTABLE.has(c))) {
-      throw new Error('permissions.family 에는 부여 가능한 권한만 설정할 수 있어요')
+      throw new ServiceError(400, 'admin.familyPermInvalid')
     }
   }
 }

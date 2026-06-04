@@ -3,6 +3,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { initAssetViaMedia } from '@/server/upload/init'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { resolveCan } from '@bebe/core'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -28,16 +29,16 @@ function absolutize(url: string, req: Request): string {
 // 업로드 토큰 + tus URL 을 돌려주면 앱이 미디어로 직접 PATCH 한다(브라우저 흐름과 동일).
 export async function POST(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
   if (!ctx.family || !ctx.user || !ctx.membership) {
-    return NextResponse.json({ error: 'No current family' }, { status: 400 })
+    return errorJsonKey('noFamily', 400)
   }
   if (!resolveCan(ctx.membership.role, 'asset.upload', await getFamilyCapabilities(prismaPublic))) {
-    return NextResponse.json({ error: '업로드 권한이 없어요' }, { status: 403 })
+    return errorJsonKey('forbidden', 403)
   }
   try {
     const input = Body.parse(await req.json())
@@ -50,6 +51,6 @@ export async function POST(req: Request) {
     })
     return NextResponse.json({ ...result, tusUploadUrl: absolutize(result.tusUploadUrl, req) })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

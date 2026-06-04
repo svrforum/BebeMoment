@@ -28,7 +28,7 @@ describe('setSetting', () => {
   it('permissions.family 는 부여 가능 권한만 허용(owner전용 주입 거부)', async () => {
     await expect(
       setSetting('permissions.family', ['member.suspend'], null, db.prismaPublic),
-    ).rejects.toThrow(/부여 가능|grant/i)
+    ).rejects.toThrow('admin.familyPermInvalid')
     // grantable 한 값은 허용.
     await setSetting('permissions.family', ['asset.upload'], null, db.prismaPublic)
     const row = await db.prismaPublic.appSetting.findUnique({

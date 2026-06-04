@@ -4,6 +4,7 @@ import { getFeatureFlags } from '@/server/settings/features'
 import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
+import { errorJson } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -20,7 +21,7 @@ export async function POST(req: Request) {
     await setSetting(body.key, body.value, ctx.user.id, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 

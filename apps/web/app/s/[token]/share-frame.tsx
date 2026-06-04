@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 
 // 앱 딥링크 — 설치돼 있으면 앱(bebe://open)으로, 아니면 web 으로 폴백(intent://).
@@ -40,13 +41,13 @@ export function ShareHeader({ familyName, meta }: { familyName: string; meta: st
   )
 }
 
-export function ShareViewFrame({
+export async function ShareViewFrame({
   familyName,
   meta,
   appHref,
   webUrl,
-  appLabel = '앱에서 이어보기',
-  webLabel = '로그인하고 전체 보기',
+  appLabel,
+  webLabel,
   children,
 }: {
   familyName: string
@@ -57,6 +58,9 @@ export function ShareViewFrame({
   webLabel?: string
   children: ReactNode
 }) {
+  const t = await getTranslations('share')
+  const resolvedAppLabel = appLabel ?? t('frame.appContinue')
+  const resolvedWebLabel = webLabel ?? t('frame.webLoginViewAll')
   return (
     <ShareShell>
       <ShareHeader familyName={familyName} meta={meta} />
@@ -68,17 +72,15 @@ export function ShareViewFrame({
           href={appHref}
           className="flex h-12 items-center justify-center rounded-2xl bg-point-500 text-[15px] font-semibold text-white active:scale-[0.99]"
         >
-          {appLabel}
+          {resolvedAppLabel}
         </a>
         <a
           href={webUrl}
           className="flex h-12 items-center justify-center rounded-2xl border border-base-200 bg-base-0 text-[15px] font-semibold text-base-800 active:scale-[0.99] dark:border-base-800 dark:bg-base-900 dark:text-base-100"
         >
-          {webLabel}
+          {resolvedWebLabel}
         </a>
-        <p className="mt-1 text-center text-[12px] text-base-400">
-          가족 구성원만 전체를 볼 수 있어요
-        </p>
+        <p className="mt-1 text-center text-[12px] text-base-400">{t('frame.familyOnly')}</p>
       </div>
     </ShareShell>
   )

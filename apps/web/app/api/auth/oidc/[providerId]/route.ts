@@ -1,5 +1,6 @@
 import crypto from 'node:crypto'
 import { prismaPublic } from '@/lib/db-init'
+import { errorJsonKey } from '@/lib/error-response'
 import { publicOrigin } from '@/lib/request-origin'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { NAVER_AUTHORIZE } from '@/server/oidc/naver'
@@ -13,7 +14,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
 
   const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider || !provider.enabled) {
-    return NextResponse.json({ error: 'Provider not found' }, { status: 404 })
+    return errorJsonKey('auth.oidcProviderNotFound', 404)
   }
 
   const state = crypto.randomBytes(16).toString('base64url')

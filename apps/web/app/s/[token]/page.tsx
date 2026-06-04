@@ -9,6 +9,7 @@ import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/p
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
 import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { AlbumShareView } from './album-view'
 import { PhotoSetShareView } from './photo-set-view'
@@ -69,17 +70,21 @@ async function load(token: string, base: string): Promise<Loaded> {
   }
 
   // asset(1장)·selection(N장)·date(그 날) — 전부 "사진 집합" 한 뷰로.
+  const t = await getTranslations('share')
   let ids: string[]
   let meta: string
   if (r.target.kind === 'asset') {
     ids = [r.target.assetId]
-    meta = '우리 가족의 사진'
+    meta = t('photoset.metaFamilyPhoto')
   } else if (r.target.kind === 'selection') {
     ids = r.target.assetIds
-    meta = `사진 ${ids.length}장`
+    meta = t('photoset.metaCount', { n: ids.length })
   } else {
     ids = await getDateAssetIds(r.target.date, r.familyId, prismaMedia)
-    meta = `${monthDay.format(new Date(`${r.target.date}T00:00:00.000Z`))} · 사진 ${ids.length}장`
+    meta = t('photoset.metaDateCount', {
+      date: monthDay.format(new Date(`${r.target.date}T00:00:00.000Z`)),
+      n: ids.length,
+    })
   }
   const preview = await buildPhotoSetPreview(
     ids,
@@ -155,18 +160,14 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
   const { token } = await params
   const base = await requestBaseUrl()
   const r = await load(token, base)
+  const t = await getTranslations('share')
 
   if (r.status === 'expired')
-    return <GoneCard title="만료된 공유 링크예요" body="공유한 가족에게 새 링크를 요청해주세요." />
+    return <GoneCard title={t('gone.expiredTitle')} body={t('gone.expiredBody')} />
   if (r.status === 'revoked')
-    return (
-      <GoneCard
-        title="해제된 공유 링크예요"
-        body="이 링크는 더 이상 사용할 수 없어요. 새 링크를 요청해주세요."
-      />
-    )
+    return <GoneCard title={t('gone.revokedTitle')} body={t('gone.revokedBody')} />
   if (r.status !== 'ok')
-    return <GoneCard title="찾을 수 없는 링크예요" body="링크가 올바른지 다시 확인해주세요." />
+    return <GoneCard title={t('gone.notfoundTitle')} body={t('gone.notfoundBody')} />
 
   if (r.kind === 'story') return <StoryShareView p={r.preview} base={base} />
   if (r.kind === 'album') return <AlbumShareView p={r.preview} base={base} />

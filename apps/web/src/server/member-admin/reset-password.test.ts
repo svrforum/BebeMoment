@@ -56,7 +56,7 @@ describe('issuePasswordReset', () => {
         },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/소유자/)
+    ).rejects.toThrow('member.ownerOnly')
     const tokens = await db.prismaPublic.passwordResetToken.findMany()
     expect(tokens).toHaveLength(0)
   })
@@ -121,7 +121,7 @@ describe('issuePasswordReset', () => {
         },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('본인')
+    ).rejects.toThrow('member.selfAction')
   })
   it('credential 계정이 없는 OIDC 멤버는 거부한다', async () => {
     const { owner, family } = await setup()
@@ -141,6 +141,6 @@ describe('issuePasswordReset', () => {
         },
         db.prismaPublic,
       ),
-    ).rejects.toThrow('OIDC')
+    ).rejects.toThrow('member.oidcPassword')
   })
 })

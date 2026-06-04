@@ -18,7 +18,7 @@ export async function resetPasswordWithToken(
 
   const record = await prisma.passwordResetToken.findUnique({ where: { token: input.token } })
   if (!record || record.usedAt || record.expiresAt.getTime() <= Date.now()) {
-    throw new ServiceError(400, '링크가 만료되었어요. 관리자에게 새 링크를 요청해주세요.')
+    throw new ServiceError(400, 'auth.resetLinkExpired')
   }
 
   const passwordHash = await hashPassword(input.newPassword)

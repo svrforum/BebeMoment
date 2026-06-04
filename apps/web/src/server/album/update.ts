@@ -32,22 +32,22 @@ export async function updateAlbum(
   const album = await prismaPublic.album.findFirst({
     where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
   })
-  if (!album) throw new NotFoundError('앨범을 찾을 수 없어요')
+  if (!album) throw new NotFoundError('album.notFound')
 
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
-  if (!membership || membership.deletedAt) throw new ForbiddenError('가족 멤버가 아니에요')
+  if (!membership || membership.deletedAt) throw new ForbiddenError('album.memberOnly')
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwnAlbum = album.createdByUserId === input.byUserId
   const allowed =
     (isOwnAlbum && resolveCan(membership.role, 'album.update.own', familyCaps)) ||
     resolveCan(membership.role, 'album.update.any', familyCaps)
-  if (!allowed) throw new ForbiddenError('이 앨범을 편집할 권한이 없어요')
+  if (!allowed) throw new ForbiddenError('album.editDenied')
 
   // 비밀 여부는 부모(owner/guardian)만 바꿀 수 있다.
   if (input.secret !== undefined && membership.role === 'family') {
-    throw new ForbiddenError('비밀 앨범 설정은 보호자만 바꿀 수 있어요')
+    throw new ForbiddenError('album.secretToggleGuardianOnly')
   }
 
   // Cover asset must (a) exist in the same family, (b) be ready, (c) be
@@ -62,7 +62,7 @@ export async function updateAlbum(
       },
     })
     if (!attached) {
-      throw new ConflictError('이 앨범에 속한 사진만 커버로 설정할 수 있어요')
+      throw new ConflictError('album.coverMustBelong')
     }
     if (prismaMedia) {
       const asset = await prismaMedia.asset.findFirst({
@@ -74,7 +74,7 @@ export async function updateAlbum(
         },
         select: { id: true },
       })
-      if (!asset) throw new NotFoundError('커버로 쓸 사진이 없어요')
+      if (!asset) throw new NotFoundError('album.coverNotFound')
     }
   }
 
@@ -92,7 +92,7 @@ export async function updateAlbum(
     return updated
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new ConflictError('같은 위치에 같은 이름의 앨범이 이미 있어요')
+      throw new ConflictError('album.duplicateName')
     }
     throw err
   }

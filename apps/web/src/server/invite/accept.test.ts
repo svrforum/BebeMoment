@@ -58,7 +58,7 @@ describe('acceptInvite', () => {
     )
     await expect(
       acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
-    ).rejects.toThrow(/expired/i)
+    ).rejects.toThrow('invite.expired')
   })
 
   it('rejects already accepted token', async () => {
@@ -70,7 +70,7 @@ describe('acceptInvite', () => {
     await acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic)
     await expect(
       acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
-    ).rejects.toThrow(/already accepted/i)
+    ).rejects.toThrow('invite.alreadyAccepted')
   })
 
   it('rejects revoked token', async () => {
@@ -85,7 +85,7 @@ describe('acceptInvite', () => {
     )
     await expect(
       acceptInvite({ token: invite.token, userId: user.id }, db.prismaPublic),
-    ).rejects.toThrow(/revoked/i)
+    ).rejects.toThrow('invite.revoked')
   })
 
   it('accepts regardless of user email (token-only)', async () => {

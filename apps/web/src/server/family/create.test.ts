@@ -60,7 +60,7 @@ describe('createFamily', () => {
     await createFamily({ name: '첫째네', userId: u1.id }, db.prismaPublic, { enforceSingle: true })
     await expect(
       createFamily({ name: '둘째네', userId: u2.id }, db.prismaPublic, { enforceSingle: true }),
-    ).rejects.toThrow(/이미 가족/)
+    ).rejects.toThrow('family.alreadyExists')
   })
 
   it('still allows multiple families without enforceSingle (isolation tests)', async () => {

@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/require-admin'
 import { type RemoteConfig, loadRemoteConfig, testRemote } from '@/server/backup/remote'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -83,7 +84,7 @@ export async function POST(req: Request) {
     if (body.test) {
       const cfg = await effectiveConfig(body, secretEnvKey)
       if (!cfg || !cfg.bucket || !cfg.accessKeyId || !cfg.secretAccessKey) {
-        return NextResponse.json({ error: '버킷·키를 모두 입력하세요' }, { status: 400 })
+        return errorJsonKey('backup.remoteMissingCreds', 400)
       }
       await testRemote(cfg)
       return NextResponse.json({ ok: true, tested: true })
@@ -107,6 +108,6 @@ export async function POST(req: Request) {
     }
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

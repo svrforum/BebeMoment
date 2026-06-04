@@ -4,6 +4,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import { z } from 'zod'
+import { ForbiddenError, NotFoundError } from '../error'
 
 const Input = z.object({
   assetId: z.string().uuid(),
@@ -37,21 +38,21 @@ export async function updateAssetMetadata(
     where: { id: input.assetId, familyId: input.familyId, deletedAt: null },
     select: { id: true, uploadedByUserId: true },
   })
-  if (!asset) throw new Error('asset not found')
+  if (!asset) throw new NotFoundError('asset.notFound')
 
   const membership = await prismaPublic.membership.findUnique({
     where: {
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
     },
   })
-  if (!membership || membership.deletedAt) throw new Error('No permission')
+  if (!membership || membership.deletedAt) throw new ForbiddenError('asset.permissionDenied')
 
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwner = asset.uploadedByUserId === input.byUserId
   const allowed =
     (isOwner && resolveCan(membership.role, 'asset.edit.own', familyCaps)) ||
     resolveCan(membership.role, 'asset.edit.any', familyCaps)
-  if (!allowed) throw new Error('No permission to edit this asset')
+  if (!allowed) throw new ForbiddenError('asset.editDenied')
 
   return media.updateAssetMetadata(input.assetId, {
     familyId: input.familyId,

@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { deleteProvider, updateProvider } from '@/server/oidc/providers'
+import { errorJson } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -22,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await updateProvider(id, body, ctx.env.SECRET_KEY, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
@@ -34,6 +35,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await deleteProvider(id, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

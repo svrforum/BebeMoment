@@ -5,18 +5,20 @@ import { type ShareTarget, createShareLink } from '@/server/share/create'
 import { listShareLinks } from '@/server/share/manage'
 import { isShareTtl } from '@/server/share/token'
 import { isFeatureEnabled } from '@/server/settings/features'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
-async function getCtx() {
+type CtxError = { errorKey: string; status: number }
+async function getCtx(): Promise<CtxError | { ctx: Awaited<ReturnType<typeof resolveContext>> }> {
   const { session } = await getAuth()
-  if (!session) return { error: 'Unauthorized', status: 401 } as const
+  if (!session) return { errorKey: 'unauthorized', status: 401 }
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return { error: 'No family', status: 400 } as const
-  return { ctx } as const
+  if (!ctx.family || !ctx.user) return { errorKey: 'noFamily', status: 400 }
+  return { ctx }
 }
 
 const createSchema = z
@@ -53,21 +55,19 @@ function targetFromQuery(url: URL): ShareTarget | null {
 }
 
 export async function GET(req: Request) {
-  if (!(await isFeatureEnabled('share', prismaPublic)))
-    return NextResponse.json({ error: '공유 기능이 꺼져 있어요' }, { status: 403 })
+  if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
   const r = await getCtx()
-  if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
   const target = targetFromQuery(new URL(req.url))
-  if (!target) return NextResponse.json({ error: 'storyId 또는 assetId 필요' }, { status: 400 })
+  if (!target) return errorJsonKey('share.targetRequired', 400)
   const links = await listShareLinks(target, r.ctx.family!.id, prismaPublic)
   return NextResponse.json({ links })
 }
 
 export async function POST(req: Request) {
-  if (!(await isFeatureEnabled('share', prismaPublic)))
-    return NextResponse.json({ error: '공유 기능이 꺼져 있어요' }, { status: 403 })
+  if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
   const r = await getCtx()
-  if ('error' in r) return NextResponse.json({ error: r.error }, { status: r.status as number })
+  if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
   try {
     const body = createSchema.parse(await req.json())
     const target: ShareTarget = body.storyId
@@ -86,6 +86,6 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ token, expiresAt })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

@@ -5,6 +5,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
+import { ForbiddenError, NotFoundError } from '../error'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const Input = z.object({
@@ -31,7 +32,7 @@ export async function attachAssetsToAlbum(
     where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
     select: { id: true },
   })
-  if (!album) throw new Error('album not found')
+  if (!album) throw new NotFoundError('album.notFound')
 
   const membership = await prismaPublic.membership.findUnique({
     where: {
@@ -44,7 +45,7 @@ export async function attachAssetsToAlbum(
     membership.deletedAt ||
     !resolveCan(membership.role, 'album.asset.attach', familyCaps)
   ) {
-    throw new Error('No permission')
+    throw new ForbiddenError('album.permissionDenied')
   }
   // family 역할에겐 비밀(또는 조상-secret) 앨범을 읽기 경로처럼 가린다 — 존재 비노출을
   // 위해 read 와 동일한 'album not found' 로 거부(§21).
@@ -54,7 +55,7 @@ export async function attachAssetsToAlbum(
       prismaPublic,
     )
   ) {
-    throw new Error('album not found')
+    throw new NotFoundError('album.notFound')
   }
 
   const validAssets = await prismaMedia.asset.findMany({

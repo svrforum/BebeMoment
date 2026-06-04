@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { ConflictError, ForbiddenError } from '@/server/error'
 import { can } from '@bebe/core'
 import type { Invite, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
@@ -19,7 +20,7 @@ export async function createInvite(raw: unknown, prisma: PrismaClient): Promise<
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'member.invite')) {
-    throw new Error('No permission to invite')
+    throw new ForbiddenError('invite.noPermission')
   }
 
   if (input.email) {
@@ -33,7 +34,7 @@ export async function createInvite(raw: unknown, prisma: PrismaClient): Promise<
       },
     })
     if (existing) {
-      throw new Error('This email is already invited and the invite is still pending')
+      throw new ConflictError('invite.emailAlreadyInvited')
     }
   }
 

@@ -35,11 +35,11 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     membership.deletedAt ||
     !resolveCan(membership.role, 'album.create', familyCaps)
   ) {
-    throw new ForbiddenError('앨범을 만들 권한이 없어요')
+    throw new ForbiddenError('album.createDenied')
   }
   // 비밀 앨범은 부모(owner/guardian)만 만들 수 있다 — family 는 보지도 못하므로.
   if (input.secret && membership.role === 'family') {
-    throw new ForbiddenError('비밀 앨범은 보호자만 만들 수 있어요')
+    throw new ForbiddenError('album.secretGuardianOnly')
   }
 
   let parentPath: string | null = null
@@ -48,7 +48,7 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     const parent = await prismaPublic.album.findFirst({
       where: { id: input.parentId, familyId: input.familyId, deletedAt: null },
     })
-    if (!parent) throw new NotFoundError('상위 앨범을 찾을 수 없어요')
+    if (!parent) throw new NotFoundError('album.parentNotFound')
     if (parent.depth >= MAX_DEPTH) {
       throw new ConflictError(`최대 깊이 (${MAX_DEPTH + 1}단계) 를 넘어요`)
     }
@@ -80,7 +80,7 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     return created
   } catch (err) {
     if (isUniqueViolation(err)) {
-      throw new ConflictError('같은 위치에 같은 이름의 앨범이 이미 있어요')
+      throw new ConflictError('album.duplicateName')
     }
     throw err
   }

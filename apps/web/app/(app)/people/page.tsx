@@ -8,9 +8,11 @@ import { getContext } from '@/server/context'
 import { listPeople } from '@/server/people/list'
 import { getFeatureFlags } from '@/server/settings/features'
 import { UsersRound } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 
 export default async function PeoplePage() {
+  const t = await getTranslations('misc')
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
   const features = await getFeatureFlags(prismaPublic)
@@ -21,13 +23,13 @@ export default async function PeoplePage() {
   return (
     <>
       <PullToRefresh />
-      <AppHeader title="사람" subtitle="얼굴로 모은 사람들" wide />
+      <AppHeader title={t('people.title')} subtitle={t('people.subtitle')} wide />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 lg:max-w-5xl xl:max-w-6xl">
         {people.length === 0 ? (
           <EmptyState
             icon={UsersRound}
-            title="아직 인식된 사람이 없어요"
-            description="새 사진을 올리면 얼굴을 인식해 사람별로 모아드려요. 처리에는 잠시 시간이 걸릴 수 있어요."
+            title={t('people.emptyTitle')}
+            description={t('people.emptyDescription')}
           />
         ) : (
           <PersonGrid people={people} />

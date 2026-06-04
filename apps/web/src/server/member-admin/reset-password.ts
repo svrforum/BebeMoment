@@ -20,15 +20,13 @@ export async function issuePasswordReset(
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })
-  if (!membership) throw new NotFoundError('멤버를 찾을 수 없어요')
-  if (membership.userId === input.actorUserId)
-    throw new ForbiddenError('본인에게는 사용할 수 없는 기능이에요')
+  if (!membership) throw new NotFoundError('member.notFound')
+  if (membership.userId === input.actorUserId) throw new ForbiddenError('member.selfAction')
 
   const account = await prisma.account.findFirst({
     where: { userId: membership.userId, providerId: 'credential' },
   })
-  if (!account)
-    throw new ServiceError(400, 'OIDC 로 가입한 멤버는 OIDC 제공자에서 비밀번호를 변경해주세요')
+  if (!account) throw new ServiceError(400, 'member.oidcPassword')
 
   const token = randomBytes(32).toString('hex')
   const expiresAt = new Date(Date.now() + TOKEN_TTL_MS)

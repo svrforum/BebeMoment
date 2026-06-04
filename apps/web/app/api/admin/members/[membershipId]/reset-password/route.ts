@@ -1,8 +1,8 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { requireAdmin } from '@/lib/require-admin'
 import { resolveContext } from '@/server/context'
-import { toHttpError } from '@/server/error'
 import { issuePasswordReset } from '@/server/member-admin/reset-password'
 import { NextResponse } from 'next/server'
 
@@ -17,7 +17,7 @@ export async function POST(
     { userId: session?.userId ?? null, currentFamilyId: session?.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
   try {
     const { membershipId } = await params
     const result = await issuePasswordReset(
@@ -31,7 +31,6 @@ export async function POST(
     )
     return NextResponse.json({ url: result.url, expiresAt: result.expiresAt })
   } catch (e) {
-    const { status, message } = toHttpError(e)
-    return NextResponse.json({ error: message }, { status })
+    return errorJson(e)
   }
 }

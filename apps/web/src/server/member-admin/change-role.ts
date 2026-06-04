@@ -18,7 +18,7 @@ export async function changeMemberRole(
   input: ChangeMemberRoleInput,
   prisma: PrismaClient,
 ): Promise<{ role: Role }> {
-  if (!ASSIGNABLE.has(input.role)) throw new ForbiddenError('지정할 수 없는 역할이에요')
+  if (!ASSIGNABLE.has(input.role)) throw new ForbiddenError('member.invalidRole')
   // 역할 변경은 owner 전용 — suspend/remove/reset-password 와 동일(requireAdmin 위에
   // 가족 역할 owner 확인). 비-owner 인스턴스 admin 이 역할 그래프를 바꾸지 못하게.
   await assertActorIsOwner(input.actorUserId, input.familyId, prisma)
@@ -26,10 +26,9 @@ export async function changeMemberRole(
   const membership = await prisma.membership.findFirst({
     where: { id: input.membershipId, familyId: input.familyId, deletedAt: null },
   })
-  if (!membership) throw new NotFoundError('멤버를 찾을 수 없어요')
-  if (membership.userId === input.actorUserId)
-    throw new ForbiddenError('본인 역할은 바꿀 수 없어요')
-  if (membership.role === 'owner') throw new ForbiddenError('관리자 역할은 변경할 수 없어요')
+  if (!membership) throw new NotFoundError('member.notFound')
+  if (membership.userId === input.actorUserId) throw new ForbiddenError('member.selfRole')
+  if (membership.role === 'owner') throw new ForbiddenError('member.ownerRoleImmutable')
   if (membership.role === input.role) return { role: membership.role }
 
   await prisma.membership.update({

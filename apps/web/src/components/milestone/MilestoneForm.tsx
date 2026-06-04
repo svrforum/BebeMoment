@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import type { MilestonePreset } from '@bebe/core'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { AssetPickerSheet, type PickerAsset } from '../story/AssetPickerSheet'
 
@@ -10,7 +11,7 @@ export function MilestoneForm({
   availableAssets,
   defaults,
   preset,
-  submitLabel = '저장',
+  submitLabel,
 }: {
   action: (fd: FormData) => void
   availableAssets: PickerAsset[]
@@ -23,19 +24,21 @@ export function MilestoneForm({
   preset?: MilestonePreset
   submitLabel?: string
 }) {
+  const t = useTranslations('misc')
   const [assetIds, setAssetIds] = useState<string[]>(defaults?.assetIds ?? [])
+  const label = submitLabel ?? t('milestone.save')
 
   return (
     <form action={action} className="space-y-3">
       {preset ? (
         <div>
-          <Label>마일스톤</Label>
+          <Label>{t('milestone.label')}</Label>
           <p className="text-sm">{preset.labelKo}</p>
           <input type="hidden" name="presetKey" value={preset.key} />
         </div>
       ) : (
         <div>
-          <Label htmlFor="customLabel">마일스톤 이름</Label>
+          <Label htmlFor="customLabel">{t('milestone.customLabel')}</Label>
           <Input
             id="customLabel"
             name="customLabel"
@@ -46,7 +49,7 @@ export function MilestoneForm({
         </div>
       )}
       <div>
-        <Label htmlFor="achievedAt">달성일</Label>
+        <Label htmlFor="achievedAt">{t('milestone.achievedAt')}</Label>
         <Input
           id="achievedAt"
           name="achievedAt"
@@ -56,7 +59,7 @@ export function MilestoneForm({
         />
       </div>
       <div>
-        <Label htmlFor="note">메모</Label>
+        <Label htmlFor="note">{t('milestone.note')}</Label>
         <Input
           id="note"
           name="note"
@@ -66,17 +69,17 @@ export function MilestoneForm({
         />
       </div>
       <div>
-        <Label>사진</Label>
+        <Label>{t('milestone.photos')}</Label>
         <input type="hidden" name="assetIds" value={JSON.stringify(assetIds)} />
         <AssetPickerSheet
           available={availableAssets}
           initialSelected={assetIds}
           onChange={setAssetIds}
-          triggerLabel={`사진 선택 (${assetIds.length})`}
+          triggerLabel={t('milestone.selectPhotos', { count: assetIds.length })}
         />
       </div>
       <Button type="submit" className="w-full">
-        {submitLabel}
+        {label}
       </Button>
     </form>
   )

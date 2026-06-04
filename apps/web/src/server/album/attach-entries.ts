@@ -3,6 +3,7 @@ import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
+import { ForbiddenError, NotFoundError } from '../error'
 import { isAlbumSecretForViewer } from './secret-visibility'
 
 const Input = z.object({
@@ -28,7 +29,7 @@ export async function attachEntriesToAlbum(
     where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
     select: { id: true },
   })
-  if (!album) throw new Error('album not found')
+  if (!album) throw new NotFoundError('album.notFound')
 
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
@@ -39,7 +40,7 @@ export async function attachEntriesToAlbum(
     membership.deletedAt ||
     !resolveCan(membership.role, 'album.asset.attach', familyCaps)
   ) {
-    throw new Error('No permission')
+    throw new ForbiddenError('album.permissionDenied')
   }
   if (
     await isAlbumSecretForViewer(
@@ -47,7 +48,7 @@ export async function attachEntriesToAlbum(
       prismaPublic,
     )
   ) {
-    throw new Error('album not found')
+    throw new NotFoundError('album.notFound')
   }
 
   const valid = await prismaPublic.story.findMany({

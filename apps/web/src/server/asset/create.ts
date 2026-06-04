@@ -3,6 +3,7 @@ import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Asset, AssetKind, TakenAtSource } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { ForbiddenError } from '../error'
 
 export type CreateAssetInput = {
   familyId: string
@@ -31,7 +32,7 @@ export async function createAsset(
     membership.deletedAt ||
     !resolveCan(membership.role, 'asset.upload', familyCaps)
   ) {
-    throw new Error('No permission to upload to this family')
+    throw new ForbiddenError('asset.uploadDenied')
   }
 
   return prismaMedia.asset.create({
