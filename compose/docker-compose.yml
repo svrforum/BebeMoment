@@ -10,6 +10,9 @@ services:
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
       PUBLIC_URL: ${PUBLIC_URL}
+      # 알림 방해금지·일일 다이제스트·오전 추억 푸시는 컨테이너 로컬 시각으로 판단한다.
+      # 가족 시간대로 맞춰야 한밤중(또는 한낮)에 잘못 보내거나 막지 않는다(기본 한국).
+      TZ: ${TZ:-Asia/Seoul}
       # web 서버사이드가 같은 컨테이너의 media 로 호출(런타임) + Next /media rewrite(빌드)
       MEDIA_INTERNAL_URL: http://localhost:3001
       NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-${PUBLIC_URL}}
