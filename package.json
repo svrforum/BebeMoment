@@ -1,6 +1,7 @@
 {
   "name": "bebe-moment",
   "version": "0.1.0",
+  "license": "AGPL-3.0-only",
   "private": true,
   "type": "module",
   "packageManager": "pnpm@11.5.0",
@@ -16,6 +17,8 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "check:lines": "scripts/check-line-limit.sh",
+    "licenses": "pnpm licenses list --prod",
+    "licenses:check": "scripts/check-licenses.sh",
     "db:migrate": "pnpm --filter @bebe/db-public migrate:dev && pnpm --filter @bebe/db-media migrate:dev",
     "db:studio": "pnpm --filter @bebe/db-public studio"
   },

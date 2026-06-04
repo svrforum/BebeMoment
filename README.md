@@ -97,3 +97,14 @@ android-app/      # Capacitor 안드로이드 앱 (pnpm 워크스페이스 밖)
 - [x] 단일 가족 초대제 · username 인증 · 가족 권한 구성 · 설정/관리자 개편 · PWA 푸시(+안드로이드 FCM) · 멤버 관리 Phase 1
 - [x] 추억(Memories) · 안드로이드 홈위젯 · 얼굴 인식 P1(옵트인) · 백업/복구(전체·증분, 원격 S3 미러)
 - [x] 유지보수 · 보안 강화 · 의존성 현대화 (Node 22 / Next 16 / React 19.2 / TS 6 / Prisma 7 / Fastify 5 / pnpm 11 / Postgres 17 / Valkey 9 / Better Auth)
+
+## 라이선스
+
+**[GNU AGPL-3.0-only](LICENSE)** — Copyright © 2026 svrforum.
+
+자유롭게 사용·수정·셀프호스팅할 수 있는 오픈소스입니다. 단, 이 코드(또는 수정본)를 **네트워크
+서비스로 제공**하면 그 변경 소스도 같은 라이선스로 공개해야 합니다(AGPL의 네트워크 조항). 상용
+폐쇄 포크·SaaS 를 막고 오픈소스로 유지하기 위한 선택입니다.
+
+- 의존성 라이선스는 각자의 라이선스를 따릅니다(대부분 MIT/Apache-2.0). AGPL 호환성 점검:
+  `pnpm licenses:check` (비호환/미상 라이선스 유입 차단), 전체 목록: `pnpm licenses`.
