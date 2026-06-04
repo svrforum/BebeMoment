@@ -1,0 +1,27 @@
+{
+  "nav": {
+    "timeline": "타임라인",
+    "calendar": "캘린더",
+    "story": "스토리",
+    "albums": "앨범",
+    "settings": "설정",
+    "bookmark": "북마크"
+  },
+  "common": {
+    "save": "저장",
+    "cancel": "취소",
+    "close": "닫기",
+    "delete": "삭제",
+    "edit": "편집",
+    "confirm": "확인",
+    "loading": "불러오는 중…"
+  },
+  "settings": {
+    "language": {
+      "title": "언어",
+      "description": "앱에서 표시할 언어예요.",
+      "ko": "한국어",
+      "en": "English"
+    }
+  }
+}

@@ -1,5 +1,7 @@
 import { InstalledAppVersion } from '@/components/shell/installed-app-version'
 import { DisplayNameEditor } from '@/components/settings/display-name-editor'
+import { LanguageSwitcher } from '@/components/settings/language-switcher'
+import { getTranslations } from 'next-intl/server'
 import { SnsLinkSection } from '@/components/settings/sns-link-section'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
@@ -59,6 +61,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default async function SettingsPage() {
+  const t = await getTranslations()
   const ctx = await getContext()
   if (!ctx.user) return null
   const user = ctx.user
@@ -137,6 +140,13 @@ export default async function SettingsPage() {
         </section>
 
         {/* 화면 */}
+        <section className="space-y-2">
+          <SectionTitle>{t('settings.language.title')}</SectionTitle>
+          <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
+            <LanguageSwitcher />
+          </div>
+        </section>
+
         <section className="space-y-2">
           <SectionTitle>화면</SectionTitle>
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">

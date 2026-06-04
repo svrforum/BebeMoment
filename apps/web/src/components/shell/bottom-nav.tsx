@@ -3,6 +3,7 @@ import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import type { FeatureFlag } from '@bebe/core'
 import { Bookmark, Calendar, Clock4, FolderOpen, NotebookPen, Settings } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
 import { UnreadBadge } from './unread-badge'
@@ -10,12 +11,13 @@ import { UnreadBadge } from './unread-badge'
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
 // 자동 조정(아래 visible + gridTemplateColumns). 마지막 칸은 모두에게 설정 —
 // 가족 관리는 설정 → 가족에서 들어간다.
-const baseItems: { href: string; label: string; icon: typeof Clock4; feature?: FeatureFlag }[] = [
-  { href: '/timeline', label: '타임라인', icon: Clock4 },
-  { href: '/calendar', label: '캘린더', icon: Calendar },
-  { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
-  { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
-]
+const baseItems: { href: string; labelKey: string; icon: typeof Clock4; feature?: FeatureFlag }[] =
+  [
+    { href: '/timeline', labelKey: 'timeline', icon: Clock4 },
+    { href: '/calendar', labelKey: 'calendar', icon: Calendar },
+    { href: '/story', labelKey: 'story', icon: NotebookPen, feature: 'diary' },
+    { href: '/albums', labelKey: 'albums', icon: FolderOpen, feature: 'albums' },
+  ]
 
 type Props = {
   /** Optional per-route unread counts. Currently only '/timeline' is used. */
@@ -32,16 +34,17 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
   const pathname = usePathname()
   const searchParams = useSearchParams()
   const features = useFeatures()
+  const t = useTranslations('nav')
   // 상세 뷰어는 자체 액션바를 가진 몰입형 화면 — 전역 네비를 숨긴다.
   if (pathname?.startsWith('/detail') === true) return null
   // 캘린더에서 특정 날짜로 들어온 화면(/timeline?date=)은 캘린더 맥락이므로 캘린더 탭을 활성으로.
   const inDateView = pathname === '/timeline' && searchParams.get('date') !== null
-  const lastItem = { href: '/settings', label: '설정', icon: Settings }
+  const lastItem = { href: '/settings', labelKey: 'settings', icon: Settings }
   const visible = [
     ...baseItems.filter(
       (it) => (!it.feature || features[it.feature]) && !hiddenNav.includes(it.href.slice(1)),
     ),
-    ...(showBookmark ? [{ href: '/saved', label: '북마크', icon: Bookmark }] : []),
+    ...(showBookmark ? [{ href: '/saved', labelKey: 'bookmark', icon: Bookmark }] : []),
     lastItem,
   ]
   return (
@@ -50,7 +53,7 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
         className="mx-auto grid h-16 max-w-3xl pb-[env(safe-area-inset-bottom)]"
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
       >
-        {visible.map(({ href, label, icon: Icon }) => {
+        {visible.map(({ href, labelKey, icon: Icon }) => {
           const active = inDateView
             ? href === '/calendar'
             : pathname === href || pathname?.startsWith(`${href}/`) === true
@@ -86,7 +89,7 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
                   active ? 'opacity-100' : 'opacity-70',
                 )}
               >
-                {label}
+                {t(labelKey)}
               </span>
             </Link>
           )

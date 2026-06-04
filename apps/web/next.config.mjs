@@ -1,4 +1,8 @@
 import path from 'node:path'
+import createNextIntlPlugin from 'next-intl/plugin'
+
+// 라우팅 없는 쿠키 기반 i18n — 메시지/로케일은 src/i18n/request.ts 에서 해석.
+const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
 // 모노레포 루트 = 이 설정 파일(apps/web) 기준 ../.. — 호스트(/opt/stacks/bebe-moment)와
 // Docker(/repo) 양쪽에서 올바르게 해석된다. 절대경로 하드코딩은 컨테이너 빌드에서
@@ -76,4 +80,4 @@ const nextConfig = {
 // the hand-written public/push-sw.js (registered in src/lib/push-client.ts),
 // which is independent of serwist.
 
-export default nextConfig
+export default withNextIntl(nextConfig)

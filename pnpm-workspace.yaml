@@ -21,3 +21,6 @@ allowBuilds:
   msgpackr-extract: true
   protobufjs: true
   ssh2: true
+  # next-intl 이 끌어온 네이티브 가속 — 런타임 불필요(JS 폴백). 빌드 스크립트 실행 안 함.
+  '@parcel/watcher': false
+  '@swc/core': false

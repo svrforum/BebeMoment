@@ -3,6 +3,8 @@ import { ThemeProvider } from '@/lib/theme'
 import { type DefaultTheme, buildThemeInitScript } from '@/lib/theme-init-script'
 import { getSetting } from '@/server/settings/get'
 import type { Metadata, Viewport } from 'next'
+import { NextIntlClientProvider } from 'next-intl'
+import { getLocale, getMessages } from 'next-intl/server'
 import { z } from 'zod'
 import './globals.css'
 
@@ -47,11 +49,15 @@ async function readDefaultTheme(): Promise<DefaultTheme> {
 
 export default async function RootLayout({ children }: { children: React.ReactNode }) {
   const defaultTheme = await readDefaultTheme()
+  const locale = await getLocale()
+  const messages = await getMessages()
   return (
-    <html lang="ko" suppressHydrationWarning>
+    <html lang={locale} suppressHydrationWarning>
       <body>
         <script>{buildThemeInitScript(defaultTheme)}</script>
-        <ThemeProvider defaultMode={defaultTheme}>{children}</ThemeProvider>
+        <NextIntlClientProvider locale={locale} messages={messages}>
+          <ThemeProvider defaultMode={defaultTheme}>{children}</ThemeProvider>
+        </NextIntlClientProvider>
       </body>
     </html>
   )

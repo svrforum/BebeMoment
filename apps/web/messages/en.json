@@ -1,0 +1,27 @@
+{
+  "nav": {
+    "timeline": "Timeline",
+    "calendar": "Calendar",
+    "story": "Stories",
+    "albums": "Albums",
+    "settings": "Settings",
+    "bookmark": "Saved"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "close": "Close",
+    "delete": "Delete",
+    "edit": "Edit",
+    "confirm": "OK",
+    "loading": "Loading…"
+  },
+  "settings": {
+    "language": {
+      "title": "Language",
+      "description": "The language shown in the app.",
+      "ko": "한국어",
+      "en": "English"
+    }
+  }
+}

@@ -40,6 +40,7 @@
     "jose": "^6.2.2",
     "lucide-react": "^1.8.0",
     "next": "^16.2.6",
+    "next-intl": "^4.13.0",
     "nodemailer": "^8.0.5",
     "piexifjs": "^1.0.6",
     "pino": "^10.3.1",
