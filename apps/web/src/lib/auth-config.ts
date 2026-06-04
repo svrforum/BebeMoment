@@ -5,7 +5,7 @@ import { type BetterAuthOptions, betterAuth } from 'better-auth'
 import { prismaAdapter } from 'better-auth/adapters/prisma'
 import { nextCookies } from 'better-auth/next-js'
 
-const SESSION_TTL_SECONDS = 60 * 60 * 24 * 30 // 30d, matches the old Lucia TTL.
+const SESSION_TTL_SECONDS = 60 * 60 * 24 * 90 // 90d. updateAge(1일)로 롤링 — 기간 내 사용 시 자동 연장.
 
 function resolveBaseUrl(): string {
   return process.env.PUBLIC_URL ?? 'http://localhost:3000'

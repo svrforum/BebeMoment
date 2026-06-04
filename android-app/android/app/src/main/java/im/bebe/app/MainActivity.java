@@ -949,8 +949,13 @@ public class MainActivity extends BridgeActivity {
             final boolean secure = base.startsWith("https");
             runOnUiThread(
                 () -> {
+                    // Max-Age 가 없으면 "세션 쿠키"라 앱 프로세스 종료 시 사라진다(flush 와 무관) →
+                    // OIDC(카카오) 로그인 후 앱을 껐다 켜면 재로그인. 세션 TTL(90일)과 맞춰 영구화.
                     CookieManager.getInstance()
-                        .setCookie(base, name + "=" + value + "; Path=/" + (secure ? "; Secure" : ""));
+                        .setCookie(
+                            base,
+                            name + "=" + value + "; Path=/; Max-Age=7776000"
+                                + (secure ? "; Secure" : ""));
                     CookieManager.getInstance().flush();
                     getApplicationContext()
                         .getSharedPreferences(AUTH_PREFS, Context.MODE_PRIVATE)
