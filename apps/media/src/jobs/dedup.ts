@@ -1,4 +1,4 @@
-import { createHash } from 'node:crypto'
+import { createHash, randomBytes } from 'node:crypto'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
 import type pino from 'pino'
@@ -70,12 +70,13 @@ export async function applyDedup(args: DedupArgs): Promise<'handled' | 'continue
         NOT: { id: asset.id },
       },
     })
-    try {
-      await storage.delete(asset.originalKey)
-    } catch (delErr) {
-      logger.warn({ assetId: asset.id, err: delErr }, 'failed to delete duplicate upload bytes')
-    }
     if (existing) {
+      // 살아있는 ready 원본과 진짜 중복 — 새로 올린 바이트는 버리고 별칭으로.
+      try {
+        await storage.delete(asset.originalKey)
+      } catch (delErr) {
+        logger.warn({ assetId: asset.id, err: delErr }, 'failed to delete duplicate upload bytes')
+      }
       logger.info(
         { assetId: asset.id, duplicateOf: existing.id, familyId: asset.familyId },
         'duplicate upload — aliasing to existing asset',
@@ -114,7 +115,33 @@ export async function applyDedup(args: DedupArgs): Promise<'handled' | 'continue
       })
       return 'handled'
     }
-    // canonical 을 못 찾으면(아직 ready 아님 등 드문 경우) 기존대로 실패 처리.
+    // 살아있는 ready 원본이 없다. 충돌 상대가 "소프트 삭제된" 자산이면 — 사용자가 지웠던
+    // 사진을 다시 올린 것이라 dedup 슬롯만 점유 중 — 그 슬롯을 비우고 이 업로드를 새 자산으로
+    // 정상 진행한다(바이트 유지). 삭제된 원본은 그대로 삭제 상태(타임라인 부활 안 함).
+    const colliding = await prisma.asset.findFirst({
+      where: { familyId: asset.familyId, sha256, NOT: { id: asset.id } },
+    })
+    if (colliding?.deletedAt) {
+      await prisma.asset.update({
+        where: { id: colliding.id, familyId: asset.familyId },
+        data: { sha256: randomBytes(32).toString('hex') },
+      })
+      await prisma.asset.update({
+        where: { id: asset.id, familyId: asset.familyId },
+        data: { sha256 },
+      })
+      logger.info(
+        { assetId: asset.id, reclaimedFrom: colliding.id, familyId: asset.familyId },
+        'duplicate of a soft-deleted asset — reclaiming dedup slot, processing as new',
+      )
+      return 'continue'
+    }
+    // 진짜로 ready canonical 이 없다(예: 동시 업로드 경쟁) — 새 바이트 버리고 실패 처리.
+    try {
+      await storage.delete(asset.originalKey)
+    } catch (delErr) {
+      logger.warn({ assetId: asset.id, err: delErr }, 'failed to delete duplicate upload bytes')
+    }
     logger.info(
       { assetId: asset.id, familyId: asset.familyId },
       'duplicate upload but no ready canonical — marking failed',
