@@ -1,3 +1,4 @@
+import { AppUpdateBanner } from '@/components/shell/app-update-banner'
 import { BottomNav } from '@/components/shell/bottom-nav'
 import { SideNav } from '@/components/shell/side-nav'
 import { WidgetRegistrar } from '@/components/widget/widget-registrar'
@@ -89,6 +90,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           showBookmark={showBookmark}
         />
         <WidgetRegistrar />
+        <AppUpdateBanner />
       </AppShellClient>
     </FeaturesProvider>
   )
