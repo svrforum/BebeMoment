@@ -1,3 +1,4 @@
+import { BrandLockup } from '@/components/brand/brand-mark'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
@@ -110,8 +111,13 @@ export default async function InvitePage({ params }: { params: Promise<{ token: 
     })
     return (
       <main className="mx-auto w-full max-w-[520px] px-6 py-10 md:py-16">
+        <BrandLockup
+          className="mb-8 justify-center"
+          iconClassName="h-11 w-11"
+          textClassName="text-[19px]"
+        />
         <InviteAppButton token={token} />
-        <SignupWizard inviteToken={token} />
+        <SignupWizard inviteToken={token} embedded />
         {providers.length > 0 && <InviteOidcButtons token={token} providers={providers} />}
       </main>
     )

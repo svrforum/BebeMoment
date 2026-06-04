@@ -1,4 +1,5 @@
 'use client'
+import { BrandLockup } from '@/components/brand/brand-mark'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
@@ -47,7 +48,13 @@ function autoUsername(displayName: string): string {
   return `user-${randomHex(3)}` // 9자, 항상 통과
 }
 
-function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | undefined }) {
+function SignupWizardInner({
+  inviteTokenProp,
+  embedded,
+}: {
+  inviteTokenProp?: string | undefined
+  embedded?: boolean | undefined
+}) {
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = inviteTokenProp ?? params?.get('invite') ?? null
@@ -206,7 +213,15 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
   })()
 
   return (
-    <main className="flex min-h-[100dvh] flex-col px-6 pb-8 pt-6 md:min-h-0 md:p-0">
+    <main
+      className={
+        embedded
+          ? 'flex flex-col pb-4 pt-2 md:p-0'
+          : 'flex min-h-[100dvh] flex-col px-6 pb-8 pt-6 md:min-h-0 md:p-0'
+      }
+    >
+      {/* 독립 /signup 모바일 브랜드 배너(데스크탑은 (auth) 히어로). 임베드(초대)는 페이지가 직접 노출. */}
+      {!embedded && <BrandLockup className="mb-8 md:hidden" />}
       <div className="mb-10 flex items-center justify-between">
         <button
           type="button"
@@ -344,7 +359,7 @@ function SignupWizardInner({ inviteTokenProp }: { inviteTokenProp?: string | und
                   value={displayName}
                   onChange={(e) => setDisplayName(e.target.value)}
                   onKeyDown={onKeyDown}
-                  placeholder="예: 민준 아빠"
+                  placeholder="예: ○○ 아빠"
                   autoComplete="name"
                   maxLength={80}
                   className={inputCls}
@@ -474,10 +489,16 @@ function PasswordStrengthBar({ score, visible }: { score: 0 | 1 | 2 | 3; visible
   )
 }
 
-export function SignupWizard({ inviteToken }: { inviteToken?: string }) {
+export function SignupWizard({
+  inviteToken,
+  embedded,
+}: {
+  inviteToken?: string
+  embedded?: boolean
+}) {
   return (
     <Suspense fallback={null}>
-      <SignupWizardInner inviteTokenProp={inviteToken} />
+      <SignupWizardInner inviteTokenProp={inviteToken} embedded={embedded} />
     </Suspense>
   )
 }

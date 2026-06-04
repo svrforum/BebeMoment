@@ -1,3 +1,4 @@
+import { BrandLockup } from '@/components/brand/brand-mark'
 import type { ReactNode } from 'react'
 
 export default function AuthLayout({ children }: { children: ReactNode }) {
@@ -17,14 +18,7 @@ export default function AuthLayout({ children }: { children: ReactNode }) {
         />
         {/* Content */}
         <div className="relative flex h-full min-h-[100dvh] flex-col justify-between p-12 xl:p-16">
-          <div className="flex items-center gap-2.5 text-base font-semibold tracking-tight">
-            <span className="inline-flex h-9 w-9 items-center justify-center rounded-2xl bg-point-500 text-sm font-bold text-white shadow-lg shadow-point-500/40">
-              b
-            </span>
-            <span className="text-base-900 dark:text-base-50">
-              bebe<span className="text-point-500">·</span>moment
-            </span>
-          </div>
+          <BrandLockup iconClassName="h-10 w-10" textClassName="text-[18px]" />
           <div className="max-w-xl">
             <h2 className="text-balance font-bold leading-[1.05] tracking-tight text-base-900 dark:text-base-50 text-[clamp(2.5rem,4.2vw,4.25rem)]">
               우리 아기의
