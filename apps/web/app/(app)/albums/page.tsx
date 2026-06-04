@@ -11,7 +11,7 @@ import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
 import { getFeatureFlags } from '@/server/settings/features'
-import { Bookmark, FolderHeart, FolderPlus, Search, UsersRound } from 'lucide-react'
+import { Bookmark, FolderHeart, FolderPlus, Search } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
@@ -73,15 +73,6 @@ export default async function AlbumsRootPage({
         title={t('list.title')}
         right={
           <div className="flex items-center gap-1">
-            {features.faces && (
-              <Link
-                href="/people"
-                aria-label={t('list.people')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
-              >
-                <UsersRound size={19} strokeWidth={2.1} />
-              </Link>
-            )}
             {features.bookmarks && (
               <Link
                 href="/saved"
