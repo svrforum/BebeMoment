@@ -92,22 +92,23 @@ export function TimelineComposer({
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
-  // `/story/new` 가 `/timeline#composer` 로 리다이렉트됨 — 해시가 있으면 컴포저를
-  // 펼치고 화면에 스크롤한 뒤 textarea 에 포커스한다.
+  // `/story/new` 가 `/timeline#composer` 로 리다이렉트됨 — 해시가 있으면 컴포저를 펼친다.
+  // 스크롤·포커스는 아래 expanded 효과가 단일 지점에서 처리한다(경쟁 방지). 위치는 브라우저의
+  // #composer 해시 스크롤 + scroll-margin-top(sticky 헤더 회피)이 맡는다.
   useEffect(() => {
     if (typeof window === 'undefined') return
     if (window.location.hash !== '#composer') return
     setExpanded(true)
-    requestAnimationFrame(() => {
-      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
-      textareaRef.current?.focus()
-    })
   }, [])
 
-  // 펼쳐진 직후엔 textarea 포커스를 잡아 바로 타이핑 가능. (해시 진입 케이스는
-  // 위 효과가 별도로 처리하므로 의존성에 expanded 만 둔다.)
+  // 펼쳐지면 textarea 에 포커스 — 레이아웃·키보드가 정착한 뒤 한 번만(setTimeout). focus()
+  // 가 textarea 를 키보드 위로 스크롤하고, #composer 의 scroll-margin-top 이 sticky 헤더에
+  // 안 가리게 한다. (과거: hash 효과의 smooth scrollIntoView(block:start) + 이중 focus 가
+  // 키보드 열림과 경쟁해 글쓰기창이 헤더 뒤로 밀려 안 보였다 — 스토리 '쓰기' 포커스 버그.)
   useEffect(() => {
-    if (expanded) textareaRef.current?.focus()
+    if (!expanded) return
+    const t = setTimeout(() => textareaRef.current?.focus(), 90)
+    return () => clearTimeout(t)
   }, [expanded])
 
   // Sync asset-id + ready state from the upload manager into our own
@@ -292,7 +293,11 @@ export function TimelineComposer({
 
   if (!expanded) {
     return (
-      <div ref={containerRef} id="composer">
+      <div
+        ref={containerRef}
+        id="composer"
+        className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)]"
+      >
         <button
           type="button"
           onClick={() => setExpanded(true)}
@@ -318,7 +323,7 @@ export function TimelineComposer({
     <div
       ref={containerRef}
       id="composer"
-      className="rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
+      className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)] rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
     >
       <div className="flex items-start gap-3">
         <Avatar avatarPath={userAvatarPath} initial={initial} />
