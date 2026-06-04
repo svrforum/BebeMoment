@@ -547,5 +547,194 @@
       "saveAll": "Save all photos",
       "saving": "Saving… ({count})"
     }
+  },
+  "story": {
+    "story": {
+      "list": {
+        "title": "Stories",
+        "write": "Write",
+        "writeStory": "Write a story",
+        "searchPlaceholder": "Search stories (title · content)",
+        "growth": "Growth log",
+        "growthSub": "Height · weight",
+        "milestones": "Milestones",
+        "milestonesSub": "Development log",
+        "noResults": "No results found",
+        "emptyTitle": "Start your first story",
+        "emptyDesc": "Even a short note about today becomes a precious memory later",
+        "emptyViewerTitle": "No stories yet",
+        "emptyViewerDesc": "New stories will show up here soon",
+        "enableNotifications": "Turn on notifications",
+        "monthLabel": "{month}/{year}"
+      },
+      "detail": {
+        "headerTitle": "Story",
+        "back": "Back",
+        "cancel": "Cancel",
+        "editTitle": "Edit story",
+        "edit": "Edit",
+        "savePhotos": "Save photos",
+        "storyFallback": "Story",
+        "guardiansOnly": "Guardians only",
+        "dateLine": "{date} · {day}",
+        "monthDay": "{m}/{d}",
+        "photoMeta": "{n} photos",
+        "photoMetaWithRange": "{n} photos · {range}",
+        "viewSlide": "Slide view",
+        "viewGrid": "Grid view",
+        "addToAlbum": "Add to album",
+        "retryLater": "Please try again in a moment",
+        "bookmark": "Bookmark",
+        "bookmarked": "Bookmarked",
+        "bookmarkAdd": "Add bookmark",
+        "bookmarkRemove": "Remove bookmark",
+        "weekday": {
+          "sun": "Sun",
+          "mon": "Mon",
+          "tue": "Tue",
+          "wed": "Wed",
+          "thu": "Thu",
+          "fri": "Fri",
+          "sat": "Sat"
+        }
+      },
+      "edit": {
+        "bodyPlaceholder": "What happened today?",
+        "addPhoto": "Add photo",
+        "remove": "Remove",
+        "editPhoto": "Edit",
+        "processing": "Processing",
+        "file": "File",
+        "save": "Save",
+        "saving": "Saving…",
+        "maxPhotos": "Up to {max} photos",
+        "needContent": "Add some text or a photo",
+        "uploadNotReady": "Photos aren't ready yet. Please try again in a moment.",
+        "saveFailed": "Couldn't save"
+      },
+      "delete": {
+        "trigger": "Delete",
+        "confirmTitle": "Delete this story?",
+        "confirmDesc": "A deleted story can't be restored.",
+        "alsoPhotos": "Also delete the {n} photos in it",
+        "photosToTrash": "Photos move to trash too",
+        "photosKept": "Photos are kept as is",
+        "deleting": "Deleting…",
+        "deleteStoryAndPhotos": "Delete story + {n} photos",
+        "deleteStoryOnly": "Delete story only",
+        "cancel": "Cancel"
+      },
+      "picker": {
+        "title": "Select photos ({n}/{max})",
+        "processing": "Processing",
+        "confirm": "Done"
+      },
+      "mood": {
+        "happy": "Happy",
+        "grateful": "Grateful",
+        "tired": "Tired",
+        "sad": "Sad",
+        "proud": "Proud",
+        "calm": "Calm"
+      },
+      "card": {
+        "label": "Story"
+      },
+      "dateFilter": {
+        "filterByDate": "Filter by date",
+        "clear": "Clear date filter"
+      }
+    }
+  },
+  "album": {
+    "album": {
+      "list": {
+        "title": "Albums",
+        "people": "People",
+        "bookmarks": "Bookmarks",
+        "searchPlaceholder": "Search album names",
+        "noResults": "No results found",
+        "emptyCreateTitle": "Create your first album",
+        "emptyCreateDescription": "Group photos into folders like \"2026 → Trip\" to keep things tidy",
+        "emptyTitle": "No albums yet",
+        "emptyDescription": "Albums show up here once an admin gathers photos into one"
+      },
+      "detail": {
+        "assetCount": "{count} photos",
+        "storyCount": " · {count} stories",
+        "childCount": "{count} sub-albums",
+        "childAlbums": "Sub-albums",
+        "stories": "Stories",
+        "media": "Photos · Videos",
+        "emptyTitle": "No photos yet",
+        "emptyDescription": "Open a photo and tap the top-right menu → \"Add to album\"",
+        "truncated": "Showing first {shown} · {total} total"
+      },
+      "create": {
+        "button": "New album",
+        "title": "New album",
+        "parent": "In: {name}",
+        "namePlaceholder": "Album name",
+        "close": "Close",
+        "cancel": "Cancel",
+        "submit": "Create",
+        "failed": "Couldn't create album"
+      },
+      "menu": {
+        "menu": "Menu",
+        "close": "Close",
+        "cancel": "Cancel",
+        "save": "Save",
+        "rename": "Rename",
+        "renameTitle": "Rename",
+        "renameFailed": "Couldn't rename",
+        "move": "Move to another album",
+        "moveTitle": "Move to another album",
+        "moveDescription": "Choose where to put \"{name}\".",
+        "moveToRoot": "Top level (album list)",
+        "moveFailed": "Couldn't move",
+        "movedToChild": "Moved into the album",
+        "movedToRoot": "Moved to the top level",
+        "delete": "Delete album",
+        "deleteConfirm": "This album has photos or sub-albums inside. Delete them too?",
+        "deleteFailed": "Couldn't delete",
+        "makeSecret": "Make secret album",
+        "unsecret": "Remove secret",
+        "secretEnabled": "Switched to secret album",
+        "secretRemoved": "Secret removed",
+        "changeFailed": "Couldn't update",
+        "loadFailed": "Couldn't load albums"
+      },
+      "picker": {
+        "header": "Add to album",
+        "headerStory": "Add story to album",
+        "headerPhotos": "Add {count} photos to album",
+        "empty": "No albums yet. Type above to create your first one.",
+        "loadFailed": "Couldn't load albums",
+        "addFailed": "Couldn't add",
+        "added": "{count} added",
+        "duplicates": "{count} were already there",
+        "expand": "Expand",
+        "collapse": "Collapse",
+        "create": "Create",
+        "createPlaceholder": "Create a new album",
+        "createFailed": "Couldn't create album"
+      },
+      "share": {
+        "button": "Share"
+      },
+      "breadcrumbs": {
+        "ariaPath": "Album path",
+        "albums": "Albums"
+      },
+      "story": {
+        "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+        "date": "{month}/{day} ({weekday})",
+        "photoCount": "· {count} photos",
+        "noContent": "No content",
+        "remove": "Remove from album",
+        "removeFailed": "Couldn't remove from album"
+      }
+    }
   }
 }

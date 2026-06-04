@@ -3,6 +3,7 @@ import { cn } from '@/lib/cn'
 import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Bookmark } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 type Props = {
@@ -14,6 +15,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
   const [pending, setPending] = useState(false)
   const toast = useToast()
+  const t = useTranslations('story')
   const bookmarksOn = useFeature('bookmarks')
 
   if (!bookmarksOn) return null
@@ -30,7 +32,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
       setBookmarked(data.bookmarked)
     } catch {
       setBookmarked(prev)
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({ title: t('detail.retryLater'), variant: 'danger' })
     } finally {
       setPending(false)
     }
@@ -41,7 +43,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? '북마크 취소' : '북마크에 추가'}
+      aria-label={bookmarked ? t('detail.bookmarkRemove') : t('detail.bookmarkAdd')}
       className={cn(
         'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors active:scale-95',
         bookmarked
@@ -55,7 +57,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
         strokeWidth={2.2}
         className={cn('transition', bookmarked && 'fill-point-500 text-point-500')}
       />
-      <span>{bookmarked ? '북마크됨' : '북마크'}</span>
+      <span>{bookmarked ? t('detail.bookmarked') : t('detail.bookmark')}</span>
     </button>
   )
 }

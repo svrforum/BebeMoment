@@ -4,6 +4,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
 import { AlertTriangle, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
 type Photo = { id: string; urls: AssetUrls | null }
@@ -18,6 +19,7 @@ type Props = {
 const THUMB_LIMIT = 9
 
 export function StoryDeleteButton({ onDelete, photos }: Props) {
+  const t = useTranslations('story')
   const [open, setOpen] = useState(false)
   const [deletePhotos, setDeletePhotos] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -39,11 +41,11 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
           setDeletePhotos(false)
           setOpen(true)
         }}
-        aria-label="삭제"
+        aria-label={t('delete.trigger')}
         className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-red-500 transition-colors hover:bg-red-50 active:scale-95 dark:hover:bg-red-500/10"
       >
         <Trash2 size={13} strokeWidth={2.2} />
-        <span>삭제</span>
+        <span>{t('delete.trigger')}</span>
       </button>
 
       <Sheet
@@ -59,9 +61,9 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
           </div>
           <div className="text-center">
             <p className="text-base font-semibold text-base-900 dark:text-base-50">
-              스토리를 삭제할까요?
+              {t('delete.confirmTitle')}
             </p>
-            <p className="mt-1 text-sm text-base-500">삭제한 스토리는 복구할 수 없어요.</p>
+            <p className="mt-1 text-sm text-base-500">{t('delete.confirmDesc')}</p>
           </div>
 
           {photos.length > 0 && (
@@ -105,10 +107,10 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
               >
                 <span>
                   <span className="block text-sm font-medium text-base-900 dark:text-base-50">
-                    포함된 사진 {photos.length}장도 함께 삭제
+                    {t('delete.alsoPhotos', { n: photos.length })}
                   </span>
                   <span className="block text-[12px] text-base-400">
-                    {deletePhotos ? '사진도 휴지통으로 이동해요' : '사진은 그대로 남겨둬요'}
+                    {deletePhotos ? t('delete.photosToTrash') : t('delete.photosKept')}
                   </span>
                 </span>
                 <span
@@ -134,10 +136,10 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-500 text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:bg-red-600 disabled:opacity-60"
             >
               {pending
-                ? '삭제 중…'
+                ? t('delete.deleting')
                 : deletePhotos && photos.length > 0
-                  ? `스토리 + 사진 ${photos.length}장 삭제`
-                  : '스토리만 삭제'}
+                  ? t('delete.deleteStoryAndPhotos', { n: photos.length })
+                  : t('delete.deleteStoryOnly')}
             </button>
             <button
               type="button"
@@ -145,7 +147,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
               disabled={pending}
               className="inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 transition-colors hover:bg-base-200 disabled:opacity-60 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"
             >
-              취소
+              {t('delete.cancel')}
             </button>
           </div>
         </div>

@@ -1,6 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useState } from 'react'
 
@@ -10,6 +11,7 @@ type Props = {
 }
 
 export function AlbumCreateButton({ parentId = null, parentName }: Props) {
+  const t = useTranslations('album')
   const router = useRouter()
   const toast = useToast()
   const [open, setOpen] = useState(false)
@@ -31,7 +33,7 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '앨범 생성 실패')
+        throw new Error((err as { error?: string }).error ?? t('create.failed'))
       }
       const { album } = (await res.json()) as { album: { id: string } }
       setName('')
@@ -52,14 +54,14 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
         className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
       >
         <Plus size={16} strokeWidth={2.6} />
-        <span>새 앨범</span>
+        <span>{t('create.button')}</span>
       </button>
 
       {open && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
           <button
             type="button"
-            aria-label="닫기"
+            aria-label={t('create.close')}
             onClick={() => setOpen(false)}
             className="absolute inset-0 -z-10 cursor-default bg-transparent"
           />
@@ -67,14 +69,18 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
             onSubmit={submit}
             className="w-[320px] rounded-3xl bg-base-0 p-5 shadow-elevated dark:bg-base-900"
           >
-            <h2 className="text-[17px] font-semibold tracking-tight">새 앨범</h2>
-            {parentName && <p className="mt-1 text-[12px] text-base-500">상위: {parentName}</p>}
+            <h2 className="text-[17px] font-semibold tracking-tight">{t('create.title')}</h2>
+            {parentName && (
+              <p className="mt-1 text-[12px] text-base-500">
+                {t('create.parent', { name: parentName })}
+              </p>
+            )}
             <input
               // biome-ignore lint/a11y/noAutofocus: modal opened by intent
               autoFocus
               value={name}
               onChange={(e) => setName(e.target.value)}
-              placeholder="앨범 이름"
+              placeholder={t('create.namePlaceholder')}
               maxLength={80}
               className="mt-4 w-full rounded-2xl border border-base-200 bg-transparent px-4 py-3 text-[14px] outline-none focus:border-point-500 dark:border-base-800"
             />
@@ -84,14 +90,14 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
                 onClick={() => setOpen(false)}
                 className="rounded-full px-4 py-2 text-[13px] font-medium text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
               >
-                취소
+                {t('create.cancel')}
               </button>
               <button
                 type="submit"
                 disabled={!name.trim() || pending}
                 className="rounded-full bg-point-500 px-4 py-2 text-[13px] font-medium text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
               >
-                만들기
+                {t('create.submit')}
               </button>
             </div>
           </form>

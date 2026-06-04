@@ -2,6 +2,7 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/lib/toast'
 import { Check, ChevronRight, FolderOpen, FolderPlus, Plus } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type FormEvent, useCallback, useEffect, useState } from 'react'
 
@@ -34,6 +35,7 @@ type Props = {
  * immediately attaches.
  */
 export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, onAttached }: Props) {
+  const t = useTranslations('album')
   const toast = useToast()
   const router = useRouter()
   const [tree, setTree] = useState<AlbumNode[]>([])
@@ -52,9 +54,9 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, on
       const data = await r.json()
       setTree(data.tree as AlbumNode[])
     } catch {
-      toast({ title: '앨범 목록을 불러오지 못했어요', variant: 'danger' })
+      toast({ title: t('picker.loadFailed'), variant: 'danger' })
     }
-  }, [toast])
+  }, [toast, t])
 
   useEffect(() => {
     if (!open) return
@@ -80,15 +82,15 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, on
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '추가 실패')
+        throw new Error((err as { error?: string }).error ?? t('picker.addFailed'))
       }
       const result = (await res.json()) as { added: number; total: number }
       setRecent((prev) => new Set(prev).add(albumId))
       if (!isEntry && targetIds.length > 1) {
         const dup = targetIds.length - result.added
         toast({
-          title: `${result.added}장 추가됨`,
-          ...(dup > 0 ? { description: `${dup}장은 이미 있었어요` } : {}),
+          title: t('picker.added', { count: result.added }),
+          ...(dup > 0 ? { description: t('picker.duplicates', { count: dup }) } : {}),
         })
       }
       onAttached?.(albumId)
@@ -114,10 +116,10 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, on
   }
 
   const headerCount = isEntry
-    ? '스토리 앨범에 추가'
+    ? t('picker.headerStory')
     : targetIds.length > 1
-      ? `사진 ${targetIds.length}장 앨범에 추가`
-      : '앨범에 추가'
+      ? t('picker.headerPhotos', { count: targetIds.length })
+      : t('picker.header')
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={headerCount}>
@@ -131,9 +133,7 @@ export function AlbumPicker({ open, onOpenChange, assetId, assetIds, entryId, on
           }}
         />
         {tree.length === 0 ? (
-          <p className="px-2 py-4 text-center text-[13px] text-base-500">
-            아직 앨범이 없어요. 위에 입력해서 첫 앨범을 만들어보세요.
-          </p>
+          <p className="px-2 py-4 text-center text-[13px] text-base-500">{t('picker.empty')}</p>
         ) : (
           <ul className="flex flex-col">
             {tree.map((node) => (
@@ -169,6 +169,7 @@ function AlbumRow({
   pending: string | null
   recent: Set<string>
 }) {
+  const t = useTranslations('album')
   const isOpen = expanded.has(node.id)
   const isPending = pending === node.id
   const isAdded = recent.has(node.id)
@@ -184,7 +185,7 @@ function AlbumRow({
           <button
             type="button"
             onClick={() => onToggle(node.id)}
-            aria-label={isOpen ? '접기' : '펼치기'}
+            aria-label={isOpen ? t('picker.collapse') : t('picker.expand')}
             className="flex h-7 w-7 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 dark:hover:bg-base-800"
           >
             <ChevronRight
@@ -231,6 +232,7 @@ function AlbumRow({
 }
 
 function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
+  const t = useTranslations('album')
   const toast = useToast()
   const [name, setName] = useState('')
   const [pending, setPending] = useState(false)
@@ -247,7 +249,7 @@ function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '앨범 생성 실패')
+        throw new Error((err as { error?: string }).error ?? t('picker.createFailed'))
       }
       const { album } = (await res.json()) as { album: { id: string } }
       setName('')
@@ -268,7 +270,7 @@ function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
       <input
         value={name}
         onChange={(e) => setName(e.target.value)}
-        placeholder="새 앨범 만들기"
+        placeholder={t('picker.createPlaceholder')}
         className="flex-1 bg-transparent text-[13px] outline-none"
         maxLength={80}
       />
@@ -278,7 +280,7 @@ function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
           disabled={pending}
           className="rounded-full bg-point-500 px-3 py-1 text-[12px] font-medium text-white transition active:scale-95 disabled:opacity-50"
         >
-          만들기
+          {t('picker.create')}
         </button>
       )}
     </form>

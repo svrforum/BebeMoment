@@ -31,7 +31,6 @@ export function PhotoSetShareView({
             className="relative aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
           >
             {it.displayUrl && (
-              // biome-ignore lint/a11y/useAltText: 공개 사진(설명 없음)
               // biome-ignore lint/performance/noImgElement: 공개 랜딩의 signed URL — PictureImage(클라) 불필요
               <img src={it.displayUrl} alt="" className="h-full w-full object-cover" />
             )}

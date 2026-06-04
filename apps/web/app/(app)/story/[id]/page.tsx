@@ -13,6 +13,7 @@ import { getStoryEntry } from '@/server/story/get'
 import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { ChevronLeft, Pencil } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { notFound, redirect } from 'next/navigation'
 import { z } from 'zod'
@@ -25,6 +26,7 @@ export default async function StoryDetailPage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ edit?: string }>
 }) {
+  const t = await getTranslations('story')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -65,10 +67,10 @@ export default async function StoryDetailPage({
               href={`/story/${publicNo}`}
               className="text-[15px] font-medium text-base-600 transition-colors hover:text-base-900 dark:text-base-300 dark:hover:text-base-50"
             >
-              취소
+              {t('detail.cancel')}
             </Link>
             <span className="text-[15px] font-semibold text-base-900 dark:text-base-50">
-              스토리 편집
+              {t('detail.editTitle')}
             </span>
             <span className="w-12" aria-hidden />
           </div>
@@ -107,6 +109,7 @@ export default async function StoryDetailPage({
   return (
     <>
       <StoryDetailHeader />
+      {/* StoryDetailHeader 는 async 서버 컴포넌트 — getTranslations 사용 */}
       <div className="mx-auto max-w-2xl px-5 py-4">
         <StoryDetail entry={entry} />
         {/* 액션 바 — 버튼이 6개라 좁은 폭에서 라벨이 단어 중간에 줄바꿈되던 문제(1370):
@@ -116,7 +119,7 @@ export default async function StoryDetailPage({
             <StoryBookmarkButton entryId={uuid} initialBookmarked={bookmark !== null} />
           )}
           {features.albums && !albumsHidden && <StoryAlbumButton entryId={uuid} />}
-          <BulkDownloadButton assetIds={storyAssetIds} label="사진 저장" />
+          <BulkDownloadButton assetIds={storyAssetIds} label={t('detail.savePhotos')} />
           {features.share && (
             <StoryShareButton
               storyId={uuid}
@@ -129,7 +132,7 @@ export default async function StoryDetailPage({
               className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
             >
               <Pencil size={13} strokeWidth={2.2} />
-              <span>편집</span>
+              <span>{t('detail.edit')}</span>
             </Link>
           )}
           {canDelete && (
@@ -141,19 +144,20 @@ export default async function StoryDetailPage({
   )
 }
 
-function StoryDetailHeader() {
+async function StoryDetailHeader() {
+  const t = await getTranslations('story')
   return (
     <header className="sticky top-0 z-30 border-b border-transparent bg-base-50/80 backdrop-blur-xl transition-colors dark:bg-base-950/70">
       <div className="mx-auto flex h-12 max-w-2xl items-center gap-2 px-3">
         <Link
           href="/story"
-          aria-label="뒤로"
+          aria-label={t('detail.back')}
           className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-700 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-200 dark:hover:bg-base-800"
         >
           <ChevronLeft size={20} strokeWidth={2.2} />
         </Link>
         <span className="flex-1 truncate text-[15px] font-semibold text-base-900 dark:text-base-50">
-          스토리
+          {t('detail.headerTitle')}
         </span>
       </div>
     </header>

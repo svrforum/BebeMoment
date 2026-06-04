@@ -18,12 +18,14 @@ import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { ImagePlus } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 
 const PREVIEW_PER_CHILD = 4
 
 export default async function AlbumDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params
+  const t = await getTranslations('album')
   const ctx = await getContext()
   if (!ctx.family) return null
 
@@ -111,14 +113,15 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
       <div className="mx-auto max-w-3xl px-5 py-3 lg:max-w-5xl xl:max-w-6xl">
         <AlbumBreadcrumbs trail={trail} />
         <p className="mt-2 text-[12px] tabular-nums text-base-400">
-          {album.assetCount}장{entries.length > 0 && ` · 스토리 ${entries.length}개`} ·{' '}
-          {album.childCount}개 하위 앨범
+          {t('detail.assetCount', { count: album.assetCount })}
+          {entries.length > 0 && t('detail.storyCount', { count: entries.length })} ·{' '}
+          {t('detail.childCount', { count: album.childCount })}
         </p>
 
         {children.length > 0 && (
           <section className="mt-6">
             <h2 className="mb-3 px-1 text-[13px] font-semibold tracking-tight text-base-500">
-              하위 앨범
+              {t('detail.childAlbums')}
             </h2>
             <div className="grid grid-cols-2 gap-4 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5">
               {children.map((c) => {
@@ -148,7 +151,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
         {entries.length > 0 && (
           <section className="mt-6">
             <h2 className="mb-3 px-1 text-[13px] font-semibold tracking-tight text-base-500">
-              스토리
+              {t('detail.stories')}
             </h2>
             <div className="space-y-3">
               {entries.map((e) => (
@@ -160,13 +163,13 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
 
         <section className="mt-6">
           <h2 className="mb-3 px-1 text-[13px] font-semibold tracking-tight text-base-500">
-            사진 · 영상
+            {t('detail.media')}
           </h2>
           {assets.length === 0 ? (
             <EmptyState
               icon={ImagePlus}
-              title="아직 사진이 없어요"
-              description={'사진을 보고 우상단 메뉴 → "앨범에 추가" 로 담아보세요'}
+              title={t('detail.emptyTitle')}
+              description={t('detail.emptyDescription')}
             />
           ) : (
             <>
@@ -185,7 +188,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
               </div>
               {assetsResult.truncated && (
                 <p className="mt-3 px-1 text-[12px] text-base-500">
-                  먼저 {assets.length}장 표시 중 · 전체 {assetsResult.total}장
+                  {t('detail.truncated', { shown: assets.length, total: assetsResult.total })}
                 </p>
               )}
             </>

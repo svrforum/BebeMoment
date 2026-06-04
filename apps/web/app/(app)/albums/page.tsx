@@ -12,6 +12,7 @@ import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
 import { getFeatureFlags } from '@/server/settings/features'
 import { Bookmark, FolderHeart, FolderPlus, Search, UsersRound } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 const PREVIEW_PER_ALBUM = 4
@@ -21,6 +22,7 @@ export default async function AlbumsRootPage({
 }: {
   searchParams: Promise<{ q?: string }>
 }) {
+  const t = await getTranslations('album')
   const ctx = await getContext()
   if (!ctx.family) return null
 
@@ -68,13 +70,13 @@ export default async function AlbumsRootPage({
     <>
       <PullToRefresh />
       <AppHeader
-        title="앨범"
+        title={t('list.title')}
         right={
           <div className="flex items-center gap-1">
             {features.faces && (
               <Link
                 href="/people"
-                aria-label="사람"
+                aria-label={t('list.people')}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
               >
                 <UsersRound size={19} strokeWidth={2.1} />
@@ -83,7 +85,7 @@ export default async function AlbumsRootPage({
             {features.bookmarks && (
               <Link
                 href="/saved"
-                aria-label="북마크"
+                aria-label={t('list.bookmarks')}
                 className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
               >
                 <Bookmark size={19} strokeWidth={2.1} />
@@ -96,24 +98,24 @@ export default async function AlbumsRootPage({
       />
       <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4">
         <div className="mb-5">
-          <SearchBox placeholder="앨범 이름 검색" />
+          <SearchBox placeholder={t('list.searchPlaceholder')} />
         </div>
 
         {albums.length === 0 ? (
           query ? (
-            <EmptyState icon={Search} title="검색 결과가 없어요" description={`"${query}"`} />
+            <EmptyState icon={Search} title={t('list.noResults')} description={`"${query}"`} />
           ) : canCreate ? (
             <EmptyState
               icon={FolderPlus}
-              title="첫 앨범을 만들어보세요"
-              description={'"2026 → 여행" 처럼 폴더로 묶어서 정리할 수 있어요'}
+              title={t('list.emptyCreateTitle')}
+              description={t('list.emptyCreateDescription')}
               action={<AlbumCreateButton />}
             />
           ) : (
             <EmptyState
               icon={FolderHeart}
-              title="아직 앨범이 없어요"
-              description="관리자가 사진을 모아 앨범으로 만들면 여기에 보여요"
+              title={t('list.emptyTitle')}
+              description={t('list.emptyDescription')}
             />
           )
         ) : (

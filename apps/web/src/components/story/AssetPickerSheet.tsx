@@ -4,6 +4,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { AssetUrls } from '@bebe/media-client'
+import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useState } from 'react'
 
 export type PickerAsset = { id: string; urls: AssetUrls | null }
@@ -25,6 +26,7 @@ export function AssetPickerSheet({
   triggerIcon?: ReactNode
   max?: number
 }) {
+  const t = useTranslations('story')
   const [open, setOpen] = useState(false)
   const [selected, setSelected] = useState<Set<string>>(new Set(initialSelected))
   // re-seed when parent updates the selection (e.g. removed photos via another path)
@@ -56,7 +58,11 @@ export function AssetPickerSheet({
           {triggerLabel}
         </Button>
       )}
-      <Sheet open={open} onOpenChange={setOpen} title={`사진 선택 (${selected.size}/${max})`}>
+      <Sheet
+        open={open}
+        onOpenChange={setOpen}
+        title={t('picker.title', { n: selected.size, max })}
+      >
         <div className="grid grid-cols-3 gap-1">
           {available.map((a) => {
             const isSel = selected.has(a.id)
@@ -82,7 +88,7 @@ export function AssetPickerSheet({
                   />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
-                    처리 중
+                    {t('picker.processing')}
                   </div>
                 )}
                 {isSel && (
@@ -96,7 +102,7 @@ export function AssetPickerSheet({
         </div>
         <div className="sticky bottom-0 mt-4 border-t border-base-200 bg-base-0 pt-4 dark:border-base-800 dark:bg-base-900">
           <Button onClick={confirm} className="w-full">
-            확인
+            {t('picker.confirm')}
           </Button>
         </div>
       </Sheet>

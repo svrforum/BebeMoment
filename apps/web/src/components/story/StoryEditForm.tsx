@@ -5,6 +5,7 @@ import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { ImagePlus, Loader2, Pencil, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 
@@ -46,6 +47,7 @@ export function StoryEditForm({
 }) {
   const router = useRouter()
   const toast = useToast()
+  const t = useTranslations('story')
   const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
   const filesRef = useRef(files)
   filesRef.current = files
@@ -96,7 +98,7 @@ export function StoryEditForm({
       e.target.value = ''
       const room = MAX_PHOTOS - photoCount
       if (room <= 0) {
-        toast({ title: `사진은 최대 ${MAX_PHOTOS}장까지예요`, variant: 'danger' })
+        toast({ title: t('edit.maxPhotos', { max: MAX_PHOTOS }), variant: 'danger' })
         return
       }
       const limited = picked.slice(0, room)
@@ -116,7 +118,7 @@ export function StoryEditForm({
       }
       if (fresh.length > 0) setAttachments((prev) => [...prev, ...fresh])
     },
-    [addFiles, photoCount, toast],
+    [addFiles, photoCount, toast, t],
   )
 
   const removeAttachment = useCallback((fileId: string) => {
@@ -159,7 +161,7 @@ export function StoryEditForm({
   const submit = useCallback(async () => {
     const trimmed = body.trim()
     if (!trimmed && photoCount === 0) {
-      toast({ title: '내용이나 사진을 추가해주세요', variant: 'danger' })
+      toast({ title: t('edit.needContent'), variant: 'danger' })
       return
     }
     if (submitting) return
@@ -179,7 +181,7 @@ export function StoryEditForm({
       }
       const newAssetIds = resolveIds()
       if (newAssetIds.length !== fileIds.length) {
-        throw new Error('사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.')
+        throw new Error(t('edit.uploadNotReady'))
       }
 
       const assetIds = [...kept.map((a) => a.id), ...newAssetIds]
@@ -190,7 +192,7 @@ export function StoryEditForm({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '저장에 실패했어요')
+        throw new Error((err as { error?: string }).error ?? t('edit.saveFailed'))
       }
       const saved = (await res.json().catch(() => ({}))) as { publicNo?: number }
       router.push(`/story/${saved.publicNo ?? entryId}`)
@@ -199,14 +201,25 @@ export function StoryEditForm({
       toast({ title: (e as Error).message, variant: 'danger' })
       setSubmitting(false)
     }
-  }, [body, photoCount, attachments, kept, entryId, submitting, startStagedUploads, router, toast])
+  }, [
+    body,
+    photoCount,
+    attachments,
+    kept,
+    entryId,
+    submitting,
+    startStagedUploads,
+    router,
+    toast,
+    t,
+  ])
 
   return (
     <div className="rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
       <textarea
         value={body}
         onChange={(e) => setBody(e.target.value)}
-        placeholder="오늘 어떤 이야기가 있었어요?"
+        placeholder={t('edit.bodyPlaceholder')}
         rows={6}
         maxLength={20000}
         className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-base-400"
@@ -226,13 +239,13 @@ export function StoryEditForm({
                   <img src={thumb} alt="" className="h-full w-full object-cover" />
                 ) : (
                   <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                    처리 중
+                    {t('edit.processing')}
                   </div>
                 )}
                 <button
                   type="button"
                   onClick={() => removeExisting(a.id)}
-                  aria-label="제거"
+                  aria-label={t('edit.remove')}
                   className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 >
                   <X size={12} strokeWidth={2.6} />
@@ -258,7 +271,7 @@ export function StoryEditForm({
                 <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                  파일
+                  {t('edit.file')}
                 </div>
               )}
               {submitting && !a.assetId && (
@@ -269,7 +282,7 @@ export function StoryEditForm({
               <button
                 type="button"
                 onClick={() => removeAttachment(a.fileId)}
-                aria-label="제거"
+                aria-label={t('edit.remove')}
                 className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
               >
                 <X size={12} strokeWidth={2.6} />
@@ -278,7 +291,7 @@ export function StoryEditForm({
                 <button
                   type="button"
                   onClick={() => openEditor(a.fileId)}
-                  aria-label="편집"
+                  aria-label={t('edit.editPhoto')}
                   className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 >
                   <Pencil size={11} strokeWidth={2.4} />
@@ -305,11 +318,11 @@ export function StoryEditForm({
               type="button"
               onClick={() => fileInputRef.current?.click()}
               disabled={submitting || photoCount >= MAX_PHOTOS}
-              aria-label="사진 추가"
+              aria-label={t('edit.addPhoto')}
               className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-100 hover:text-point-500 disabled:opacity-40 dark:text-base-300 dark:hover:bg-base-800"
             >
               <ImagePlus size={18} strokeWidth={2} />
-              <span>사진 추가</span>
+              <span>{t('edit.addPhoto')}</span>
             </button>
             <input
               ref={fileInputRef}
@@ -329,7 +342,7 @@ export function StoryEditForm({
           disabled={submitting || (body.trim().length === 0 && photoCount === 0)}
           className="rounded-full bg-point-500 px-5 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
         >
-          {submitting ? '저장 중…' : '저장'}
+          {submitting ? t('edit.saving') : t('edit.save')}
         </button>
       </div>
     </div>

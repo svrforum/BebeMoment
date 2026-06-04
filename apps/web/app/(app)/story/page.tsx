@@ -9,23 +9,21 @@ import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
 import { listStoryEntries } from '@/server/story/list'
 import { Award, BookOpen, Plus, Ruler, Search, Sparkles } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { redirect } from 'next/navigation'
 
 type Entry = Awaited<ReturnType<typeof listStoryEntries>>['items'][number]
 
-function monthLabel(d: Date): string {
-  return `${d.getUTCFullYear()}년 ${d.getUTCMonth() + 1}월`
-}
-
 /** entryDate desc 정렬 항목을 월별로 묶는다(가독성). */
-function groupByMonth(items: Entry[]): { label: string; entries: Entry[] }[] {
-  const out: { label: string; entries: Entry[] }[] = []
+function groupByMonth(items: Entry[]): { year: number; month: number; entries: Entry[] }[] {
+  const out: { year: number; month: number; entries: Entry[] }[] = []
   for (const e of items) {
-    const label = monthLabel(e.entryDate)
+    const year = e.entryDate.getUTCFullYear()
+    const month = e.entryDate.getUTCMonth() + 1
     const last = out[out.length - 1]
-    if (last && last.label === label) last.entries.push(e)
-    else out.push({ label, entries: [e] })
+    if (last && last.year === year && last.month === month) last.entries.push(e)
+    else out.push({ year, month, entries: [e] })
   }
   return out
 }
@@ -35,6 +33,7 @@ export default async function StoryPage({
 }: {
   searchParams: Promise<{ q?: string; date?: string }>
 }) {
+  const t = await getTranslations('story')
   const ctx = await getContext()
   if (!ctx.family) redirect('/onboarding')
   const { q, date } = await searchParams
@@ -70,16 +69,16 @@ export default async function StoryPage({
     <>
       <PullToRefresh />
       <AppHeader
-        title="스토리"
+        title={t('list.title')}
         right={
           canRecord ? (
             <Link
               href="/story/new"
               className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
-              aria-label="스토리 쓰기"
+              aria-label={t('list.writeStory')}
             >
               <Plus className="h-4 w-4" strokeWidth={2.6} />
-              <span>쓰기</span>
+              <span>{t('list.write')}</span>
             </Link>
           ) : null
         }
@@ -87,7 +86,7 @@ export default async function StoryPage({
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
         <div className="mb-3 flex items-center gap-2">
           <div className="min-w-0 flex-1">
-            <SearchBox placeholder="스토리 검색 (제목·내용)" />
+            <SearchBox placeholder={t('list.searchPlaceholder')} />
           </div>
           <StoryDateFilter />
         </div>
@@ -103,9 +102,9 @@ export default async function StoryPage({
               </span>
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold text-base-900 dark:text-base-50">
-                  성장 기록
+                  {t('list.growth')}
                 </span>
-                <span className="block text-[12px] text-base-500">키 · 몸무게</span>
+                <span className="block text-[12px] text-base-500">{t('list.growthSub')}</span>
               </span>
             </Link>
             <Link
@@ -117,9 +116,9 @@ export default async function StoryPage({
               </span>
               <span className="min-w-0">
                 <span className="block text-[15px] font-semibold text-base-900 dark:text-base-50">
-                  마일스톤
+                  {t('list.milestones')}
                 </span>
-                <span className="block text-[12px] text-base-500">발달 기록</span>
+                <span className="block text-[12px] text-base-500">{t('list.milestonesSub')}</span>
               </span>
             </Link>
           </div>
@@ -127,32 +126,32 @@ export default async function StoryPage({
 
         {items.length === 0 ? (
           query || dateFilter ? (
-            <EmptyState icon={Search} title="검색 결과가 없어요" description={emptyDescription} />
+            <EmptyState icon={Search} title={t('list.noResults')} description={emptyDescription} />
           ) : canRecord ? (
             <EmptyState
               icon={BookOpen}
-              title="첫 스토리를 시작해볼까요"
-              description="오늘의 이야기를 짧게라도 남겨두면 나중에 큰 추억이 돼요"
+              title={t('list.emptyTitle')}
+              description={t('list.emptyDesc')}
               action={
                 <Link
                   href="/story/new"
                   className="mt-2 rounded-full bg-base-900 px-5 py-2.5 text-sm font-medium text-base-50 transition-transform ease-ios active:scale-95 hover:bg-base-800 dark:bg-base-50 dark:text-base-900 dark:hover:bg-base-200"
                 >
-                  스토리 쓰기
+                  {t('list.writeStory')}
                 </Link>
               }
             />
           ) : (
             <EmptyState
               icon={Sparkles}
-              title="아직 올라온 스토리가 없어요"
-              description="곧 새로운 이야기가 올라올 거예요"
+              title={t('list.emptyViewerTitle')}
+              description={t('list.emptyViewerDesc')}
               action={
                 <Link
                   href="/settings#notifications"
                   className="mt-2 text-sm font-medium text-point-600 transition hover:text-point-700 dark:text-point-400 dark:hover:text-point-300"
                 >
-                  알림 켜기
+                  {t('list.enableNotifications')}
                 </Link>
               }
             />
@@ -160,9 +159,9 @@ export default async function StoryPage({
         ) : (
           <div className="space-y-6">
             {groups.map((g) => (
-              <section key={g.label}>
+              <section key={`${g.year}-${g.month}`}>
                 <h2 className="mb-2 px-1 text-[13px] font-semibold tracking-tight text-base-500">
-                  {g.label}
+                  {t('list.monthLabel', { year: g.year, month: g.month })}
                 </h2>
                 <ul className="space-y-3">
                   {g.entries.map((e) => (

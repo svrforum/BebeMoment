@@ -6,29 +6,34 @@ import { useToast } from '@/lib/toast'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Story, StoryAsset } from '@bebe/db-public'
 import { NotebookPen, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 type Entry = Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
 
-const DAYS = ['일', '월', '화', '수', '목', '금', '토']
-
 /**
  * Compact album story row — small thumb + date + one-line snippet + remove.
  * Stacking full DiaryCards got unreadable once an album had several stories.
  */
 export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Entry }) {
+  const t = useTranslations('album')
   const router = useRouter()
   const toast = useToast()
   const [removing, setRemoving] = useState(false)
 
+  const days = t.raw('story.days') as string[]
   const cover = entry.assets.find((a) => a.asset?.urls)?.asset ?? null
   const trio = cover ? pickThumbTrio(cover.urls) : null
   const fallback = cover ? pickThumbUrl(cover.urls) : null
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
   const d = entry.entryDate
-  const dateLabel = `${d.getUTCMonth() + 1}월 ${d.getUTCDate()}일 (${DAYS[d.getUTCDay()]})`
+  const dateLabel = t('story.date', {
+    month: d.getUTCMonth() + 1,
+    day: d.getUTCDate(),
+    weekday: days[d.getUTCDay()] ?? '',
+  })
   const snippet = entry.body.trim() || (entry.title ?? '')
   const photoCount = entry.assets.length
 
@@ -42,7 +47,7 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
       if (!res.ok) throw new Error()
       router.refresh()
     } catch {
-      toast({ title: '앨범에서 제거하지 못했어요', variant: 'danger' })
+      toast({ title: t('story.removeFailed'), variant: 'danger' })
       setRemoving(false)
     }
   }
@@ -70,10 +75,12 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
           <div className="flex items-center gap-1.5 text-[11px] text-base-400">
             <span>{dateLabel}</span>
             {mood && <span>{mood.emoji}</span>}
-            {photoCount > 0 && <span className="tabular-nums">· 사진 {photoCount}</span>}
+            {photoCount > 0 && (
+              <span className="tabular-nums">{t('story.photoCount', { count: photoCount })}</span>
+            )}
           </div>
           <div className="truncate text-[14px] text-base-900 dark:text-base-50">
-            {snippet || '내용 없음'}
+            {snippet || t('story.noContent')}
           </div>
         </div>
       </Link>
@@ -81,7 +88,7 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
         type="button"
         onClick={remove}
         disabled={removing}
-        aria-label="앨범에서 제거"
+        aria-label={t('story.remove')}
         className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 hover:text-base-700 active:scale-90 disabled:opacity-50 dark:hover:bg-base-800 dark:hover:text-base-200"
       >
         <X size={16} strokeWidth={2.2} />

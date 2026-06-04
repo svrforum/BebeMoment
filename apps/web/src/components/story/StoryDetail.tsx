@@ -12,6 +12,7 @@ import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
 import { LayoutGrid, Play, ShieldCheck, Square } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -47,15 +48,17 @@ function VideoPlayOverlay({ size = 'lg' }: { size?: 'lg' | 'sm' }) {
   )
 }
 
-const DAYS = ['일', '월', '화', '수', '목', '금', '토']
+const WEEKDAY_KEYS = ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'] as const
 
 export function StoryDetail({ entry }: { entry: Entry }) {
+  const t = useTranslations('story')
   const mood = isMood(entry.mood) ? MOODS[entry.mood] : null
   const sortedAssets = [...entry.assets]
     .sort((a, b) => a.order - b.order)
     .filter((a) => a.asset !== null)
   const d = entry.entryDate
-  const day = DAYS[d.getDay()] ?? ''
+  const weekdayKey = WEEKDAY_KEYS[d.getDay()] ?? 'sun'
+  const day = t(`detail.weekday.${weekdayKey}`)
   const trimmed = entry.body.trim()
   const [activeIdx, setActiveIdx] = useState(0)
 
@@ -106,7 +109,8 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const takenDates = sortedAssets
     .flatMap((a) => (a.asset?.takenAt ? [a.asset.takenAt] : []))
     .sort((a, b) => a.getTime() - b.getTime())
-  const fmtMD = (x: Date): string => `${x.getUTCMonth() + 1}월 ${x.getUTCDate()}일`
+  const fmtMD = (x: Date): string =>
+    t('detail.monthDay', { m: x.getUTCMonth() + 1, d: x.getUTCDate() })
   const dayKeyOf = (x: Date): string => `${x.getUTCFullYear()}-${x.getUTCMonth()}-${x.getUTCDate()}`
   const firstTaken = takenDates[0] ?? null
   const lastTaken = takenDates[takenDates.length - 1] ?? null
@@ -119,8 +123,8 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const photoMeta =
     photoCount > 0
       ? rangeLabel
-        ? `사진 ${photoCount}장 · ${rangeLabel}`
-        : `사진 ${photoCount}장`
+        ? t('detail.photoMetaWithRange', { n: photoCount, range: rangeLabel })
+        : t('detail.photoMeta', { n: photoCount })
       : null
 
   return (
@@ -135,10 +139,10 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         </div>
         <div className="min-w-0 flex-1">
           <div className="truncate text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
-            {entry.baby?.name ?? '스토리'}
+            {entry.baby?.name ?? t('detail.storyFallback')}
           </div>
           <div className="text-[12px] tabular-nums text-base-500 dark:text-base-400">
-            {dateLabel} · {day}요일
+            {t('detail.dateLine', { date: dateLabel, day })}
           </div>
           {photoMeta && (
             <div className="mt-0.5 text-[11px] tabular-nums text-base-400 dark:text-base-500">
@@ -149,7 +153,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         {entry.visibility === 'guardians' && (
           <span className="inline-flex shrink-0 items-center gap-1 rounded-full bg-point-500/15 px-2 py-1 text-[11px] font-semibold text-point-600 dark:text-point-400">
             <ShieldCheck size={11} strokeWidth={2.4} />
-            보호자만
+            {t('detail.guardiansOnly')}
           </span>
         )}
       </header>
@@ -163,7 +167,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                 className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-[11px] font-semibold ${mood.chip}`}
               >
                 <span className="text-[13px] leading-none">{mood.emoji}</span>
-                {mood.label}
+                {t(`mood.${entry.mood}`)}
               </span>
             </div>
           )}
@@ -190,7 +194,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
             <div className="absolute right-2.5 top-2.5 z-10 flex items-center gap-0.5 rounded-full bg-black/55 p-0.5 backdrop-blur-sm">
               <button
                 type="button"
-                aria-label="슬라이드 보기"
+                aria-label={t('detail.viewSlide')}
                 aria-pressed={view === 'slide'}
                 onClick={() => chooseView('slide')}
                 className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${view === 'slide' ? 'bg-white/90 text-black' : 'text-white'}`}
@@ -199,7 +203,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
               </button>
               <button
                 type="button"
-                aria-label="격자 보기"
+                aria-label={t('detail.viewGrid')}
                 aria-pressed={view === 'grid'}
                 onClick={() => chooseView('grid')}
                 className={`flex h-7 w-7 items-center justify-center rounded-full transition-colors ${view === 'grid' ? 'bg-white/90 text-black' : 'text-white'}`}

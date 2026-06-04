@@ -4,6 +4,7 @@ import type { AssetWithUrls } from '@/server/asset/types'
 import type { Story, StoryAsset } from '@bebe/db-public'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronRight, ShieldCheck } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { MOODS, isMood } from './mood'
 
@@ -42,6 +43,7 @@ export function storyCardDataFromEntry(entry: StoryEntryLike): StoryCardData {
 }
 
 export function StoryCard({ data }: { data: StoryCardData }) {
+  const t = useTranslations('story')
   const mood = isMood(data.mood) ? MOODS[data.mood] : null
   const trio = pickThumbTrio(data.cover)
   const fallbackUrl = pickThumbUrl(data.cover)
@@ -71,7 +73,7 @@ export function StoryCard({ data }: { data: StoryCardData }) {
       <div className="min-w-0 flex-1">
         <div className="flex items-center gap-1.5">
           <span className="text-[10.5px] font-semibold uppercase tracking-wider text-base-400">
-            스토리
+            {t('card.label')}
           </span>
           {data.visibility === 'guardians' && (
             <ShieldCheck size={12} className="shrink-0 text-point-500" strokeWidth={2.4} />
@@ -83,7 +85,7 @@ export function StoryCard({ data }: { data: StoryCardData }) {
               <span aria-hidden className="text-[11px] leading-none">
                 {mood.emoji}
               </span>
-              {mood.label}
+              {t(`mood.${data.mood}`)}
             </span>
           )}
         </div>

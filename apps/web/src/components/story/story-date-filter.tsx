@@ -1,6 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { Calendar, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -18,6 +19,7 @@ function formatChip(date: string): string {
  * appears next to it. Pairs with `SearchBox` (which owns `?q=`).
  */
 export function StoryDateFilter() {
+  const t = useTranslations('story')
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -58,7 +60,7 @@ export function StoryDateFilter() {
         <button
           type="button"
           onClick={openPicker}
-          aria-label="날짜로 필터"
+          aria-label={t('dateFilter.filterByDate')}
           aria-pressed={active ? true : false}
           className={cn(
             'flex h-11 w-11 items-center justify-center rounded-2xl border bg-base-0 text-base-700 transition-colors ease-ios active:scale-95',
@@ -92,7 +94,7 @@ export function StoryDateFilter() {
           <span>{formatChip(active)}</span>
           <button
             type="button"
-            aria-label="날짜 필터 지우기"
+            aria-label={t('dateFilter.clear')}
             onClick={() => {
               setValue('')
               push('')

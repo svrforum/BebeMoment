@@ -17,7 +17,6 @@ export function StoryShareView({ p, base }: { p: PublicStoryPreview; base: strin
     >
       {p.imageUrl && (
         <div className="relative mt-4">
-          {/* biome-ignore lint/a11y/useAltText: 공개 대표사진(설명 없음) */}
           {/* biome-ignore lint/performance/noImgElement: 공개 랜딩의 단일 signed URL — PictureImage(클라) 불필요 */}
           <img src={p.imageUrl} alt="" className="w-full rounded-2xl object-cover shadow-card" />
           {p.totalPhotos > 1 && (
