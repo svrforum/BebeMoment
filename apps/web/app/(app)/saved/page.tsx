@@ -1,5 +1,6 @@
 import { PeopleEntry } from '@/components/people/people-entry'
 import { AppHeader } from '@/components/shell/app-header'
+import { RefreshOnMount } from '@/components/shell/refresh-on-mount'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import {
   StoryCard,
@@ -24,6 +25,10 @@ import { z } from 'zod'
 function utcDayKey(d: Date): string {
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, '0')}-${String(d.getUTCDate()).padStart(2, '0')}`
 }
+
+// 북마크 토글은 다른 화면(상세 뷰어)에서 일어나므로, 이 목록이 클라이언트 라우터 캐시로
+// stale 하게 뜨면 "북마크했는데 안 보임"이 된다 → 정적 프리렌더 방지 + 마운트 시 refresh.
+export const dynamic = 'force-dynamic'
 
 export default async function SavedPage() {
   const ctx = await getContext()
@@ -124,6 +129,7 @@ export default async function SavedPage() {
 
   return (
     <>
+      <RefreshOnMount />
       <PullToRefresh />
       <AppHeader title="북마크" wide />
       {features.faces && (
