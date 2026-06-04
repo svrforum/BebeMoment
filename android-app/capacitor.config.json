@@ -1,6 +1,6 @@
 {
   "appId": "im.bebe.app",
-  "appName": "bebe",
+  "appName": "Bebe Moment",
   "webDir": "www",
   "server": {
     "androidScheme": "https",

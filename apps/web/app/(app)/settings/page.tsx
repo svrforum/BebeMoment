@@ -1,3 +1,4 @@
+import { InstalledAppVersion } from '@/components/shell/installed-app-version'
 import { DisplayNameEditor } from '@/components/settings/display-name-editor'
 import { SnsLinkSection } from '@/components/settings/sns-link-section'
 import { ThemeToggle } from '@/components/settings/theme-toggle'
@@ -182,7 +183,8 @@ export default async function SettingsPage() {
         </form>
 
         <p className="pt-2 text-center text-[12px] text-base-400">
-          bebe-moment {process.env.APP_VERSION ?? 'dev'}
+          Bebe Moment {process.env.APP_VERSION ?? 'dev'}
+          <InstalledAppVersion />
         </p>
       </div>
     </>

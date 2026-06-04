@@ -50,7 +50,7 @@ export async function GET() {
     backupRemoteEnabled,
     backupRemoteConfigured,
   ] = await Promise.all([
-    getSetting('general.app_name', AnySchema, 'bebe-moment', prismaPublic),
+    getSetting('general.app_name', AnySchema, 'Bebe Moment', prismaPublic),
     getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
     getSetting('retention.trash_days', AnySchema, 30, prismaPublic),
     getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),

@@ -14,7 +14,7 @@ export async function POST(req: Request) {
     await sendMail(
       {
         to,
-        subject: 'bebe-moment SMTP 테스트',
+        subject: 'Bebe Moment SMTP 테스트',
         html: '<p>SMTP 설정이 정상적으로 동작합니다.</p>',
         text: 'SMTP 설정이 정상적으로 동작합니다.',
       },

@@ -26,7 +26,7 @@ export async function loadMailerConfig(prisma: PrismaClient): Promise<MailerConf
     getSetting('smtp.user', StringSchema, '', prisma),
     getSetting('smtp.password_enc', StringSchema, '', prisma),
     getSetting('smtp.from_address', StringSchema, '', prisma),
-    getSetting('smtp.from_name', StringSchema, 'bebe-moment', prisma),
+    getSetting('smtp.from_name', StringSchema, 'Bebe Moment', prisma),
   ])
   if (!host || !user || !passwordEnc || !fromAddress) return null
   const secretKey = process.env.SECRET_KEY

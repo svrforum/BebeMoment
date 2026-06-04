@@ -12,7 +12,7 @@ export default function SmtpSettingsPage() {
   const [user, setUser] = useState('')
   const [password, setPassword] = useState('')
   const [fromAddress, setFromAddress] = useState('')
-  const [fromName, setFromName] = useState('bebe-moment')
+  const [fromName, setFromName] = useState('Bebe Moment')
   const [testTo, setTestTo] = useState('')
   const [status, setStatus] = useState<string | null>(null)
   const [busy, setBusy] = useState(false)

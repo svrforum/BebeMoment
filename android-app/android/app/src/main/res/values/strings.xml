@@ -1,7 +1,7 @@
 <?xml version='1.0' encoding='utf-8'?>
 <resources>
-    <string name="app_name">bebe</string>
-    <string name="title_activity_main">bebe</string>
+    <string name="app_name">Bebe Moment</string>
+    <string name="title_activity_main">Bebe Moment</string>
     <string name="package_name">im.bebe.app</string>
     <string name="custom_url_scheme">im.bebe.app</string>
 </resources>

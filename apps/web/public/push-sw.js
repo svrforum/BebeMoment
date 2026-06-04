@@ -3,7 +3,7 @@
 
 self.addEventListener('push', (event) => {
   const data = event.data ? event.data.json() : {}
-  const title = data.title || 'bebe-moment'
+  const title = data.title || 'Bebe Moment'
   event.waitUntil(
     self.registration.showNotification(title, {
       body: data.body || '',

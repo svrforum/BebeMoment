@@ -287,12 +287,18 @@ public class MainActivity extends BridgeActivity {
         try {
             final android.webkit.WebSettings s = wv.getSettings();
             final String ua = s.getUserAgentString();
-            // bebeApp = 앱 일반 마커, bebeAppMulti = 멀티 인스턴스(가족 전환) 지원 마커.
-            if (ua != null && !ua.contains("bebeAppMulti")) {
-                // bebeApp/<versionName> — 서버/웹이 설치 버전을 알아 업데이트 안내를 띄울 수 있게.
-                final String withApp =
-                    ua.contains("bebeApp") ? ua : ua + " bebeApp/" + appVersionName();
-                s.setUserAgentString(withApp + " bebeAppMulti");
+            if (ua == null) return;
+            // bebeApp/<versionName> = 설치 버전 마커(업데이트 안내용), bebeAppMulti = 멀티
+            // 인스턴스(가족 전환) 마커. **항상 기존 마커를 떼고 현재 버전으로 다시 붙인다** —
+            // 과거엔 마커가 있으면 건너뛰어, 혹시 UA 가 이어지면 옛 버전이 남아 업데이트 안내가
+            // 계속 뜨는 회귀가 가능했다. 매번 live versionName 으로 정규화해 그 가능성을 차단.
+            final String base = ua
+                .replaceAll("\\s*bebeApp/\\S+", "")
+                .replaceAll("\\s*bebeAppMulti", "")
+                .trim();
+            final String marked = base + " bebeApp/" + appVersionName() + " bebeAppMulti";
+            if (!marked.equals(ua)) {
+                s.setUserAgentString(marked);
             }
         } catch (Exception ignored) {
         }

@@ -7,12 +7,12 @@ import { z } from 'zod'
 import './globals.css'
 
 export const metadata: Metadata = {
-  title: 'bebe-moment',
+  title: 'Bebe Moment',
   description: '우리 아기의 모든 순간',
   manifest: '/manifest.webmanifest',
   appleWebApp: {
     capable: true,
-    title: 'bebe-moment',
+    title: 'Bebe Moment',
     statusBarStyle: 'default',
   },
   icons: {
