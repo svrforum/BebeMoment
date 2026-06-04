@@ -55,11 +55,14 @@ public class BebeMessagingService extends FirebaseMessagingService {
         );
 
         NotificationCompat.Builder builder = new NotificationCompat.Builder(this, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_dialog_info)
+            .setSmallIcon(R.drawable.ic_stat_bebe)
+            .setColor(0xFF6B8AFD) // 브랜드 블루 — 상태바 아이콘 틴트·액센트
             .setContentTitle(title)
             .setContentText(body)
             .setAutoCancel(true)
             .setContentIntent(pi);
+        // 출처 가족(서버)별로 묶어 많이 와도 한 묶음으로 접힌다(안드 7+ 자동 번들).
+        if (server != null && !server.isEmpty()) builder.setGroup(server);
         nm.notify((int) System.currentTimeMillis(), builder.build());
     }
 }

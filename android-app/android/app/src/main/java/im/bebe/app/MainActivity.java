@@ -19,11 +19,16 @@ import android.webkit.DownloadListener;
 import android.webkit.URLUtil;
 import android.webkit.WebResourceError;
 import android.webkit.WebResourceRequest;
+import android.webkit.JavascriptInterface;
 import android.webkit.WebResourceResponse;
 import android.webkit.WebView;
+import android.view.Window;
 import android.widget.Toast;
+import androidx.activity.OnBackPressedCallback;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
 import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.FirebaseApp;
@@ -56,7 +61,64 @@ public class MainActivity extends BridgeActivity {
         setupDownloadListener();
         setupExternalSchemeHandler();
         markUserAgent();
+        setupBackHandler();
     }
+
+    private long lastBackPressMs = 0;
+
+    /**
+     * 하드웨어 BACK: WebView 히스토리가 있으면 한 단계 뒤로(앨범·상세에서 위로), 루트면
+     * 더블탭으로 종료. Capacitor 기본 동작(브리지로 라우팅 → 원격 페이지엔 리스너가 없어
+     * 곧장 종료)을 대체한다. super.onCreate 뒤에 콜백을 추가해 브리지 콜백보다 우선.
+     */
+    private void setupBackHandler() {
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                final WebView wv = getBridge() != null ? getBridge().getWebView() : null;
+                if (wv != null && wv.canGoBack()) {
+                    wv.goBack();
+                    return;
+                }
+                final long now = System.currentTimeMillis();
+                if (now - lastBackPressMs < 2000) {
+                    finish();
+                    return;
+                }
+                lastBackPressMs = now;
+                Toast.makeText(MainActivity.this, "한 번 더 누르면 종료돼요", Toast.LENGTH_SHORT).show();
+            }
+        });
+    }
+
+    /**
+     * 상태바를 웹 테마(.dark 클래스)에 맞춘다. 원격 페이지엔 Capacitor 브리지가 없으므로
+     * addJavascriptInterface(모든 origin 에 주입됨) + onPageFinished 주입으로 동적 적용.
+     * edge-to-edge/inset 은 건드리지 않아 헤더 safe-area 패딩에 영향 없음(아이콘·색만).
+     */
+    private final class StatusBarBridge {
+        @JavascriptInterface
+        public void apply(final boolean dark) {
+            runOnUiThread(() -> applyStatusBarTheme(dark));
+        }
+    }
+
+    private void applyStatusBarTheme(boolean dark) {
+        final Window w = getWindow();
+        if (w == null) return;
+        // base-950 / base-50 — globals.css 의 다크/라이트 페이지 배경과 동일 톤.
+        w.setStatusBarColor(dark ? 0xFF09090B : 0xFFF3F3F7);
+        final WindowInsetsControllerCompat c =
+            WindowCompat.getInsetsController(w, w.getDecorView());
+        if (c != null) c.setAppearanceLightStatusBars(!dark);
+    }
+
+    private static final String STATUS_BAR_JS =
+        "(function(){function s(){try{BebeStatusBar.apply("
+            + "document.documentElement.classList.contains('dark'));}catch(e){}}s();"
+            + "try{if(!window.__bebeBarObs){window.__bebeBarObs=new MutationObserver(s);"
+            + "window.__bebeBarObs.observe(document.documentElement,{attributes:true,"
+            + "attributeFilter:['class']});}}catch(e){}})();";
 
     /**
      * 카카오·네이버 등 SNS '앱으로 로그인' 은 웹페이지에서 `intent://` 또는 앱 전용
@@ -70,6 +132,7 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() == null) return;
         final WebView wv = getBridge().getWebView();
         if (wv == null) return;
+        wv.addJavascriptInterface(new StatusBarBridge(), "BebeStatusBar");
         wv.setWebViewClient(new BridgeWebViewClient(getBridge()) {
             @Override
             public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
@@ -137,6 +200,7 @@ public class MainActivity extends BridgeActivity {
             @Override
             public void onPageFinished(WebView view, String url) {
                 super.onPageFinished(view, url);
+                view.evaluateJavascript(STATUS_BAR_JS, null);
                 final String js = pendingShareInjectJs;
                 if (js != null) {
                     pendingShareInjectJs = null;
@@ -206,6 +270,15 @@ public class MainActivity extends BridgeActivity {
      * 원격 서버 페이지엔 Capacitor 브리지(window.Capacitor)가 없어 웹이 "네이티브 앱"인지
      * 감지할 수 없다 → User-Agent 에 표식을 넣어 웹이 앱 환경을 인식하게 한다(알림 안내 등).
      */
+    private String appVersionName() {
+        try {
+            final String v = getPackageManager().getPackageInfo(getPackageName(), 0).versionName;
+            return v != null ? v : "";
+        } catch (Exception e) {
+            return "";
+        }
+    }
+
     private void markUserAgent() {
         if (getBridge() == null) return;
         final WebView wv = getBridge().getWebView();
@@ -215,7 +288,9 @@ public class MainActivity extends BridgeActivity {
             final String ua = s.getUserAgentString();
             // bebeApp = 앱 일반 마커, bebeAppMulti = 멀티 인스턴스(가족 전환) 지원 마커.
             if (ua != null && !ua.contains("bebeAppMulti")) {
-                final String withApp = ua.contains("bebeApp") ? ua : ua + " bebeApp";
+                // bebeApp/<versionName> — 서버/웹이 설치 버전을 알아 업데이트 안내를 띄울 수 있게.
+                final String withApp =
+                    ua.contains("bebeApp") ? ua : ua + " bebeApp/" + appVersionName();
                 s.setUserAgentString(withApp + " bebeAppMulti");
             }
         } catch (Exception ignored) {

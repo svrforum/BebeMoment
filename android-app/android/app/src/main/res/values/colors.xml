@@ -1,0 +1,9 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- 브랜드 팔레트 — 시스템 다이얼로그·상태바 기본값에 적용. 런타임 상태바 색은
+         MainActivity 가 웹 테마(.dark)에 맞춰 동적으로 덮어쓴다. -->
+    <color name="colorPrimary">#6B8AFD</color>
+    <color name="colorPrimaryDark">#F3F3F7</color>
+    <color name="colorAccent">#6B8AFD</color>
+    <color name="splashBg">#FFFFFF</color>
+</resources>

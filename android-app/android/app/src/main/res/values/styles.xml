@@ -16,7 +16,11 @@
     </style>
 
 
+    <!-- 솔리드 스플래시 — 기기 비율마다 늘어나 왜곡되던 비트맵 대신 단색 배경.
+         상태바는 라이트 기본값(런타임엔 MainActivity 가 웹 테마에 맞춰 동적 적용). -->
     <style name="AppTheme.NoActionBarLaunch" parent="Theme.SplashScreen">
-        <item name="android:background">@drawable/splash</item>
+        <item name="android:background">@color/splashBg</item>
+        <item name="android:statusBarColor">@color/splashBg</item>
+        <item name="android:windowLightStatusBar">true</item>
     </style>
 </resources>
