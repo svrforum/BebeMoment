@@ -1,6 +1,6 @@
 {
-  "name": "bebe-moment",
-  "short_name": "bebe",
+  "name": "Bebe Moment",
+  "short_name": "Bebe",
   "description": "우리 아기의 모든 순간",
   "start_url": "/",
   "display": "standalone",
