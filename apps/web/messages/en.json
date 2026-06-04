@@ -27,6 +27,102 @@
       "description": "The language shown in the app.",
       "ko": "한국어",
       "en": "English"
+    },
+    "settings": {
+      "title": "Settings",
+      "logout": "Sign out",
+      "sections": {
+        "sns": "Social account links",
+        "family": "Family",
+        "notifications": "Notifications",
+        "display": "Display",
+        "admin": "Admin"
+      },
+      "roles": {
+        "owner": "Admin",
+        "guardian": "Guardian",
+        "family": "Family"
+      },
+      "rows": {
+        "members": "Family members",
+        "membersSub": "Members · invites",
+        "babies": "Babies",
+        "push": "Push notifications",
+        "pushSub": "Register device · test · choose alerts",
+        "widget": "Home widget",
+        "widgetSub": "Widget photo · all random / bookmark pinned · random",
+        "instanceAdmin": "Instance settings",
+        "instanceAdminSub": "Auth · features · theme · SMTP · storage",
+        "trash": "Trash"
+      },
+      "account": {
+        "nameRequired": "Please enter a name.",
+        "editName": "Edit name",
+        "save": "Save",
+        "cancel": "Cancel"
+      },
+      "theme": {
+        "auto": "Auto",
+        "light": "Light",
+        "dark": "Dark"
+      },
+      "sns": {
+        "linked": "Social account linked",
+        "conflict": "This account is already linked to another user",
+        "empty": "Once an admin sets up social login (Kakao, Naver, etc.), you can link your account here.",
+        "connected": "Linked",
+        "connect": "Link"
+      },
+      "widget": {
+        "title": "Home widget",
+        "back": "Back to settings",
+        "intro": "Choose which photos to show in the home screen widget."
+      },
+      "notifications": {
+        "title": "Push notifications",
+        "intro": "Get notified on your phone the moment a new photo, comment, or entry is added. Turn on and test notifications for this device below.",
+        "thisDevice": {
+          "title": "This device",
+          "hint": "After turning notifications on, tap <b>Send test notification</b> to get a sample on this device. If it doesn't arrive, check the platform guides below."
+        },
+        "android": {
+          "title": "Android app",
+          "badge": "Recommended",
+          "step1": "Install the bebe app, enter your <b>server address</b>, and sign in.",
+          "step2": "Turn on <b>Receive notifications on this device</b> above, then <b>Allow</b> the Android notification permission.",
+          "step3": "Tap <b>Send test notification</b> to confirm it arrives.",
+          "note": "App push only works once an admin sets up Firebase (FCM). If the permission prompt didn't appear or was declined, you can enable it in your phone's <b>Settings → Apps → bebe → Notifications</b>."
+        },
+        "web": {
+          "title": "Web browser",
+          "badge": "Android · desktop",
+          "step1": "Open the site in Chrome, Edge, etc. and turn on <b>Receive notifications on this device</b> above.",
+          "step2": "When the browser asks, tap <b>Allow</b>.",
+          "step3": "Confirm with <b>Send test notification</b>.",
+          "note": "If you blocked it by mistake, change it via the <b>lock icon → Notifications → Allow</b> on the left of the address bar, then turn it on again. Installing to your home screen (PWA) makes delivery more reliable."
+        },
+        "ios": {
+          "title": "iPhone · iPad",
+          "badge": "iOS 16.4+",
+          "step1": "Open the site in <b>Safari</b>, tap the share button → <b>Add to Home Screen</b>.",
+          "step2": "Reopen the site from the bebe icon now on your home screen.",
+          "step3": "Turn on <b>Receive notifications on this device</b> above, allow the permission, then test.",
+          "note": "On iPhone, push only works <b>when added to the home screen</b>. You can't enable it from a Safari tab (Apple policy)."
+        },
+        "categories": {
+          "title": "Choose which alerts to receive",
+          "hint": "Turn the alert types you want on or off below. (This applies to your whole account, not per device.)"
+        },
+        "admin": {
+          "title": "Admin settings",
+          "hint": "For notifications to reach the whole family, an admin needs to turn them on once:",
+          "step1": "Turn on the <b>notification master switch</b>.",
+          "step2": "Generate the <b>VAPID keys</b> for web push (one button).",
+          "step3": "Enter the <b>Firebase service account + client config</b> for app push.",
+          "step4": "Turn on the alert categories you want delivered.",
+          "open": "Open admin notification settings"
+        }
+      }
     }
   },
   "auth": {
@@ -735,6 +831,539 @@
         "remove": "Remove from album",
         "removeFailed": "Couldn't remove from album"
       }
+    }
+  },
+  "family": {
+    "family": {
+      "title": "Family",
+      "settings": {
+        "title": "Settings",
+        "subtitle": "Notifications · Display · Account"
+      },
+      "roles": {
+        "owner": "Admin",
+        "guardian": "Guardian",
+        "family": "Family"
+      },
+      "members": {
+        "heading": "{count} members",
+        "you": "You",
+        "suspended": "Suspended",
+        "removed": "Removed"
+      },
+      "invite": {
+        "heading": "Invite",
+        "role": "Role",
+        "optionFamily": "Family (grandparents · relatives)",
+        "optionGuardian": "Guardian (parent-level)",
+        "create": "Create invite link",
+        "creating": "Creating…",
+        "createFailed": "Failed to create invite",
+        "created": "Invite link created. Copy or share it to send.",
+        "copyLink": "Copy link",
+        "share": "Share",
+        "shareTitle": "Family album invite",
+        "shareText": "Join our family album",
+        "showQr": "QR code",
+        "hideQr": "Hide QR",
+        "qrAlt": "Invite link QR code",
+        "qrHint": "Scan it with grandma or grandpa's phone camera",
+        "pending": "Pending invites",
+        "pendingLabel": "{role} invite",
+        "expires": "expires",
+        "revoke": "Revoke"
+      },
+      "roleModal": {
+        "title": "{name}'s role",
+        "subtitle": "Choose a permission level.",
+        "selected": "Selected",
+        "desc": {
+          "guardian": "Can upload, record, manage albums, and invite members",
+          "family": "View, comment, and like by default (expandable via admin settings)"
+        },
+        "change": "Change role",
+        "changing": "Changing…",
+        "currentRole": "Current role",
+        "error": "Failed to change role"
+      },
+      "actions": {
+        "menuLabel": "Manage member",
+        "changeRole": "Change role",
+        "suspend": "Suspend",
+        "unsuspend": "Unsuspend",
+        "unsuspendError": "Failed to unsuspend",
+        "resetPassword": "Reset password",
+        "remove": "Remove from family",
+        "cancel": "Cancel",
+        "close": "Close"
+      },
+      "suspendModal": {
+        "title": "Suspend {name}?",
+        "subtitle": "Suspending blocks login and all sessions immediately.",
+        "reasonPlaceholder": "Reason for suspension (optional)",
+        "confirm": "Suspend",
+        "suspending": "Suspending…",
+        "error": "Failed to suspend"
+      },
+      "removeModal": {
+        "title": "Remove {name} from the family?",
+        "subtitle": "They will no longer be able to see photos or journals. Photos they uploaded stay. You can invite them again later.",
+        "confirmWord": "REMOVE",
+        "confirmHint": "Type <b>{word}</b> to confirm",
+        "confirm": "Remove from family",
+        "removing": "Removing…",
+        "error": "Failed to remove"
+      },
+      "resetModal": {
+        "title": "Reset {name}'s password",
+        "subtitle": "Create a link and hand it to the member directly. It can be used only once.",
+        "generate": "Create reset link",
+        "generating": "Creating…",
+        "copy": "Copy",
+        "copied": "Copied",
+        "copyError": "Couldn't copy. Long-press the link to copy it manually",
+        "validUntil": "Valid until {date}",
+        "error": "Failed to create link"
+      },
+      "permissions": {
+        "heading": "Member permissions",
+        "description": "Family members can only view, comment, and like by default. Turning the options below on applies them to all family members.",
+        "groups": {
+          "upload": {
+            "label": "Upload photos & videos",
+            "description": "Upload photos and videos directly, and edit or delete their own items."
+          },
+          "records": {
+            "label": "Write records (growth · milestones · stories)",
+            "description": "Write growth records, milestones, and stories, and edit or delete their own records."
+          },
+          "albums": {
+            "label": "Create & organize albums",
+            "description": "Create albums, add or remove photos, and edit or delete their own albums."
+          }
+        },
+        "save": "Save",
+        "saved": "Saved",
+        "failed": "Failed"
+      },
+      "navMenus": {
+        "heading": "Menus visible to regular family",
+        "description": "Turning these off hides them from regular family members' menus (bottom tabs · sidebar). Timeline and Calendar are always visible.",
+        "story": "Stories",
+        "albums": "Albums",
+        "save": "Save",
+        "saving": "Saving…",
+        "saved": "Saved"
+      },
+      "babies": {
+        "title": "Babies",
+        "add": "Add",
+        "addLink": "Add one",
+        "empty": "No babies yet.",
+        "addTitle": "Add baby",
+        "name": "Name",
+        "birthDate": "Date of birth",
+        "growth": "Growth records",
+        "growthSubtitle": "Height · Weight · Head circumference",
+        "milestones": "Milestones",
+        "milestonesSubtitle": "Development checklist",
+        "addRecord": "Add record",
+        "addGrowthTitle": "Add growth record",
+        "editGrowthTitle": "Edit growth record",
+        "customMilestone": "Custom milestone",
+        "edit": "Edit",
+        "delete": "Delete"
+      }
+    }
+  },
+  "admin": {
+    "backup": {
+      "title": "Backup / Restore",
+      "subtitle": "Back up photos & settings",
+      "createTitle": "Create backup",
+      "createDesc": "Bundles your DB (settings & metadata) plus photos and videos into one file in the backup folder. Full includes every photo; incremental only includes new photos since the last backup.",
+      "fullBackup": "Full backup",
+      "incrBackup": "Incremental backup",
+      "backingUp": "Backing up…",
+      "creating": "Creating backup… (this can take a while with many photos)",
+      "done": "Done: {id} ({size}){mirror}",
+      "remoteMirrored": " · uploaded to remote",
+      "fail": "Failed",
+      "failedWith": "Failed: {error}",
+      "saving": "Saving…",
+      "saved": "Saved",
+      "save": "Save",
+      "testingConnection": "Testing connection…",
+      "testConnection": "Test connection",
+      "connectionOk": "Connected ✓",
+      "connectionFailed": "Connection failed: {error}",
+      "autoTitle": "Automatic backup",
+      "autoDesc": "Backs up automatically at a set time. Every {every}th run is full, the rest are incremental.",
+      "interval": "Interval",
+      "daily": "Daily",
+      "weekly": "Weekly",
+      "weekday": "Day of week",
+      "weekdayOption": "{day}",
+      "weekdaySun": "Sun",
+      "weekdayMon": "Mon",
+      "weekdayTue": "Tue",
+      "weekdayWed": "Wed",
+      "weekdayThu": "Thu",
+      "weekdayFri": "Fri",
+      "weekdaySat": "Sat",
+      "time": "Time",
+      "fullEvery": "Full backup interval",
+      "everyNth": "runs",
+      "retentionKeep": "Backups to keep",
+      "keepCount": "kept",
+      "lastAutoError": "Last automatic backup error: {error}",
+      "includeSecret": "Include SECRET_KEY",
+      "includeSecretDesc": "Needed to restore encrypted settings (OIDC, push, sessions). Not included by default.",
+      "secretWarn": "<b>Caution — this backup file is like a password vault.</b> If SECRET_KEY is included, this single file unlocks all of your OIDC, push, and session secrets. Never share it externally, and keep it only in trusted storage.",
+      "remoteTitle": "Remote backup (S3-compatible)",
+      "remoteDesc": "After creating a backup, also upload it to an S3-compatible store (B2, MinIO, S3, etc.).",
+      "endpointPlaceholder": "Endpoint (e.g. https://s3.us-west-002.backblazeb2.com; leave empty for AWS)",
+      "prefixPlaceholder": "Path prefix (optional, e.g. bebe-backups)",
+      "secretKeySavedPlaceholder": "Secret Access Key (saved — enter only to change)",
+      "lastRemoteError": "Last remote upload error: {error}",
+      "saveToApplyHint": "Press Save to apply. The secret key is stored encrypted and won't be shown again.",
+      "listTitle": "Backups",
+      "empty": "No backups yet.",
+      "full": "Full",
+      "incr": "Incremental",
+      "keyIncluded": "key included",
+      "listMeta": "{size} · {count} photos",
+      "restore": "Restore",
+      "restoreThis": "Restore from this backup",
+      "download": "Download",
+      "delete": "Delete",
+      "confirmDelete": "Delete this backup?\n{id}",
+      "restoreSecretWarn": "⚠️ If this backup was made with a different SECRET_KEY, encrypted settings won't decrypt after restore (use CLI restore in that case).",
+      "restorePrompt": "This rolls your current DB and photos back to this backup. It can't be undone.{warn}\n\nTo restore, type the backup id below exactly:\n{id}",
+      "restoreMismatch": "Input didn't match, so it was cancelled.",
+      "restoring": "Restoring… the app will restart automatically when done.",
+      "restoreDone": "Restore complete — the app is restarting. We'll refresh automatically…",
+      "restoreTimeout": "Restore finished. If the app doesn't come back, refresh manually.",
+      "restoreFailed": "Restore failed: {error}",
+      "howToTitle": "How to restore",
+      "howToWeb": "<b>Restore from the web</b>: use the ↺ button in the list above → enter the backup id → restore. When done, the app restarts automatically (for same-instance rollback).",
+      "howToDisaster": "<b>Full / disaster recovery</b> (new device or different SECRET_KEY): place the backup file in the backup folder, then on the server run:",
+      "backupIdPlaceholder": "backup-id"
+    },
+    "auth": {
+      "title": "Auth settings",
+      "saved": "Saved",
+      "saveFailed": "Failed",
+      "publicSignup": "Allow public signup",
+      "publicSignupHint": "When off, signup is only possible via invite link",
+      "oidcProviders": "OIDC providers",
+      "oidcProvidersHint": "Manage external IdP integrations",
+      "manage": "Manage",
+      "add": "Add",
+      "addProvider": "Add one",
+      "noProviders": "No providers registered yet.",
+      "confirmDelete": "Delete this?",
+      "enabled": "Active",
+      "disabled": "Inactive",
+      "turnOn": "Turn on",
+      "turnOff": "Turn off",
+      "edit": "Edit",
+      "delete": "Delete",
+      "editTitle": "Edit OIDC",
+      "addTitle": "Add OIDC",
+      "name": "Name",
+      "scopeLabel": "Scope (space/comma separated)",
+      "kakaoScopeHint": "Kakao requires business-app review for the email consent item — drop account_email to sign up with nickname only.",
+      "clientSecretEditLabel": "Client Secret (only when changing)",
+      "clientSecretKeepPlaceholder": "(keep existing)",
+      "save": "Save",
+      "step1Pick": "1. Choose a provider",
+      "step2Values": "2. Enter values",
+      "displayName": "Display name",
+      "clientSecretEncryptedPlaceholder": "Encrypted on save",
+      "clientSecretEncryptedHint": "Stored in the DB encrypted with AES-256-GCM using SECRET_KEY.",
+      "saving": "Saving…",
+      "pickFirst": "Choose a provider first",
+      "redirectUriHint": "Register this value in your provider console's Redirect URIs.",
+      "copy": "Copy",
+      "redirectUriNote": "After saving, the URI with the real UUID appears on the list screen. Register a placeholder first, then replace it with the real value after saving.",
+      "setupGuide": "{name} setup guide",
+      "guidePlaceholder": "Choose a provider to see a step-by-step guide here.",
+      "securityTitle": "Security features (applied automatically)",
+      "securityJwks": "id_token JWKS verification (jose)",
+      "securityClaims": "iss · aud · exp · nonce · state verification",
+      "securityEmailVerified": "email_verified=true required (account takeover protection)",
+      "securityEncryption": "Client Secret stored with AES-256-GCM encryption",
+      "kakaoName": "Kakao",
+      "naverName": "Naver",
+      "customName": "Other (OIDC)",
+      "googleConsole": "Open Google Cloud Console",
+      "kakaoConsole": "Open Kakao Developers",
+      "naverConsole": "Open Naver Developers",
+      "microsoftConsole": "Open Azure Portal",
+      "googleStep1Title": "1. Create an OAuth client",
+      "googleStep1Body": "Console → Credentials → \"Create credentials\" → \"OAuth client ID\" → choose application type \"Web application\".",
+      "googleStep2Title": "2. Register the authorized redirect URI",
+      "googleStep2Body": "Copy the URI below and paste it into \"Authorized redirect URIs\" in the Google console:\n{uri}",
+      "googleStep3Title": "3. Copy the Client ID / Secret",
+      "googleStep3Body": "Copy the client ID and password shown after saving, paste them into the form below, and save.",
+      "googleStep4Title": "4. Note",
+      "googleStep4Body": "Google sets email_verified=true by default. If an account with the same email already exists, it links automatically.",
+      "kakaoStep1Title": "1. Add an application",
+      "kakaoStep1Body": "Kakao Developers → My Applications → Add an application. Note the REST API key after saving.",
+      "kakaoStep2Title": "2. Register the platform",
+      "kakaoStep2Body": "App settings → Platform → Web → register your current service URL as the site domain.",
+      "kakaoStep3Title": "3. Enable Kakao Login + OpenID Connect",
+      "kakaoStep3Body": "Product → Kakao Login → turn ON, and on the same screen **also turn ON OpenID Connect** (both must be on). Register the value below as the Redirect URI:\n{uri}",
+      "kakaoStep4Title": "4. Configure consent items",
+      "kakaoStep4Body": "In consent items, set Nickname (profile_nickname) to ON. Email (account_email) requires business-app review, so it's excluded by default — Kakao can sign up with nickname only (no email).",
+      "kakaoStep5Title": "5. Generate a Client Secret",
+      "kakaoStep5Body": "Security → generate Client Secret code → set to ON → copy the code. Paste it into Client Secret in the form below.",
+      "kakaoStep6Title": "6. Client ID",
+      "kakaoStep6Body": "App keys → paste the REST API key value into Client ID in the form below.",
+      "naverStep1Title": "1. Register an application",
+      "naverStep1Body": "Naver Developers → Register application → choose \"Naver Login\" as the API in use.",
+      "naverStep2Title": "2. Select provided info",
+      "naverStep2Body": "Set member name and email address to \"Required\". Without email, account linking is limited.",
+      "naverStep3Title": "3. Service URL · Callback URL",
+      "naverStep3Body": "Set your current service address as the Service URL, and register the value below as the Callback URL:\n{uri}",
+      "naverStep4Title": "4. Client ID / Secret",
+      "naverStep4Body": "Paste the issued Client ID and Client Secret into the form below. (Naver uses OAuth2, so no Issuer is needed.)",
+      "microsoftStep1Title": "1. Register an app",
+      "microsoftStep1Body": "Azure Portal → App Registrations → New Registration. Choose supported account types.",
+      "microsoftStep2Title": "2. Register the redirect URI",
+      "microsoftStep2Body": "Platform: Web. Enter the value below as the URI:\n{uri}",
+      "microsoftStep3Title": "3. Generate a Client Secret",
+      "microsoftStep3Body": "Certificates & secrets → New client secret → copy the Value (you can't see it again once the window closes).",
+      "microsoftStep4Title": "4. Client ID",
+      "microsoftStep4Body": "Copy the \"Application (client) ID\" from the Overview screen.",
+      "microsoftStep5Title": "5. Optional: email claim",
+      "microsoftStep5Body": "The default tenant may not include an email claim. Token configuration → Optional claims → ID → adding email is recommended.",
+      "microsoftStep6Title": "6. Multi-tenant issuer",
+      "microsoftStep6Body": "To allow only a single tenant, change the Issuer to https://login.microsoftonline.com/<TENANT-ID>/v2.0.",
+      "customStep1Title": "OpenID Connect provider",
+      "customStep1Body": "Any OIDC-compliant IdP (Keycloak, Authelia, Authentik, Dex, etc.) can connect. The issuer is usually in the form <IdP-URL>/realms/<realm>.",
+      "customStep2Title": "Redirect URI",
+      "customStep2Body": "Register the value below in your IdP console's Allowed Redirect URIs:\n{uri}",
+      "customStep3Title": "Required claims",
+      "customStep3Body": "The id_token must include sub, email, email_verified, and name."
+    },
+    "smtp": {
+      "passwordSaveFailed": "Failed to save password",
+      "saved": "Saved",
+      "partialFail": "Partially failed",
+      "sent": "Sent",
+      "sendFailed": "Failed: {error}",
+      "host": "Host",
+      "port": "Port",
+      "user": "User",
+      "password": "Password (only when changing)",
+      "passwordPlaceholder": "(encrypted on save)",
+      "fromAddress": "From address",
+      "fromName": "From name",
+      "save": "Save",
+      "testSend": "Send test",
+      "recipient": "Recipient address"
+    },
+    "members": {
+      "title": "Member permissions",
+      "subtitle": "What family members can do"
+    },
+    "home": {
+      "title": "Admin",
+      "subtitle": "Instance settings",
+      "sections": {
+        "general": {
+          "label": "General",
+          "description": "App name, default theme"
+        },
+        "features": {
+          "label": "Features",
+          "description": "Toggle likes, comments, and more"
+        },
+        "auth": {
+          "label": "Authentication",
+          "description": "Signup access, OIDC providers"
+        },
+        "members": {
+          "label": "Member permissions",
+          "description": "What family members can do"
+        },
+        "smtp": {
+          "label": "SMTP",
+          "description": "Email delivery settings + test"
+        },
+        "storage": {
+          "label": "Storage",
+          "description": "Check local/S3 mode"
+        },
+        "retention": {
+          "label": "Retention",
+          "description": "Auto-delete from trash"
+        },
+        "notifications": {
+          "label": "Notifications",
+          "description": "Push notifications + VAPID keys"
+        },
+        "backup": {
+          "label": "Backup / Restore",
+          "description": "Back up photos & settings, download, restore guide"
+        },
+        "system": {
+          "label": "System info",
+          "description": "Specs, memory, disk usage, version"
+        }
+      }
+    },
+    "general": {
+      "title": "General settings",
+      "save": "Save",
+      "saved": "Saved (name applies after refresh)",
+      "failed": "Failed",
+      "familyName": "Family name",
+      "familyNamePlaceholder": "e.g. The Smiths",
+      "familyNameHelp": "Your family name shown at the top of the timeline and elsewhere.",
+      "defaultTheme": "Default theme",
+      "defaultThemeHelp": "The default applied to new users. If a user picks their own in settings, that choice wins.",
+      "theme": {
+        "auto": "Follow system",
+        "light": "Light",
+        "dark": "Dark"
+      }
+    },
+    "features": {
+      "title": "Features",
+      "subtitle": "Toggle features on or off",
+      "intro": "Turning a feature off hides it from everyone and stops it from working.",
+      "save": "Save",
+      "saved": "Saved",
+      "failed": "Failed",
+      "faceCluster": {
+        "label": "Face clustering distance",
+        "help": "The threshold for grouping the same person (cosine distance). Lower is stricter and splits people apart; higher is looser and merges more. Default {default}. Applies from the next upload.",
+        "strict": "Strict (split)",
+        "loose": "Loose (merge)"
+      }
+    },
+    "system": {
+      "title": "System info",
+      "subtitle": "Specs · resource usage",
+      "version": "Version",
+      "platform": "Platform",
+      "cpu": "CPU",
+      "cpuValue": "{model} · {count} cores",
+      "uptime": "Uptime",
+      "uptimeDays": "{d}d",
+      "uptimeHours": "{h}h",
+      "uptimeMinutes": "{m}m",
+      "memory": "Memory",
+      "diskMedia": "Media data (/data)",
+      "diskBackup": "Backups (/backups)",
+      "unavailable": "Unavailable"
+    },
+    "storage": {
+      "title": "Storage",
+      "subtitle": "Set via environment variables (read-only)",
+      "mode": "Mode",
+      "localPath": "Local path",
+      "envNote": "Storage is configured through environment variables (STORAGE_MODE, STORAGE_PATH, STORAGE_S3_*). Restart the container to change them."
+    },
+    "retention": {
+      "title": "Retention",
+      "save": "Save",
+      "saved": "Saved",
+      "failed": "Failed",
+      "trashDays": "Auto-delete from trash (days)",
+      "trashDaysHelp": "Assets in the trash are permanently deleted after this period (run as a scheduled task)."
+    },
+    "notifications": {
+      "title": "Notifications",
+      "subtitle": "Push notification settings",
+      "deliveryHeading": "Delivery method",
+      "saved": "Saved",
+      "master": "Push notifications",
+      "masterHelp": "When off, no notifications are sent at all.",
+      "categoriesHeading": "Notifications by category",
+      "category": {
+        "assetUpload": "New photos/videos",
+        "commentMention": "Comments & mentions",
+        "albumAdd": "Album additions",
+        "diaryGrowthMilestone": "Stories, growth & milestones",
+        "memory": "Memories"
+      },
+      "vapidHeading": "VAPID keys",
+      "vapidConfigured": "Keys are configured.",
+      "vapidPublicKey": "Public key: {prefix}…",
+      "vapidNone": "No keys yet. Please generate them.",
+      "generateKeys": "Generate keys",
+      "regenKeys": "Regenerate keys",
+      "regenConfirm": "Confirm regenerate",
+      "regenWarning": "Regenerating unsubscribes every device, so they'll need to turn notifications back on. Continue?",
+      "cancel": "Cancel",
+      "keysGenerated": "Keys generated. Refresh to see part of the public key.",
+      "keysRegenerated": "Keys regenerated and all device subscriptions removed.",
+      "fcmHeading": "Android app push (FCM)",
+      "fcmHelp": "To send push to Android app users you need a Firebase service account.",
+      "serviceAccountConfigured": "A service account is configured.",
+      "serviceAccountNone": "No service account yet.",
+      "serviceAccountPlaceholder": "Paste the service account JSON (e.g. { \"project_id\": ..., \"client_email\": ..., \"private_key\": ... })",
+      "serviceAccountSaveBtn": "Save service account",
+      "serviceAccountDeleteBtn": "Delete service account",
+      "serviceAccountSaved": "Service account saved.",
+      "serviceAccountDeleted": "Service account deleted.",
+      "clientConfigHeading": "App Firebase config (public key)",
+      "clientConfigHelp": "The public config the Android app uses to obtain a device token. (firebaseConfig: apiKey·appId·projectId·messagingSenderId)",
+      "clientConfigConfigured": "App config is registered.",
+      "clientConfigNone": "No app config yet.",
+      "clientConfigSaveBtn": "Save app config",
+      "clientConfigDeleteBtn": "Delete app config",
+      "clientConfigSaved": "App config saved.",
+      "clientConfigDeleted": "App config deleted.",
+      "errAdminRequired": "Admin permission required.",
+      "errUnknownCategory": "Unknown notification category.",
+      "errInvalidServiceAccount": "Not a valid Firebase service account JSON (project_id, client_email, private_key required).",
+      "errSecretKeyMissing": "SECRET_KEY is not set.",
+      "errInvalidJson": "Not valid JSON.",
+      "errInvalidClientConfig": "The Firebase client config needs apiKey, appId, projectId, and messagingSenderId."
+    },
+    "delivery": {
+      "saved": "Saved",
+      "failed": "Couldn't save",
+      "modeHeading": "Delivery method",
+      "modeImmediate": "Send immediately",
+      "modeDigest": "Send as a digest",
+      "digestHelp": "Digest mode bundles new photos and updates into a single notification (less notification fatigue).",
+      "interval": "Interval",
+      "intervalHourly": "Every hour",
+      "intervalEvery3h": "Every 3 hours",
+      "intervalDaily": "Once a day",
+      "time": "Time",
+      "hourLabel": "{h}:00",
+      "quietHours": "Quiet hours",
+      "quietFrom": "from",
+      "quietTo": "no notifications until"
+    },
+    "firebaseGuide": {
+      "summary": "How to set up Firebase (one-time, step by step)",
+      "intro": "To send push to the Android app you need a free Firebase project. Grab the two items below (a server service account + the app config) from the console and paste them on this page.",
+      "openConsole": "Open Firebase console",
+      "group1Title": "1. Create a project",
+      "g1s1": "In the Firebase console, click <b>Add project</b>. Name it anything (e.g. bebe).",
+      "g1s2": "You can skip Google Analytics. Click <b>Create project</b> to finish.",
+      "group2Title": "2. For the server — service account key (secret)",
+      "g2s1": "Go to the gear ⚙️ at the top left → <b>Project settings</b> → <b>Service accounts</b> tab.",
+      "g2s2": "Click <b>Generate new private key</b> → <b>Generate key</b> to download a JSON file.",
+      "g2s3": "Open that JSON file, copy the whole thing, paste it into the <b>Service account JSON</b> field above, and <b>Save</b>.",
+      "g2s4": "In the <b>Cloud Messaging</b> tab, confirm <b>Firebase Cloud Messaging API (V1)</b> is enabled (usually on by default).",
+      "secretWarning": "⚠️ The service account JSON is a <b>secret, like a password</b>. Don't share it over chat or email — paste it only here (it's stored encrypted on the server).",
+      "group3Title": "3. For the app — Firebase config values (public)",
+      "g3s1": "<b>Project settings</b> → <b>General</b> tab → under <b>Your apps</b>, click the <b>Android icon</b> to add an app.",
+      "g3s2": "For <b>Android package name</b>, enter exactly <pkg></pkg> (nickname is free, SHA-1 can be blank) → <b>Register app</b>.",
+      "g3s3": "Download the <b>google-services.json</b> file. Open it in a text editor and you'll find these four values:",
+      "g3s4": "Paste the four values into the <b>App Firebase config</b> field above in this shape and <b>Save</b>:",
+      "group4Title": "4. Finish",
+      "g4s1": "On this page, turn on the <b>Android app push (FCM)</b> toggle and the <b>notification master</b> at the top.",
+      "g4s2": "Family members turn on notifications in the app under <b>Settings → Notifications → Push notifications</b> and confirm with <b>Send test notification</b>."
     }
   }
 }

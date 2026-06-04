@@ -3,9 +3,11 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Input, Label } from '@/components/ui/input'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 export default function SmtpSettingsPage() {
+  const t = useTranslations('admin')
   const [host, setHost] = useState('')
   const [port, setPort] = useState(587)
   const [secure, setSecure] = useState(false)
@@ -44,14 +46,14 @@ export default function SmtpSettingsPage() {
         body: JSON.stringify({ password }),
       })
       if (!r.ok) {
-        setStatus('비밀번호 저장 실패')
+        setStatus(t('smtp.passwordSaveFailed'))
         setBusy(false)
         return
       }
     }
     const results = await Promise.all(ops)
     setBusy(false)
-    setStatus(results.every(Boolean) ? '저장됨' : '일부 실패')
+    setStatus(results.every(Boolean) ? t('smtp.saved') : t('smtp.partialFail'))
   }
 
   async function testSend() {
@@ -64,7 +66,7 @@ export default function SmtpSettingsPage() {
     })
     const j = await r.json().catch(() => ({}))
     setBusy(false)
-    setStatus(r.ok ? '발송됨' : `실패: ${j.error}`)
+    setStatus(r.ok ? t('smtp.sent') : t('smtp.sendFailed', { error: String(j.error) }))
   }
 
   return (
@@ -74,7 +76,7 @@ export default function SmtpSettingsPage() {
         <Card>
           <CardBody className="space-y-3">
             <div>
-              <Label htmlFor="host">호스트</Label>
+              <Label htmlFor="host">{t('smtp.host')}</Label>
               <Input
                 id="host"
                 value={host}
@@ -84,7 +86,7 @@ export default function SmtpSettingsPage() {
             </div>
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <Label htmlFor="port">포트</Label>
+                <Label htmlFor="port">{t('smtp.port')}</Label>
                 <Input
                   id="port"
                   type="number"
@@ -104,21 +106,21 @@ export default function SmtpSettingsPage() {
               </div>
             </div>
             <div>
-              <Label htmlFor="user">사용자</Label>
+              <Label htmlFor="user">{t('smtp.user')}</Label>
               <Input id="user" value={user} onChange={(e) => setUser(e.target.value)} />
             </div>
             <div>
-              <Label htmlFor="password">비밀번호 (변경할 때만)</Label>
+              <Label htmlFor="password">{t('smtp.password')}</Label>
               <Input
                 id="password"
                 type="password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="(저장 시 암호화됨)"
+                placeholder={t('smtp.passwordPlaceholder')}
               />
             </div>
             <div>
-              <Label htmlFor="fromAddress">발신 주소</Label>
+              <Label htmlFor="fromAddress">{t('smtp.fromAddress')}</Label>
               <Input
                 id="fromAddress"
                 value={fromAddress}
@@ -126,22 +128,22 @@ export default function SmtpSettingsPage() {
               />
             </div>
             <div>
-              <Label htmlFor="fromName">발신 이름</Label>
+              <Label htmlFor="fromName">{t('smtp.fromName')}</Label>
               <Input id="fromName" value={fromName} onChange={(e) => setFromName(e.target.value)} />
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
             <div className="flex gap-2">
               <Button onClick={save} disabled={busy}>
-                {busy ? '...' : '저장'}
+                {busy ? '...' : t('smtp.save')}
               </Button>
             </div>
           </CardBody>
         </Card>
         <Card>
           <CardBody className="space-y-3">
-            <h2 className="font-semibold">테스트 발송</h2>
+            <h2 className="font-semibold">{t('smtp.testSend')}</h2>
             <div>
-              <Label htmlFor="testTo">수신 주소</Label>
+              <Label htmlFor="testTo">{t('smtp.recipient')}</Label>
               <Input
                 id="testTo"
                 type="email"
@@ -150,7 +152,7 @@ export default function SmtpSettingsPage() {
               />
             </div>
             <Button variant="secondary" onClick={testSend} disabled={busy || !testTo}>
-              테스트 발송
+              {t('smtp.testSend')}
             </Button>
           </CardBody>
         </Card>

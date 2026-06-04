@@ -2,6 +2,7 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/lib/toast'
 import { Copy } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
 type Props = {
@@ -12,6 +13,7 @@ type Props = {
 }
 
 export function ResetPasswordModal({ open, onOpenChange, membershipId, displayName }: Props) {
+  const t = useTranslations('family')
   const toast = useToast()
   const [url, setUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
@@ -27,7 +29,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        setError(data.error ?? '링크 생성에 실패했어요')
+        setError(data.error ?? t('resetModal.error'))
         return
       }
       setUrl(data.url)
@@ -45,7 +47,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
         return
       } catch {}
     }
-    toast({ title: '복사에 실패했어요. 링크를 길게 눌러 직접 복사해주세요', variant: 'danger' })
+    toast({ title: t('resetModal.copyError'), variant: 'danger' })
   }
 
   const close = () => {
@@ -60,11 +62,9 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
       <div className="flex flex-col gap-4 px-1 py-2">
         <div className="text-center">
           <p className="text-base font-semibold text-base-900 dark:text-base-50">
-            {displayName} 님 비밀번호 재설정
+            {t('resetModal.title', { name: displayName })}
           </p>
-          <p className="mt-1 text-sm text-base-500">
-            링크를 만들어 멤버에게 직접 전달해주세요. 한 번만 사용할 수 있어요.
-          </p>
+          <p className="mt-1 text-sm text-base-500">{t('resetModal.subtitle')}</p>
         </div>
         {error && <p className="text-center text-sm text-red-500">{error}</p>}
         {url ? (
@@ -78,12 +78,12 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
                 onClick={copy}
                 className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-point-500 px-3 py-1.5 text-sm font-semibold text-white"
               >
-                <Copy size={14} /> {copied ? '복사됨' : '복사'}
+                <Copy size={14} /> {copied ? t('resetModal.copied') : t('resetModal.copy')}
               </button>
             </div>
             {expiresAt && (
               <p className="text-center text-xs text-base-400">
-                {new Date(expiresAt).toLocaleString('ko-KR')} 까지 유효
+                {t('resetModal.validUntil', { date: new Date(expiresAt).toLocaleString('ko-KR') })}
               </p>
             )}
             <button
@@ -91,7 +91,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
               onClick={close}
               className="mt-2 inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 hover:bg-base-200 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"
             >
-              닫기
+              {t('actions.close')}
             </button>
           </div>
         ) : (
@@ -101,7 +101,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] disabled:opacity-60"
           >
-            {pending ? '생성 중…' : '재설정 링크 만들기'}
+            {pending ? t('resetModal.generating') : t('resetModal.generate')}
           </button>
         )}
       </div>

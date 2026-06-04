@@ -2,6 +2,7 @@
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { Check, Copy, ExternalLink } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 
@@ -20,156 +21,92 @@ type Preset = {
   steps: (redirectUri: string) => { title: string; body: string }[]
 }
 
-const PRESETS: Preset[] = [
-  {
-    key: 'google',
-    name: 'Google',
-    issuer: 'https://accounts.google.com',
-    scopes: ['openid', 'email', 'profile'],
-    consoleLabel: 'Google Cloud Console 열기',
-    consoleUrl: 'https://console.cloud.google.com/apis/credentials',
-    color: 'from-[#EA4335] via-[#FBBC05] to-[#4285F4]',
-    steps: (uri) => [
-      {
-        title: '1. OAuth 클라이언트 만들기',
-        body: '콘솔 → 사용자 인증 정보 → "사용자 인증 정보 만들기" → "OAuth 클라이언트 ID" → 애플리케이션 유형 "웹 애플리케이션" 선택.',
-      },
-      {
-        title: '2. 승인된 리디렉션 URI 등록',
-        body: `아래 URI 를 복사해서 Google 콘솔의 "승인된 리디렉션 URI" 에 붙여넣기:\n${uri}`,
-      },
-      {
-        title: '3. 클라이언트 ID / Secret 복사',
-        body: '저장 후 나타나는 클라이언트 ID와 비밀번호를 복사해 아래 폼에 붙여넣고 저장하세요.',
-      },
-      {
-        title: '4. 참고',
-        body: 'Google 은 email_verified=true 가 기본이에요. 동일 이메일로 이미 가입된 계정이 있으면 자동으로 연결됩니다.',
-      },
-    ],
-  },
-  {
-    key: 'kakao',
-    name: '카카오',
-    issuer: 'https://kauth.kakao.com',
-    scopes: ['openid', 'profile_nickname'],
-    consoleLabel: 'Kakao Developers 열기',
-    consoleUrl: 'https://developers.kakao.com/console/app',
-    color: 'from-[#FEE500] to-[#FEE500]',
-    steps: (uri) => [
-      {
-        title: '1. 애플리케이션 추가',
-        body: 'Kakao Developers → 내 애플리케이션 → 애플리케이션 추가하기. 저장 후 REST API 키를 기록해두세요.',
-      },
-      {
-        title: '2. 플랫폼 등록',
-        body: '앱 설정 → 플랫폼 → Web → 사이트 도메인에 현재 서비스 URL 등록.',
-      },
-      {
-        title: '3. 카카오 로그인 + OpenID Connect 활성화',
-        body: `제품 → 카카오 로그인 → 활성화 ON, 그리고 같은 화면의 **OpenID Connect 활성화도 ON** (둘 다 켜야 함). Redirect URI 에 아래 값 등록:\n${uri}`,
-      },
-      {
-        title: '4. 동의 항목 설정',
-        body: '동의항목에서 닉네임(profile_nickname) 을 사용 ON 으로. 이메일(account_email)은 비즈앱 심사가 필요해 기본 제외했어요 — 카카오는 닉네임만으로 가입돼요(이메일 없이).',
-      },
-      {
-        title: '5. Client Secret 생성',
-        body: '보안 → Client Secret 코드 생성 → 사용 ON → 코드 복사. 아래 폼의 Client Secret 에 붙여넣기.',
-      },
-      {
-        title: '6. Client ID',
-        body: '앱 키 → REST API 키 값을 아래 폼의 Client ID 에 붙여넣기.',
-      },
-    ],
-  },
-  {
-    key: 'naver',
-    name: '네이버',
-    issuer: '',
-    kind: 'naver',
-    scopes: [],
-    consoleLabel: 'Naver Developers 열기',
-    consoleUrl: 'https://developers.naver.com/apps/#/register',
-    color: 'from-[#03C75A] to-[#03C75A]',
-    steps: (uri) => [
-      {
-        title: '1. 애플리케이션 등록',
-        body: 'Naver Developers → 애플리케이션 등록 → 사용 API "네이버 로그인" 선택.',
-      },
-      {
-        title: '2. 제공 정보 선택',
-        body: '회원이름·이메일 주소를 "필수"로 설정하세요. 이메일이 없으면 계정 연결이 제한돼요.',
-      },
-      {
-        title: '3. 서비스 URL · Callback URL',
-        body: `서비스 URL 에 현재 서비스 주소, Callback URL 에 아래 값을 등록:\n${uri}`,
-      },
-      {
-        title: '4. Client ID / Secret',
-        body: '발급된 Client ID 와 Client Secret 을 아래 폼에 붙여넣기. (네이버는 OAuth2 라 Issuer 불필요)',
-      },
-    ],
-  },
-  {
-    key: 'microsoft',
-    name: 'Microsoft',
-    issuer: 'https://login.microsoftonline.com/common/v2.0',
-    scopes: ['openid', 'email', 'profile'],
-    consoleLabel: 'Azure Portal 열기',
-    consoleUrl: 'https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade',
-    color: 'from-[#00A4EF] via-[#7FBA00] to-[#F25022]',
-    steps: (uri) => [
-      {
-        title: '1. 앱 등록',
-        body: 'Azure Portal → App Registrations → New Registration. 지원 계정 유형 선택.',
-      },
-      {
-        title: '2. 리디렉션 URI 등록',
-        body: `Platform: Web. URI 에 아래 값 입력:\n${uri}`,
-      },
-      {
-        title: '3. Client Secret 생성',
-        body: 'Certificates & secrets → New client secret → 값(Value) 복사 (창을 닫으면 다시 볼 수 없음).',
-      },
-      {
-        title: '4. Client ID',
-        body: 'Overview 화면의 "Application (client) ID" 를 복사.',
-      },
-      {
-        title: '5. Optional: 이메일 클레임',
-        body: '기본 테넌트는 email 클레임이 없을 수 있음. Token configuration → Optional claims → ID → email 추가 권장.',
-      },
-      {
-        title: '6. 멀티테넌트 이슈어',
-        body: '단일 테넌트만 허용하려면 Issuer 를 https://login.microsoftonline.com/<TENANT-ID>/v2.0 로 변경.',
-      },
-    ],
-  },
-  {
-    key: 'custom',
-    name: '기타 (OIDC)',
-    issuer: '',
-    scopes: ['openid', 'email', 'profile'],
-    consoleLabel: '',
-    consoleUrl: '',
-    color: 'from-base-500 to-base-700',
-    steps: (uri) => [
-      {
-        title: 'OpenID Connect 프로바이더',
-        body: 'OIDC 규격 IdP (Keycloak, Authelia, Authentik, Dex 등) 면 연결 가능. issuer 는 보통 <IdP-URL>/realms/<realm> 형태.',
-      },
-      {
-        title: 'Redirect URI',
-        body: `IdP 콘솔의 Allowed Redirect URIs 에 아래 값 등록:\n${uri}`,
-      },
-      {
-        title: '필수 클레임',
-        body: 'id_token 에 sub, email, email_verified, name 포함 필요.',
-      },
-    ],
-  },
-]
+type TFn = (key: string, values?: Record<string, string>) => string
+
+function buildPresets(t: TFn): Preset[] {
+  return [
+    {
+      key: 'google',
+      name: 'Google',
+      issuer: 'https://accounts.google.com',
+      scopes: ['openid', 'email', 'profile'],
+      consoleLabel: t('auth.googleConsole'),
+      consoleUrl: 'https://console.cloud.google.com/apis/credentials',
+      color: 'from-[#EA4335] via-[#FBBC05] to-[#4285F4]',
+      steps: (uri) => [
+        { title: t('auth.googleStep1Title'), body: t('auth.googleStep1Body') },
+        { title: t('auth.googleStep2Title'), body: t('auth.googleStep2Body', { uri }) },
+        { title: t('auth.googleStep3Title'), body: t('auth.googleStep3Body') },
+        { title: t('auth.googleStep4Title'), body: t('auth.googleStep4Body') },
+      ],
+    },
+    {
+      key: 'kakao',
+      name: t('auth.kakaoName'),
+      issuer: 'https://kauth.kakao.com',
+      scopes: ['openid', 'profile_nickname'],
+      consoleLabel: t('auth.kakaoConsole'),
+      consoleUrl: 'https://developers.kakao.com/console/app',
+      color: 'from-[#FEE500] to-[#FEE500]',
+      steps: (uri) => [
+        { title: t('auth.kakaoStep1Title'), body: t('auth.kakaoStep1Body') },
+        { title: t('auth.kakaoStep2Title'), body: t('auth.kakaoStep2Body') },
+        { title: t('auth.kakaoStep3Title'), body: t('auth.kakaoStep3Body', { uri }) },
+        { title: t('auth.kakaoStep4Title'), body: t('auth.kakaoStep4Body') },
+        { title: t('auth.kakaoStep5Title'), body: t('auth.kakaoStep5Body') },
+        { title: t('auth.kakaoStep6Title'), body: t('auth.kakaoStep6Body') },
+      ],
+    },
+    {
+      key: 'naver',
+      name: t('auth.naverName'),
+      issuer: '',
+      kind: 'naver',
+      scopes: [],
+      consoleLabel: t('auth.naverConsole'),
+      consoleUrl: 'https://developers.naver.com/apps/#/register',
+      color: 'from-[#03C75A] to-[#03C75A]',
+      steps: (uri) => [
+        { title: t('auth.naverStep1Title'), body: t('auth.naverStep1Body') },
+        { title: t('auth.naverStep2Title'), body: t('auth.naverStep2Body') },
+        { title: t('auth.naverStep3Title'), body: t('auth.naverStep3Body', { uri }) },
+        { title: t('auth.naverStep4Title'), body: t('auth.naverStep4Body') },
+      ],
+    },
+    {
+      key: 'microsoft',
+      name: 'Microsoft',
+      issuer: 'https://login.microsoftonline.com/common/v2.0',
+      scopes: ['openid', 'email', 'profile'],
+      consoleLabel: t('auth.microsoftConsole'),
+      consoleUrl:
+        'https://portal.azure.com/#view/Microsoft_AAD_RegisteredApps/ApplicationsListBlade',
+      color: 'from-[#00A4EF] via-[#7FBA00] to-[#F25022]',
+      steps: (uri) => [
+        { title: t('auth.microsoftStep1Title'), body: t('auth.microsoftStep1Body') },
+        { title: t('auth.microsoftStep2Title'), body: t('auth.microsoftStep2Body', { uri }) },
+        { title: t('auth.microsoftStep3Title'), body: t('auth.microsoftStep3Body') },
+        { title: t('auth.microsoftStep4Title'), body: t('auth.microsoftStep4Body') },
+        { title: t('auth.microsoftStep5Title'), body: t('auth.microsoftStep5Body') },
+        { title: t('auth.microsoftStep6Title'), body: t('auth.microsoftStep6Body') },
+      ],
+    },
+    {
+      key: 'custom',
+      name: t('auth.customName'),
+      issuer: '',
+      scopes: ['openid', 'email', 'profile'],
+      consoleLabel: '',
+      consoleUrl: '',
+      color: 'from-base-500 to-base-700',
+      steps: (uri) => [
+        { title: t('auth.customStep1Title'), body: t('auth.customStep1Body') },
+        { title: t('auth.customStep2Title'), body: t('auth.customStep2Body', { uri }) },
+        { title: t('auth.customStep3Title'), body: t('auth.customStep3Body') },
+      ],
+    },
+  ]
+}
 
 // secure context 불필요한 RFC4122 v4 (crypto.getRandomValues 는 HTTP 에서도 동작).
 function uuidv4(): string {
@@ -186,7 +123,9 @@ function uuidv4(): string {
 }
 
 export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
+  const t = useTranslations('admin')
   const router = useRouter()
+  const PRESETS = useMemo(() => buildPresets(t), [t])
   const [selected, setSelected] = useState<PresetKey | null>(null)
   const [name, setName] = useState('')
   const [issuer, setIssuer] = useState('')
@@ -241,7 +180,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
     if (r.ok) router.push('/admin/auth/providers')
     else {
       const d = await r.json().catch(() => ({}))
-      setError(d.error ?? '저장 실패')
+      setError(d.error ?? t('auth.saveFailed'))
     }
   }
 
@@ -253,7 +192,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
       {/* Left: Provider picker + form */}
       <div className="space-y-5">
         <div>
-          <h2 className="text-sm font-semibold text-base-500">1. 프로바이더 선택</h2>
+          <h2 className="text-sm font-semibold text-base-500">{t('auth.step1Pick')}</h2>
           <div className="mt-3 grid grid-cols-2 gap-2">
             {PRESETS.map((p) => (
               <button
@@ -279,9 +218,9 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
 
         <form onSubmit={save} className="space-y-3">
           <div>
-            <h2 className="mb-3 text-sm font-semibold text-base-500">2. 값 입력</h2>
+            <h2 className="mb-3 text-sm font-semibold text-base-500">{t('auth.step2Values')}</h2>
             <label htmlFor="name" className="mb-2 block text-[13px] font-medium text-base-500">
-              표시 이름
+              {t('auth.displayName')}
             </label>
             <input
               id="name"
@@ -333,12 +272,10 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
               value={clientSecret}
               onChange={(e) => setClientSecret(e.target.value)}
               required
-              placeholder="저장 시 암호화됨"
+              placeholder={t('auth.clientSecretEncryptedPlaceholder')}
               className={inputCls}
             />
-            <p className="mt-1.5 text-xs text-base-500">
-              SECRET_KEY 로 AES-256-GCM 암호화되어 DB 에 저장됩니다.
-            </p>
+            <p className="mt-1.5 text-xs text-base-500">{t('auth.clientSecretEncryptedHint')}</p>
           </div>
           {error && (
             <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
@@ -346,7 +283,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
             </p>
           )}
           <Button type="submit" disabled={saving || !selected} size="lg" className="w-full">
-            {saving ? '저장 중…' : selected ? '추가' : '프로바이더를 먼저 선택하세요'}
+            {saving ? t('auth.saving') : selected ? t('auth.add') : t('auth.pickFirst')}
           </Button>
         </form>
       </div>
@@ -355,30 +292,27 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
       <aside className="space-y-4 lg:sticky lg:top-24 lg:self-start">
         <div className="rounded-2xl border border-base-200 bg-base-0 p-5 dark:border-base-800 dark:bg-base-900">
           <h2 className="text-sm font-semibold text-base-500">Redirect URI</h2>
-          <p className="mt-1 text-xs text-base-500">
-            프로바이더 콘솔의 Redirect URIs 에 이 값을 등록하세요.
-          </p>
+          <p className="mt-1 text-xs text-base-500">{t('auth.redirectUriHint')}</p>
           <div className="mt-3 flex items-center gap-2 rounded-xl bg-base-100 p-3 font-mono text-xs dark:bg-base-800">
             <code className="flex-1 break-all">{redirectUri}</code>
             <button
               type="button"
               onClick={copyUri}
               className="flex h-8 w-8 flex-shrink-0 items-center justify-center rounded-lg bg-base-0 text-base-700 shadow-sm transition hover:text-point-500 dark:bg-base-900 dark:text-base-300"
-              title="복사"
+              title={t('auth.copy')}
             >
               {copied ? <Check size={14} className="text-point-500" /> : <Copy size={14} />}
             </button>
           </div>
-          <p className="mt-2 text-xs text-base-500">
-            저장 후 실제 UUID가 포함된 URI가 목록 화면에서 확인됩니다. 등록 시점엔 placeholder 로
-            먼저 넣고, 저장 후 실제 값으로 교체하세요.
-          </p>
+          <p className="mt-2 text-xs text-base-500">{t('auth.redirectUriNote')}</p>
         </div>
 
         {preset && (
           <div className="rounded-2xl border border-base-200 bg-base-0 p-5 dark:border-base-800 dark:bg-base-900">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold">{preset.name} 설정 가이드</h2>
+              <h2 className="text-sm font-semibold">
+                {t('auth.setupGuide', { name: preset.name })}
+              </h2>
               {preset.consoleUrl && (
                 <a
                   href={preset.consoleUrl}
@@ -406,17 +340,19 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
 
         {!preset && (
           <div className="rounded-2xl border border-dashed border-base-300 p-5 text-center text-sm text-base-500 dark:border-base-700">
-            프로바이더를 선택하면 단계별 가이드가 여기에 표시됩니다.
+            {t('auth.guidePlaceholder')}
           </div>
         )}
 
         <div className="rounded-2xl border border-base-200 bg-base-0 p-5 text-xs text-base-500 dark:border-base-800 dark:bg-base-900">
-          <p className="font-semibold text-base-700 dark:text-base-300">보안 기능 (자동 적용)</p>
+          <p className="font-semibold text-base-700 dark:text-base-300">
+            {t('auth.securityTitle')}
+          </p>
           <ul className="mt-2 space-y-1">
-            <li>• id_token JWKS 검증 (jose)</li>
-            <li>• iss · aud · exp · nonce · state 검증</li>
-            <li>• email_verified=true 필수 (계정 탈취 방지)</li>
-            <li>• Client Secret AES-256-GCM 암호화 저장</li>
+            <li>• {t('auth.securityJwks')}</li>
+            <li>• {t('auth.securityClaims')}</li>
+            <li>• {t('auth.securityEmailVerified')}</li>
+            <li>• {t('auth.securityEncryption')}</li>
           </ul>
         </div>
       </aside>

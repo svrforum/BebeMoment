@@ -1,6 +1,7 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
 import type { Role } from '@bebe/db-public'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 
@@ -12,10 +13,7 @@ type Props = {
   currentRole: Role
 }
 
-const CHOICES: { value: 'guardian' | 'family'; label: string; desc: string }[] = [
-  { value: 'guardian', label: '보호자', desc: '업로드·기록·앨범·멤버 초대까지 가능' },
-  { value: 'family', label: '가족', desc: '기본은 보기·댓글·좋아요 (관리자 설정으로 확장 가능)' },
-]
+const CHOICE_VALUES: ('guardian' | 'family')[] = ['guardian', 'family']
 
 export function ChangeRoleModal({
   open,
@@ -24,6 +22,7 @@ export function ChangeRoleModal({
   displayName,
   currentRole,
 }: Props) {
+  const t = useTranslations('family')
   const router = useRouter()
   const [selected, setSelected] = useState<'guardian' | 'family'>(
     currentRole === 'guardian' ? 'guardian' : 'family',
@@ -51,7 +50,7 @@ export function ChangeRoleModal({
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        setError(data.error ?? '역할 변경에 실패했어요')
+        setError(data.error ?? t('roleModal.error'))
         return
       }
       onOpenChange(false)
@@ -64,31 +63,33 @@ export function ChangeRoleModal({
       <div className="flex flex-col gap-4 px-1 py-2">
         <div className="text-center">
           <p className="text-base font-semibold text-base-900 dark:text-base-50">
-            {displayName} 님의 역할
+            {t('roleModal.title', { name: displayName })}
           </p>
-          <p className="mt-1 text-sm text-base-500">권한 수준을 선택하세요.</p>
+          <p className="mt-1 text-sm text-base-500">{t('roleModal.subtitle')}</p>
         </div>
         <div className="flex flex-col gap-2">
-          {CHOICES.map((c) => (
+          {CHOICE_VALUES.map((value) => (
             <button
-              key={c.value}
+              key={value}
               type="button"
-              onClick={() => setSelected(c.value)}
+              onClick={() => setSelected(value)}
               className={`rounded-2xl border px-4 py-3 text-left transition-colors ${
-                selected === c.value
+                selected === value
                   ? 'border-point-500 bg-point-500/5'
                   : 'border-base-200 dark:border-base-700'
               }`}
             >
               <div className="flex items-center justify-between">
                 <span className="text-[15px] font-semibold text-base-900 dark:text-base-50">
-                  {c.label}
+                  {t(`roles.${value}`)}
                 </span>
-                {selected === c.value && (
-                  <span className="text-xs font-semibold text-point-500">선택됨</span>
+                {selected === value && (
+                  <span className="text-xs font-semibold text-point-500">
+                    {t('roleModal.selected')}
+                  </span>
                 )}
               </div>
-              <p className="mt-0.5 text-[12px] text-base-500">{c.desc}</p>
+              <p className="mt-0.5 text-[12px] text-base-500">{t(`roleModal.desc.${value}`)}</p>
             </button>
           ))}
         </div>
@@ -100,7 +101,11 @@ export function ChangeRoleModal({
             disabled={pending || selected === currentRole}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] hover:bg-point-600 disabled:opacity-60"
           >
-            {pending ? '변경 중…' : selected === currentRole ? '현재 역할' : '역할 변경'}
+            {pending
+              ? t('roleModal.changing')
+              : selected === currentRole
+                ? t('roleModal.currentRole')
+                : t('roleModal.change')}
           </button>
           <button
             type="button"
@@ -108,7 +113,7 @@ export function ChangeRoleModal({
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 hover:bg-base-200 disabled:opacity-60 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"
           >
-            취소
+            {t('actions.cancel')}
           </button>
         </div>
       </div>

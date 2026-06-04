@@ -1,18 +1,22 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { backupDir, storageDataDir } from '@/server/backup/config'
 import { formatBytes, getSystemInfo } from '@/server/system/info'
+import { getTranslations } from 'next-intl/server'
 
 // 라이브 지표(메모리·디스크)라 매 요청 새로 읽는다.
 export const dynamic = 'force-dynamic'
 
-function formatUptime(sec: number): string {
+function formatUptime(
+  sec: number,
+  t: (key: string, values?: Record<string, number>) => string,
+): string {
   const d = Math.floor(sec / 86400)
   const h = Math.floor((sec % 86400) / 3600)
   const m = Math.floor((sec % 3600) / 60)
   const parts: string[] = []
-  if (d) parts.push(`${d}일`)
-  if (h) parts.push(`${h}시간`)
-  parts.push(`${m}분`)
+  if (d) parts.push(t('system.uptimeDays', { d }))
+  if (h) parts.push(t('system.uptimeHours', { h }))
+  parts.push(t('system.uptimeMinutes', { m }))
   return parts.join(' ')
 }
 
@@ -64,29 +68,33 @@ function Card({ children }: { children: React.ReactNode }) {
 }
 
 export default async function AdminSystemPage() {
+  const t = await getTranslations('admin')
   const info = await getSystemInfo([
-    { label: '미디어 데이터 (/data)', path: storageDataDir() },
-    { label: '백업 (/backups)', path: backupDir() },
+    { label: t('system.diskMedia'), path: storageDataDir() },
+    { label: t('system.diskBackup'), path: backupDir() },
   ])
 
   return (
     <>
-      <AppHeader title="시스템 정보" subtitle="구동 스펙 · 자원 현황" />
+      <AppHeader title={t('system.title')} subtitle={t('system.subtitle')} />
       <div className="mx-auto max-w-3xl space-y-5 px-5 py-4">
         <Card>
-          <InfoRow label="버전" value={info.version} />
-          <InfoRow label="플랫폼" value={`${info.platform} · ${info.arch}`} />
-          <InfoRow label="CPU" value={`${info.cpuModel} · ${info.cpuCount} 코어`} />
-          <InfoRow label="가동 시간" value={formatUptime(info.uptimeSec)} />
+          <InfoRow label={t('system.version')} value={info.version} />
+          <InfoRow label={t('system.platform')} value={`${info.platform} · ${info.arch}`} />
+          <InfoRow
+            label={t('system.cpu')}
+            value={t('system.cpuValue', { model: info.cpuModel, count: info.cpuCount })}
+          />
+          <InfoRow label={t('system.uptime')} value={formatUptime(info.uptimeSec, t)} />
         </Card>
 
         <Card>
-          <UsageBar label="메모리" used={info.mem.used} total={info.mem.total} />
+          <UsageBar label={t('system.memory')} used={info.mem.used} total={info.mem.total} />
           {info.disks.map((d) =>
             'total' in d ? (
               <UsageBar key={d.path} label={d.label} used={d.used} total={d.total} />
             ) : (
-              <InfoRow key={d.path} label={d.label} value="조회 불가" />
+              <InfoRow key={d.path} label={d.label} value={t('system.unavailable')} />
             ),
           )}
         </Card>

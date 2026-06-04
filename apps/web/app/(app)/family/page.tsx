@@ -6,9 +6,11 @@ import { prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
 import { listFamilyMembers } from '@/server/family/list-members'
 import { ChevronRight, Settings } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 export default async function FamilyPage() {
+  const t = await getTranslations('family')
   const ctx = await getContext()
   if (!ctx.family || !ctx.user) return null
 
@@ -19,7 +21,7 @@ export default async function FamilyPage() {
 
   return (
     <>
-      <AppHeader title="가족" />
+      <AppHeader title={t('title')} />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 space-y-6">
         <MemberList members={members} currentUserId={ctx.user.id} isAdmin={isOwner} />
         {canInvite && <InviteManager />}
@@ -36,8 +38,10 @@ export default async function FamilyPage() {
                 strokeWidth={1.9}
               />
               <span className="flex-1">
-                <span className="block text-[15px] text-base-900 dark:text-base-50">설정</span>
-                <span className="block text-[12px] text-base-400">알림·화면·계정</span>
+                <span className="block text-[15px] text-base-900 dark:text-base-50">
+                  {t('settings.title')}
+                </span>
+                <span className="block text-[12px] text-base-400">{t('settings.subtitle')}</span>
               </span>
               <ChevronRight className="h-4 w-4 flex-shrink-0 text-base-300 transition-transform ease-ios group-hover:translate-x-0.5 dark:text-base-600" />
             </Link>

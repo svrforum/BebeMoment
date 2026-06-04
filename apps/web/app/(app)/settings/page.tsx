@@ -9,7 +9,6 @@ import { Button } from '@/components/ui/button'
 import { isInstanceAdminUser } from '@/lib/admin'
 import { getContext } from '@/server/context'
 import { parseEnv } from '@bebe/config'
-import type { Role } from '@bebe/db-public'
 import {
   Baby,
   Bell,
@@ -27,12 +26,6 @@ type Row = {
   label: string
   sublabel?: string
   icon: LucideIcon
-}
-
-const ROLE_LABEL: Record<Role, string> = {
-  owner: '관리자',
-  guardian: '보호자',
-  family: '가족',
 }
 
 function LinkRows({ rows }: { rows: Row[] }) {
@@ -61,7 +54,7 @@ function SectionTitle({ children }: { children: React.ReactNode }) {
 }
 
 export default async function SettingsPage() {
-  const t = await getTranslations()
+  const t = await getTranslations('settings')
   const ctx = await getContext()
   if (!ctx.user) return null
   const user = ctx.user
@@ -75,13 +68,13 @@ export default async function SettingsPage() {
     )
 
   const familyRows: Row[] = [
-    { href: '/family', label: '가족 멤버', sublabel: '구성원·초대', icon: Users },
-    { href: '/babies', label: '아기 관리', icon: Baby },
+    { href: '/family', label: t('rows.members'), sublabel: t('rows.membersSub'), icon: Users },
+    { href: '/babies', label: t('rows.babies'), icon: Baby },
   ]
 
   return (
     <>
-      <AppHeader title="설정" />
+      <AppHeader title={t('title')} />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4 space-y-6">
         {/* 계정 */}
         <div className="flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 px-4 py-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
@@ -99,7 +92,7 @@ export default async function SettingsPage() {
               badge={
                 role ? (
                   <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
-                    {ROLE_LABEL[role]}
+                    {t(`roles.${role}`)}
                   </span>
                 ) : null
               }
@@ -112,27 +105,27 @@ export default async function SettingsPage() {
 
         {/* 로그인 연동 */}
         <section className="space-y-2">
-          <SectionTitle>SNS 계정 연동</SectionTitle>
+          <SectionTitle>{t('sections.sns')}</SectionTitle>
           <SnsLinkSection />
         </section>
 
         {/* 가족 — 관리(owner/관리자)만. 일반 구성원은 알림·화면·SNS 만 본다. */}
         {isAdmin && (
           <section className="space-y-2">
-            <SectionTitle>가족</SectionTitle>
+            <SectionTitle>{t('sections.family')}</SectionTitle>
             <LinkRows rows={familyRows} />
           </section>
         )}
 
         {/* 알림 */}
         <section className="space-y-2">
-          <SectionTitle>알림</SectionTitle>
+          <SectionTitle>{t('sections.notifications')}</SectionTitle>
           <LinkRows
             rows={[
               {
                 href: '/settings/notifications',
-                label: '푸시 알림',
-                sublabel: '기기 등록 · 테스트 · 받을 알림 설정',
+                label: t('rows.push'),
+                sublabel: t('rows.pushSub'),
                 icon: Bell,
               },
             ]}
@@ -141,14 +134,14 @@ export default async function SettingsPage() {
 
         {/* 화면 */}
         <section className="space-y-2">
-          <SectionTitle>{t('settings.language.title')}</SectionTitle>
+          <SectionTitle>{t('language.title')}</SectionTitle>
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <LanguageSwitcher />
           </div>
         </section>
 
         <section className="space-y-2">
-          <SectionTitle>화면</SectionTitle>
+          <SectionTitle>{t('sections.display')}</SectionTitle>
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 px-4 py-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <ThemeToggle />
           </div>
@@ -156,8 +149,8 @@ export default async function SettingsPage() {
             rows={[
               {
                 href: '/settings/widget',
-                label: '홈 위젯',
-                sublabel: '위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤',
+                label: t('rows.widget'),
+                sublabel: t('rows.widgetSub'),
                 icon: LayoutGrid,
               },
             ]}
@@ -167,16 +160,16 @@ export default async function SettingsPage() {
         {/* 관리자 */}
         {isAdmin && (
           <section className="space-y-2">
-            <SectionTitle>관리자</SectionTitle>
+            <SectionTitle>{t('sections.admin')}</SectionTitle>
             <LinkRows
               rows={[
                 {
                   href: '/admin',
-                  label: '인스턴스 관리',
-                  sublabel: '인증·기능·테마·SMTP·스토리지',
+                  label: t('rows.instanceAdmin'),
+                  sublabel: t('rows.instanceAdminSub'),
                   icon: SlidersHorizontal,
                 },
-                { href: '/trash', label: '휴지통', icon: Trash2 },
+                { href: '/trash', label: t('rows.trash'), icon: Trash2 },
               ]}
             />
           </section>
@@ -188,7 +181,7 @@ export default async function SettingsPage() {
             variant="ghost"
             className="w-full text-danger hover:bg-danger/10 hover:text-danger"
           >
-            로그아웃
+            {t('logout')}
           </Button>
         </form>
 

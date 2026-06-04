@@ -3,6 +3,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { prismaPublic } from '@/lib/db-init'
 import { getSetting } from '@/server/settings/get'
 import { NOTIFICATION_CATEGORIES } from '@bebe/core'
+import { getTranslations } from 'next-intl/server'
 import { z } from 'zod'
 import { NotificationsForm } from './notifications-form'
 
@@ -19,6 +20,7 @@ function parseHour(value: string | null, fallback: number): number {
 }
 
 export default async function NotificationsSettingsPage() {
+  const t = await getTranslations('admin')
   const [
     masterRaw,
     vapidPublic,
@@ -66,7 +68,7 @@ export default async function NotificationsSettingsPage() {
 
   return (
     <>
-      <AppHeader title="알림" subtitle="푸시 알림 설정" />
+      <AppHeader title={t('notifications.title')} subtitle={t('notifications.subtitle')} />
       <div className="mx-auto max-w-3xl space-y-4 px-5 py-4">
         <NotificationsForm
           master={parseBool(masterRaw, true)}
@@ -77,7 +79,7 @@ export default async function NotificationsSettingsPage() {
           fcmClientConfigured={Boolean(fcmClientConfig && fcmClientConfig.length > 0)}
         />
         <div className="rounded-2xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
-          <h2 className="mb-3 font-semibold">알림 발송 방식</h2>
+          <h2 className="mb-3 font-semibold">{t('notifications.deliveryHeading')}</h2>
           <DeliverySettingsForm initial={delivery} />
         </div>
       </div>

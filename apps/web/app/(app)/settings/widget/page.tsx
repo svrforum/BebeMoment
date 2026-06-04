@@ -7,11 +7,13 @@ import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { getContext } from '@/server/context'
 import { getWidgetConfig } from '@/server/widget/config'
 import { ArrowLeft } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 export const dynamic = 'force-dynamic'
 
 export default async function WidgetSettingsPage() {
+  const t = await getTranslations('settings')
   const ctx = await getContext()
   if (!ctx.user || !ctx.family) return null
 
@@ -34,11 +36,11 @@ export default async function WidgetSettingsPage() {
   return (
     <>
       <AppHeader
-        title="홈 위젯"
+        title={t('widget.title')}
         left={
           <Link
             href="/settings"
-            aria-label="설정으로"
+            aria-label={t('widget.back')}
             className="-ml-1.5 flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
           >
             <ArrowLeft className="h-5 w-5" strokeWidth={2.2} />
@@ -46,9 +48,7 @@ export default async function WidgetSettingsPage() {
         }
       />
       <div className="section-enter mx-auto max-w-3xl px-5 py-4">
-        <p className="mb-4 px-1 text-[13px] text-base-500">
-          홈 화면 위젯에 어떤 사진을 보여줄지 고르세요.
-        </p>
+        <p className="mb-4 px-1 text-[13px] text-base-500">{t('widget.intro')}</p>
         <WidgetSourceForm
           initialSource={config.source}
           initialPinned={config.pinnedAssetId}

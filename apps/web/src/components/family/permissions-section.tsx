@@ -2,14 +2,13 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 type GroupKey = 'upload' | 'records' | 'albums'
 
 type Group = {
   key: GroupKey
-  label: string
-  description: string
   representative: string
   capabilities: string[]
 }
@@ -17,22 +16,16 @@ type Group = {
 const GROUPS: Group[] = [
   {
     key: 'upload',
-    label: '사진·영상 업로드',
-    description: '직접 사진과 영상을 올리고 자신이 올린 항목을 수정·삭제할 수 있어요.',
     representative: 'asset.upload',
     capabilities: ['asset.upload', 'asset.edit.own', 'asset.delete.own'],
   },
   {
     key: 'records',
-    label: '기록 작성 (성장·마일스톤·스토리)',
-    description: '성장 기록, 마일스톤, 스토리를 작성하고 자신의 기록을 수정·삭제할 수 있어요.',
     representative: 'record.create',
     capabilities: ['record.create', 'record.edit.own', 'record.delete.own'],
   },
   {
     key: 'albums',
-    label: '앨범 만들기·정리',
-    description: '앨범을 만들고 사진을 담거나 빼며 자신의 앨범을 수정·삭제할 수 있어요.',
     representative: 'album.create',
     capabilities: [
       'album.create',
@@ -55,6 +48,7 @@ function deriveEnabled(caps: string[]): Record<GroupKey, boolean> {
 }
 
 export function PermissionsSection() {
+  const t = useTranslations('family')
   const [enabled, setEnabled] = useState<Record<GroupKey, boolean>>({
     upload: false,
     records: false,
@@ -82,23 +76,22 @@ export function PermissionsSection() {
       body: JSON.stringify({ key: 'permissions.family', value }),
     })
     setSaving(false)
-    setStatus(res.ok ? '저장됨' : '실패')
+    setStatus(res.ok ? t('permissions.saved') : t('permissions.failed'))
   }
 
   return (
     <section className="space-y-2">
-      <h2 className="px-1 text-[13px] font-semibold text-base-500">구성원 권한</h2>
-      <p className="px-1 text-[12px] text-base-500">
-        가족 구성원은 기본적으로 보기·댓글·좋아요만 가능해요. 아래를 켜면 모든 가족 구성원에게
-        적용돼요.
-      </p>
+      <h2 className="px-1 text-[13px] font-semibold text-base-500">{t('permissions.heading')}</h2>
+      <p className="px-1 text-[12px] text-base-500">{t('permissions.description')}</p>
       <Card>
         <CardBody className="space-y-4">
           {GROUPS.map((g) => (
             <div key={g.key} className="flex items-center justify-between gap-4">
               <div>
-                <div className="font-medium">{g.label}</div>
-                <div className="text-xs text-base-500">{g.description}</div>
+                <div className="font-medium">{t(`permissions.groups.${g.key}.label`)}</div>
+                <div className="text-xs text-base-500">
+                  {t(`permissions.groups.${g.key}.description`)}
+                </div>
               </div>
               <Toggle
                 checked={enabled[g.key]}
@@ -111,7 +104,7 @@ export function PermissionsSection() {
       </Card>
       <div className="flex items-center gap-3 px-1">
         <Button onClick={save} disabled={saving}>
-          {saving ? '...' : '저장'}
+          {saving ? '...' : t('permissions.save')}
         </Button>
         {status && <span className="text-sm text-base-500">{status}</span>}
       </div>

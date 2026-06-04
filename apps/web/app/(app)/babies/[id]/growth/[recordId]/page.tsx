@@ -5,6 +5,7 @@ import { Card, CardBody } from '@/components/ui/card'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
+import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import { deleteGrowthAction, updateGrowthAction } from './actions'
 
@@ -13,6 +14,7 @@ export default async function EditGrowthPage({
 }: {
   params: Promise<{ id: string; recordId: string }>
 }) {
+  const t = await getTranslations('family')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -28,13 +30,13 @@ export default async function EditGrowthPage({
 
   return (
     <>
-      <AppHeader title="성장 기록 편집" />
+      <AppHeader title={t('babies.editGrowthTitle')} />
       <div className="mx-auto max-w-sm space-y-3 px-5 py-6">
         <Card>
           <CardBody>
             <GrowthForm
               action={updateGrowthAction.bind(null, id, recordId)}
-              submitLabel="수정"
+              submitLabel={t('babies.edit')}
               defaults={{
                 measuredAt: rec.measuredAt.toISOString().slice(0, 10),
                 heightCm: rec.heightCm != null ? Number(rec.heightCm) : null,
@@ -47,7 +49,7 @@ export default async function EditGrowthPage({
         </Card>
         <form action={deleteGrowthAction.bind(null, id, recordId)}>
           <Button type="submit" variant="danger" className="w-full">
-            삭제
+            {t('babies.delete')}
           </Button>
         </form>
       </div>

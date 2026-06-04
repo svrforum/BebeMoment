@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Label } from '@/components/ui/input'
 import { Check, Copy, QrCode, Share2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 type Invite = {
@@ -13,12 +14,8 @@ type Invite = {
   token: string
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  guardian: '보호자',
-  family: '가족',
-}
-
 export function InviteManager() {
+  const t = useTranslations('family')
   const [invites, setInvites] = useState<Invite[]>([])
   const [role, setRole] = useState<'guardian' | 'family'>('family')
   const [lastToken, setLastToken] = useState<string | null>(null)
@@ -80,7 +77,7 @@ export function InviteManager() {
     setSubmitting(false)
     if (!res.ok) {
       const d = await res.json().catch(() => ({}))
-      setError(d.error ?? '초대 생성 실패')
+      setError(d.error ?? t('invite.createFailed'))
       return
     }
     const data = await res.json()
@@ -112,8 +109,8 @@ export function InviteManager() {
     try {
       await navigator.share({
         url: lastLink,
-        title: '가족 앨범 초대',
-        text: '가족 앨범에 함께해요',
+        title: t('invite.shareTitle'),
+        text: t('invite.shareText'),
       })
     } catch {
       // 사용자가 share UI 취소 — 무시
@@ -122,25 +119,25 @@ export function InviteManager() {
 
   return (
     <section className="space-y-3">
-      <h2 className="px-1 text-[13px] font-semibold text-base-500">초대</h2>
+      <h2 className="px-1 text-[13px] font-semibold text-base-500">{t('invite.heading')}</h2>
       <Card>
         <CardBody>
           <form onSubmit={submit} className="space-y-3">
             <div>
-              <Label htmlFor="role">역할</Label>
+              <Label htmlFor="role">{t('invite.role')}</Label>
               <select
                 id="role"
                 value={role}
                 onChange={(e) => setRole(e.target.value as 'guardian' | 'family')}
                 className="h-11 w-full rounded-xl border border-base-200 bg-base-0 px-4 text-base dark:border-base-800 dark:bg-base-900"
               >
-                <option value="family">가족 (조부모·친척)</option>
-                <option value="guardian">보호자 (부모급)</option>
+                <option value="family">{t('invite.optionFamily')}</option>
+                <option value="guardian">{t('invite.optionGuardian')}</option>
               </select>
             </div>
             {error && <p className="text-sm text-danger">{error}</p>}
             <Button type="submit" className="w-full" disabled={submitting}>
-              {submitting ? '생성 중…' : '초대 링크 생성'}
+              {submitting ? t('invite.creating') : t('invite.create')}
             </Button>
           </form>
         </CardBody>
@@ -149,9 +146,7 @@ export function InviteManager() {
       {lastLink && (
         <Card className="border-point-500/30 bg-point-500/5 dark:bg-point-500/10">
           <CardBody className="space-y-3">
-            <p className="text-sm font-medium">
-              초대 링크가 생성됐어요. 복사하거나 공유해 전달하세요.
-            </p>
+            <p className="text-sm font-medium">{t('invite.created')}</p>
 
             <div className="flex items-center gap-2">
               <code className="min-w-0 flex-1 truncate rounded-lg bg-base-0 px-2.5 py-2 text-xs dark:bg-base-950">
@@ -160,7 +155,7 @@ export function InviteManager() {
               <button
                 type="button"
                 onClick={copyLink}
-                aria-label="링크 복사"
+                aria-label={t('invite.copyLink')}
                 className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-base-900 text-base-50 active:scale-95 dark:bg-base-50 dark:text-base-900"
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
@@ -177,7 +172,7 @@ export function InviteManager() {
                   className="flex-1 min-w-[120px]"
                 >
                   <Share2 size={14} />
-                  공유
+                  {t('invite.share')}
                 </Button>
               )}
               <Button
@@ -189,7 +184,7 @@ export function InviteManager() {
                 className="flex-1 min-w-[120px]"
               >
                 <QrCode size={14} />
-                {showQr ? 'QR 숨기기' : 'QR 코드'}
+                {showQr ? t('invite.hideQr') : t('invite.showQr')}
               </Button>
             </div>
 
@@ -199,7 +194,7 @@ export function InviteManager() {
                   {qrDataUrl ? (
                     <img
                       src={qrDataUrl}
-                      alt="초대 링크 QR 코드"
+                      alt={t('invite.qrAlt')}
                       width={200}
                       height={200}
                       className="h-[200px] w-[200px]"
@@ -209,9 +204,7 @@ export function InviteManager() {
                   )}
                 </div>
                 <p className="break-all text-center text-[11px] text-base-500">{lastLink}</p>
-                <p className="text-center text-[12px] text-base-400">
-                  할머니·할아버지 폰 카메라로 비춰 주세요
-                </p>
+                <p className="text-center text-[12px] text-base-400">{t('invite.qrHint')}</p>
               </div>
             )}
           </CardBody>
@@ -220,7 +213,7 @@ export function InviteManager() {
 
       {invites.length > 0 && (
         <div className="space-y-2">
-          <h3 className="px-1 text-[12px] font-medium text-base-400">대기 중인 초대</h3>
+          <h3 className="px-1 text-[12px] font-medium text-base-400">{t('invite.pending')}</h3>
           {invites.map((inv) => (
             <div
               key={inv.id}
@@ -228,7 +221,12 @@ export function InviteManager() {
             >
               <div className="min-w-0">
                 <div className="text-[14px] font-medium">
-                  {ROLE_LABEL[inv.role] ?? inv.role} 초대
+                  {t('invite.pendingLabel', {
+                    role:
+                      inv.role === 'guardian' || inv.role === 'family'
+                        ? t(`roles.${inv.role}`)
+                        : inv.role,
+                  })}
                 </div>
                 <div className="text-xs text-base-500">
                   {new Date(inv.expiresAt).toLocaleDateString('ko-KR', {
@@ -238,11 +236,11 @@ export function InviteManager() {
                     minute: '2-digit',
                     hour12: false,
                   })}{' '}
-                  만료
+                  {t('invite.expires')}
                 </div>
               </div>
               <Button variant="danger" size="sm" onClick={() => revoke(inv.id)}>
-                철회
+                {t('invite.revoke')}
               </Button>
             </div>
           ))}

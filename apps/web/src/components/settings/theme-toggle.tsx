@@ -2,14 +2,16 @@
 import { cn } from '@/lib/cn'
 import { type ThemeMode, useTheme } from '@/lib/theme'
 import { Monitor, Moon, Sun } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 
-const OPTIONS: { value: ThemeMode; label: string; icon: typeof Sun }[] = [
-  { value: 'auto', label: '자동', icon: Monitor },
-  { value: 'light', label: '라이트', icon: Sun },
-  { value: 'dark', label: '다크', icon: Moon },
+const OPTIONS: { value: ThemeMode; labelKey: string; icon: typeof Sun }[] = [
+  { value: 'auto', labelKey: 'theme.auto', icon: Monitor },
+  { value: 'light', labelKey: 'theme.light', icon: Sun },
+  { value: 'dark', labelKey: 'theme.dark', icon: Moon },
 ]
 
 export function ThemeToggle() {
+  const t = useTranslations('settings')
   const { mode, setMode } = useTheme()
 
   return (
@@ -31,7 +33,7 @@ export function ThemeToggle() {
             )}
           >
             <Icon size={14} />
-            {opt.label}
+            {t(opt.labelKey)}
           </button>
         )
       })}

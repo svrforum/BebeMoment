@@ -6,6 +6,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getPreset } from '@bebe/core'
+import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import { createMilestoneAction } from './actions'
 
@@ -16,6 +17,7 @@ export default async function NewMilestonePage({
   params: Promise<{ id: string }>
   searchParams: Promise<{ presetKey?: string }>
 }) {
+  const t = await getTranslations('family')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -44,7 +46,7 @@ export default async function NewMilestonePage({
   }))
   return (
     <>
-      <AppHeader title={preset ? preset.labelKo : '커스텀 마일스톤'} />
+      <AppHeader title={preset ? preset.labelKo : t('babies.customMilestone')} />
       <div className="mx-auto max-w-sm px-5 py-6">
         <Card>
           <CardBody>

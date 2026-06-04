@@ -1,6 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Check, Link2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 type Provider = { id: string; name: string }
@@ -11,6 +12,7 @@ export function SnsLinkSection() {
   const [linked, setLinked] = useState<Linked[]>([])
   const [loading, setLoading] = useState(true)
   const toast = useToast()
+  const t = useTranslations('settings')
 
   async function load() {
     const res = await fetch('/api/auth/oidc/providers')
@@ -29,9 +31,9 @@ export function SnsLinkSection() {
     void load()
     // 연동 콜백 결과(?linked / ?error=link_conflict) 안내.
     const params = new URLSearchParams(window.location.search)
-    if (params.get('linked')) toast({ title: 'SNS 계정을 연동했어요', variant: 'success' })
+    if (params.get('linked')) toast({ title: t('sns.linked'), variant: 'success' })
     if (params.get('error') === 'link_conflict') {
-      toast({ title: '이미 다른 계정에 연결된 SNS 예요', variant: 'danger' })
+      toast({ title: t('sns.conflict'), variant: 'danger' })
     }
     if (params.get('linked') || params.get('error')) {
       window.history.replaceState({}, '', '/settings')
@@ -44,11 +46,7 @@ export function SnsLinkSection() {
     return <div className="h-12 animate-pulse rounded-xl bg-base-100 dark:bg-base-800" />
   }
   if (providers.length === 0) {
-    return (
-      <p className="px-1 text-[13px] text-base-500">
-        관리자가 SNS 로그인(카카오·네이버 등)을 설정하면 여기서 연동할 수 있어요.
-      </p>
-    )
+    return <p className="px-1 text-[13px] text-base-500">{t('sns.empty')}</p>
   }
 
   return (
@@ -62,14 +60,14 @@ export function SnsLinkSection() {
             {linkedNow ? (
               <span className="inline-flex items-center gap-1 rounded-full bg-point-500/10 px-3 py-1.5 text-[13px] font-medium text-point-600 dark:text-point-400">
                 <Check className="h-3.5 w-3.5" />
-                연동됨
+                {t('sns.connected')}
               </span>
             ) : (
               <a
                 href={`/api/auth/oidc/${p.id}?link=1`}
                 className="rounded-full bg-point-500 px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-point-600"
               >
-                연동
+                {t('sns.connect')}
               </a>
             )}
           </div>

@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import type { NotificationCategory } from '@bebe/core'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 import {
   generateVapidKeys,
@@ -15,12 +16,12 @@ import {
   setPushMaster,
 } from './actions'
 
-const CATEGORY_LABELS: Record<NotificationCategory, string> = {
-  asset_upload: '새 사진/영상',
-  comment_mention: '댓글·멘션',
-  album_add: '앨범 추가',
-  diary_growth_milestone: '스토리·성장·마일스톤',
-  memory: '추억',
+const CATEGORY_KEYS: Record<NotificationCategory, string> = {
+  asset_upload: 'assetUpload',
+  comment_mention: 'commentMention',
+  album_add: 'albumAdd',
+  diary_growth_milestone: 'diaryGrowthMilestone',
+  memory: 'memory',
 }
 
 type Props = {
@@ -40,6 +41,7 @@ export function NotificationsForm({
   fcmConfigured,
   fcmClientConfigured,
 }: Props) {
+  const t = useTranslations('admin')
   const [masterOn, setMasterOn] = useState(master)
   const [cats, setCats] = useState(categories)
   const [hasKeys, setHasKeys] = useState(vapidPublicPrefix !== null)
@@ -60,7 +62,11 @@ export function NotificationsForm({
         await setFcmClientConfig(clientJson)
         setFcmHasClient(clientJson.trim().length > 0)
         setClientJson('')
-        setStatus(clientJson.trim() ? '앱 설정을 저장했어요.' : '앱 설정을 삭제했어요.')
+        setStatus(
+          clientJson.trim()
+            ? t('notifications.clientConfigSaved')
+            : t('notifications.clientConfigDeleted'),
+        )
       } catch (e) {
         setStatus((e as Error).message)
       }
@@ -73,7 +79,7 @@ export function NotificationsForm({
     startTransition(async () => {
       try {
         await setFcmEnabled(next)
-        setStatus('저장됨')
+        setStatus(t('notifications.saved'))
       } catch (e) {
         setFcmOn(!next)
         setStatus((e as Error).message)
@@ -88,7 +94,11 @@ export function NotificationsForm({
         await setFcmServiceAccount(saJson)
         setFcmHasKey(saJson.trim().length > 0)
         setSaJson('')
-        setStatus(saJson.trim() ? '서비스 계정을 저장했어요.' : '서비스 계정을 삭제했어요.')
+        setStatus(
+          saJson.trim()
+            ? t('notifications.serviceAccountSaved')
+            : t('notifications.serviceAccountDeleted'),
+        )
       } catch (e) {
         setStatus((e as Error).message)
       }
@@ -101,7 +111,7 @@ export function NotificationsForm({
     startTransition(async () => {
       try {
         await setPushMaster(next)
-        setStatus('저장됨')
+        setStatus(t('notifications.saved'))
       } catch (e) {
         setMasterOn(!next)
         setStatus((e as Error).message)
@@ -115,7 +125,7 @@ export function NotificationsForm({
     startTransition(async () => {
       try {
         await setPushCategory(category, next)
-        setStatus('저장됨')
+        setStatus(t('notifications.saved'))
       } catch (e) {
         setCats((prev) => prev.map((c) => (c.category === category ? { ...c, enabled: !next } : c)))
         setStatus((e as Error).message)
@@ -130,7 +140,7 @@ export function NotificationsForm({
         await generateVapidKeys()
         setHasKeys(true)
         setKeyPrefix(null)
-        setStatus('키가 생성됐어요. 새로고침하면 공개키 일부가 표시됩니다.')
+        setStatus(t('notifications.keysGenerated'))
       } catch (e) {
         setStatus((e as Error).message)
       }
@@ -145,7 +155,7 @@ export function NotificationsForm({
         setHasKeys(true)
         setKeyPrefix(null)
         setConfirmingRegen(false)
-        setStatus('키를 재생성하고 모든 기기의 구독을 해제했어요.')
+        setStatus(t('notifications.keysRegenerated'))
       } catch (e) {
         setStatus((e as Error).message)
       }
@@ -158,8 +168,8 @@ export function NotificationsForm({
         <CardBody className="space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <div className="font-medium">푸시 알림 사용</div>
-              <div className="text-xs text-base-500">꺼두면 어떤 알림도 발송되지 않아요.</div>
+              <div className="font-medium">{t('notifications.master')}</div>
+              <div className="text-xs text-base-500">{t('notifications.masterHelp')}</div>
             </div>
             <Toggle
               checked={masterOn}
@@ -172,10 +182,12 @@ export function NotificationsForm({
 
       <Card>
         <CardBody className="space-y-3">
-          <h2 className="font-semibold">카테고리별 알림</h2>
+          <h2 className="font-semibold">{t('notifications.categoriesHeading')}</h2>
           {cats.map((c) => (
             <div key={c.category} className="flex items-center justify-between gap-4">
-              <span className={masterOn ? '' : 'text-base-400'}>{CATEGORY_LABELS[c.category]}</span>
+              <span className={masterOn ? '' : 'text-base-400'}>
+                {t(`notifications.category.${CATEGORY_KEYS[c.category]}`)}
+              </span>
               <Toggle
                 checked={c.enabled}
                 disabled={pending || !masterOn}
@@ -188,40 +200,40 @@ export function NotificationsForm({
 
       <Card>
         <CardBody className="space-y-3">
-          <h2 className="font-semibold">VAPID 키</h2>
+          <h2 className="font-semibold">{t('notifications.vapidHeading')}</h2>
           {hasKeys ? (
             <div className="space-y-1">
-              <div className="text-sm text-point-500">키가 설정되어 있어요.</div>
+              <div className="text-sm text-point-500">{t('notifications.vapidConfigured')}</div>
               {keyPrefix && (
-                <div className="font-mono text-xs text-base-500">공개키: {keyPrefix}…</div>
+                <div className="font-mono text-xs text-base-500">
+                  {t('notifications.vapidPublicKey', { prefix: keyPrefix })}
+                </div>
               )}
             </div>
           ) : (
-            <div className="text-sm text-base-500">아직 키가 없어요. 키를 생성해 주세요.</div>
+            <div className="text-sm text-base-500">{t('notifications.vapidNone')}</div>
           )}
 
           {!hasKeys && (
             <Button onClick={onGenerate} disabled={pending}>
-              키 생성
+              {t('notifications.generateKeys')}
             </Button>
           )}
 
           {hasKeys &&
             (confirmingRegen ? (
               <div className="space-y-2">
-                <p className="text-sm text-danger">
-                  재생성하면 모든 기기의 알림이 해제되어 다시 켜야 합니다. 계속할까요?
-                </p>
+                <p className="text-sm text-danger">{t('notifications.regenWarning')}</p>
                 <div className="flex gap-2">
                   <Button variant="danger" onClick={onRegenerate} disabled={pending}>
-                    재생성 확인
+                    {t('notifications.regenConfirm')}
                   </Button>
                   <Button
                     variant="secondary"
                     onClick={() => setConfirmingRegen(false)}
                     disabled={pending}
                   >
-                    취소
+                    {t('notifications.cancel')}
                   </Button>
                 </div>
               </div>
@@ -231,7 +243,7 @@ export function NotificationsForm({
                 onClick={() => setConfirmingRegen(true)}
                 disabled={pending}
               >
-                키 재생성
+                {t('notifications.regenKeys')}
               </Button>
             ))}
         </CardBody>
@@ -241,10 +253,8 @@ export function NotificationsForm({
         <CardBody className="space-y-3">
           <div className="flex items-center justify-between gap-4">
             <div>
-              <h2 className="font-semibold">안드로이드 앱 푸시 (FCM)</h2>
-              <div className="text-xs text-base-500">
-                안드로이드 앱 사용자에게 푸시를 보내려면 Firebase 서비스 계정이 필요해요.
-              </div>
+              <h2 className="font-semibold">{t('notifications.fcmHeading')}</h2>
+              <div className="text-xs text-base-500">{t('notifications.fcmHelp')}</div>
             </div>
             <Toggle
               checked={fcmOn}
@@ -258,34 +268,35 @@ export function NotificationsForm({
           <div className="space-y-1.5">
             <div className="text-sm">
               {fcmHasKey ? (
-                <span className="text-point-500">서비스 계정이 설정되어 있어요.</span>
+                <span className="text-point-500">
+                  {t('notifications.serviceAccountConfigured')}
+                </span>
               ) : (
-                <span className="text-base-500">아직 서비스 계정이 없어요.</span>
+                <span className="text-base-500">{t('notifications.serviceAccountNone')}</span>
               )}
             </div>
             <textarea
               value={saJson}
               onChange={(e) => setSaJson(e.target.value)}
-              placeholder='서비스 계정 JSON 붙여넣기 (예: { "project_id": ..., "client_email": ..., "private_key": ... })'
+              placeholder={t('notifications.serviceAccountPlaceholder')}
               rows={4}
               className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
             />
             <Button onClick={onSaveServiceAccount} disabled={pending}>
-              {saJson.trim() ? '서비스 계정 저장' : '서비스 계정 삭제'}
+              {saJson.trim()
+                ? t('notifications.serviceAccountSaveBtn')
+                : t('notifications.serviceAccountDeleteBtn')}
             </Button>
           </div>
 
           <div className="space-y-1.5 border-t border-base-100 pt-3 dark:border-base-800">
-            <div className="text-sm font-medium">앱 Firebase 설정 (공개 키)</div>
-            <div className="text-xs text-base-500">
-              안드로이드 앱이 기기 토큰을 발급받을 때 사용하는 공개 설정이에요. (firebaseConfig:
-              apiKey·appId·projectId·messagingSenderId)
-            </div>
+            <div className="text-sm font-medium">{t('notifications.clientConfigHeading')}</div>
+            <div className="text-xs text-base-500">{t('notifications.clientConfigHelp')}</div>
             <div className="text-sm">
               {fcmHasClient ? (
-                <span className="text-point-500">앱 설정이 등록되어 있어요.</span>
+                <span className="text-point-500">{t('notifications.clientConfigConfigured')}</span>
               ) : (
-                <span className="text-base-500">아직 앱 설정이 없어요.</span>
+                <span className="text-base-500">{t('notifications.clientConfigNone')}</span>
               )}
             </div>
             <textarea
@@ -296,7 +307,9 @@ export function NotificationsForm({
               className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
             />
             <Button onClick={onSaveClientConfig} disabled={pending}>
-              {clientJson.trim() ? '앱 설정 저장' : '앱 설정 삭제'}
+              {clientJson.trim()
+                ? t('notifications.clientConfigSaveBtn')
+                : t('notifications.clientConfigDeleteBtn')}
             </Button>
           </div>
         </CardBody>

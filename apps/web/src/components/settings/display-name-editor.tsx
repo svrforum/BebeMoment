@@ -1,6 +1,7 @@
 'use client'
 import { setDisplayName } from '@/(app)/settings/actions'
 import { Check, Pencil, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 const MAX_LEN = 20
@@ -13,6 +14,7 @@ export function DisplayNameEditor({
   /** 역할 배지 등 이름 옆에 붙는 요소(편집 중에는 숨김). */
   badge?: React.ReactNode
 }) {
+  const t = useTranslations('settings')
   const [name, setName] = useState(initial)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(initial)
@@ -22,7 +24,7 @@ export function DisplayNameEditor({
   async function save() {
     const trimmed = draft.trim()
     if (!trimmed) {
-      setError('이름을 입력해주세요.')
+      setError(t('account.nameRequired'))
       return
     }
     if (trimmed === name) {
@@ -53,7 +55,7 @@ export function DisplayNameEditor({
             setEditing(true)
           }}
           className="group flex min-w-0 items-center gap-1.5"
-          aria-label="이름 변경"
+          aria-label={t('account.editName')}
         >
           <span className="truncate text-[16px] font-semibold text-base-900 dark:text-base-50">
             {name}
@@ -87,7 +89,7 @@ export function DisplayNameEditor({
           onClick={save}
           disabled={saving}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-point-500 text-white disabled:opacity-50"
-          aria-label="저장"
+          aria-label={t('account.save')}
         >
           <Check className="h-4 w-4" />
         </button>
@@ -96,7 +98,7 @@ export function DisplayNameEditor({
           onClick={() => setEditing(false)}
           disabled={saving}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-base-100 text-base-500 dark:bg-base-800"
-          aria-label="취소"
+          aria-label={t('account.cancel')}
         >
           <X className="h-4 w-4" />
         </button>

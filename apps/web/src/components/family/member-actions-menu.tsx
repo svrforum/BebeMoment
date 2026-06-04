@@ -2,6 +2,7 @@
 import { useToast } from '@/lib/toast'
 import type { FamilyMember } from '@/server/family/list-members'
 import { MoreVertical } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useRef, useState, useTransition } from 'react'
 import { createPortal } from 'react-dom'
@@ -13,6 +14,7 @@ import { SuspendModal } from './suspend-modal'
 type ModalKind = 'suspend' | 'reset' | 'remove' | 'role' | null
 
 export function MemberActionsMenu({ member }: { member: FamilyMember }) {
+  const t = useTranslations('family')
   const router = useRouter()
   const toast = useToast()
   const [open, setOpen] = useState(false)
@@ -31,7 +33,7 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))
-        toast({ title: data.error ?? '정지 해제에 실패했어요', variant: 'danger' })
+        toast({ title: data.error ?? t('actions.unsuspendError'), variant: 'danger' })
         return
       }
       router.refresh()
@@ -58,7 +60,7 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
       <button
         ref={triggerRef}
         type="button"
-        aria-label="멤버 관리"
+        aria-label={t('actions.menuLabel')}
         onClick={toggle}
         disabled={pending}
         className="flex h-9 w-9 items-center justify-center rounded-full text-base-400 hover:bg-base-100 disabled:opacity-50 dark:hover:bg-base-800"
@@ -82,15 +84,15 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
               className="fixed z-[61] w-44 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 py-1 shadow-card dark:border-base-800/70 dark:bg-base-900"
             >
               {member.role !== 'owner' && (
-                <MenuItem label="역할 변경" onClick={() => pick('role')} />
+                <MenuItem label={t('actions.changeRole')} onClick={() => pick('role')} />
               )}
               {isSuspended ? (
-                <MenuItem label="정지 해제" onClick={unsuspend} />
+                <MenuItem label={t('actions.unsuspend')} onClick={unsuspend} />
               ) : (
-                <MenuItem label="일시정지" onClick={() => pick('suspend')} />
+                <MenuItem label={t('actions.suspend')} onClick={() => pick('suspend')} />
               )}
-              <MenuItem label="비밀번호 재설정" onClick={() => pick('reset')} />
-              <MenuItem label="가족에서 제외" danger onClick={() => pick('remove')} />
+              <MenuItem label={t('actions.resetPassword')} onClick={() => pick('reset')} />
+              <MenuItem label={t('actions.remove')} danger onClick={() => pick('remove')} />
             </div>
           </>,
           document.body,

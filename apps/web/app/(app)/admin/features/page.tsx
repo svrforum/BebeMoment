@@ -13,9 +13,11 @@ import {
   type FeatureFlag,
   type FeatureFlags,
 } from '@bebe/core'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 export default function FeaturesAdminPage() {
+  const t = useTranslations('admin')
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FEATURE_FLAGS)
   const [clusterDistance, setClusterDistance] = useState<number>(DEFAULT_FACE_CLUSTER_DISTANCE)
   const [saving, setSaving] = useState(false)
@@ -53,7 +55,7 @@ export default function FeaturesAdminPage() {
       }),
     ])
     setSaving(false)
-    setStatus(results.every((r) => r.ok) ? '저장됨' : '실패')
+    setStatus(results.every((r) => r.ok) ? t('features.saved') : t('features.failed'))
   }
 
   function toggle(k: FeatureFlag, v: boolean) {
@@ -62,11 +64,9 @@ export default function FeaturesAdminPage() {
 
   return (
     <>
-      <AppHeader title="기능" subtitle="기능별 사용 여부" />
+      <AppHeader title={t('features.title')} subtitle={t('features.subtitle')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-3">
-        <p className="px-2 text-sm text-base-500">
-          끄면 해당 기능이 모든 사용자에게 숨겨지고 동작하지 않아요.
-        </p>
+        <p className="px-2 text-sm text-base-500">{t('features.intro')}</p>
         <Card>
           <CardBody className="space-y-4">
             {FEATURE_FLAGS.map((k) => (
@@ -88,11 +88,9 @@ export default function FeaturesAdminPage() {
           <Card>
             <CardBody className="space-y-3">
               <div>
-                <div className="font-medium">얼굴 군집 거리</div>
+                <div className="font-medium">{t('features.faceCluster.label')}</div>
                 <div className="text-xs text-base-500">
-                  같은 사람으로 묶는 기준(코사인 거리). 낮을수록 엄격해서 따로 나뉘고, 높을수록
-                  관대해서 잘 합쳐져요. 기본 {DEFAULT_FACE_CLUSTER_DISTANCE}. 다음 업로드부터
-                  적용돼요.
+                  {t('features.faceCluster.help', { default: DEFAULT_FACE_CLUSTER_DISTANCE })}
                 </div>
               </div>
               <div className="flex items-center gap-3">
@@ -111,15 +109,15 @@ export default function FeaturesAdminPage() {
                 </span>
               </div>
               <div className="flex justify-between text-[11px] text-base-400">
-                <span>엄격(따로)</span>
-                <span>관대(합침)</span>
+                <span>{t('features.faceCluster.strict')}</span>
+                <span>{t('features.faceCluster.loose')}</span>
               </div>
             </CardBody>
           </Card>
         )}
         {status && <p className="px-2 text-sm text-base-500">{status}</p>}
         <Button onClick={save} disabled={saving}>
-          {saving ? '...' : '저장'}
+          {saving ? '...' : t('features.save')}
         </Button>
       </div>
     </>

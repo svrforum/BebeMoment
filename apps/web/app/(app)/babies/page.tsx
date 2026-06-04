@@ -3,9 +3,11 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 
 export default async function BabiesPage() {
+  const t = await getTranslations('family')
   const ctx = await getContext()
   if (!ctx.family) return null
 
@@ -17,19 +19,19 @@ export default async function BabiesPage() {
   return (
     <>
       <AppHeader
-        title="아기"
+        title={t('babies.title')}
         right={
           <Button asChild size="sm" variant="secondary">
-            <Link href="/babies/new">추가</Link>
+            <Link href="/babies/new">{t('babies.add')}</Link>
           </Button>
         }
       />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-2">
         {babies.length === 0 && (
           <p className="text-sm text-base-500">
-            아기가 없어요.{' '}
+            {t('babies.empty')}{' '}
             <Link href="/babies/new" className="text-point-500">
-              추가하기
+              {t('babies.addLink')}
             </Link>
           </p>
         )}

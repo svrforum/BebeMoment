@@ -3,10 +3,12 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useEffect, useState } from 'react'
 
 export default function AuthSettingsPage() {
+  const t = useTranslations('admin')
   const [signupEnabled, setSignupEnabled] = useState(false)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -30,22 +32,22 @@ export default function AuthSettingsPage() {
     setSaving(false)
     if (r.ok) {
       setSignupEnabled(next)
-      setStatus('저장됨')
+      setStatus(t('auth.saved'))
     } else {
-      setStatus('실패')
+      setStatus(t('auth.saveFailed'))
     }
   }
 
   return (
     <>
-      <AppHeader title="인증 설정" />
+      <AppHeader title={t('auth.title')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-3">
         <Card>
           <CardBody>
             <div className="flex items-center justify-between">
               <div>
-                <h3 className="font-medium">공개 가입 허용</h3>
-                <p className="text-xs text-base-500 mt-1">끄면 초대 링크로만 가입 가능</p>
+                <h3 className="font-medium">{t('auth.publicSignup')}</h3>
+                <p className="text-xs text-base-500 mt-1">{t('auth.publicSignupHint')}</p>
               </div>
               <Toggle checked={signupEnabled} onChange={toggleSignup} disabled={saving} />
             </div>
@@ -55,11 +57,11 @@ export default function AuthSettingsPage() {
         <Card>
           <CardBody className="flex items-center justify-between">
             <div>
-              <h3 className="font-medium">OIDC 프로바이더</h3>
-              <p className="text-xs text-base-500">외부 IdP 연동 관리</p>
+              <h3 className="font-medium">{t('auth.oidcProviders')}</h3>
+              <p className="text-xs text-base-500">{t('auth.oidcProvidersHint')}</p>
             </div>
             <Button asChild size="sm" variant="secondary">
-              <Link href="/admin/auth/providers">관리</Link>
+              <Link href="/admin/auth/providers">{t('auth.manage')}</Link>
             </Button>
           </CardBody>
         </Card>

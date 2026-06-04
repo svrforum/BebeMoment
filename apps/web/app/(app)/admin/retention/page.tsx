@@ -3,9 +3,11 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Input, Label } from '@/components/ui/input'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 export default function RetentionSettingsPage() {
+  const t = useTranslations('admin')
   const [days, setDays] = useState(30)
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
@@ -25,17 +27,17 @@ export default function RetentionSettingsPage() {
       body: JSON.stringify({ key: 'retention.trash_days', value: Number(days) }),
     })
     setSaving(false)
-    setStatus(res.ok ? '저장됨' : '실패')
+    setStatus(res.ok ? t('retention.saved') : t('retention.failed'))
   }
 
   return (
     <>
-      <AppHeader title="리텐션" />
+      <AppHeader title={t('retention.title')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-3">
         <Card>
           <CardBody className="space-y-3">
             <div>
-              <Label htmlFor="days">휴지통 자동 삭제 (일)</Label>
+              <Label htmlFor="days">{t('retention.trashDays')}</Label>
               <Input
                 id="days"
                 type="number"
@@ -44,13 +46,11 @@ export default function RetentionSettingsPage() {
                 value={days}
                 onChange={(e) => setDays(Number(e.target.value))}
               />
-              <p className="text-xs text-base-500 mt-2">
-                휴지통의 에셋이 이 기간 이후 영구 삭제됩니다 (정기 작업으로 실행됨).
-              </p>
+              <p className="text-xs text-base-500 mt-2">{t('retention.trashDaysHelp')}</p>
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
             <Button onClick={save} disabled={saving}>
-              {saving ? '...' : '저장'}
+              {saving ? '...' : t('retention.save')}
             </Button>
           </CardBody>
         </Card>

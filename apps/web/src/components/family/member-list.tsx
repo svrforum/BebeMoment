@@ -2,17 +2,12 @@
 import { MemberActionsMenu } from '@/components/family/member-actions-menu'
 import type { FamilyMember } from '@/server/family/list-members'
 import type { Role } from '@bebe/db-public'
+import { useTranslations } from 'next-intl'
 
-const ROLE_META: Record<Role, { label: string; className: string }> = {
-  owner: { label: '관리자', className: 'bg-point-500/12 text-point-600 dark:text-point-300' },
-  guardian: {
-    label: '보호자',
-    className: 'bg-base-200/70 text-base-700 dark:bg-base-800 dark:text-base-200',
-  },
-  family: {
-    label: '가족',
-    className: 'bg-base-100 text-base-500 dark:bg-base-800/60 dark:text-base-400',
-  },
+const ROLE_CLASS: Record<Role, string> = {
+  owner: 'bg-point-500/12 text-point-600 dark:text-point-300',
+  guardian: 'bg-base-200/70 text-base-700 dark:bg-base-800 dark:text-base-200',
+  family: 'bg-base-100 text-base-500 dark:bg-base-800/60 dark:text-base-400',
 }
 
 function Avatar({ member }: { member: FamilyMember }) {
@@ -42,13 +37,15 @@ export function MemberList({
   currentUserId: string
   isAdmin: boolean
 }) {
+  const t = useTranslations('family')
   const activeCount = members.filter((m) => !m.removed).length
   return (
     <section className="space-y-2">
-      <h2 className="px-1 text-[13px] font-semibold text-base-500">구성원 {activeCount}명</h2>
+      <h2 className="px-1 text-[13px] font-semibold text-base-500">
+        {t('members.heading', { count: activeCount })}
+      </h2>
       <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-card divide-y divide-base-100 dark:border-base-800/70 dark:bg-base-900 dark:divide-base-800">
         {members.map((m) => {
-          const meta = ROLE_META[m.role]
           const isSelf = m.userId === currentUserId
           const canManage = isAdmin && !isSelf && m.role !== 'owner' && !m.removed
           return (
@@ -66,17 +63,17 @@ export function MemberList({
                   </span>
                   {isSelf && (
                     <span className="shrink-0 rounded-md bg-base-100 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
-                      나
+                      {t('members.you')}
                     </span>
                   )}
                   {m.suspendedAt && !m.removed && (
                     <span className="shrink-0 rounded-md bg-red-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
-                      일시정지
+                      {t('members.suspended')}
                     </span>
                   )}
                   {m.removed && (
                     <span className="shrink-0 rounded-md bg-base-200 px-1.5 py-0.5 text-[10px] font-semibold text-base-500 dark:bg-base-800">
-                      제외됨
+                      {t('members.removed')}
                     </span>
                   )}
                 </div>
@@ -85,9 +82,9 @@ export function MemberList({
                 </span>
               </div>
               <span
-                className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${meta.className}`}
+                className={`shrink-0 rounded-lg px-2 py-1 text-[11px] font-semibold ${ROLE_CLASS[m.role]}`}
               >
-                {meta.label}
+                {t(`roles.${m.role}`)}
               </span>
               {canManage && <MemberActionsMenu member={m} />}
             </div>

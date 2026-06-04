@@ -27,6 +27,102 @@
       "description": "앱에서 표시할 언어예요.",
       "ko": "한국어",
       "en": "English"
+    },
+    "settings": {
+      "title": "설정",
+      "logout": "로그아웃",
+      "sections": {
+        "sns": "SNS 계정 연동",
+        "family": "가족",
+        "notifications": "알림",
+        "display": "화면",
+        "admin": "관리자"
+      },
+      "roles": {
+        "owner": "관리자",
+        "guardian": "보호자",
+        "family": "가족"
+      },
+      "rows": {
+        "members": "가족 멤버",
+        "membersSub": "구성원·초대",
+        "babies": "아기 관리",
+        "push": "푸시 알림",
+        "pushSub": "기기 등록 · 테스트 · 받을 알림 설정",
+        "widget": "홈 위젯",
+        "widgetSub": "위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤",
+        "instanceAdmin": "인스턴스 관리",
+        "instanceAdminSub": "인증·기능·테마·SMTP·스토리지",
+        "trash": "휴지통"
+      },
+      "account": {
+        "nameRequired": "이름을 입력해주세요.",
+        "editName": "이름 변경",
+        "save": "저장",
+        "cancel": "취소"
+      },
+      "theme": {
+        "auto": "자동",
+        "light": "라이트",
+        "dark": "다크"
+      },
+      "sns": {
+        "linked": "SNS 계정을 연동했어요",
+        "conflict": "이미 다른 계정에 연결된 SNS 예요",
+        "empty": "관리자가 SNS 로그인(카카오·네이버 등)을 설정하면 여기서 연동할 수 있어요.",
+        "connected": "연동됨",
+        "connect": "연동"
+      },
+      "widget": {
+        "title": "홈 위젯",
+        "back": "설정으로",
+        "intro": "홈 화면 위젯에 어떤 사진을 보여줄지 고르세요."
+      },
+      "notifications": {
+        "title": "푸시 알림",
+        "intro": "새 사진·댓글·기록이 올라오면 휴대폰으로 바로 알려드려요. 아래에서 이 기기의 알림을 켜고 테스트해보세요.",
+        "thisDevice": {
+          "title": "이 기기",
+          "hint": "알림을 켠 뒤 <b>테스트 알림 보내기</b>를 누르면 이 기기로 샘플 알림이 와요. 안 오면 아래 플랫폼별 안내를 확인해주세요."
+        },
+        "android": {
+          "title": "안드로이드 앱",
+          "badge": "권장",
+          "step1": "bebe 앱을 설치하고 <b>서버 주소</b>를 입력해 로그인해요.",
+          "step2": "위 <b>이 기기에서 알림 받기</b>를 켜고, 안드로이드 알림 권한을 <b>허용</b>해요.",
+          "step3": "<b>테스트 알림 보내기</b>로 도착하는지 확인해요.",
+          "note": "앱 푸시는 관리자가 Firebase(FCM)를 설정해야 동작해요. 권한 팝업이 안 떴거나 거부했다면 휴대폰 <b>설정 → 앱 → bebe → 알림</b>에서 켤 수 있어요."
+        },
+        "web": {
+          "title": "웹 브라우저",
+          "badge": "안드로이드·데스크탑",
+          "step1": "크롬·엣지 등에서 사이트를 열고 위 <b>이 기기에서 알림 받기</b>를 켜요.",
+          "step2": "브라우저가 물어보면 <b>허용</b>을 눌러요.",
+          "step3": "<b>테스트 알림 보내기</b>로 확인해요.",
+          "note": "실수로 차단했다면 주소창 왼쪽 <b>자물쇠 아이콘 → 알림 → 허용</b>으로 바꾼 뒤 다시 켜주세요. 홈 화면에 설치(PWA)하면 더 안정적으로 와요."
+        },
+        "ios": {
+          "title": "아이폰 · 아이패드",
+          "badge": "iOS 16.4+",
+          "step1": "<b>Safari</b>로 사이트를 열고, 공유 버튼 → <b>홈 화면에 추가</b>를 눌러요.",
+          "step2": "홈 화면에 생긴 bebe 아이콘으로 사이트를 다시 열어요.",
+          "step3": "위 <b>이 기기에서 알림 받기</b>를 켜고 권한을 허용한 뒤 테스트해요.",
+          "note": "아이폰은 <b>홈 화면에 추가한 경우에만</b> 푸시가 와요. Safari 탭에서 연 상태로는 켤 수 없어요(Apple 정책)."
+        },
+        "categories": {
+          "title": "받을 알림 고르기",
+          "hint": "아래에서 받고 싶은 알림 종류를 켜고 끌 수 있어요. (기기별이 아니라 내 계정 전체에 적용돼요.)"
+        },
+        "admin": {
+          "title": "관리자 설정",
+          "hint": "가족 전체에 알림이 가려면 관리자가 한 번 켜줘야 해요:",
+          "step1": "<b>알림 마스터 스위치</b>를 켜요.",
+          "step2": "웹 푸시용 <b>VAPID 키</b>를 생성해요(버튼 한 번).",
+          "step3": "앱 푸시용 <b>Firebase 서비스 계정 + 클라이언트 설정</b>을 입력해요.",
+          "step4": "받게 할 알림 카테고리를 켜요.",
+          "open": "관리자 알림 설정 열기"
+        }
+      }
     }
   },
   "auth": {
@@ -735,6 +831,539 @@
         "remove": "앨범에서 제거",
         "removeFailed": "앨범에서 제거하지 못했어요"
       }
+    }
+  },
+  "family": {
+    "family": {
+      "title": "가족",
+      "settings": {
+        "title": "설정",
+        "subtitle": "알림·화면·계정"
+      },
+      "roles": {
+        "owner": "관리자",
+        "guardian": "보호자",
+        "family": "가족"
+      },
+      "members": {
+        "heading": "구성원 {count}명",
+        "you": "나",
+        "suspended": "일시정지",
+        "removed": "제외됨"
+      },
+      "invite": {
+        "heading": "초대",
+        "role": "역할",
+        "optionFamily": "가족 (조부모·친척)",
+        "optionGuardian": "보호자 (부모급)",
+        "create": "초대 링크 생성",
+        "creating": "생성 중…",
+        "createFailed": "초대 생성 실패",
+        "created": "초대 링크가 생성됐어요. 복사하거나 공유해 전달하세요.",
+        "copyLink": "링크 복사",
+        "share": "공유",
+        "shareTitle": "가족 앨범 초대",
+        "shareText": "가족 앨범에 함께해요",
+        "showQr": "QR 코드",
+        "hideQr": "QR 숨기기",
+        "qrAlt": "초대 링크 QR 코드",
+        "qrHint": "할머니·할아버지 폰 카메라로 비춰 주세요",
+        "pending": "대기 중인 초대",
+        "pendingLabel": "{role} 초대",
+        "expires": "만료",
+        "revoke": "철회"
+      },
+      "roleModal": {
+        "title": "{name} 님의 역할",
+        "subtitle": "권한 수준을 선택하세요.",
+        "selected": "선택됨",
+        "desc": {
+          "guardian": "업로드·기록·앨범·멤버 초대까지 가능",
+          "family": "기본은 보기·댓글·좋아요 (관리자 설정으로 확장 가능)"
+        },
+        "change": "역할 변경",
+        "changing": "변경 중…",
+        "currentRole": "현재 역할",
+        "error": "역할 변경에 실패했어요"
+      },
+      "actions": {
+        "menuLabel": "멤버 관리",
+        "changeRole": "역할 변경",
+        "suspend": "일시정지",
+        "unsuspend": "정지 해제",
+        "unsuspendError": "정지 해제에 실패했어요",
+        "resetPassword": "비밀번호 재설정",
+        "remove": "가족에서 제외",
+        "cancel": "취소",
+        "close": "닫기"
+      },
+      "suspendModal": {
+        "title": "{name} 님을 일시정지할까요?",
+        "subtitle": "정지하면 로그인과 모든 세션이 즉시 차단돼요.",
+        "reasonPlaceholder": "정지 사유 (선택)",
+        "confirm": "일시정지",
+        "suspending": "정지 중…",
+        "error": "정지에 실패했어요"
+      },
+      "removeModal": {
+        "title": "{name} 님을 가족에서 제외할까요?",
+        "subtitle": "그 멤버는 더 이상 사진·일기를 볼 수 없어요. 올린 사진은 그대로 남아요. 추후 다시 초대할 수 있어요.",
+        "confirmWord": "제외",
+        "confirmHint": "확인하려면 <b>{word}</b> 라고 입력해주세요",
+        "confirm": "가족에서 제외",
+        "removing": "제외 중…",
+        "error": "제외에 실패했어요"
+      },
+      "resetModal": {
+        "title": "{name} 님 비밀번호 재설정",
+        "subtitle": "링크를 만들어 멤버에게 직접 전달해주세요. 한 번만 사용할 수 있어요.",
+        "generate": "재설정 링크 만들기",
+        "generating": "생성 중…",
+        "copy": "복사",
+        "copied": "복사됨",
+        "copyError": "복사에 실패했어요. 링크를 길게 눌러 직접 복사해주세요",
+        "validUntil": "{date} 까지 유효",
+        "error": "링크 생성에 실패했어요"
+      },
+      "permissions": {
+        "heading": "구성원 권한",
+        "description": "가족 구성원은 기본적으로 보기·댓글·좋아요만 가능해요. 아래를 켜면 모든 가족 구성원에게 적용돼요.",
+        "groups": {
+          "upload": {
+            "label": "사진·영상 업로드",
+            "description": "직접 사진과 영상을 올리고 자신이 올린 항목을 수정·삭제할 수 있어요."
+          },
+          "records": {
+            "label": "기록 작성 (성장·마일스톤·스토리)",
+            "description": "성장 기록, 마일스톤, 스토리를 작성하고 자신의 기록을 수정·삭제할 수 있어요."
+          },
+          "albums": {
+            "label": "앨범 만들기·정리",
+            "description": "앨범을 만들고 사진을 담거나 빼며 자신의 앨범을 수정·삭제할 수 있어요."
+          }
+        },
+        "save": "저장",
+        "saved": "저장됨",
+        "failed": "실패"
+      },
+      "navMenus": {
+        "heading": "일반 가족에게 보일 메뉴",
+        "description": "끄면 일반 가족 구성원의 메뉴(하단 탭·사이드바)에서 숨겨져요. 타임라인·캘린더는 항상 보여요.",
+        "story": "스토리",
+        "albums": "앨범",
+        "save": "저장",
+        "saving": "저장 중…",
+        "saved": "저장됐어요"
+      },
+      "babies": {
+        "title": "아기",
+        "add": "추가",
+        "addLink": "추가하기",
+        "empty": "아기가 없어요.",
+        "addTitle": "아기 추가",
+        "name": "이름",
+        "birthDate": "생년월일",
+        "growth": "성장 기록",
+        "growthSubtitle": "키 · 몸무게 · 머리둘레",
+        "milestones": "마일스톤",
+        "milestonesSubtitle": "발달 체크리스트",
+        "addRecord": "기록 추가",
+        "addGrowthTitle": "성장 기록 추가",
+        "editGrowthTitle": "성장 기록 편집",
+        "customMilestone": "커스텀 마일스톤",
+        "edit": "수정",
+        "delete": "삭제"
+      }
+    }
+  },
+  "admin": {
+    "backup": {
+      "title": "백업 / 복구",
+      "subtitle": "사진·설정 백업",
+      "createTitle": "백업 만들기",
+      "createDesc": "DB(설정·메타) + 사진·영상을 한 파일로 묶어 백업 폴더에 저장해요. 전체는 모든 사진, 증분은 직전 백업 이후 새 사진만 담아요.",
+      "fullBackup": "전체 백업",
+      "incrBackup": "증분 백업",
+      "backingUp": "백업 중…",
+      "creating": "백업을 만드는 중… (사진이 많으면 시간이 걸려요)",
+      "done": "완료: {id} ({size}){mirror}",
+      "remoteMirrored": " · 원격 업로드됨",
+      "fail": "실패",
+      "failedWith": "실패: {error}",
+      "saving": "저장 중…",
+      "saved": "저장됨",
+      "save": "저장",
+      "testingConnection": "연결 테스트 중…",
+      "testConnection": "연결 테스트",
+      "connectionOk": "연결 성공 ✓",
+      "connectionFailed": "연결 실패: {error}",
+      "autoTitle": "자동 백업",
+      "autoDesc": "정해진 시각에 자동으로 백업해요. {every}회마다 전체, 나머지는 증분.",
+      "interval": "주기",
+      "daily": "매일",
+      "weekly": "매주",
+      "weekday": "요일",
+      "weekdayOption": "{day}요일",
+      "weekdaySun": "일",
+      "weekdayMon": "월",
+      "weekdayTue": "화",
+      "weekdayWed": "수",
+      "weekdayThu": "목",
+      "weekdayFri": "금",
+      "weekdaySat": "토",
+      "time": "시각",
+      "fullEvery": "전체 백업 주기",
+      "everyNth": "회마다",
+      "retentionKeep": "보관 개수",
+      "keepCount": "개 유지",
+      "lastAutoError": "최근 자동 백업 오류: {error}",
+      "includeSecret": "SECRET_KEY 포함",
+      "includeSecretDesc": "암호화된 설정(OIDC·푸시·세션)을 복구하려면 필요해요. 기본은 미포함.",
+      "secretWarn": "<b>주의 — 이 백업 파일은 비밀번호 금고와 같아요.</b> SECRET_KEY 가 들어가면 백업 파일 하나로 OIDC·푸시·세션 시크릿이 전부 풀려요. 외부에 절대 유출하지 말고, 신뢰할 수 있는 저장소에만 보관하세요.",
+      "remoteTitle": "원격 백업 (S3 호환)",
+      "remoteDesc": "백업을 만든 뒤 S3 호환 저장소(B2·MinIO·S3 등)에도 올려요.",
+      "endpointPlaceholder": "Endpoint (예: https://s3.us-west-002.backblazeb2.com, AWS면 비움)",
+      "prefixPlaceholder": "경로 prefix (선택, 예: bebe-backups)",
+      "secretKeySavedPlaceholder": "Secret Access Key (저장됨 — 바꿀 때만 입력)",
+      "lastRemoteError": "최근 원격 업로드 오류: {error}",
+      "saveToApplyHint": "저장을 눌러야 적용돼요. 시크릿 키는 암호화 저장되고 다시 표시되지 않아요.",
+      "listTitle": "백업 목록",
+      "empty": "아직 백업이 없어요.",
+      "full": "전체",
+      "incr": "증분",
+      "keyIncluded": "키포함",
+      "listMeta": "{size} · 사진 {count}개",
+      "restore": "복구",
+      "restoreThis": "이 백업으로 복구",
+      "download": "다운로드",
+      "delete": "삭제",
+      "confirmDelete": "백업을 삭제할까요?\n{id}",
+      "restoreSecretWarn": "⚠️ 이 백업은 다른 SECRET_KEY 로 만들어졌다면 암호화 설정이 복구 후 풀리지 않아요(그 경우 CLI 복구 권장).",
+      "restorePrompt": "현재 DB·사진을 이 백업 시점으로 되돌려요. 되돌릴 수 없어요.{warn}\n\n복구하려면 아래 백업 id 를 그대로 입력하세요:\n{id}",
+      "restoreMismatch": "입력이 일치하지 않아 취소했어요.",
+      "restoring": "복구 중… 끝나면 앱이 자동 재시작돼요.",
+      "restoreDone": "복구 완료 — 앱 재시작 중이에요. 자동으로 새로고침할게요…",
+      "restoreTimeout": "복구는 끝났어요. 앱이 안 돌아오면 수동으로 새로고침하세요.",
+      "restoreFailed": "복구 실패: {error}",
+      "howToTitle": "복구 방법",
+      "howToWeb": "<b>웹에서 복구</b>: 위 목록의 ↺ 버튼 → 백업 id 입력 → 복구. 끝나면 앱이 자동 재시작돼요(같은 인스턴스 롤백용).",
+      "howToDisaster": "<b>완전/재해 복구</b>(새 기기·다른 SECRET_KEY): 백업 파일을 백업 폴더에 둔 뒤 서버에서:",
+      "backupIdPlaceholder": "백업-id"
+    },
+    "auth": {
+      "title": "인증 설정",
+      "saved": "저장됨",
+      "saveFailed": "실패",
+      "publicSignup": "공개 가입 허용",
+      "publicSignupHint": "끄면 초대 링크로만 가입 가능",
+      "oidcProviders": "OIDC 프로바이더",
+      "oidcProvidersHint": "외부 IdP 연동 관리",
+      "manage": "관리",
+      "add": "추가",
+      "addProvider": "추가하기",
+      "noProviders": "등록된 프로바이더가 없어요.",
+      "confirmDelete": "삭제하시겠어요?",
+      "enabled": "활성",
+      "disabled": "비활성",
+      "turnOn": "켜기",
+      "turnOff": "끄기",
+      "edit": "편집",
+      "delete": "삭제",
+      "editTitle": "OIDC 편집",
+      "addTitle": "OIDC 추가",
+      "name": "이름",
+      "scopeLabel": "Scope (공백/쉼표 구분)",
+      "kakaoScopeHint": "카카오는 이메일 동의항목이 비즈앱 심사를 요구해요 — account_email 을 빼면 닉네임만으로 가입돼요.",
+      "clientSecretEditLabel": "Client Secret (변경할 때만)",
+      "clientSecretKeepPlaceholder": "(기존 유지)",
+      "save": "저장",
+      "step1Pick": "1. 프로바이더 선택",
+      "step2Values": "2. 값 입력",
+      "displayName": "표시 이름",
+      "clientSecretEncryptedPlaceholder": "저장 시 암호화됨",
+      "clientSecretEncryptedHint": "SECRET_KEY 로 AES-256-GCM 암호화되어 DB 에 저장됩니다.",
+      "saving": "저장 중…",
+      "pickFirst": "프로바이더를 먼저 선택하세요",
+      "redirectUriHint": "프로바이더 콘솔의 Redirect URIs 에 이 값을 등록하세요.",
+      "copy": "복사",
+      "redirectUriNote": "저장 후 실제 UUID가 포함된 URI가 목록 화면에서 확인됩니다. 등록 시점엔 placeholder 로 먼저 넣고, 저장 후 실제 값으로 교체하세요.",
+      "setupGuide": "{name} 설정 가이드",
+      "guidePlaceholder": "프로바이더를 선택하면 단계별 가이드가 여기에 표시됩니다.",
+      "securityTitle": "보안 기능 (자동 적용)",
+      "securityJwks": "id_token JWKS 검증 (jose)",
+      "securityClaims": "iss · aud · exp · nonce · state 검증",
+      "securityEmailVerified": "email_verified=true 필수 (계정 탈취 방지)",
+      "securityEncryption": "Client Secret AES-256-GCM 암호화 저장",
+      "kakaoName": "카카오",
+      "naverName": "네이버",
+      "customName": "기타 (OIDC)",
+      "googleConsole": "Google Cloud Console 열기",
+      "kakaoConsole": "Kakao Developers 열기",
+      "naverConsole": "Naver Developers 열기",
+      "microsoftConsole": "Azure Portal 열기",
+      "googleStep1Title": "1. OAuth 클라이언트 만들기",
+      "googleStep1Body": "콘솔 → 사용자 인증 정보 → \"사용자 인증 정보 만들기\" → \"OAuth 클라이언트 ID\" → 애플리케이션 유형 \"웹 애플리케이션\" 선택.",
+      "googleStep2Title": "2. 승인된 리디렉션 URI 등록",
+      "googleStep2Body": "아래 URI 를 복사해서 Google 콘솔의 \"승인된 리디렉션 URI\" 에 붙여넣기:\n{uri}",
+      "googleStep3Title": "3. 클라이언트 ID / Secret 복사",
+      "googleStep3Body": "저장 후 나타나는 클라이언트 ID와 비밀번호를 복사해 아래 폼에 붙여넣고 저장하세요.",
+      "googleStep4Title": "4. 참고",
+      "googleStep4Body": "Google 은 email_verified=true 가 기본이에요. 동일 이메일로 이미 가입된 계정이 있으면 자동으로 연결됩니다.",
+      "kakaoStep1Title": "1. 애플리케이션 추가",
+      "kakaoStep1Body": "Kakao Developers → 내 애플리케이션 → 애플리케이션 추가하기. 저장 후 REST API 키를 기록해두세요.",
+      "kakaoStep2Title": "2. 플랫폼 등록",
+      "kakaoStep2Body": "앱 설정 → 플랫폼 → Web → 사이트 도메인에 현재 서비스 URL 등록.",
+      "kakaoStep3Title": "3. 카카오 로그인 + OpenID Connect 활성화",
+      "kakaoStep3Body": "제품 → 카카오 로그인 → 활성화 ON, 그리고 같은 화면의 **OpenID Connect 활성화도 ON** (둘 다 켜야 함). Redirect URI 에 아래 값 등록:\n{uri}",
+      "kakaoStep4Title": "4. 동의 항목 설정",
+      "kakaoStep4Body": "동의항목에서 닉네임(profile_nickname) 을 사용 ON 으로. 이메일(account_email)은 비즈앱 심사가 필요해 기본 제외했어요 — 카카오는 닉네임만으로 가입돼요(이메일 없이).",
+      "kakaoStep5Title": "5. Client Secret 생성",
+      "kakaoStep5Body": "보안 → Client Secret 코드 생성 → 사용 ON → 코드 복사. 아래 폼의 Client Secret 에 붙여넣기.",
+      "kakaoStep6Title": "6. Client ID",
+      "kakaoStep6Body": "앱 키 → REST API 키 값을 아래 폼의 Client ID 에 붙여넣기.",
+      "naverStep1Title": "1. 애플리케이션 등록",
+      "naverStep1Body": "Naver Developers → 애플리케이션 등록 → 사용 API \"네이버 로그인\" 선택.",
+      "naverStep2Title": "2. 제공 정보 선택",
+      "naverStep2Body": "회원이름·이메일 주소를 \"필수\"로 설정하세요. 이메일이 없으면 계정 연결이 제한돼요.",
+      "naverStep3Title": "3. 서비스 URL · Callback URL",
+      "naverStep3Body": "서비스 URL 에 현재 서비스 주소, Callback URL 에 아래 값을 등록:\n{uri}",
+      "naverStep4Title": "4. Client ID / Secret",
+      "naverStep4Body": "발급된 Client ID 와 Client Secret 을 아래 폼에 붙여넣기. (네이버는 OAuth2 라 Issuer 불필요)",
+      "microsoftStep1Title": "1. 앱 등록",
+      "microsoftStep1Body": "Azure Portal → App Registrations → New Registration. 지원 계정 유형 선택.",
+      "microsoftStep2Title": "2. 리디렉션 URI 등록",
+      "microsoftStep2Body": "Platform: Web. URI 에 아래 값 입력:\n{uri}",
+      "microsoftStep3Title": "3. Client Secret 생성",
+      "microsoftStep3Body": "Certificates & secrets → New client secret → 값(Value) 복사 (창을 닫으면 다시 볼 수 없음).",
+      "microsoftStep4Title": "4. Client ID",
+      "microsoftStep4Body": "Overview 화면의 \"Application (client) ID\" 를 복사.",
+      "microsoftStep5Title": "5. Optional: 이메일 클레임",
+      "microsoftStep5Body": "기본 테넌트는 email 클레임이 없을 수 있음. Token configuration → Optional claims → ID → email 추가 권장.",
+      "microsoftStep6Title": "6. 멀티테넌트 이슈어",
+      "microsoftStep6Body": "단일 테넌트만 허용하려면 Issuer 를 https://login.microsoftonline.com/<TENANT-ID>/v2.0 로 변경.",
+      "customStep1Title": "OpenID Connect 프로바이더",
+      "customStep1Body": "OIDC 규격 IdP (Keycloak, Authelia, Authentik, Dex 등) 면 연결 가능. issuer 는 보통 <IdP-URL>/realms/<realm> 형태.",
+      "customStep2Title": "Redirect URI",
+      "customStep2Body": "IdP 콘솔의 Allowed Redirect URIs 에 아래 값 등록:\n{uri}",
+      "customStep3Title": "필수 클레임",
+      "customStep3Body": "id_token 에 sub, email, email_verified, name 포함 필요."
+    },
+    "smtp": {
+      "passwordSaveFailed": "비밀번호 저장 실패",
+      "saved": "저장됨",
+      "partialFail": "일부 실패",
+      "sent": "발송됨",
+      "sendFailed": "실패: {error}",
+      "host": "호스트",
+      "port": "포트",
+      "user": "사용자",
+      "password": "비밀번호 (변경할 때만)",
+      "passwordPlaceholder": "(저장 시 암호화됨)",
+      "fromAddress": "발신 주소",
+      "fromName": "발신 이름",
+      "save": "저장",
+      "testSend": "테스트 발송",
+      "recipient": "수신 주소"
+    },
+    "members": {
+      "title": "구성원 권한",
+      "subtitle": "가족 구성원이 할 수 있는 작업"
+    },
+    "home": {
+      "title": "관리자",
+      "subtitle": "인스턴스 설정",
+      "sections": {
+        "general": {
+          "label": "일반",
+          "description": "앱 이름, 기본 테마"
+        },
+        "features": {
+          "label": "기능",
+          "description": "좋아요·댓글 등 기능별 사용 여부"
+        },
+        "auth": {
+          "label": "인증",
+          "description": "가입 허용, OIDC 프로바이더"
+        },
+        "members": {
+          "label": "구성원 권한",
+          "description": "가족 구성원이 할 수 있는 작업 설정"
+        },
+        "smtp": {
+          "label": "SMTP",
+          "description": "이메일 발송 설정 + 테스트"
+        },
+        "storage": {
+          "label": "스토리지",
+          "description": "로컬/S3 모드 확인"
+        },
+        "retention": {
+          "label": "리텐션",
+          "description": "휴지통 자동 삭제"
+        },
+        "notifications": {
+          "label": "알림",
+          "description": "푸시 알림 + VAPID 키"
+        },
+        "backup": {
+          "label": "백업 / 복구",
+          "description": "사진·설정 백업, 다운로드, 복구 안내"
+        },
+        "system": {
+          "label": "시스템 정보",
+          "description": "구동 스펙·메모리·디스크 사용량, 버전"
+        }
+      }
+    },
+    "general": {
+      "title": "일반 설정",
+      "save": "저장",
+      "saved": "저장됨 (이름은 새로고침 후 반영)",
+      "failed": "실패",
+      "familyName": "가족 이름",
+      "familyNamePlaceholder": "예: 딸기네",
+      "familyNameHelp": "타임라인 상단 등에 표시되는 우리 가족 이름이에요.",
+      "defaultTheme": "기본 테마",
+      "defaultThemeHelp": "새 사용자에게 적용되는 기본값이에요. 사용자가 설정에서 직접 바꾸면 그 선택이 우선해요.",
+      "theme": {
+        "auto": "시스템 따름",
+        "light": "라이트",
+        "dark": "다크"
+      }
+    },
+    "features": {
+      "title": "기능",
+      "subtitle": "기능별 사용 여부",
+      "intro": "끄면 해당 기능이 모든 사용자에게 숨겨지고 동작하지 않아요.",
+      "save": "저장",
+      "saved": "저장됨",
+      "failed": "실패",
+      "faceCluster": {
+        "label": "얼굴 군집 거리",
+        "help": "같은 사람으로 묶는 기준(코사인 거리). 낮을수록 엄격해서 따로 나뉘고, 높을수록 관대해서 잘 합쳐져요. 기본 {default}. 다음 업로드부터 적용돼요.",
+        "strict": "엄격(따로)",
+        "loose": "관대(합침)"
+      }
+    },
+    "system": {
+      "title": "시스템 정보",
+      "subtitle": "구동 스펙 · 자원 현황",
+      "version": "버전",
+      "platform": "플랫폼",
+      "cpu": "CPU",
+      "cpuValue": "{model} · {count} 코어",
+      "uptime": "가동 시간",
+      "uptimeDays": "{d}일",
+      "uptimeHours": "{h}시간",
+      "uptimeMinutes": "{m}분",
+      "memory": "메모리",
+      "diskMedia": "미디어 데이터 (/data)",
+      "diskBackup": "백업 (/backups)",
+      "unavailable": "조회 불가"
+    },
+    "storage": {
+      "title": "스토리지",
+      "subtitle": "환경변수로 설정 (읽기 전용)",
+      "mode": "모드",
+      "localPath": "로컬 경로",
+      "envNote": "스토리지 설정은 환경변수 (STORAGE_MODE, STORAGE_PATH, STORAGE_S3_*) 로 관리돼요. 변경하려면 컨테이너 재시작이 필요합니다."
+    },
+    "retention": {
+      "title": "리텐션",
+      "save": "저장",
+      "saved": "저장됨",
+      "failed": "실패",
+      "trashDays": "휴지통 자동 삭제 (일)",
+      "trashDaysHelp": "휴지통의 에셋이 이 기간 이후 영구 삭제됩니다 (정기 작업으로 실행됨)."
+    },
+    "notifications": {
+      "title": "알림",
+      "subtitle": "푸시 알림 설정",
+      "deliveryHeading": "알림 발송 방식",
+      "saved": "저장됨",
+      "master": "푸시 알림 사용",
+      "masterHelp": "꺼두면 어떤 알림도 발송되지 않아요.",
+      "categoriesHeading": "카테고리별 알림",
+      "category": {
+        "assetUpload": "새 사진/영상",
+        "commentMention": "댓글·멘션",
+        "albumAdd": "앨범 추가",
+        "diaryGrowthMilestone": "스토리·성장·마일스톤",
+        "memory": "추억"
+      },
+      "vapidHeading": "VAPID 키",
+      "vapidConfigured": "키가 설정되어 있어요.",
+      "vapidPublicKey": "공개키: {prefix}…",
+      "vapidNone": "아직 키가 없어요. 키를 생성해 주세요.",
+      "generateKeys": "키 생성",
+      "regenKeys": "키 재생성",
+      "regenConfirm": "재생성 확인",
+      "regenWarning": "재생성하면 모든 기기의 알림이 해제되어 다시 켜야 합니다. 계속할까요?",
+      "cancel": "취소",
+      "keysGenerated": "키가 생성됐어요. 새로고침하면 공개키 일부가 표시됩니다.",
+      "keysRegenerated": "키를 재생성하고 모든 기기의 구독을 해제했어요.",
+      "fcmHeading": "안드로이드 앱 푸시 (FCM)",
+      "fcmHelp": "안드로이드 앱 사용자에게 푸시를 보내려면 Firebase 서비스 계정이 필요해요.",
+      "serviceAccountConfigured": "서비스 계정이 설정되어 있어요.",
+      "serviceAccountNone": "아직 서비스 계정이 없어요.",
+      "serviceAccountPlaceholder": "서비스 계정 JSON 붙여넣기 (예: { \"project_id\": ..., \"client_email\": ..., \"private_key\": ... })",
+      "serviceAccountSaveBtn": "서비스 계정 저장",
+      "serviceAccountDeleteBtn": "서비스 계정 삭제",
+      "serviceAccountSaved": "서비스 계정을 저장했어요.",
+      "serviceAccountDeleted": "서비스 계정을 삭제했어요.",
+      "clientConfigHeading": "앱 Firebase 설정 (공개 키)",
+      "clientConfigHelp": "안드로이드 앱이 기기 토큰을 발급받을 때 사용하는 공개 설정이에요. (firebaseConfig: apiKey·appId·projectId·messagingSenderId)",
+      "clientConfigConfigured": "앱 설정이 등록되어 있어요.",
+      "clientConfigNone": "아직 앱 설정이 없어요.",
+      "clientConfigSaveBtn": "앱 설정 저장",
+      "clientConfigDeleteBtn": "앱 설정 삭제",
+      "clientConfigSaved": "앱 설정을 저장했어요.",
+      "clientConfigDeleted": "앱 설정을 삭제했어요.",
+      "errAdminRequired": "관리자 권한이 필요합니다.",
+      "errUnknownCategory": "알 수 없는 알림 카테고리입니다.",
+      "errInvalidServiceAccount": "올바른 Firebase 서비스 계정 JSON이 아닙니다 (project_id·client_email·private_key 필요).",
+      "errSecretKeyMissing": "SECRET_KEY가 설정되지 않았습니다.",
+      "errInvalidJson": "올바른 JSON이 아닙니다.",
+      "errInvalidClientConfig": "Firebase 클라이언트 설정에 apiKey·appId·projectId·messagingSenderId가 필요합니다."
+    },
+    "delivery": {
+      "saved": "저장했어요",
+      "failed": "저장하지 못했어요",
+      "modeHeading": "발송 방식",
+      "modeImmediate": "즉시 발송",
+      "modeDigest": "모아서 발송",
+      "digestHelp": "모아서 발송하면 새 사진·소식을 묶어 한 번에 알려요(알림 피로 감소).",
+      "interval": "주기",
+      "intervalHourly": "1시간마다",
+      "intervalEvery3h": "3시간마다",
+      "intervalDaily": "하루 1회",
+      "time": "시각",
+      "hourLabel": "{h}시",
+      "quietHours": "야간 방해금지",
+      "quietFrom": "부터",
+      "quietTo": "까지 알림을 보내지 않아요"
+    },
+    "firebaseGuide": {
+      "summary": "Firebase 설정 방법 (처음 한 번, 단계별 안내)",
+      "intro": "안드로이드 앱으로 푸시를 보내려면 무료 Firebase 프로젝트가 필요해요. 아래 두 가지(서버용 서비스 계정 + 앱용 설정값)를 콘솔에서 받아 이 페이지에 붙여넣으면 끝이에요.",
+      "openConsole": "Firebase 콘솔 열기",
+      "group1Title": "1. 프로젝트 만들기",
+      "g1s1": "Firebase 콘솔에서 <b>프로젝트 추가</b>를 눌러요. 이름은 자유(예: bebe).",
+      "g1s2": "Google 애널리틱스는 꺼도 돼요. <b>프로젝트 만들기</b>를 눌러 완료해요.",
+      "group2Title": "2. 서버용 — 서비스 계정 키 (비밀)",
+      "g2s1": "좌측 상단 톱니바퀴 ⚙️ → <b>프로젝트 설정</b> → <b>서비스 계정</b> 탭으로 가요.",
+      "g2s2": "<b>새 비공개 키 생성</b> → <b>키 생성</b>을 누르면 JSON 파일이 다운로드돼요.",
+      "g2s3": "그 JSON 파일을 열어 내용을 통째로 복사해, 위 <b>서비스 계정 JSON</b> 칸에 붙여넣고 <b>저장</b>해요.",
+      "g2s4": "<b>Cloud Messaging</b> 탭에서 <b>Firebase Cloud Messaging API (V1)</b>가 사용 설정인지 확인해요(보통 기본 켜짐).",
+      "secretWarning": "⚠️ 서비스 계정 JSON은 <b>비밀번호 같은 비밀</b>이에요. 채팅·메일로 공유하지 말고 여기에만 붙여넣어요(서버에 암호화 저장돼요).",
+      "group3Title": "3. 앱용 — Firebase 설정값 (공개)",
+      "g3s1": "<b>프로젝트 설정</b> → <b>일반</b> 탭 → <b>내 앱</b>에서 <b>안드로이드 아이콘</b>을 눌러 앱을 추가해요.",
+      "g3s2": "<b>Android 패키지 이름</b>에 정확히 <pkg></pkg>를 입력해요(닉네임 자유, SHA-1은 비워도 돼요) → <b>앱 등록</b>.",
+      "g3s3": "<b>google-services.json</b> 파일을 다운로드해요. 메모장으로 열면 아래 네 값이 들어 있어요:",
+      "g3s4": "위 <b>앱 Firebase 설정</b> 칸에 아래 형태로 네 값을 붙여넣고 <b>저장</b>해요:",
+      "group4Title": "4. 마무리",
+      "g4s1": "이 페이지에서 <b>안드로이드 앱 푸시(FCM)</b> 토글과 맨 위 <b>알림 마스터</b>를 켜요.",
+      "g4s2": "가족 구성원은 앱 <b>설정 → 알림 → 푸시 알림</b>에서 알림을 켜고 <b>테스트 알림 보내기</b>로 확인하면 돼요."
     }
   }
 }

@@ -1,8 +1,10 @@
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { parseEnv } from '@bebe/config'
+import { getTranslations } from 'next-intl/server'
 
-export default function StorageSettingsPage() {
+export default async function StorageSettingsPage() {
+  const t = await getTranslations('admin')
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const mode = env.STORAGE_MODE
   const path = env.STORAGE_PATH
@@ -14,18 +16,18 @@ export default function StorageSettingsPage() {
 
   return (
     <>
-      <AppHeader title="스토리지" subtitle="환경변수로 설정 (읽기 전용)" />
+      <AppHeader title={t('storage.title')} subtitle={t('storage.subtitle')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-3">
         <Card>
           <CardBody>
-            <h2 className="font-semibold mb-2">모드</h2>
+            <h2 className="font-semibold mb-2">{t('storage.mode')}</h2>
             <p className="font-mono text-sm text-point-500">{mode}</p>
           </CardBody>
         </Card>
         {mode === 'local' && (
           <Card>
             <CardBody>
-              <h2 className="font-semibold mb-2">로컬 경로</h2>
+              <h2 className="font-semibold mb-2">{t('storage.localPath')}</h2>
               <p className="font-mono text-sm">{path}</p>
             </CardBody>
           </Card>
@@ -48,10 +50,7 @@ export default function StorageSettingsPage() {
             </CardBody>
           </Card>
         )}
-        <p className="text-xs text-base-500 px-2">
-          스토리지 설정은 환경변수 (STORAGE_MODE, STORAGE_PATH, STORAGE_S3_*) 로 관리돼요.
-          변경하려면 컨테이너 재시작이 필요합니다.
-        </p>
+        <p className="text-xs text-base-500 px-2">{t('storage.envNote')}</p>
       </div>
     </>
   )

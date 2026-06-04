@@ -7,13 +7,17 @@ import { ensureVapidKeys } from '@/server/notifications/vapid'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { NOTIFICATION_CATEGORIES } from '@bebe/core'
+import { getTranslations } from 'next-intl/server'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
 import { z } from 'zod'
 
 async function adminUserId(): Promise<string> {
   const ctx = await requireAdmin()
-  if (ctx instanceof NextResponse) throw new Error('관리자 권한이 필요합니다.')
+  if (ctx instanceof NextResponse) {
+    const t = await getTranslations('admin')
+    throw new Error(t('notifications.errAdminRequired'))
+  }
   return ctx.user.id
 }
 
@@ -25,7 +29,8 @@ export async function setPushMaster(enabled: boolean): Promise<void> {
 export async function setPushCategory(category: string, enabled: boolean): Promise<void> {
   const userId = await adminUserId()
   if (!(NOTIFICATION_CATEGORIES as readonly string[]).includes(category)) {
-    throw new Error('알 수 없는 알림 카테고리입니다.')
+    const t = await getTranslations('admin')
+    throw new Error(t('notifications.errUnknownCategory'))
   }
   await setSetting(`push.categories.${category}.enabled`, String(enabled), userId, prismaPublic)
 }
@@ -95,13 +100,12 @@ export async function setFcmServiceAccount(json: string): Promise<void> {
     await setSetting('push.fcm_service_account', '', userId, prismaPublic)
     return
   }
+  const t = await getTranslations('admin')
   if (!parseServiceAccount(trimmed)) {
-    throw new Error(
-      '올바른 Firebase 서비스 계정 JSON이 아닙니다 (project_id·client_email·private_key 필요).',
-    )
+    throw new Error(t('notifications.errInvalidServiceAccount'))
   }
   const secretKey = process.env.SECRET_KEY
-  if (!secretKey) throw new Error('SECRET_KEY가 설정되지 않았습니다.')
+  if (!secretKey) throw new Error(t('notifications.errSecretKeyMissing'))
   const enc = await encryptSecret(trimmed, secretKey)
   await setSetting('push.fcm_service_account', enc, userId, prismaPublic)
 }
@@ -113,17 +117,16 @@ export async function setFcmClientConfig(json: string): Promise<void> {
     await setSetting('push.fcm_client_config', '', userId, prismaPublic)
     return
   }
+  const t = await getTranslations('admin')
   let parsed: Record<string, unknown>
   try {
     parsed = JSON.parse(trimmed)
   } catch {
-    throw new Error('올바른 JSON이 아닙니다.')
+    throw new Error(t('notifications.errInvalidJson'))
   }
   const required = ['apiKey', 'appId', 'projectId', 'messagingSenderId'] as const
   if (required.some((k) => typeof parsed[k] !== 'string' || !parsed[k])) {
-    throw new Error(
-      'Firebase 클라이언트 설정에 apiKey·appId·projectId·messagingSenderId가 필요합니다.',
-    )
+    throw new Error(t('notifications.errInvalidClientConfig'))
   }
   await setSetting('push.fcm_client_config', trimmed, userId, prismaPublic)
 }

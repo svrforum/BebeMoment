@@ -1,6 +1,7 @@
 'use client'
 import { setDeliverySettings } from '@/(app)/admin/notifications/actions'
 import { useToast } from '@/lib/toast'
+import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
 type Mode = 'immediate' | 'digest'
@@ -26,6 +27,7 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
   const [quietEnd, setQuietEnd] = useState(initial.quietEnd)
   const [pending, start] = useTransition()
   const toast = useToast()
+  const t = useTranslations('admin')
 
   function save(next: Partial<DeliveryInitial>) {
     const payload: DeliveryInitial = {
@@ -40,9 +42,9 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
     start(async () => {
       try {
         await setDeliverySettings(payload)
-        toast({ title: '저장했어요', variant: 'success' })
+        toast({ title: t('delivery.saved'), variant: 'success' })
       } catch {
-        toast({ title: '저장하지 못했어요', variant: 'danger' })
+        toast({ title: t('delivery.failed'), variant: 'danger' })
       }
     })
   }
@@ -53,7 +55,7 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
   return (
     <div className="space-y-4">
       <div>
-        <div className="mb-2 text-sm font-medium">발송 방식</div>
+        <div className="mb-2 text-sm font-medium">{t('delivery.modeHeading')}</div>
         <div className="flex gap-2">
           {(['immediate', 'digest'] as const).map((m) => (
             <button
@@ -70,18 +72,16 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
                   : 'border-base-200 text-base-600 dark:border-base-800 dark:text-base-300'
               }`}
             >
-              {m === 'immediate' ? '즉시 발송' : '모아서 발송'}
+              {m === 'immediate' ? t('delivery.modeImmediate') : t('delivery.modeDigest')}
             </button>
           ))}
         </div>
-        <p className="mt-1.5 text-xs text-base-500">
-          모아서 발송하면 새 사진·소식을 묶어 한 번에 알려요(알림 피로 감소).
-        </p>
+        <p className="mt-1.5 text-xs text-base-500">{t('delivery.digestHelp')}</p>
       </div>
 
       {mode === 'digest' && (
         <div className="flex flex-wrap items-center gap-2">
-          <span className="text-sm text-base-600 dark:text-base-300">주기</span>
+          <span className="text-sm text-base-600 dark:text-base-300">{t('delivery.interval')}</span>
           <select
             value={interval}
             disabled={pending}
@@ -92,13 +92,13 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
             }}
             className={selCls}
           >
-            <option value="hourly">1시간마다</option>
-            <option value="every3h">3시간마다</option>
-            <option value="daily">하루 1회</option>
+            <option value="hourly">{t('delivery.intervalHourly')}</option>
+            <option value="every3h">{t('delivery.intervalEvery3h')}</option>
+            <option value="daily">{t('delivery.intervalDaily')}</option>
           </select>
           {interval === 'daily' && (
             <>
-              <span className="text-sm text-base-600 dark:text-base-300">시각</span>
+              <span className="text-sm text-base-600 dark:text-base-300">{t('delivery.time')}</span>
               <select
                 value={dailyHour}
                 disabled={pending}
@@ -111,7 +111,7 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
               >
                 {HOURS.map((h) => (
                   <option key={h} value={h}>
-                    {String(h).padStart(2, '0')}시
+                    {t('delivery.hourLabel', { h: String(h).padStart(2, '0') })}
                   </option>
                 ))}
               </select>
@@ -122,7 +122,7 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
 
       <div className="border-t border-base-100 pt-3 dark:border-base-800">
         <label className="flex items-center justify-between">
-          <span className="text-sm font-medium">야간 방해금지</span>
+          <span className="text-sm font-medium">{t('delivery.quietHours')}</span>
           <input
             type="checkbox"
             checked={quietEnabled}
@@ -148,11 +148,11 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
             >
               {HOURS.map((h) => (
                 <option key={h} value={h}>
-                  {String(h).padStart(2, '0')}시
+                  {t('delivery.hourLabel', { h: String(h).padStart(2, '0') })}
                 </option>
               ))}
             </select>
-            <span>부터</span>
+            <span>{t('delivery.quietFrom')}</span>
             <select
               value={quietEnd}
               disabled={pending}
@@ -165,11 +165,11 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
             >
               {HOURS.map((h) => (
                 <option key={h} value={h}>
-                  {String(h).padStart(2, '0')}시
+                  {t('delivery.hourLabel', { h: String(h).padStart(2, '0') })}
                 </option>
               ))}
             </select>
-            <span>까지 알림을 보내지 않아요</span>
+            <span>{t('delivery.quietTo')}</span>
           </div>
         )}
       </div>

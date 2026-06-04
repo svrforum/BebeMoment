@@ -7,6 +7,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { getPreset } from '@bebe/core'
+import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 import { deleteMilestoneAction, updateMilestoneAction } from './actions'
 
@@ -15,6 +16,7 @@ export default async function EditMilestonePage({
 }: {
   params: Promise<{ id: string; msId: string }>
 }) {
+  const t = await getTranslations('family')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -47,7 +49,7 @@ export default async function EditMilestonePage({
 
   return (
     <>
-      <AppHeader title={preset ? preset.labelKo : (ms.customLabel ?? '마일스톤')} />
+      <AppHeader title={preset ? preset.labelKo : (ms.customLabel ?? t('babies.milestones'))} />
       <div className="mx-auto max-w-sm space-y-3 px-5 py-6">
         <Card>
           <CardBody>
@@ -55,7 +57,7 @@ export default async function EditMilestonePage({
               action={updateMilestoneAction.bind(null, id, msId)}
               availableAssets={pickerAssets}
               {...(preset ? { preset } : {})}
-              submitLabel="수정"
+              submitLabel={t('babies.edit')}
               defaults={{
                 achievedAt: ms.achievedAt.toISOString().slice(0, 10),
                 note: ms.note,
@@ -67,7 +69,7 @@ export default async function EditMilestonePage({
         </Card>
         <form action={deleteMilestoneAction.bind(null, id, msId)}>
           <Button type="submit" variant="danger" className="w-full">
-            삭제
+            {t('babies.delete')}
           </Button>
         </form>
       </div>

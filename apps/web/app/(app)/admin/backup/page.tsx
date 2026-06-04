@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import { AlertTriangle, Download, RotateCcw, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
 type Backup = {
@@ -38,10 +39,19 @@ type Schedule = {
   retentionKeep: number
 }
 
-const WEEKDAYS = ['일', '월', '화', '수', '목', '금', '토']
 const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 export default function BackupAdminPage() {
+  const t = useTranslations('admin')
+  const WEEKDAYS = [
+    t('backup.weekdaySun'),
+    t('backup.weekdayMon'),
+    t('backup.weekdayTue'),
+    t('backup.weekdayWed'),
+    t('backup.weekdayThu'),
+    t('backup.weekdayFri'),
+    t('backup.weekdaySat'),
+  ]
   const [backups, setBackups] = useState<Backup[]>([])
   const [includeSecret, setIncludeSecret] = useState(false)
   const [sched, setSched] = useState<Schedule>({
@@ -113,7 +123,7 @@ export default function BackupAdminPage() {
   }
 
   async function saveRemote(extra: Record<string, unknown> = {}) {
-    setRemoteStatus('저장 중…')
+    setRemoteStatus(t('backup.saving'))
     const body = {
       enabled: remote.enabled,
       endpoint: remote.endpoint,
@@ -130,12 +140,12 @@ export default function BackupAdminPage() {
       body: JSON.stringify(body),
     })
     const d = await res.json().catch(() => ({}))
-    setRemoteStatus(res.ok ? '저장됨' : `실패: ${d.error ?? ''}`)
+    setRemoteStatus(res.ok ? t('backup.saved') : t('backup.failedWith', { error: d.error ?? '' }))
     if (res.ok) await load()
   }
 
   async function testRemote() {
-    setRemoteStatus('연결 테스트 중…')
+    setRemoteStatus(t('backup.testingConnection'))
     const res = await fetch('/api/admin/backups/remote', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -150,7 +160,9 @@ export default function BackupAdminPage() {
       }),
     })
     const d = await res.json().catch(() => ({}))
-    setRemoteStatus(res.ok ? '연결 성공 ✓' : `연결 실패: ${d.error ?? ''}`)
+    setRemoteStatus(
+      res.ok ? t('backup.connectionOk') : t('backup.connectionFailed', { error: d.error ?? '' }),
+    )
   }
 
   async function saveSchedule(next: Schedule) {
@@ -180,7 +192,7 @@ export default function BackupAdminPage() {
 
   async function backup(type: 'full' | 'incr') {
     setBusy(type)
-    setStatus('백업을 만드는 중… (사진이 많으면 시간이 걸려요)')
+    setStatus(t('backup.creating'))
     try {
       const res = await fetch('/api/admin/backups', {
         method: 'POST',
@@ -188,20 +200,24 @@ export default function BackupAdminPage() {
         body: JSON.stringify({ type, includeSecret }),
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? '실패')
+      if (!res.ok) throw new Error(d.error ?? t('backup.fail'))
       setStatus(
-        `완료: ${d.manifest.id} (${fmtBytes(d.bundleBytes)})${d.remoteMirrored ? ' · 원격 업로드됨' : ''}`,
+        t('backup.done', {
+          id: d.manifest.id,
+          size: fmtBytes(d.bundleBytes),
+          mirror: d.remoteMirrored ? t('backup.remoteMirrored') : '',
+        }),
       )
       await load()
     } catch (e) {
-      setStatus(`실패: ${(e as Error).message}`)
+      setStatus(t('backup.failedWith', { error: (e as Error).message }))
     } finally {
       setBusy(null)
     }
   }
 
   async function remove(id: string) {
-    if (!confirm(`백업을 삭제할까요?\n${id}`)) return
+    if (!confirm(t('backup.confirmDelete', { id }))) return
     setBusy(id)
     try {
       await fetch(`/api/admin/backups/${id}`, { method: 'DELETE' })
@@ -212,18 +228,14 @@ export default function BackupAdminPage() {
   }
 
   async function restore(b: Backup) {
-    const warn = b.includesSecret
-      ? '\n\n⚠️ 이 백업은 다른 SECRET_KEY 로 만들어졌다면 암호화 설정이 복구 후 풀리지 않아요(그 경우 CLI 복구 권장).'
-      : ''
-    const typed = window.prompt(
-      `현재 DB·사진을 이 백업 시점으로 되돌려요. 되돌릴 수 없어요.${warn}\n\n복구하려면 아래 백업 id 를 그대로 입력하세요:\n${b.id}`,
-    )
+    const warn = b.includesSecret ? `\n\n${t('backup.restoreSecretWarn')}` : ''
+    const typed = window.prompt(t('backup.restorePrompt', { warn, id: b.id }))
     if (typed !== b.id) {
-      if (typed !== null) alert('입력이 일치하지 않아 취소했어요.')
+      if (typed !== null) alert(t('backup.restoreMismatch'))
       return
     }
     setBusy(b.id)
-    setStatus('복구 중… 끝나면 앱이 자동 재시작돼요.')
+    setStatus(t('backup.restoring'))
     try {
       const res = await fetch(`/api/admin/backups/${b.id}/restore`, {
         method: 'POST',
@@ -231,8 +243,8 @@ export default function BackupAdminPage() {
         body: JSON.stringify({ confirm: b.id }),
       })
       const d = await res.json()
-      if (!res.ok) throw new Error(d.error ?? '실패')
-      setStatus('복구 완료 — 앱 재시작 중이에요. 자동으로 새로고침할게요…')
+      if (!res.ok) throw new Error(d.error ?? t('backup.fail'))
+      setStatus(t('backup.restoreDone'))
       // 컨테이너 재시작 대기 → 헬스 복귀하면 새로고침.
       const wait = async () => {
         for (let i = 0; i < 60; i++) {
@@ -247,35 +259,32 @@ export default function BackupAdminPage() {
             // 재시작 중 — 계속 대기
           }
         }
-        setStatus('복구는 끝났어요. 앱이 안 돌아오면 수동으로 새로고침하세요.')
+        setStatus(t('backup.restoreTimeout'))
       }
       void wait()
     } catch (e) {
-      setStatus(`복구 실패: ${(e as Error).message}`)
+      setStatus(t('backup.restoreFailed', { error: (e as Error).message }))
       setBusy(null)
     }
   }
 
   return (
     <>
-      <AppHeader title="백업 / 복구" subtitle="사진·설정 백업" />
+      <AppHeader title={t('backup.title')} subtitle={t('backup.subtitle')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-4">
         {/* 백업 만들기 */}
         <Card>
           <CardBody className="space-y-4">
             <div>
-              <div className="font-medium">백업 만들기</div>
-              <div className="text-xs text-base-500">
-                DB(설정·메타) + 사진·영상을 한 파일로 묶어 백업 폴더에 저장해요. 전체는 모든 사진,
-                증분은 직전 백업 이후 새 사진만 담아요.
-              </div>
+              <div className="font-medium">{t('backup.createTitle')}</div>
+              <div className="text-xs text-base-500">{t('backup.createDesc')}</div>
             </div>
             <div className="flex gap-2">
               <Button onClick={() => backup('full')} disabled={busy !== null}>
-                {busy === 'full' ? '백업 중…' : '전체 백업'}
+                {busy === 'full' ? t('backup.backingUp') : t('backup.fullBackup')}
               </Button>
               <Button variant="ghost" onClick={() => backup('incr')} disabled={busy !== null}>
-                {busy === 'incr' ? '백업 중…' : '증분 백업'}
+                {busy === 'incr' ? t('backup.backingUp') : t('backup.incrBackup')}
               </Button>
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
@@ -287,9 +296,9 @@ export default function BackupAdminPage() {
           <CardBody className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="font-medium">자동 백업</div>
+                <div className="font-medium">{t('backup.autoTitle')}</div>
                 <div className="text-xs text-base-500">
-                  정해진 시각에 자동으로 백업해요. {sched.fullEvery}회마다 전체, 나머지는 증분.
+                  {t('backup.autoDesc', { every: String(sched.fullEvery) })}
                 </div>
               </div>
               <Toggle
@@ -300,7 +309,7 @@ export default function BackupAdminPage() {
             {sched.enabled && (
               <div className="space-y-3 border-t border-base-200/60 pt-3 dark:border-base-800/60">
                 <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>주기</span>
+                  <span>{t('backup.interval')}</span>
                   <select
                     value={sched.interval}
                     onChange={(e) =>
@@ -311,13 +320,13 @@ export default function BackupAdminPage() {
                     }
                     className="rounded-lg border border-base-200 bg-base-0 px-2 py-1 dark:border-base-700 dark:bg-base-900"
                   >
-                    <option value="daily">매일</option>
-                    <option value="weekly">매주</option>
+                    <option value="daily">{t('backup.daily')}</option>
+                    <option value="weekly">{t('backup.weekly')}</option>
                   </select>
                 </label>
                 {sched.interval === 'weekly' && (
                   <label className="flex items-center justify-between gap-3 text-sm">
-                    <span>요일</span>
+                    <span>{t('backup.weekday')}</span>
                     <select
                       value={sched.weekday}
                       onChange={(e) =>
@@ -327,14 +336,14 @@ export default function BackupAdminPage() {
                     >
                       {WEEKDAYS.map((w, i) => (
                         <option key={w} value={i}>
-                          {w}요일
+                          {t('backup.weekdayOption', { day: w })}
                         </option>
                       ))}
                     </select>
                   </label>
                 )}
                 <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>시각</span>
+                  <span>{t('backup.time')}</span>
                   <select
                     value={sched.hour}
                     onChange={(e) => void saveSchedule({ ...sched, hour: Number(e.target.value) })}
@@ -348,7 +357,7 @@ export default function BackupAdminPage() {
                   </select>
                 </label>
                 <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>전체 백업 주기</span>
+                  <span>{t('backup.fullEvery')}</span>
                   <span className="flex items-center gap-1">
                     <input
                       type="number"
@@ -363,11 +372,11 @@ export default function BackupAdminPage() {
                       }
                       className="w-16 rounded-lg border border-base-200 bg-base-0 px-2 py-1 text-right dark:border-base-700 dark:bg-base-900"
                     />
-                    <span className="text-xs text-base-500">회마다</span>
+                    <span className="text-xs text-base-500">{t('backup.everyNth')}</span>
                   </span>
                 </label>
                 <label className="flex items-center justify-between gap-3 text-sm">
-                  <span>보관 개수</span>
+                  <span>{t('backup.retentionKeep')}</span>
                   <span className="flex items-center gap-1">
                     <input
                       type="number"
@@ -382,14 +391,14 @@ export default function BackupAdminPage() {
                       }
                       className="w-16 rounded-lg border border-base-200 bg-base-0 px-2 py-1 text-right dark:border-base-700 dark:bg-base-900"
                     />
-                    <span className="text-xs text-base-500">개 유지</span>
+                    <span className="text-xs text-base-500">{t('backup.keepCount')}</span>
                   </span>
                 </label>
               </div>
             )}
             {lastError && (
               <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
-                최근 자동 백업 오류: {lastError}
+                {t('backup.lastAutoError', { error: lastError })}
               </p>
             )}
           </CardBody>
@@ -400,10 +409,8 @@ export default function BackupAdminPage() {
           <CardBody className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="font-medium">SECRET_KEY 포함</div>
-                <div className="text-xs text-base-500">
-                  암호화된 설정(OIDC·푸시·세션)을 복구하려면 필요해요. 기본은 미포함.
-                </div>
+                <div className="font-medium">{t('backup.includeSecret')}</div>
+                <div className="text-xs text-base-500">{t('backup.includeSecretDesc')}</div>
               </div>
               <Toggle
                 checked={includeSecret}
@@ -414,9 +421,9 @@ export default function BackupAdminPage() {
               <div className="flex gap-2 rounded-xl border border-danger/30 bg-danger/5 p-3 text-[13px] text-danger">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0" />
                 <div>
-                  <b>주의 — 이 백업 파일은 비밀번호 금고와 같아요.</b> SECRET_KEY 가 들어가면 백업
-                  파일 하나로 OIDC·푸시·세션 시크릿이 전부 풀려요. 외부에 절대 유출하지 말고, 신뢰할
-                  수 있는 저장소에만 보관하세요.
+                  {t.rich('backup.secretWarn', {
+                    b: (chunks) => <b>{chunks}</b>,
+                  })}
                 </div>
               </div>
             )}
@@ -428,10 +435,8 @@ export default function BackupAdminPage() {
           <CardBody className="space-y-3">
             <div className="flex items-center justify-between gap-4">
               <div>
-                <div className="font-medium">원격 백업 (S3 호환)</div>
-                <div className="text-xs text-base-500">
-                  백업을 만든 뒤 S3 호환 저장소(B2·MinIO·S3 등)에도 올려요.
-                </div>
+                <div className="font-medium">{t('backup.remoteTitle')}</div>
+                <div className="text-xs text-base-500">{t('backup.remoteDesc')}</div>
               </div>
               <Toggle
                 checked={remote.enabled}
@@ -441,7 +446,7 @@ export default function BackupAdminPage() {
             {remote.enabled && (
               <div className="space-y-2 border-t border-base-200/60 pt-3 dark:border-base-800/60">
                 <input
-                  placeholder="Endpoint (예: https://s3.us-west-002.backblazeb2.com, AWS면 비움)"
+                  placeholder={t('backup.endpointPlaceholder')}
                   value={remote.endpoint}
                   onChange={(e) => setRemote((p) => ({ ...p, endpoint: e.target.value }))}
                   className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
@@ -461,7 +466,7 @@ export default function BackupAdminPage() {
                   />
                 </div>
                 <input
-                  placeholder="경로 prefix (선택, 예: bebe-backups)"
+                  placeholder={t('backup.prefixPlaceholder')}
                   value={remote.prefix}
                   onChange={(e) => setRemote((p) => ({ ...p, prefix: e.target.value }))}
                   className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
@@ -476,7 +481,7 @@ export default function BackupAdminPage() {
                   type="password"
                   placeholder={
                     remote.secretConfigured
-                      ? 'Secret Access Key (저장됨 — 바꿀 때만 입력)'
+                      ? t('backup.secretKeySavedPlaceholder')
                       : 'Secret Access Key'
                   }
                   value={remote.secretKey}
@@ -484,23 +489,21 @@ export default function BackupAdminPage() {
                   className="w-full rounded-lg border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-700 dark:bg-base-900"
                 />
                 <div className="flex gap-2">
-                  <Button onClick={() => void saveRemote()}>저장</Button>
+                  <Button onClick={() => void saveRemote()}>{t('backup.save')}</Button>
                   <Button variant="ghost" onClick={() => void testRemote()}>
-                    연결 테스트
+                    {t('backup.testConnection')}
                   </Button>
                 </div>
                 {remoteStatus && <p className="text-sm text-base-500">{remoteStatus}</p>}
                 {remote.lastError && (
                   <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
-                    최근 원격 업로드 오류: {remote.lastError}
+                    {t('backup.lastRemoteError', { error: remote.lastError })}
                   </p>
                 )}
               </div>
             )}
             {remote.enabled && !remote.secretConfigured && (
-              <p className="text-[11px] text-base-400">
-                저장을 눌러야 적용돼요. 시크릿 키는 암호화 저장되고 다시 표시되지 않아요.
-              </p>
+              <p className="text-[11px] text-base-400">{t('backup.saveToApplyHint')}</p>
             )}
           </CardBody>
         </Card>
@@ -508,9 +511,9 @@ export default function BackupAdminPage() {
         {/* 백업 목록 */}
         <Card>
           <CardBody className="space-y-3">
-            <div className="font-medium">백업 목록</div>
+            <div className="font-medium">{t('backup.listTitle')}</div>
             {backups.length === 0 ? (
-              <p className="text-sm text-base-500">아직 백업이 없어요.</p>
+              <p className="text-sm text-base-500">{t('backup.empty')}</p>
             ) : (
               <div className="space-y-2">
                 {backups.map((b) => (
@@ -522,16 +525,19 @@ export default function BackupAdminPage() {
                       <div className="truncate text-sm font-medium">
                         {new Date(b.createdAt).toLocaleString('ko-KR')}
                         <span className="ml-2 rounded bg-base-100 px-1.5 py-0.5 text-[11px] text-base-500 dark:bg-base-800">
-                          {b.type === 'full' ? '전체' : '증분'}
+                          {b.type === 'full' ? t('backup.full') : t('backup.incr')}
                         </span>
                         {b.includesSecret && (
                           <span className="ml-1 rounded bg-danger/10 px-1.5 py-0.5 text-[11px] text-danger">
-                            🔑 키포함
+                            🔑 {t('backup.keyIncluded')}
                           </span>
                         )}
                       </div>
                       <div className="text-[11px] tabular-nums text-base-500">
-                        {fmtBytes(b.bundleBytes)} · 사진 {b.dataFileCount}개
+                        {t('backup.listMeta', {
+                          size: fmtBytes(b.bundleBytes),
+                          count: String(b.dataFileCount),
+                        })}
                       </div>
                     </div>
                     <button
@@ -539,15 +545,15 @@ export default function BackupAdminPage() {
                       onClick={() => void restore(b)}
                       disabled={busy !== null}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-point-500/10 hover:text-point-600"
-                      aria-label="복구"
-                      title="이 백업으로 복구"
+                      aria-label={t('backup.restore')}
+                      title={t('backup.restoreThis')}
                     >
                       <RotateCcw size={16} />
                     </button>
                     <a
                       href={`/api/admin/backups/${b.id}/download`}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
-                      aria-label="다운로드"
+                      aria-label={t('backup.download')}
                     >
                       <Download size={16} />
                     </a>
@@ -556,7 +562,7 @@ export default function BackupAdminPage() {
                       onClick={() => void remove(b.id)}
                       disabled={busy !== null}
                       className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-danger/10 hover:text-danger"
-                      aria-label="삭제"
+                      aria-label={t('backup.delete')}
                     >
                       <Trash2 size={16} />
                     </button>
@@ -570,17 +576,17 @@ export default function BackupAdminPage() {
         {/* 복구 안내 */}
         <Card>
           <CardBody className="space-y-2">
-            <div className="font-medium">복구 방법</div>
+            <div className="font-medium">{t('backup.howToTitle')}</div>
             <div className="text-xs text-base-500">
-              <b>웹에서 복구</b>: 위 목록의 ↺ 버튼 → 백업 id 입력 → 복구. 끝나면 앱이 자동
-              재시작돼요(같은 인스턴스 롤백용).
+              {t.rich('backup.howToWeb', { b: (chunks) => <b>{chunks}</b> })}
             </div>
             <div className="text-xs text-base-500">
-              <b>완전/재해 복구</b>(새 기기·다른 SECRET_KEY): 백업 파일을 백업 폴더에 둔 뒤
-              서버에서:
+              {t.rich('backup.howToDisaster', { b: (chunks) => <b>{chunks}</b> })}
             </div>
             <pre className="overflow-x-auto rounded-xl bg-base-900 px-3 py-2 text-[12px] text-base-100">
-              docker compose run --rm --entrypoint bebe-restore app &lt;백업-id&gt;
+              docker compose run --rm --entrypoint bebe-restore app &lt;
+              {t('backup.backupIdPlaceholder')}
+              &gt;
             </pre>
           </CardBody>
         </Card>

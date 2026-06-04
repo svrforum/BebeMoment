@@ -7,9 +7,11 @@ import { resolveContext } from '@/server/context'
 import { listMilestonesByBaby } from '@/server/milestone/list-by-baby'
 import { presetsAvailable } from '@/server/milestone/presets-available'
 import { getPreset } from '@bebe/core'
+import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
 
 export default async function MilestonesPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = await getTranslations('family')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -35,14 +37,14 @@ export default async function MilestonesPage({ params }: { params: Promise<{ id:
     id: m.id,
     labelKo: m.presetKey
       ? (getPreset(m.presetKey)?.labelKo ?? m.presetKey)
-      : (m.customLabel ?? '마일스톤'),
+      : (m.customLabel ?? t('babies.milestones')),
     achievedAt: m.achievedAt,
     presetKey: m.presetKey,
   }))
 
   return (
     <>
-      <AppHeader title="마일스톤" />
+      <AppHeader title={t('babies.milestones')} />
       <div className="mx-auto max-w-md space-y-4 px-5 py-4">
         <MilestoneChecklist presets={presets} achieved={achieved} babyId={baby.id} />
       </div>
