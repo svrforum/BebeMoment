@@ -2,12 +2,13 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 
-// og:image 는 외부 크롤러(카톡·페북)가 가져가므로 반드시 공개 절대 URL(PUBLIC_URL)이어야
-// 한다. media 가 내부(localhost) 또는 루트-상대 URL 을 줄 수 있어, 경로만 떼어 PUBLIC_URL
-// 로 다시 절대화한다(§17#28).
-function toPublicAbsolute(u: string | null): string | null {
+// og:image 는 외부 크롤러(카톡·페북)가 가져가므로 반드시 공개 절대 URL이어야 한다. media 가
+// 내부(localhost)·루트-상대 URL 을 줄 수 있어, 경로만 떼어 baseUrl(요청 도메인)로 재절대화.
+// baseUrl 은 PUBLIC_URL(LAN일 수 있음)이 아니라 크롤러가 실제로 친 도메인(x-forwarded-host)
+// 을 써야 외부에서 받을 수 있다(§17#28, 리버스 프록시 뒤 도메인≠PUBLIC_URL).
+function toAbsolute(u: string | null, baseUrl: string): string | null {
   if (!u) return null
-  const base = (process.env.PUBLIC_URL ?? '').replace(/\/$/, '')
+  const base = baseUrl.replace(/\/$/, '')
   if (!base) return u
   if (u.startsWith('/')) return base + u
   try {
@@ -35,6 +36,7 @@ export type PublicStoryPreview = {
  */
 export async function getPublicStoryPreview(
   publicNo: number,
+  baseUrl: string,
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -74,8 +76,8 @@ export async function getPublicStoryPreview(
     if (firstId) {
       try {
         const urls = await media.getAssetUrls(firstId, row.family_id)
-        // og:image 는 jpeg 우선(카톡·페북이 avif/webp 미지원일 수 있음). 공개 절대 URL 로.
-        imageUrl = toPublicAbsolute(urls.display1080?.jpeg ?? urls.videoPoster ?? null)
+        // og:image 는 jpeg 우선(카톡·페북이 avif/webp 미지원일 수 있음). 요청 도메인 절대 URL.
+        imageUrl = toAbsolute(urls.display1080?.jpeg ?? urls.videoPoster ?? null, baseUrl)
       } catch {
         imageUrl = null
       }

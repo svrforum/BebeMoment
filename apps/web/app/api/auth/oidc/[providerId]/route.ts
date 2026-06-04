@@ -32,6 +32,12 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const inviteToken = reqUrl.searchParams.get('invite')
   if (inviteToken) cookieStore.set('oidc_invite', inviteToken, cookieOpts)
 
+  // 로그인 후 복귀할 경로(공유 링크 등) — 콜백이 oidc_next 를 읽어 거기로 보낸다.
+  // 같은-출처 절대경로만(//·/\ 프로토콜-상대 우회 차단).
+  const nextParam = reqUrl.searchParams.get('next')
+  if (nextParam && /^\/(?![/\\])/.test(nextParam))
+    cookieStore.set('oidc_next', nextParam, cookieOpts)
+
   // 초대 가입 시 사용자가 직접 고른 표시 이름 — 콜백이 신규 유저 생성에만 적용(SNS 자동 이름 대체).
   const chosenName = reqUrl.searchParams.get('name')?.trim()
   if (chosenName) cookieStore.set('oidc_name', chosenName.slice(0, 60), cookieOpts)

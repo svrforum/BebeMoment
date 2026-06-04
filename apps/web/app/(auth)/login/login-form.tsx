@@ -3,7 +3,7 @@ import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
 import { Eye, EyeOff } from 'lucide-react'
 import Link from 'next/link'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
 type Props = {
   oidcProviders: { id: string; name: string }[]
@@ -25,6 +25,13 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // OIDC(카카오 등) 로그인도 로그인 후 원래 보려던 곳으로 복귀하도록 next 를 실어 보낸다
+  // (비번 로그인은 safeNext 가 처리). 마운트 후 URL 의 next 를 읽어 쿼리스트링으로.
+  const [nextQuery, setNextQuery] = useState('')
+  useEffect(() => {
+    const n = safeNext()
+    setNextQuery(n !== '/' ? `?next=${encodeURIComponent(n)}` : '')
+  }, [])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -109,7 +116,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
           )}
           <div className="space-y-2">
             {oidcProviders.map((p) => (
-              <SnsButton key={p.id} href={`/api/auth/oidc/${p.id}`} name={p.name} />
+              <SnsButton key={p.id} href={`/api/auth/oidc/${p.id}${nextQuery}`} name={p.name} />
             ))}
           </div>
         </>

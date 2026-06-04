@@ -28,6 +28,7 @@ function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
   store.delete('oidc_link')
   store.delete('oidc_name')
   store.delete('oidc_app_challenge')
+  store.delete('oidc_next')
 }
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
@@ -228,9 +229,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
 
     await createSessionAndSetCookie(user.id, currentFamilyId)
 
+    // 로그인 전 보려던 곳(예: 공유 링크 /story/20)으로 복귀 — start 가 oidc_next 에 저장.
+    // 같은-출처 절대경로만(//·/\ 우회 차단), 아니면 기본 홈.
+    const nextRaw = cookieStore.get('oidc_next')?.value
+    const dest = nextRaw && /^\/(?![/\\])/.test(nextRaw) ? nextRaw : '/'
+
     clearOidcCookies(cookieStore)
 
-    return NextResponse.redirect(new URL('/', origin))
+    return NextResponse.redirect(new URL(dest, origin))
   } catch (e) {
     console.error('OIDC callback error:', e)
     clearOidcCookies(cookieStore)

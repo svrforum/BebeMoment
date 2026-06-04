@@ -2,17 +2,25 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getPublicStoryPreview } from '@/server/share/public-story'
 import type { Metadata } from 'next'
+import { headers } from 'next/headers'
 
 export const dynamic = 'force-dynamic'
 
-function publicUrl(): string {
-  return (process.env.PUBLIC_URL ?? '').replace(/\/$/, '')
+// 크롤러(카톡)·사용자가 실제로 친 도메인 — 리버스 프록시 뒤라 PUBLIC_URL(LAN)이 아니라
+// x-forwarded-host 를 써야 og:image/og:url 이 외부에서 동작한다. 폴백: host → PUBLIC_URL.
+async function requestBaseUrl(): Promise<string> {
+  const h = await headers()
+  const host = h.get('x-forwarded-host') ?? h.get('host')
+  const envBase = (process.env.PUBLIC_URL ?? '').replace(/\/$/, '')
+  if (!host) return envBase
+  const proto = h.get('x-forwarded-proto') ?? (envBase.startsWith('https') ? 'https' : 'http')
+  return `${proto}://${host}`
 }
 
-async function loadPreview(publicNoStr: string) {
+async function loadPreview(publicNoStr: string, baseUrl: string) {
   const n = Number(publicNoStr)
   if (!Number.isInteger(n)) return null
-  return getPublicStoryPreview(n, prismaPublic, prismaMedia, getMediaClient())
+  return getPublicStoryPreview(n, baseUrl, prismaPublic, prismaMedia, getMediaClient())
 }
 
 export async function generateMetadata({
@@ -21,10 +29,11 @@ export async function generateMetadata({
   params: Promise<{ publicNo: string }>
 }): Promise<Metadata> {
   const { publicNo } = await params
-  const p = await loadPreview(publicNo)
+  const base = await requestBaseUrl()
+  const p = await loadPreview(publicNo, base)
   if (!p) return {} // 루트 레이아웃의 기본 OG 로 폴백(비공개·없음)
   const desc = p.body.replace(/\s+/g, ' ').trim().slice(0, 160) || p.familyName
-  const url = `${publicUrl()}/s/${p.publicNo}`
+  const url = `${base}/s/${p.publicNo}`
   const images = p.imageUrl ? [p.imageUrl] : []
   return {
     title: p.familyName,
@@ -52,10 +61,11 @@ export default async function PublicSharePage({
   params: Promise<{ publicNo: string }>
 }) {
   const { publicNo } = await params
-  const p = await loadPreview(publicNo)
-  const webUrl = `${publicUrl()}/story/${publicNo}`
+  const base = await requestBaseUrl()
+  const p = await loadPreview(publicNo, base)
+  const webUrl = `${base}/story/${publicNo}`
   // 앱 딥링크 — 설치돼 있으면 앱(bebe://open)으로, 아니면 web /story 로 폴백(intent://).
-  const appHref = `intent://open?server=${encodeURIComponent(publicUrl())}&path=${encodeURIComponent(
+  const appHref = `intent://open?server=${encodeURIComponent(base)}&path=${encodeURIComponent(
     `/story/${publicNo}`,
   )}#Intent;scheme=bebe;package=im.bebe.app;S.browser_fallback_url=${encodeURIComponent(webUrl)};end`
 
