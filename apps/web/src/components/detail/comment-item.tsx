@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { MoreHorizontal } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 type Member = { id: string; displayName: string }
@@ -56,6 +57,7 @@ export function CommentItem({
   const [draft, setDraft] = useState(comment.body)
   const [menuOpen, setMenuOpen] = useState(false)
   const toast = useToast()
+  const t = useTranslations('social')
 
   const isOwn = comment.author.id === currentUserId
   const canEdit = isOwn && !comment.deletedAt
@@ -72,7 +74,7 @@ export function CommentItem({
       setEditing(false)
       onChanged?.()
     } catch {
-      toast({ title: '댓글을 수정하지 못했어요', variant: 'danger' })
+      toast({ title: t('comment.editFailed'), variant: 'danger' })
     }
   }
 
@@ -84,14 +86,14 @@ export function CommentItem({
       if (!res.ok) throw new Error('failed')
       onChanged?.()
     } catch {
-      toast({ title: '댓글을 삭제하지 못했어요', variant: 'danger' })
+      toast({ title: t('comment.deleteFailed'), variant: 'danger' })
     }
   }
 
   const ts = typeof comment.createdAt === 'string' ? new Date(comment.createdAt) : comment.createdAt
 
   if (comment.deletedAt) {
-    return <div className="py-2 text-sm italic text-base-500">삭제된 댓글이에요</div>
+    return <div className="py-2 text-sm italic text-base-500">{t('comment.deleted')}</div>
   }
 
   return (
@@ -111,7 +113,7 @@ export function CommentItem({
               minute: '2-digit',
               hour12: false,
             })}
-            {comment.editedAt && ' · (수정됨)'}
+            {comment.editedAt && ` · ${t('comment.edited')}`}
           </div>
           {editing ? (
             <div className="mt-1 space-y-2">
@@ -131,7 +133,7 @@ export function CommentItem({
               />
               <div className="flex gap-2">
                 <Button type="button" size="sm" onClick={save}>
-                  저장
+                  {t('comment.save')}
                 </Button>
                 <Button
                   type="button"
@@ -142,7 +144,7 @@ export function CommentItem({
                     setDraft(comment.body)
                   }}
                 >
-                  취소
+                  {t('comment.cancel')}
                 </Button>
               </div>
             </div>
@@ -157,7 +159,7 @@ export function CommentItem({
             <button
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
-              aria-label="댓글 메뉴"
+              aria-label={t('comment.menu')}
               className={cn(
                 'rounded p-1 text-base-500 md:opacity-0 md:group-hover:opacity-100',
                 menuOpen && 'opacity-100 md:opacity-100',
@@ -176,7 +178,7 @@ export function CommentItem({
                     }}
                     className="block w-full px-3 py-2 text-left text-sm hover:bg-base-100 dark:hover:bg-base-800"
                   >
-                    편집
+                    {t('comment.edit')}
                   </button>
                 )}
                 {canDelete && (
@@ -188,7 +190,7 @@ export function CommentItem({
                     }}
                     className="block w-full px-3 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
                   >
-                    삭제
+                    {t('comment.delete')}
                   </button>
                 )}
               </div>

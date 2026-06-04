@@ -2,6 +2,7 @@
 import { StoryCard, type StoryCardData } from '@/components/story/story-card'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { type CSSProperties, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
 
@@ -21,6 +22,7 @@ type AssetRow = {
 const STORY_COLLAPSE = 2
 
 export function StoryStrip({ stories }: { stories: StoryCardData[] }) {
+  const t = useTranslations('timeline')
   const [expanded, setExpanded] = useState(false)
   const collapsible = stories.length > STORY_COLLAPSE
   const visible = collapsible && !expanded ? stories.slice(0, STORY_COLLAPSE) : stories
@@ -35,7 +37,7 @@ export function StoryStrip({ stories }: { stories: StoryCardData[] }) {
           onClick={() => setExpanded(true)}
           className="flex w-full items-center justify-center gap-1 rounded-2xl border border-base-200/70 py-2 text-[12.5px] font-medium text-base-500 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:border-base-800/70 dark:text-base-400 dark:active:bg-base-800"
         >
-          스토리 {stories.length - STORY_COLLAPSE}개 더보기
+          {t('bucket.moreStories', { count: stories.length - STORY_COLLAPSE })}
           <ChevronDown size={14} strokeWidth={2.2} />
         </button>
       )}
@@ -81,6 +83,7 @@ export function BucketSection({
   sort = 'taken',
   viewerCtx = null,
 }: Props) {
+  const t = useTranslations('timeline')
   const [expanded, setExpanded] = useState(false)
   // 선택 모드에선 전부 보여야 일괄 선택이 가능 — 접지 않는다.
   const collapsible = !selectionMode && assets.length > COLLAPSED_COUNT
@@ -114,7 +117,7 @@ export function BucketSection({
         </div>
         {assets.length > 0 && (
           <span className="text-[12px] font-medium tabular-nums text-base-400 shrink-0">
-            {assets.length}장
+            {t('bucket.photoCount', { count: assets.length })}
           </span>
         )}
       </header>
@@ -150,7 +153,7 @@ export function BucketSection({
           onClick={() => setExpanded(true)}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-base-100 py-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-200 dark:bg-base-800 dark:text-base-300 dark:hover:bg-base-700"
         >
-          사진 {hiddenCount}장 더보기
+          {t('bucket.morePhotos', { count: hiddenCount })}
           <ChevronDown size={16} strokeWidth={2} />
         </button>
       )}

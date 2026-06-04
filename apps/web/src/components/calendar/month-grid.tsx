@@ -4,6 +4,7 @@ import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
@@ -43,6 +44,7 @@ function daysInMonth(year: number, month: number): Date[] {
 }
 
 export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }: Props) {
+  const t = useTranslations('timeline')
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -186,14 +188,14 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
           </button>
           {monthAssets > 0 && (
             <span className="text-[13px] font-medium tabular-nums text-base-400">
-              · {monthAssets}장
+              · {t('calendar.photoCount', { count: monthAssets })}
             </span>
           )}
           {pickerOpen && (
             <>
               <button
                 type="button"
-                aria-label="닫기"
+                aria-label={t('calendar.close')}
                 onClick={() => setPickerOpen(false)}
                 className="fixed inset-0 z-30 cursor-default bg-transparent"
               />
@@ -201,18 +203,18 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
                 <div className="mb-2 flex items-center justify-between">
                   <button
                     type="button"
-                    aria-label="이전 해"
+                    aria-label={t('calendar.prevYear')}
                     onClick={() => setPickerYear((y) => y - 1)}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
                   <span className="text-[16px] font-bold tabular-nums text-base-900 dark:text-base-50">
-                    {pickerYear}년
+                    {t('calendar.year', { year: pickerYear })}
                   </span>
                   <button
                     type="button"
-                    aria-label="다음 해"
+                    aria-label={t('calendar.nextYear')}
                     onClick={() => setPickerYear((y) => y + 1)}
                     className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
                   >
@@ -234,7 +236,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
                             : 'text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
                         )}
                       >
-                        {m + 1}월
+                        {t('calendar.monthShort', { month: m + 1 })}
                       </button>
                     )
                   })}
@@ -250,13 +252,13 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
               onClick={jumpToday}
               className="focus-ring rounded-full px-3 py-1.5 text-[12px] font-medium text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
             >
-              오늘
+              {t('calendar.today')}
             </button>
           )}
           <button
             type="button"
             onClick={prev}
-            aria-label="이전 달"
+            aria-label={t('calendar.prevMonth')}
             className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronLeft className="h-5 w-5" />
@@ -264,7 +266,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
           <button
             type="button"
             onClick={next}
-            aria-label="다음 달"
+            aria-label={t('calendar.nextMonth')}
             className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronRight className="h-5 w-5" />
@@ -272,9 +274,19 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
         </div>
       </div>
       <div className="mb-2 grid grid-cols-7 gap-1.5 text-center text-[11px] font-medium text-base-400">
-        {['일', '월', '화', '수', '목', '금', '토'].map((d, i) => (
-          <div key={d} className={cn(i === 0 && 'text-danger/70', i === 6 && 'text-point-500/70')}>
-            {d}
+        {(
+          [
+            'calendar.dow0',
+            'calendar.dow1',
+            'calendar.dow2',
+            'calendar.dow3',
+            'calendar.dow4',
+            'calendar.dow5',
+            'calendar.dow6',
+          ] as const
+        ).map((k, i) => (
+          <div key={k} className={cn(i === 0 && 'text-danger/70', i === 6 && 'text-point-500/70')}>
+            {t(k)}
           </div>
         ))}
       </div>

@@ -3,6 +3,7 @@ import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import type { AssetUrls } from '@bebe/media-client'
 import { PencilLine } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 
 type Asset = { id: string; urls: AssetUrls | null }
@@ -23,6 +24,7 @@ export function DayCell({
   isToday = false,
   hasStory = false,
 }: Props) {
+  const t = useTranslations('timeline')
   const hasAssets = assets.length > 0
   const dayNum = date.getUTCDate()
   const dateParam = date.toISOString().slice(0, 10)
@@ -72,7 +74,7 @@ export function DayCell({
       </span>
       {hasStory && (
         <span
-          aria-label="스토리 있음"
+          aria-label={t('calendar.hasStory')}
           className={cn(
             'absolute right-1.5 top-1.5 z-10 flex h-[18px] w-[18px] items-center justify-center rounded-full',
             hasAssets

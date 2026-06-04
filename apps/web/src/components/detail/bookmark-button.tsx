@@ -3,6 +3,7 @@ import { cn } from '@/lib/cn'
 import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Bookmark } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 type Controlled = {
@@ -24,6 +25,7 @@ export function BookmarkButton(props: Props) {
   const [pending, setPending] = useState(false)
   const toast = useToast()
   const bookmarksOn = useFeature('bookmarks')
+  const t = useTranslations('social')
 
   const bookmarked = props.controlled ? props.controlled.bookmarked : internalBookmarked
   const setBookmarked = props.controlled ? props.controlled.setBookmarked : setInternalBookmarked
@@ -43,9 +45,9 @@ export function BookmarkButton(props: Props) {
     } catch {
       setBookmarked(prev)
       toast({
-        title: '북마크를 반영하지 못했어요',
+        title: t('bookmark.failed'),
         variant: 'danger',
-        action: { label: '다시 시도', onClick },
+        action: { label: t('bookmark.retry'), onClick },
       })
     } finally {
       setPending(false)
@@ -59,7 +61,7 @@ export function BookmarkButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? '북마크 취소' : '북마크에 추가'}
+      aria-label={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
       className={cn(
         'focus-ring inline-flex items-center rounded-full px-3 py-1.5 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',

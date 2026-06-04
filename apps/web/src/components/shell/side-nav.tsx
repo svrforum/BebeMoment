@@ -14,23 +14,24 @@ import {
   Settings,
   Sun,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 
 const items: {
   href: string
-  label: string
+  labelKey: string
   icon: typeof Clock4
   feature?: FeatureFlag
   manageOnly?: boolean
   bookmarkOnly?: boolean
 }[] = [
-  { href: '/timeline', label: '타임라인', icon: Clock4 },
-  { href: '/calendar', label: '캘린더', icon: Calendar },
-  { href: '/albums', label: '앨범', icon: FolderOpen, feature: 'albums' },
-  { href: '/story', label: '스토리', icon: NotebookPen, feature: 'diary' },
-  { href: '/saved', label: '북마크', icon: Bookmark, bookmarkOnly: true },
-  { href: '/settings', label: '설정', icon: Settings },
+  { href: '/timeline', labelKey: 'timeline', icon: Clock4 },
+  { href: '/calendar', labelKey: 'calendar', icon: Calendar },
+  { href: '/albums', labelKey: 'albums', icon: FolderOpen, feature: 'albums' },
+  { href: '/story', labelKey: 'story', icon: NotebookPen, feature: 'diary' },
+  { href: '/saved', labelKey: 'bookmark', icon: Bookmark, bookmarkOnly: true },
+  { href: '/settings', labelKey: 'settings', icon: Settings },
 ]
 
 type Props = {
@@ -48,6 +49,8 @@ export function SideNav({
 }: Props) {
   const pathname = usePathname()
   const features = useFeatures()
+  const tn = useTranslations('nav')
+  const t = useTranslations('shell')
   const { mode, resolved, setMode } = useTheme()
   const visible = items.filter(
     (it) =>
@@ -64,10 +67,10 @@ export function SideNav({
   const ThemeIcon = mode === 'auto' ? Monitor : mode === 'dark' ? Moon : Sun
   const themeTitle =
     mode === 'auto'
-      ? `자동 (${resolved === 'dark' ? '다크' : '라이트'})`
+      ? t('theme.auto', { resolved: resolved === 'dark' ? t('theme.dark') : t('theme.light') })
       : mode === 'light'
-        ? '라이트'
-        : '다크'
+        ? t('theme.light')
+        : t('theme.dark')
 
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200/70 bg-base-0/70 backdrop-blur-xl md:flex dark:border-base-800/60 dark:bg-base-900/60">
@@ -85,7 +88,7 @@ export function SideNav({
         </div>
       </div>
       <nav className="flex-1 space-y-1 px-3">
-        {visible.map(({ href, label, icon: Icon }) => {
+        {visible.map(({ href, labelKey, icon: Icon }) => {
           const active = pathname === href || pathname?.startsWith(`${href}/`) === true
           return (
             <Link
@@ -106,7 +109,7 @@ export function SideNav({
                 )}
               />
               <Icon size={18} strokeWidth={active ? 2.4 : 1.9} />
-              {label}
+              {tn(labelKey)}
             </Link>
           )
         })}
@@ -115,11 +118,11 @@ export function SideNav({
         <button
           type="button"
           onClick={cycle}
-          title={`테마: ${themeTitle} (클릭으로 전환)`}
+          title={t('theme.tooltip', { value: themeTitle })}
           className="focus-ring flex w-full items-center gap-3 rounded-2xl px-3 py-2.5 text-[13px] font-medium text-base-500 transition hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
         >
           <ThemeIcon size={16} strokeWidth={1.9} />
-          <span className="flex-1 text-left">테마</span>
+          <span className="flex-1 text-left">{t('theme.label')}</span>
           <span className="text-[11px] text-base-400">{themeTitle}</span>
         </button>
       </div>

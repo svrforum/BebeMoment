@@ -1,5 +1,6 @@
 'use client'
 import { Search, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
 import { useEffect, useRef, useState } from 'react'
 
@@ -7,7 +8,9 @@ import { useEffect, useRef, useState } from 'react'
  * Debounced search box that drives a `?q=` search param. The page reads `q`
  * server-side and renders filtered results. Keeps the URL shareable/back-able.
  */
-export function SearchBox({ placeholder = '검색' }: { placeholder?: string }) {
+export function SearchBox({ placeholder }: { placeholder?: string }) {
+  const t = useTranslations('common')
+  const resolvedPlaceholder = placeholder ?? t('search.placeholder')
   const router = useRouter()
   const pathname = usePathname()
   const params = useSearchParams()
@@ -44,13 +47,13 @@ export function SearchBox({ placeholder = '검색' }: { placeholder?: string }) 
         type="search"
         value={value}
         onChange={(e) => onChange(e.target.value)}
-        placeholder={placeholder}
+        placeholder={resolvedPlaceholder}
         className="h-11 w-full rounded-2xl border border-base-200 bg-base-0 pr-10 pl-10 text-[14px] outline-none focus:border-point-500 dark:border-base-800 dark:bg-base-900"
       />
       {value && (
         <button
           type="button"
-          aria-label="지우기"
+          aria-label={t('search.clear')}
           onClick={() => {
             setValue('')
             if (timer.current) clearTimeout(timer.current)

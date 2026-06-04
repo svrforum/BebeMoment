@@ -5,6 +5,7 @@ import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { Check, Play, RotateCw, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, type MouseEvent, useRef, useState } from 'react'
@@ -41,11 +42,14 @@ type Props = {
   viewerCtx?: string | null
 }
 
-const STATUS_KO: Record<Props['status'], string> = {
-  uploading: '올리는 중',
-  processing: '처리 중',
-  ready: '준비 중',
-  failed: '업로드 실패',
+const STATUS_KEY: Record<
+  Props['status'],
+  'statusUploading' | 'statusProcessing' | 'statusPending' | 'statusFailed'
+> = {
+  uploading: 'statusUploading',
+  processing: 'statusProcessing',
+  ready: 'statusPending',
+  failed: 'statusFailed',
 }
 
 const LONG_PRESS_MS = 450
@@ -81,6 +85,7 @@ export function AssetCard({
   const blurhash = pickBlurhash(urls)
   const hasImage = trio !== null || fallbackUrl !== null
 
+  const t = useTranslations('timeline')
   const router = useRouter()
   const toast = useToast()
   const [busy, setBusy] = useState(false)
@@ -91,10 +96,10 @@ export function AssetCard({
     try {
       const res = await fetch(`/api/asset/${id}/retry`, { method: 'POST' })
       if (!res.ok) throw new Error()
-      toast({ title: '다시 처리하고 있어요', variant: 'success' })
+      toast({ title: t('card.retrying'), variant: 'success' })
       router.refresh()
     } catch {
-      toast({ title: '다시 시도하지 못했어요', variant: 'danger' })
+      toast({ title: t('card.retryFailed'), variant: 'danger' })
       setBusy(false)
     }
   }
@@ -106,7 +111,7 @@ export function AssetCard({
       if (!res.ok) throw new Error()
       router.refresh()
     } catch {
-      toast({ title: '삭제하지 못했어요', variant: 'danger' })
+      toast({ title: t('card.deleteFailed'), variant: 'danger' })
       setBusy(false)
     }
   }
@@ -173,7 +178,7 @@ export function AssetCard({
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
-          {STATUS_KO[status]}
+          {t(`card.${STATUS_KEY[status]}`)}
         </div>
       )}
       {kind === 'video' && (
@@ -225,13 +230,13 @@ export function AssetCard({
         className={cn(baseClass, 'flex flex-col items-center justify-center gap-2 p-2 text-center')}
         style={styleProp}
       >
-        <span className="text-[11px] font-medium text-rose-500">업로드 실패</span>
+        <span className="text-[11px] font-medium text-rose-500">{t('card.statusFailed')}</span>
         <div className="flex gap-1.5">
           <button
             type="button"
             onClick={retryFailed}
             disabled={busy}
-            aria-label="다시 시도"
+            aria-label={t('card.retry')}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-base-700 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90 dark:text-base-200"
           >
             <RotateCw size={15} strokeWidth={2.2} />
@@ -240,7 +245,7 @@ export function AssetCard({
             type="button"
             onClick={deleteFailed}
             disabled={busy}
-            aria-label="삭제"
+            aria-label={t('card.delete')}
             className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-rose-500 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90"
           >
             <Trash2 size={15} strokeWidth={2.2} />

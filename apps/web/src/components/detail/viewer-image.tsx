@@ -4,6 +4,7 @@ import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { Zoom } from 'swiper/modules'
@@ -54,6 +55,7 @@ export function ViewerImage({
   storyCtx?: StoryViewerCtx | null
 }) {
   const router = useRouter()
+  const t = useTranslations('viewer')
 
   const goNext = useCallback(() => {
     if (siblings.nextId) navigateTo(siblings.nextId, 'next')
@@ -82,7 +84,7 @@ export function ViewerImage({
   if (noMedia) {
     return (
       <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
-        처리 중…
+        {t('video.processing')}
       </div>
     )
   }
@@ -127,6 +129,7 @@ function SwiperViewport({
   onTap: (() => void) | undefined
   storyCtx?: StoryViewerCtx | null
 }) {
+  const t = useTranslations('viewer')
   // 슬라이드 배열 + initialSlide 계산. 타임라인 = 최신이 위 → 카루셀에서
   // "다음으로 넘기는 방향(왼쪽 스와이프)" = 더 newer. 그래서 slot 0 = next(older),
   // slot 2 = prev(newer) 로 정렬한다 (Instagram/Kakao 등 한국 사용자가 익숙한 방향).
@@ -317,7 +320,7 @@ function SwiperViewport({
       {hasPrev && (
         <button
           type="button"
-          aria-label="이전 사진"
+          aria-label={t('actions.prevPhoto')}
           onClick={(e) => {
             e.stopPropagation()
             onPrev()
@@ -330,7 +333,7 @@ function SwiperViewport({
       {hasNext && (
         <button
           type="button"
-          aria-label="다음 사진"
+          aria-label={t('actions.nextPhoto')}
           onClick={(e) => {
             e.stopPropagation()
             onNext()
@@ -347,7 +350,7 @@ function SwiperViewport({
         <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-20 px-5 md:bottom-6">
           <div className="mx-auto max-w-2xl">
             <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-[12px] font-semibold tabular-nums text-white/80 backdrop-blur-sm">
-              {storyCtx.index}/{storyCtx.total}
+              {t('story.count', { index: storyCtx.index, total: storyCtx.total })}
             </span>
             {storyCtx.body.trim() && (
               <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-[14px] leading-snug text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
@@ -421,6 +424,7 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
 }
 
 function VideoWithFallback({ src, poster }: { src: string; poster: string | undefined }) {
+  const t = useTranslations('viewer')
   const [failed, setFailed] = useState(false)
   // 자동재생 안 함 — 포스터 + 중앙 재생버튼을 보여주고, 탭하면 그때 재생(+네이티브 컨트롤).
   const [started, setStarted] = useState(false)
@@ -428,9 +432,9 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
   if (failed) {
     return (
       <div className="flex flex-col items-center gap-3 p-8 text-center text-sm text-base-300">
-        <p>이 기기에서 재생할 수 없는 형식이에요.</p>
+        <p>{t('video.unsupportedFormat')}</p>
         <a href={src} download className="rounded-full bg-base-700 px-4 py-2 text-base-50">
-          원본 다운로드
+          {t('actions.downloadOriginal')}
         </a>
       </div>
     )
@@ -458,7 +462,7 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
           onClick={() => {
             void ref.current?.play()
           }}
-          aria-label="재생"
+          aria-label={t('video.play')}
           className="absolute inset-0 flex items-center justify-center"
         >
           <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">

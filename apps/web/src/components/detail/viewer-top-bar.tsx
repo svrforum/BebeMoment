@@ -2,6 +2,7 @@
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { Download, MoreVertical, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -24,6 +25,7 @@ export function ViewerTopBar({
   const [menuOpen, setMenuOpen] = useState(false)
   const router = useRouter()
   const toast = useToast()
+  const t = useTranslations('viewer')
 
   function close() {
     if (typeof window !== 'undefined' && window.history.length > 1) {
@@ -43,7 +45,7 @@ export function ViewerTopBar({
       <button
         type="button"
         onClick={close}
-        aria-label="닫기"
+        aria-label={t('actions.close')}
         className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
       >
         <X className="h-6 w-6" />
@@ -53,8 +55,8 @@ export function ViewerTopBar({
           <a
             href={`/api/asset/${assetId}/download?q=original`}
             download
-            aria-label="다운로드"
-            onClick={() => toast({ title: '사진을 저장하고 있어요' })}
+            aria-label={t('actions.download')}
+            onClick={() => toast({ title: t('actions.savingPhoto') })}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
           >
             <Download className="h-6 w-6" />
@@ -64,7 +66,7 @@ export function ViewerTopBar({
           <button
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
-            aria-label="메뉴"
+            aria-label={t('actions.menu')}
             className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
           >
             <MoreVertical className="h-6 w-6" />
@@ -80,7 +82,7 @@ export function ViewerTopBar({
                   }}
                   className="block w-full px-4 py-2 text-left text-sm hover:bg-base-100 md:hidden dark:hover:bg-base-800"
                 >
-                  정보
+                  {t('actions.info')}
                 </button>
               )}
               {onDelete && (
@@ -92,7 +94,7 @@ export function ViewerTopBar({
                   }}
                   className="block w-full px-4 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
                 >
-                  휴지통으로 이동
+                  {t('actions.moveToTrash')}
                 </button>
               )}
             </div>

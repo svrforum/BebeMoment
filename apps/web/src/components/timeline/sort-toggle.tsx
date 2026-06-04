@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import type { ReactNode } from 'react'
 
@@ -21,7 +22,8 @@ type Props = {
  * Toss + Apple 결: pill-shaped track, active 알약은 화이트(다크모드는 base-900)
  * + soft shadow, inactive 는 muted. 그라데이션·강한 primary 컬러 금지.
  */
-export function TimelineSortToggle({ value, preserveParams = {}, right }: Props) {
+export async function TimelineSortToggle({ value, preserveParams = {}, right }: Props) {
+  const t = await getTranslations('timeline')
   const buildHref = (mode: TimelineSortMode): string => {
     const params = new URLSearchParams()
     for (const [k, v] of Object.entries(preserveParams)) {
@@ -40,15 +42,15 @@ export function TimelineSortToggle({ value, preserveParams = {}, right }: Props)
   }
 
   const options: { mode: TimelineSortMode; label: string }[] = [
-    { mode: 'taken', label: '촬영일순' },
-    { mode: 'uploaded', label: '업로드순' },
+    { mode: 'taken', label: t('sort.taken') },
+    { mode: 'uploaded', label: t('sort.uploaded') },
   ]
 
   return (
     <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 pt-2 lg:max-w-5xl xl:max-w-6xl">
       <div
         role="tablist"
-        aria-label="타임라인 정렬"
+        aria-label={t('sort.ariaLabel')}
         className="inline-flex rounded-full bg-base-100 p-1 text-[13px] dark:bg-base-800"
       >
         {options.map((opt) => {

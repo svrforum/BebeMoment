@@ -13,6 +13,11 @@
     "close": "Close",
     "delete": "Delete",
     "edit": "Edit",
+    "deleting": "Deleting…",
+    "search": {
+      "placeholder": "Search",
+      "clear": "Clear"
+    },
     "confirm": "OK",
     "loading": "Loading…"
   },
@@ -163,6 +168,384 @@
         "title": "This invite has expired",
         "message": "It's past its valid period or was revoked. Get a new link and try again."
       }
+    }
+  },
+  "shell": {
+    "switchFamily": "Switch family",
+    "uploadFab": "Upload photos · videos",
+    "unreadPhotos": "{count} new photos",
+    "installedAppVersion": " · App {version}",
+    "theme": {
+      "label": "Theme",
+      "auto": "Auto ({resolved})",
+      "light": "Light",
+      "dark": "Dark",
+      "tooltip": "Theme: {value} (tap to switch)"
+    },
+    "update": {
+      "title": "A new version is here",
+      "body": "Update to app {version}",
+      "action": "Update",
+      "dismiss": "Close"
+    }
+  },
+  "timeline": {
+    "composer": {
+      "writeToday": "Share today's moment",
+      "placeholder": "What happened today?",
+      "photosAttached": "{count} photos attached",
+      "collapse": "Collapse",
+      "close": "Close",
+      "file": "File",
+      "remove": "Remove",
+      "edit": "Edit",
+      "attachPhoto": "Attach photo",
+      "visibility": "Visibility",
+      "visibilityFamily": "Everyone",
+      "visibilityGuardians": "Guardians only",
+      "visibilityFamilyDesc": "Visible to the whole family",
+      "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
+      "preparingPhotos": "Preparing photos…",
+      "cancel": "Cancel",
+      "submit": "Post",
+      "submitting": "Posting…",
+      "needPhoto": "Please add at least one photo",
+      "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
+      "submitFailed": "Couldn't post"
+    },
+    "sort": {
+      "ariaLabel": "Timeline sort",
+      "taken": "By date taken",
+      "uploaded": "By upload"
+    },
+    "card": {
+      "statusUploading": "Uploading",
+      "statusProcessing": "Processing",
+      "statusPending": "Getting ready",
+      "statusFailed": "Upload failed",
+      "retry": "Retry",
+      "delete": "Delete",
+      "retrying": "Reprocessing now",
+      "retryFailed": "Couldn't retry",
+      "deleteFailed": "Couldn't delete"
+    },
+    "bucket": {
+      "photoCount": "{count} photos",
+      "morePhotos": "Show {count} more photos",
+      "moreStories": "Show {count} more stories"
+    },
+    "memories": {
+      "view": "View memories",
+      "empty": "Revisit that day's story"
+    },
+    "grid": {
+      "loadMoreFailed": "Couldn't load more. Please try again in a moment",
+      "deletePartialFailed": "Some deletions failed",
+      "deletePartialDesc": "{done}/{total} deleted. Please try again.",
+      "deletedCount": "{count} photos deleted",
+      "deletedDesc": "You can restore them from the trash",
+      "emptyTitle": "No photos yet",
+      "emptyViewerDesc": "New photos will show up here soon",
+      "emptyUploaderDesc": "Tap the + button at the bottom right to add your first photo",
+      "seenUpTo": "You're caught up",
+      "confirmDeleteTitle": "Delete {count} photos?",
+      "confirmDeleteDesc": "They'll move to the trash, where you can restore them within 30 days.",
+      "clearSelection": "Clear selection",
+      "selectedCount": "{count} selected",
+      "delete": "Delete",
+      "addToAlbum": "Add to album",
+      "menuDetail": "View details",
+      "menuSelect": "Add to selection",
+      "menuDeselect": "Remove from selection",
+      "menuSave": "Save",
+      "menuAddToAlbum": "Add to album",
+      "menuDelete": "Delete"
+    },
+    "page": {
+      "dateTitle": "{month}/{day}",
+      "weekday0": "Sunday",
+      "weekday1": "Monday",
+      "weekday2": "Tuesday",
+      "weekday3": "Wednesday",
+      "weekday4": "Thursday",
+      "weekday5": "Friday",
+      "weekday6": "Saturday",
+      "photoCount": "{count} photos",
+      "storyCount": "{count} stories",
+      "backToCalendar": "Back to calendar",
+      "toCalendar": "Calendar",
+      "dateEmpty": "Nothing was posted on this day.",
+      "memories": "Memories",
+      "memoriesNew": "Memories (new)",
+      "people": "People",
+      "peopleNew": "People (new)",
+      "me": "Me"
+    },
+    "calendar": {
+      "title": "Calendar",
+      "photoCount": "{count} photos",
+      "close": "Close",
+      "prevYear": "Previous year",
+      "nextYear": "Next year",
+      "year": "{year}",
+      "monthShort": "{month}",
+      "today": "Today",
+      "prevMonth": "Previous month",
+      "nextMonth": "Next month",
+      "dow0": "Sun",
+      "dow1": "Mon",
+      "dow2": "Tue",
+      "dow3": "Wed",
+      "dow4": "Thu",
+      "dow5": "Fri",
+      "dow6": "Sat",
+      "hasStory": "Has a story"
+    },
+    "timeline": {
+      "composer": {
+        "writeToday": "Share today's moment",
+        "placeholder": "What happened today?",
+        "photosAttached": "{count} photos attached",
+        "collapse": "Collapse",
+        "close": "Close",
+        "file": "File",
+        "remove": "Remove",
+        "edit": "Edit",
+        "attachPhoto": "Attach photo",
+        "visibility": "Visibility",
+        "visibilityFamily": "Everyone",
+        "visibilityGuardians": "Guardians only",
+        "visibilityFamilyDesc": "Visible to the whole family",
+        "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
+        "preparingPhotos": "Preparing photos…",
+        "cancel": "Cancel",
+        "submit": "Post",
+        "submitting": "Posting…",
+        "needPhoto": "Please add at least one photo",
+        "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
+        "submitFailed": "Couldn't post"
+      },
+      "sort": {
+        "ariaLabel": "Timeline sort",
+        "taken": "By date taken",
+        "uploaded": "By upload"
+      },
+      "card": {
+        "statusUploading": "Uploading",
+        "statusProcessing": "Processing",
+        "statusPending": "Getting ready",
+        "statusFailed": "Upload failed",
+        "retry": "Retry",
+        "delete": "Delete",
+        "retrying": "Reprocessing now",
+        "retryFailed": "Couldn't retry",
+        "deleteFailed": "Couldn't delete"
+      },
+      "bucket": {
+        "photoCount": "{count} photos",
+        "morePhotos": "Show {count} more photos",
+        "moreStories": "Show {count} more stories"
+      },
+      "memories": {
+        "view": "View memories",
+        "empty": "Revisit that day's story"
+      },
+      "grid": {
+        "loadMoreFailed": "Couldn't load more. Please try again in a moment",
+        "deletePartialFailed": "Some deletions failed",
+        "deletePartialDesc": "{done}/{total} deleted. Please try again.",
+        "deletedCount": "{count} photos deleted",
+        "deletedDesc": "You can restore them from the trash",
+        "emptyTitle": "No photos yet",
+        "emptyViewerDesc": "New photos will show up here soon",
+        "emptyUploaderDesc": "Tap the + button at the bottom right to add your first photo",
+        "seenUpTo": "You're caught up",
+        "confirmDeleteTitle": "Delete {count} photos?",
+        "confirmDeleteDesc": "They'll move to the trash, where you can restore them within 30 days.",
+        "clearSelection": "Clear selection",
+        "selectedCount": "{count} selected",
+        "delete": "Delete",
+        "addToAlbum": "Add to album",
+        "menuDetail": "View details",
+        "menuSelect": "Add to selection",
+        "menuDeselect": "Remove from selection",
+        "menuSave": "Save",
+        "menuAddToAlbum": "Add to album",
+        "menuDelete": "Delete"
+      },
+      "page": {
+        "dateTitle": "{month}/{day}",
+        "weekday0": "Sunday",
+        "weekday1": "Monday",
+        "weekday2": "Tuesday",
+        "weekday3": "Wednesday",
+        "weekday4": "Thursday",
+        "weekday5": "Friday",
+        "weekday6": "Saturday",
+        "photoCount": "{count} photos",
+        "storyCount": "{count} stories",
+        "backToCalendar": "Back to calendar",
+        "toCalendar": "Calendar",
+        "dateEmpty": "Nothing was posted on this day.",
+        "memories": "Memories",
+        "memoriesNew": "Memories (new)",
+        "people": "People",
+        "peopleNew": "People (new)",
+        "me": "Me"
+      },
+      "calendar": {
+        "title": "Calendar",
+        "photoCount": "{count} photos",
+        "close": "Close",
+        "prevYear": "Previous year",
+        "nextYear": "Next year",
+        "year": "{year}",
+        "monthShort": "{month}",
+        "today": "Today",
+        "prevMonth": "Previous month",
+        "nextMonth": "Next month",
+        "dow0": "Sun",
+        "dow1": "Mon",
+        "dow2": "Tue",
+        "dow3": "Wed",
+        "dow4": "Thu",
+        "dow5": "Fri",
+        "dow6": "Sat",
+        "hasStory": "Has a story"
+      }
+    }
+  },
+  "viewer": {
+    "viewer": {
+      "actions": {
+        "close": "Close",
+        "download": "Download",
+        "downloadOriginal": "Download original",
+        "savingPhoto": "Saving photo…",
+        "menu": "Menu",
+        "info": "Details",
+        "moveToTrash": "Move to trash",
+        "prevPhoto": "Previous photo",
+        "nextPhoto": "Next photo",
+        "comments": "Comments",
+        "addToAlbum": "Add to album",
+        "movedToTrash": "Moved to trash",
+        "deleteFailed": "Couldn't delete. Please try again shortly",
+        "trashConfirmTitle": "Move to trash?",
+        "trashConfirmDescription": "You can restore it from the trash.",
+        "trashConfirmLabel": "Move to trash",
+        "trashConfirmingLabel": "Moving…"
+      },
+      "info": {
+        "details": "Details",
+        "comments": "Comments",
+        "commentsTitle": "Comments {count}",
+        "photoInfo": "Photo info"
+      },
+      "story": {
+        "count": "{index}/{total}"
+      },
+      "video": {
+        "processing": "Processing…",
+        "unsupportedFormat": "This format can't be played on this device.",
+        "play": "Play"
+      }
+    }
+  },
+  "social": {
+    "comment": {
+      "placeholder": "Write a comment… (@name to mention)",
+      "submit": "Post",
+      "submitFailed": "Couldn't post your comment",
+      "retry": "Try again",
+      "save": "Save",
+      "cancel": "Cancel",
+      "edit": "Edit",
+      "delete": "Delete",
+      "menu": "Comment menu",
+      "edited": "(edited)",
+      "deleted": "This comment was deleted",
+      "editFailed": "Couldn't edit your comment",
+      "deleteFailed": "Couldn't delete your comment",
+      "empty": "Be the first to comment.",
+      "me": "Me"
+    },
+    "like": {
+      "like": "Like",
+      "unlike": "Unlike",
+      "failed": "Couldn't update your like",
+      "retry": "Try again",
+      "likedBy": "Liked by {names}",
+      "likedByMore": "Liked by {names} and {count} others"
+    },
+    "bookmark": {
+      "add": "Add bookmark",
+      "remove": "Remove bookmark",
+      "failed": "Couldn't update your bookmark",
+      "retry": "Try again"
+    },
+    "meta": {
+      "saveFailed": "Couldn't save",
+      "filename": "File name",
+      "caption": "Caption",
+      "captionAdd": "Add a caption",
+      "captionPlaceholder": "Write a caption",
+      "takenAt": "Date taken"
+    },
+    "share": {
+      "share": "Share",
+      "shareThisDay": "Share this day",
+      "expiry": "Expires",
+      "ttlPermanent": "Forever",
+      "ttl1d": "1 day",
+      "ttl7d": "7 days",
+      "ttl30d": "30 days",
+      "createLink": "Create share link",
+      "createdLinks": "Share links you made",
+      "linkCount": "{count}",
+      "noLinks": "No share links yet",
+      "expiryPermanent": "Never expires",
+      "expiryExpired": "Expired",
+      "expiryUntil": "Until {date}",
+      "opened": "Someone opened it",
+      "notOpened": "No one has opened it yet",
+      "shareThisLink": "Share this link",
+      "revokeThisLink": "Revoke this link",
+      "createFailed": "Couldn't create the link",
+      "copiedTitle": "Share link copied",
+      "copiedDescription": "Anyone with the link can view it",
+      "createdCopyBelow": "Link created — copy it below",
+      "copyFailed": "Couldn't copy",
+      "revokeFailed": "Couldn't revoke",
+      "revokedTitle": "Link revoked",
+      "revokedDescription": "This link no longer works",
+      "copy": {
+        "story": {
+          "sheetTitle": "Create share link",
+          "intro": "Anyone with the link can see the cover photo and story. Only family can see all the photos."
+        },
+        "asset": {
+          "sheetTitle": "Create photo share link",
+          "intro": "Anyone with the link can view this photo. Only family can save the original."
+        },
+        "album": {
+          "sheetTitle": "Create album share link",
+          "intro": "Anyone with the link can see the album cover and name. Only family can see all the album photos."
+        },
+        "selection": {
+          "sheetTitle": "Create photo share link",
+          "intro": "Anyone with the link can view the selected photos. Only family can save the originals."
+        },
+        "date": {
+          "sheetTitle": "Create share link for this day",
+          "intro": "Anyone with the link can view this day's photos. Only family can save the originals."
+        }
+      }
+    },
+    "download": {
+      "save": "Save",
+      "saveAll": "Save all photos",
+      "saving": "Saving… ({count})"
     }
   }
 }

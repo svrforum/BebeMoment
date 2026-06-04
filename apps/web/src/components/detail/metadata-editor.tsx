@@ -1,6 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Calendar, FileText, Pencil, Type } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type KeyboardEvent, useState } from 'react'
 
@@ -32,6 +33,7 @@ export function MetadataEditor({
 }: Props) {
   const router = useRouter()
   const toast = useToast()
+  const t = useTranslations('social')
 
   const [filename, setFilename] = useState(initialFilename)
   const [caption, setCaption] = useState(initialCaption ?? '')
@@ -56,7 +58,7 @@ export function MetadataEditor({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '저장 실패')
+        throw new Error((err as { error?: string }).error ?? t('meta.saveFailed'))
       }
       const next = (await res.json()) as {
         filename: string
@@ -89,10 +91,14 @@ export function MetadataEditor({
             onSave={(v) => save('filename', v)}
             onCancel={cancel}
             disabled={pending}
-            placeholder="파일명"
+            placeholder={t('meta.filename')}
           />
         ) : (
-          <ClickRow label={filename} secondary="파일명" onEdit={() => setEditing('filename')} />
+          <ClickRow
+            label={filename}
+            secondary={t('meta.filename')}
+            onEdit={() => setEditing('filename')}
+          />
         )}
       </Row>
 
@@ -103,12 +109,12 @@ export function MetadataEditor({
             onSave={(v) => save('caption', v)}
             onCancel={cancel}
             disabled={pending}
-            placeholder="설명을 적어주세요"
+            placeholder={t('meta.captionPlaceholder')}
           />
         ) : (
           <ClickRow
-            label={caption || '설명 추가'}
-            secondary="설명"
+            label={caption || t('meta.captionAdd')}
+            secondary={t('meta.caption')}
             muted={!caption}
             onEdit={() => setEditing('caption')}
           />
@@ -136,7 +142,7 @@ export function MetadataEditor({
               // 타임라인 버킷과 하루 어긋난다. UTC 로 포맷해 버킷과 일치시킨다.
               timeZone: 'UTC',
             })}
-            secondary={`촬영일${takenAtSource !== 'exif' ? ` (${takenAtSource})` : ''}`}
+            secondary={`${t('meta.takenAt')}${takenAtSource !== 'exif' ? ` (${takenAtSource})` : ''}`}
             onEdit={() => setEditing('takenAt')}
           />
         )}

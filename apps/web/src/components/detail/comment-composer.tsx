@@ -1,6 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/lib/toast'
+import { useTranslations } from 'next-intl'
 import { useEffect, useRef, useState } from 'react'
 
 type Member = { id: string; displayName: string }
@@ -29,6 +30,7 @@ export function CommentComposer({
   const [mentionQuery, setMentionQuery] = useState('')
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const toast = useToast()
+  const t = useTranslations('social')
 
   useEffect(() => {
     const match = body.match(/@([^\s@]{0,20})$/)
@@ -68,9 +70,9 @@ export function CommentComposer({
       onOptimisticFail?.(tempId)
       setBody(draftBody)
       toast({
-        title: '댓글을 등록하지 못했어요',
+        title: t('comment.submitFailed'),
         variant: 'danger',
-        action: { label: '다시 시도', onClick: submit },
+        action: { label: t('comment.retry'), onClick: submit },
       })
     } finally {
       setPending(false)
@@ -92,7 +94,7 @@ export function CommentComposer({
         onKeyDown={(e) => {
           if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) submit()
         }}
-        placeholder="댓글 입력… (@이름 으로 멘션)"
+        placeholder={t('comment.placeholder')}
         rows={2}
         maxLength={2000}
         className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm dark:border-base-800 dark:bg-base-900"
@@ -113,7 +115,7 @@ export function CommentComposer({
       )}
       <div className="mt-2 flex justify-end">
         <Button type="button" onClick={submit} disabled={!body.trim() || pending} size="sm">
-          등록
+          {t('comment.submit')}
         </Button>
       </div>
     </div>

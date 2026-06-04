@@ -1,5 +1,6 @@
 'use client'
 import { Download } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 /**
@@ -9,7 +10,7 @@ import { useState } from 'react'
  */
 export function BulkDownloadButton({
   assetIds,
-  label = '사진 전체 저장',
+  label: labelProp,
   className,
 }: {
   assetIds: string[]
@@ -18,6 +19,8 @@ export function BulkDownloadButton({
   className?: string
 }) {
   const [busy, setBusy] = useState(false)
+  const t = useTranslations('social')
+  const label = labelProp ?? t('download.saveAll')
 
   async function downloadAll() {
     if (busy || assetIds.length === 0) return
@@ -44,7 +47,7 @@ export function BulkDownloadButton({
       type="button"
       onClick={downloadAll}
       disabled={busy}
-      aria-label={label || '저장'}
+      aria-label={label || t('download.save')}
       className={
         className ??
         'inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
@@ -52,7 +55,9 @@ export function BulkDownloadButton({
     >
       <Download size={label ? 13 : 18} strokeWidth={2.2} />
       {label ? (
-        <span className="whitespace-nowrap">{busy ? `저장 중… (${assetIds.length})` : label}</span>
+        <span className="whitespace-nowrap">
+          {busy ? t('download.saving', { count: assetIds.length }) : label}
+        </span>
       ) : busy ? (
         <span className="tabular-nums">{assetIds.length}</span>
       ) : null}

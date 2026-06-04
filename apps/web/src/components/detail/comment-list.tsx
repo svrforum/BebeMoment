@@ -1,6 +1,7 @@
 'use client'
 import { useFeature } from '@/lib/features'
 import { useFamilySSE } from '@/lib/sse'
+import { useTranslations } from 'next-intl'
 import { type ReactNode, useCallback, useEffect, useState } from 'react'
 import { CommentComposer, type OptimisticDraft } from './comment-composer'
 import { CommentItem, type CommentWithAuthor } from './comment-item'
@@ -39,6 +40,7 @@ export function CommentList({
   const [comments, setComments] = useState<CommentWithAuthor[]>(initialComments)
   const [optimistic, setOptimistic] = useState<CommentWithAuthor[]>([])
   const commentsOn = useFeature('comments')
+  const t = useTranslations('social')
 
   const refetch = useCallback(async () => {
     const res = await fetch(`/api/asset/${assetId}/comments`)
@@ -52,7 +54,7 @@ export function CommentList({
     (draft: OptimisticDraft) => {
       const author: Author = currentUser ?? {
         id: currentUserId,
-        displayName: '나',
+        displayName: t('comment.me'),
         avatarPath: null,
       }
       const ghost: CommentWithAuthor = {
@@ -67,7 +69,7 @@ export function CommentList({
       }
       setOptimistic((prev) => [...prev, ghost])
     },
-    [assetId, currentUser, currentUserId],
+    [assetId, currentUser, currentUserId, t],
   )
 
   const onOptimisticFail = useCallback((tempId: string) => {
@@ -105,7 +107,7 @@ export function CommentList({
 
   const list =
     merged.length === 0 ? (
-      <p className="py-2 text-sm text-base-500">첫 댓글을 남겨보세요.</p>
+      <p className="py-2 text-sm text-base-500">{t('comment.empty')}</p>
     ) : (
       <div className="divide-y divide-base-100 dark:divide-base-800">
         {merged.map((c) => (

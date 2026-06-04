@@ -5,6 +5,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { loadCalendarMonth } from '@/server/calendar/month'
 import { getContext } from '@/server/context'
+import { getTranslations } from 'next-intl/server'
 
 export default async function CalendarPage({
   searchParams,
@@ -13,6 +14,7 @@ export default async function CalendarPage({
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
+  const t = await getTranslations('timeline')
 
   // 보이는 달만 조달한다(전역 take:500 → 월 범위). 월은 URL(?month=YYYY-MM)에서 읽는다 —
   // MonthGrid 의 prev/next/picker 가 router.push 로 ?month 만 바꾸면 서버가 그 달을 다시
@@ -33,7 +35,7 @@ export default async function CalendarPage({
   return (
     <>
       <PullToRefresh />
-      <AppHeader title="캘린더" />
+      <AppHeader title={t('calendar.title')} />
       <div className="section-enter">
         <MonthGrid initialYear={year} initialMonth={month} storyDays={storyDays} assets={assets} />
       </div>

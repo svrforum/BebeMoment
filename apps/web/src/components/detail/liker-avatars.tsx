@@ -1,6 +1,9 @@
+import { useTranslations } from 'next-intl'
+
 type User = { id: string; displayName: string; avatarPath: string | null }
 
 export function LikerAvatars({ users }: { users: User[] }) {
+  const t = useTranslations('social')
   if (users.length === 0) return null
   const shown = users.slice(0, 5)
   const rest = users.length - shown.length
@@ -8,8 +11,8 @@ export function LikerAvatars({ users }: { users: User[] }) {
 
   const labelText =
     names.length <= 2
-      ? `${names.join(', ')} 님이 좋아함`
-      : `${names.slice(0, 2).join(', ')} 외 ${names.length - 2}명이 좋아함`
+      ? t('like.likedBy', { names: names.join(', ') })
+      : t('like.likedByMore', { names: names.slice(0, 2).join(', '), count: names.length - 2 })
 
   return (
     <div className="flex items-center gap-2">

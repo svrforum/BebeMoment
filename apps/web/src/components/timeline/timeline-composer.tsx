@@ -12,6 +12,7 @@ import {
   ShieldCheck,
   X,
 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
@@ -71,6 +72,7 @@ export function TimelineComposer({
   viewerRole,
   canUpload,
 }: Props) {
+  const t = useTranslations('timeline')
   const router = useRouter()
   const toast = useToast()
   const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
@@ -236,7 +238,7 @@ export function TimelineComposer({
     const trimmed = body.trim()
     // 스토리는 사진 필수 — 최소 1장 없으면 등록 불가.
     if (attachments.length === 0) {
-      toast({ title: '사진을 최소 1장 추가해주세요', variant: 'danger' })
+      toast({ title: t('composer.needPhoto'), variant: 'danger' })
       return
     }
     if (submitting) return
@@ -260,7 +262,7 @@ export function TimelineComposer({
 
       const finalAssetIds = resolveIds()
       if (finalAssetIds.length !== fileIds.length) {
-        throw new Error('사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.')
+        throw new Error(t('composer.uploadNotReady'))
       }
 
       const today = new Date().toISOString().slice(0, 10)
@@ -277,7 +279,7 @@ export function TimelineComposer({
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? '글 등록 실패')
+        throw new Error((err as { error?: string }).error ?? t('composer.submitFailed'))
       }
       reset()
       router.refresh()
@@ -286,7 +288,18 @@ export function TimelineComposer({
     } finally {
       setSubmitting(false)
     }
-  }, [body, attachments, babyId, visibility, reset, router, toast, submitting, startStagedUploads])
+  }, [
+    body,
+    attachments,
+    babyId,
+    visibility,
+    reset,
+    router,
+    toast,
+    submitting,
+    startStagedUploads,
+    t,
+  ])
 
   const initial = userDisplayName.charAt(0)
   const hasDraft = body.length > 0 || attachments.length > 0
@@ -301,13 +314,15 @@ export function TimelineComposer({
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          aria-label="오늘 이야기 쓰기"
+          aria-label={t('composer.writeToday')}
           aria-expanded={false}
           className="group flex w-full items-center gap-3 rounded-full border border-base-200/60 bg-base-0 px-3 py-2 text-left transition-colors ease-ios hover:bg-base-100/60 active:scale-[0.995] dark:border-base-800/60 dark:bg-base-900 dark:hover:bg-base-800/40"
         >
           <PillAvatar avatarPath={userAvatarPath} initial={initial} />
           <span className="min-w-0 flex-1 truncate text-[14px] text-base-500 dark:text-base-400">
-            {hasDraft ? body.trim() || `사진 ${attachments.length}장 첨부됨` : '오늘 이야기 쓰기'}
+            {hasDraft
+              ? body.trim() || t('composer.photosAttached', { count: attachments.length })
+              : t('composer.writeToday')}
           </span>
           <PencilLine
             size={16}
@@ -332,7 +347,7 @@ export function TimelineComposer({
             ref={textareaRef}
             value={body}
             onChange={(e) => setBody(e.target.value)}
-            placeholder="오늘 어떤 이야기가 있었어요?"
+            placeholder={t('composer.placeholder')}
             rows={3}
             maxLength={20000}
             className="w-full resize-none bg-transparent text-[15px] leading-relaxed outline-none placeholder:text-base-400"
@@ -349,7 +364,7 @@ export function TimelineComposer({
         <button
           type="button"
           onClick={collapse}
-          aria-label="접기"
+          aria-label={t('composer.collapse')}
           className="-mr-1 -mt-1 flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition-colors hover:bg-base-100 hover:text-base-600 dark:hover:bg-base-800 dark:hover:text-base-300"
         >
           <X size={16} strokeWidth={2.2} />
@@ -375,7 +390,7 @@ export function TimelineComposer({
                 <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
               ) : (
                 <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                  파일
+                  {t('composer.file')}
                 </div>
               )}
               {submitting && !a.assetId && (
@@ -386,7 +401,7 @@ export function TimelineComposer({
               <button
                 type="button"
                 onClick={() => removeAttachment(a.fileId)}
-                aria-label="제거"
+                aria-label={t('composer.remove')}
                 className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
               >
                 <X size={12} strokeWidth={2.6} />
@@ -395,7 +410,7 @@ export function TimelineComposer({
                 <button
                   type="button"
                   onClick={() => openEditor(a.fileId)}
-                  aria-label="편집"
+                  aria-label={t('composer.edit')}
                   className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
                 >
                   <Pencil size={11} strokeWidth={2.4} />
@@ -422,7 +437,7 @@ export function TimelineComposer({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                aria-label="사진 첨부"
+                aria-label={t('composer.attachPhoto')}
                 className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
               >
                 <ImagePlus size={18} strokeWidth={2} />
@@ -443,7 +458,7 @@ export function TimelineComposer({
                 type="button"
                 onClick={() => setVisMenuOpen((v) => !v)}
                 className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-base-600 transition-colors hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
-                aria-label="공개 범위"
+                aria-label={t('composer.visibility')}
                 aria-expanded={visMenuOpen}
               >
                 {visibility === 'family' ? (
@@ -451,14 +466,18 @@ export function TimelineComposer({
                 ) : (
                   <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" />
                 )}
-                <span>{visibility === 'family' ? '전체 공개' : '보호자만'}</span>
+                <span>
+                  {visibility === 'family'
+                    ? t('composer.visibilityFamily')
+                    : t('composer.visibilityGuardians')}
+                </span>
                 <ChevronDown size={12} strokeWidth={2.2} />
               </button>
               {visMenuOpen && (
                 <>
                   <button
                     type="button"
-                    aria-label="닫기"
+                    aria-label={t('composer.close')}
                     onClick={() => setVisMenuOpen(false)}
                     className="fixed inset-0 z-30 cursor-default bg-transparent"
                   />
@@ -466,8 +485,8 @@ export function TimelineComposer({
                     <VisibilityOption
                       active={visibility === 'family'}
                       icon={<Globe size={14} strokeWidth={2.2} />}
-                      title="전체 공개"
-                      subtitle="가족 모두가 볼 수 있어요"
+                      title={t('composer.visibilityFamily')}
+                      subtitle={t('composer.visibilityFamilyDesc')}
                       onClick={() => {
                         setVisibility('family')
                         setVisMenuOpen(false)
@@ -476,8 +495,8 @@ export function TimelineComposer({
                     <VisibilityOption
                       active={visibility === 'guardians'}
                       icon={<ShieldCheck size={14} strokeWidth={2.2} className="text-point-500" />}
-                      title="보호자만"
-                      subtitle="owner / guardian 역할에게만 보여요"
+                      title={t('composer.visibilityGuardians')}
+                      subtitle={t('composer.visibilityGuardiansDesc')}
                       onClick={() => {
                         setVisibility('guardians')
                         setVisMenuOpen(false)
@@ -489,7 +508,7 @@ export function TimelineComposer({
             </div>
           )}
           {submitting && !allHaveAssetIds && (
-            <span className="ml-1 text-[12px] text-base-500">사진 준비 중…</span>
+            <span className="ml-1 text-[12px] text-base-500">{t('composer.preparingPhotos')}</span>
           )}
         </div>
         <div className="flex items-center gap-2">
@@ -499,7 +518,7 @@ export function TimelineComposer({
               onClick={reset}
               className="rounded-full px-3 py-1.5 text-[13px] font-medium text-base-500 hover:bg-base-100 dark:hover:bg-base-800"
             >
-              취소
+              {t('composer.cancel')}
             </button>
           )}
           <button
@@ -508,7 +527,7 @@ export function TimelineComposer({
             disabled={submitting || attachments.length === 0}
             className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
           >
-            {submitting ? '올리는 중…' : '올리기'}
+            {submitting ? t('composer.submitting') : t('composer.submit')}
           </button>
         </div>
       </div>

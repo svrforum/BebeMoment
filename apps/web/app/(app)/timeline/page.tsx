@@ -20,6 +20,7 @@ import { bucketLabel } from '@bebe/core'
 import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Sparkles, UsersRound } from 'lucide-react'
+import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { z } from 'zod'
 
@@ -30,6 +31,7 @@ export default async function TimelinePage({
 }) {
   const ctx = await getContext()
   if (!ctx.family) return null
+  const t = await getTranslations('timeline')
   const { date, sort } = await searchParams
   const dateFilter = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null
   const sortMode: 'taken' | 'uploaded' = sort === 'uploaded' ? 'uploaded' : 'taken'
@@ -93,14 +95,25 @@ export default async function TimelinePage({
   // 컴포저는 숨기고, 헤더에 날짜·요일·카운트 + 캘린더로 돌아가는 좌측 버튼.
   if (dateFilter) {
     const dateObj = new Date(`${dateFilter}T00:00:00.000Z`)
-    const WEEKDAYS_KO = ['일요일', '월요일', '화요일', '수요일', '목요일', '금요일', '토요일']
-    const headerTitle = `${dateObj.getUTCMonth() + 1}월 ${dateObj.getUTCDate()}일`
-    const weekdayLabel = WEEKDAYS_KO[dateObj.getUTCDay()] ?? ''
+    const headerTitle = t('page.dateTitle', {
+      month: dateObj.getUTCMonth() + 1,
+      day: dateObj.getUTCDate(),
+    })
+    const WEEKDAY_KEYS = [
+      'page.weekday0',
+      'page.weekday1',
+      'page.weekday2',
+      'page.weekday3',
+      'page.weekday4',
+      'page.weekday5',
+      'page.weekday6',
+    ] as const
+    const weekdayLabel = t(WEEKDAY_KEYS[dateObj.getUTCDay()] ?? 'page.weekday0')
     const photoCount = assetItems.length
     const storyCount = storyItems.length
     const countParts = [
-      photoCount > 0 ? `사진 ${photoCount}` : null,
-      storyCount > 0 ? `스토리 ${storyCount}` : null,
+      photoCount > 0 ? t('page.photoCount', { count: photoCount }) : null,
+      storyCount > 0 ? t('page.storyCount', { count: storyCount }) : null,
     ].filter((s): s is string => Boolean(s))
     const subtitle = [weekdayLabel, ...countParts].filter(Boolean).join(' · ')
     const isEmpty = photoCount === 0 && storyCount === 0
@@ -114,10 +127,10 @@ export default async function TimelinePage({
               // 그 날짜가 속한 달로 돌아간다(예전엔 항상 현재월로 리셋). dateFilter=YYYY-MM-DD.
               href={`/calendar?month=${dateFilter.slice(0, 7)}`}
               className="-ml-1.5 flex h-9 items-center gap-1 rounded-full px-2.5 text-[13px] font-medium text-point-600 transition hover:bg-base-100 dark:text-point-400 dark:hover:bg-base-800"
-              aria-label="캘린더로 돌아가기"
+              aria-label={t('page.backToCalendar')}
             >
               <ArrowLeft className="h-4 w-4" strokeWidth={2.4} />
-              <span>캘린더로</span>
+              <span>{t('page.toCalendar')}</span>
             </Link>
           }
           right={photoCount > 0 ? <DateShareButton date={dateFilter} /> : undefined}
@@ -134,7 +147,7 @@ export default async function TimelinePage({
         )}
         {isEmpty ? (
           <div className="mx-auto max-w-3xl px-5 py-16 text-center text-sm text-base-400">
-            이 날짜에 올린 게 없어요.
+            {t('page.dateEmpty')}
           </div>
         ) : photoCount > 0 ? (
           <TimelineGrid
@@ -205,7 +218,7 @@ export default async function TimelinePage({
           <>
             <Link
               href="/memories"
-              aria-label={hasMemoryToday ? '추억 (새 추억)' : '추억'}
+              aria-label={hasMemoryToday ? t('page.memoriesNew') : t('page.memories')}
               className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
             >
               <Sparkles className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -216,7 +229,7 @@ export default async function TimelinePage({
             {features.faces && (
               <Link
                 href="/people"
-                aria-label={hasNewPeople ? '사람 (새 사람)' : '사람'}
+                aria-label={hasNewPeople ? t('page.peopleNew') : t('page.people')}
                 className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
               >
                 <UsersRound className="h-[18px] w-[18px]" strokeWidth={2} />
@@ -236,7 +249,7 @@ export default async function TimelinePage({
       {features.diary && ctx.capabilities.includes('record.create') && (
         <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 pt-3">
           <TimelineComposer
-            userDisplayName={ctx.user?.displayName ?? '나'}
+            userDisplayName={ctx.user?.displayName ?? t('page.me')}
             userAvatarPath={ctx.user?.avatarPath ?? null}
             babyId={baby?.id ?? null}
             viewerRole={viewerRole}

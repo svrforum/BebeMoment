@@ -20,6 +20,16 @@ def dump(p, data):
     p.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n")
 
 
+def deep_merge(dst, src):
+    """src 를 dst 에 재귀 병합(중첩 dict 는 병합, 리프는 src 로 덮어씀)."""
+    for k, v in src.items():
+        if isinstance(v, dict) and isinstance(dst.get(k), dict):
+            deep_merge(dst[k], v)
+        else:
+            dst[k] = v
+    return dst
+
+
 def main(argv):
     if len(argv) < 2 or len(argv) % 2 != 0:
         print("usage: merge-i18n.py <ns> <file> [<ns> <file> ...]")
@@ -32,8 +42,8 @@ def main(argv):
         if "ko" not in cat or "en" not in cat:
             print(f"✗ {fpath}: missing ko/en")
             return 1
-        ko[ns] = cat["ko"]
-        en[ns] = cat["en"]
+        deep_merge(ko.setdefault(ns, {}), cat["ko"])
+        deep_merge(en.setdefault(ns, {}), cat["en"])
         print(f"✓ merged namespace '{ns}' from {fpath}")
     dump(MSG / "ko.json", ko)
     dump(MSG / "en.json", en)

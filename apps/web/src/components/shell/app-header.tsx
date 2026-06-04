@@ -1,6 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { ChevronDown } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useState } from 'react'
 
 type Props = {
@@ -22,6 +23,7 @@ type Props = {
  * 진동(깜빡임)하는 문제가 있어, 높이 고정 단일 바로 단순화했다.
  */
 export function AppHeader({ title, subtitle, left, right, wide = false, switchHref }: Props) {
+  const t = useTranslations('shell')
   const [scrolled, setScrolled] = useState(false)
   const [isApp, setIsApp] = useState(false)
 
@@ -56,7 +58,7 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
           size={18}
           strokeWidth={2.4}
           className="shrink-0 text-base-400"
-          aria-label="가족 전환"
+          aria-label={t('switchFamily')}
         />
       </a>
     ) : (

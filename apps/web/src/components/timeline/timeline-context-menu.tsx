@@ -1,5 +1,6 @@
 'use client'
 import { CheckCircle2, Download, Eye, FolderPlus, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ReactNode, useEffect, useRef } from 'react'
 
@@ -44,6 +45,7 @@ export function TimelineContextMenu({
   onDelete,
   sort = 'taken',
 }: Props) {
+  const t = useTranslations('timeline')
   const ref = useRef<HTMLDivElement>(null)
   const router = useRouter()
 
@@ -91,7 +93,7 @@ export function TimelineContextMenu({
           router.push(`/detail/${publicNo ?? assetId}${q}`)
         }}
       >
-        상세 보기
+        {t('grid.menuDetail')}
       </Item>
       <Item
         icon={<CheckCircle2 size={16} strokeWidth={2.2} />}
@@ -100,7 +102,7 @@ export function TimelineContextMenu({
           onClose()
         }}
       >
-        {isSelected ? '선택에서 제거' : '선택에 추가'}
+        {isSelected ? t('grid.menuDeselect') : t('grid.menuSelect')}
       </Item>
       <Item
         icon={<Download size={16} strokeWidth={2.2} />}
@@ -114,7 +116,7 @@ export function TimelineContextMenu({
           onClose()
         }}
       >
-        저장
+        {t('grid.menuSave')}
       </Item>
       {canAlbum && (
         <Item
@@ -124,7 +126,7 @@ export function TimelineContextMenu({
             onClose()
           }}
         >
-          앨범에 추가
+          {t('grid.menuAddToAlbum')}
         </Item>
       )}
       {canDelete && (
@@ -138,7 +140,7 @@ export function TimelineContextMenu({
               onClose()
             }}
           >
-            삭제
+            {t('grid.menuDelete')}
           </Item>
         </>
       )}

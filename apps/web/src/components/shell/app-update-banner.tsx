@@ -1,4 +1,5 @@
 'use client'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 // 앱 APK 는 GitHub 릴리즈(android-v* 태그)로만 배포된다. 앱은 UA 에 bebeApp/<ver> 를
@@ -25,6 +26,7 @@ function isNewer(latest: string, current: string): boolean {
 type Latest = { version: string; url: string }
 
 export function AppUpdateBanner() {
+  const t = useTranslations('shell')
   const [latest, setLatest] = useState<Latest | null>(null)
 
   useEffect(() => {
@@ -81,9 +83,9 @@ export function AppUpdateBanner() {
   return (
     <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-base-900 px-4 py-3 text-sm shadow-lg dark:bg-base-100">
       <div className="min-w-0 flex-1">
-        <p className="font-semibold text-base-50 dark:text-base-900">새 버전이 나왔어요</p>
+        <p className="font-semibold text-base-50 dark:text-base-900">{t('update.title')}</p>
         <p className="truncate text-[13px] text-base-400 dark:text-base-500">
-          앱 {latest.version} 으로 업데이트할 수 있어요
+          {t('update.body', { version: latest.version })}
         </p>
       </div>
       <a
@@ -92,12 +94,12 @@ export function AppUpdateBanner() {
         rel="noopener noreferrer"
         className="shrink-0 rounded-full bg-point-500 px-3.5 py-1.5 font-semibold text-white active:scale-95"
       >
-        업데이트
+        {t('update.action')}
       </a>
       <button
         type="button"
         onClick={dismiss}
-        aria-label="닫기"
+        aria-label={t('update.dismiss')}
         className="shrink-0 text-base-400 active:opacity-70 dark:text-base-500"
       >
         ✕

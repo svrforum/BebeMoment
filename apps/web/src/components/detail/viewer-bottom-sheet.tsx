@@ -2,6 +2,7 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useFeatures } from '@/lib/features'
 import { ChevronDown } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 import { BookmarkButton } from './bookmark-button'
 import type { CommentWithAuthor } from './comment-item'
@@ -61,6 +62,7 @@ export function ViewerBottomSheet({
   initialDetailsOpen?: boolean
 }) {
   const features = useFeatures()
+  const t = useTranslations('viewer')
   // 시트가 열릴 때마다 진입 의도(정보 vs 댓글)에 맞춰 세부정보 펼침 상태 초기화.
   const [detailsOpen, setDetailsOpen] = useState(false)
   useEffect(() => {
@@ -85,7 +87,7 @@ export function ViewerBottomSheet({
         className="group border-b border-base-100 py-1 dark:border-base-800"
       >
         <summary className="flex cursor-pointer list-none items-center justify-between py-2 text-sm font-medium text-base-700 dark:text-base-300">
-          세부정보
+          {t('info.details')}
           <ChevronDown
             size={16}
             className="text-base-400 transition-transform group-open:rotate-180"
@@ -111,7 +113,9 @@ export function ViewerBottomSheet({
     <Sheet
       open={open}
       onOpenChange={onOpenChange}
-      title={features.comments ? `댓글 ${commentCount}` : '사진 정보'}
+      title={
+        features.comments ? t('info.commentsTitle', { count: commentCount }) : t('info.photoInfo')
+      }
       fill
     >
       {features.comments ? (

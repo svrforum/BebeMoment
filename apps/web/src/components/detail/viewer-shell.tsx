@@ -3,6 +3,7 @@ import { AlbumPicker } from '@/components/albums/album-picker'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
@@ -116,6 +117,7 @@ export function ViewerShell({
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const router = useRouter()
   const toast = useToast()
+  const t = useTranslations('viewer')
 
   // 같은 자산으로 중복 navigate 가 떨어지는 걸 막기 위한 가드 (Swiper slide change 가
   // 빠르게 두 번 발사될 수 있음). 마지막 처리한 id 를 기억.
@@ -242,11 +244,11 @@ export function ViewerShell({
     try {
       const res = await fetch(`/api/asset/${currentSlim.id}/delete`, { method: 'POST' })
       if (!res.ok) throw new Error()
-      toast({ title: '휴지통으로 옮겼어요', variant: 'success' })
+      toast({ title: t('actions.movedToTrash'), variant: 'success' })
       router.push('/timeline')
       router.refresh()
     } catch {
-      toast({ title: '삭제하지 못했어요. 잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({ title: t('actions.deleteFailed'), variant: 'danger' })
       throw new Error('delete failed') // 시트가 닫히지 않게(재시도 가능)
     }
   }
@@ -400,10 +402,10 @@ export function ViewerShell({
       <ConfirmSheet
         open={confirmDeleteOpen}
         onOpenChange={setConfirmDeleteOpen}
-        title="휴지통으로 옮길까요?"
-        description="휴지통에서 다시 복원할 수 있어요."
-        confirmLabel="휴지통으로"
-        confirmingLabel="옮기는 중…"
+        title={t('actions.trashConfirmTitle')}
+        description={t('actions.trashConfirmDescription')}
+        confirmLabel={t('actions.trashConfirmLabel')}
+        confirmingLabel={t('actions.trashConfirmingLabel')}
         onConfirm={doDelete}
       />
     </div>

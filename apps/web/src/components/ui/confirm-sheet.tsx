@@ -1,6 +1,7 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
 import { AlertTriangle } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { type ReactNode, useTransition } from 'react'
 
 type Props = {
@@ -37,12 +38,16 @@ export function ConfirmSheet({
   onOpenChange,
   title,
   description,
-  confirmLabel = '삭제',
-  cancelLabel = '취소',
-  confirmingLabel = '삭제 중…',
+  confirmLabel,
+  cancelLabel,
+  confirmingLabel,
   onConfirm,
   icon,
 }: Props) {
+  const t = useTranslations('common')
+  const resolvedConfirmLabel = confirmLabel ?? t('delete')
+  const resolvedCancelLabel = cancelLabel ?? t('cancel')
+  const resolvedConfirmingLabel = confirmingLabel ?? t('deleting')
   const [pending, startTransition] = useTransition()
 
   const handleConfirm = () => {
@@ -75,7 +80,7 @@ export function ConfirmSheet({
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-500 text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:bg-red-600 disabled:opacity-60"
           >
-            {pending ? confirmingLabel : confirmLabel}
+            {pending ? resolvedConfirmingLabel : resolvedConfirmLabel}
           </button>
           <button
             type="button"
@@ -83,7 +88,7 @@ export function ConfirmSheet({
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 transition-colors hover:bg-base-200 disabled:opacity-60 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"
           >
-            {cancelLabel}
+            {resolvedCancelLabel}
           </button>
         </div>
       </div>

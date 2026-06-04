@@ -3,7 +3,10 @@ import { Sheet } from '@/components/ui/sheet'
 import { shareOrCopy } from '@/lib/share-link'
 import { useToast } from '@/lib/toast'
 import { Link2, Loader2, Share2, Trash2 } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
+
+type Translate = ReturnType<typeof useTranslations>
 
 export type SheetTarget =
   | { kind: 'story'; storyId: string }
@@ -44,11 +47,11 @@ function createBody(t: SheetTarget): Record<string, unknown> {
 }
 
 type Ttl = 'permanent' | '1d' | '7d' | '30d'
-const TTL_OPTIONS: { value: Ttl; label: string }[] = [
-  { value: 'permanent', label: '영구' },
-  { value: '1d', label: '1일' },
-  { value: '7d', label: '7일' },
-  { value: '30d', label: '30일' },
+const ttlOptions = (t: Translate): { value: Ttl; label: string }[] => [
+  { value: 'permanent', label: t('share.ttlPermanent') },
+  { value: '1d', label: t('share.ttl1d') },
+  { value: '7d', label: t('share.ttl7d') },
+  { value: '30d', label: t('share.ttl30d') },
 ]
 
 type Link = {
@@ -61,37 +64,21 @@ type Link = {
 
 const dateFmt = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' })
 
-function expiryLabel(l: Link): string {
-  if (l.expiresAt === null) return '영구 공유'
-  if (l.expired) return '만료됨'
-  return `${dateFmt.format(new Date(l.expiresAt))}까지`
+function expiryLabel(l: Link, t: Translate): string {
+  if (l.expiresAt === null) return t('share.expiryPermanent')
+  if (l.expired) return t('share.expiryExpired')
+  return t('share.expiryUntil', { date: dateFmt.format(new Date(l.expiresAt)) })
 }
 
 const shareUrl = (token: string) => `${window.location.origin}/s/${token}`
 
-const COPY: Record<SheetTarget['kind'], { sheetTitle: string; intro: string }> = {
-  story: {
-    sheetTitle: '공유 링크 만들기',
-    intro: '링크를 아는 사람은 대표 사진과 글을 볼 수 있어요. 전체 사진은 가족만 볼 수 있어요.',
-  },
-  asset: {
-    sheetTitle: '사진 공유 링크 만들기',
-    intro: '링크를 아는 사람은 이 사진을 볼 수 있어요. 원본 저장은 가족만 할 수 있어요.',
-  },
-  album: {
-    sheetTitle: '앨범 공유 링크 만들기',
-    intro:
-      '링크를 아는 사람은 앨범 표지와 이름을 볼 수 있어요. 앨범 사진 전체는 가족만 볼 수 있어요.',
-  },
-  selection: {
-    sheetTitle: '사진 공유 링크 만들기',
-    intro: '링크를 아는 사람은 선택한 사진을 볼 수 있어요. 원본 저장은 가족만 할 수 있어요.',
-  },
-  date: {
-    sheetTitle: '이 날 공유 링크 만들기',
-    intro: '링크를 아는 사람은 이 날의 사진을 볼 수 있어요. 원본 저장은 가족만 할 수 있어요.',
-  },
-}
+const copyFor = (
+  t: Translate,
+  kind: SheetTarget['kind'],
+): { sheetTitle: string; intro: string } => ({
+  sheetTitle: t(`share.copy.${kind}.sheetTitle`),
+  intro: t(`share.copy.${kind}.intro`),
+})
 
 export function ShareSheet({
   target,
@@ -105,6 +92,7 @@ export function ShareSheet({
   onOpenChange: (open: boolean) => void
 }) {
   const toast = useToast()
+  const t = useTranslations('social')
   const [ttl, setTtl] = useState<Ttl>('permanent')
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(false)
@@ -140,7 +128,7 @@ export function ShareSheet({
       })
       const data = await res.json().catch(() => ({}))
       if (!res.ok) {
-        toast({ title: data.error ?? '링크를 만들지 못했어요', variant: 'danger' })
+        toast({ title: data.error ?? t('share.createFailed'), variant: 'danger' })
         return
       }
       // 목록 가능(쿼리 있음)이면 새로고침, 선택(목록 불가)이면 만든 링크만 로컬에 추가.
@@ -159,24 +147,23 @@ export function ShareSheet({
       const r = await shareOrCopy(shareUrl(data.token), title)
       if (r === 'copied')
         toast({
-          title: '공유 링크를 복사했어요',
-          description: '링크를 아는 사람은 볼 수 있어요',
+          title: t('share.copiedTitle'),
+          description: t('share.copiedDescription'),
           variant: 'success',
         })
-      else if (r === 'failed')
-        toast({ title: '링크는 만들었어요 — 아래에서 복사해주세요', variant: 'default' })
+      else if (r === 'failed') toast({ title: t('share.createdCopyBelow'), variant: 'default' })
     } finally {
       setCreating(false)
     }
-  }, [target, query, ttl, title, refresh, toast])
+  }, [target, query, ttl, title, refresh, toast, t])
 
   const onShareExisting = useCallback(
     async (token: string) => {
       const r = await shareOrCopy(shareUrl(token), title)
-      if (r === 'copied') toast({ title: '공유 링크를 복사했어요', variant: 'success' })
-      else if (r === 'failed') toast({ title: '복사하지 못했어요', variant: 'danger' })
+      if (r === 'copied') toast({ title: t('share.copiedTitle'), variant: 'success' })
+      else if (r === 'failed') toast({ title: t('share.copyFailed'), variant: 'danger' })
     },
-    [title, toast],
+    [title, toast, t],
   )
 
   const onRevoke = useCallback(
@@ -184,20 +171,21 @@ export function ShareSheet({
       setLinks((prev) => prev.filter((l) => l.token !== token))
       const res = await fetch(`/api/share/${encodeURIComponent(token)}`, { method: 'DELETE' })
       if (!res.ok) {
-        toast({ title: '해제하지 못했어요', variant: 'danger' })
+        toast({ title: t('share.revokeFailed'), variant: 'danger' })
         refresh()
         return
       }
       toast({
-        title: '링크를 해제했어요',
-        description: '이제 이 링크로는 볼 수 없어요',
+        title: t('share.revokedTitle'),
+        description: t('share.revokedDescription'),
         variant: 'success',
       })
     },
-    [refresh, toast],
+    [refresh, toast, t],
   )
 
-  const copy = COPY[target.kind]
+  const copy = copyFor(t, target.kind)
+  const ttlOpts = ttlOptions(t)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={copy.sheetTitle}>
@@ -205,9 +193,9 @@ export function ShareSheet({
         <p className="text-[13px] leading-relaxed text-base-500">{copy.intro}</p>
 
         <div>
-          <p className="mb-2 text-[12px] font-medium text-base-500">유효기간</p>
+          <p className="mb-2 text-[12px] font-medium text-base-500">{t('share.expiry')}</p>
           <div className="grid grid-cols-4 gap-1.5 rounded-2xl bg-base-100 p-1 dark:bg-base-800">
-            {TTL_OPTIONS.map((o) => (
+            {ttlOpts.map((o) => (
               <button
                 key={o.value}
                 type="button"
@@ -231,12 +219,13 @@ export function ShareSheet({
           className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-point-500 text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-60"
         >
           {creating ? <Loader2 size={18} className="animate-spin" /> : <Link2 size={18} />}
-          공유 링크 만들기
+          {t('share.createLink')}
         </button>
 
         <div>
           <p className="mb-2 text-[12px] font-medium text-base-500">
-            만든 공유 링크{links.length > 0 ? ` · ${links.length}개` : ''}
+            {t('share.createdLinks')}
+            {links.length > 0 ? ` · ${t('share.linkCount', { count: links.length })}` : ''}
           </p>
           {loading ? (
             <div className="flex justify-center py-6">
@@ -244,7 +233,7 @@ export function ShareSheet({
             </div>
           ) : links.length === 0 ? (
             <p className="rounded-2xl bg-base-100 px-4 py-5 text-center text-[13px] text-base-400 dark:bg-base-800/60">
-              아직 만든 공유 링크가 없어요
+              {t('share.noLinks')}
             </p>
           ) : (
             <ul className="space-y-2">
@@ -259,17 +248,17 @@ export function ShareSheet({
                         l.expired ? 'text-base-400' : 'text-base-800 dark:text-base-100'
                       }`}
                     >
-                      {expiryLabel(l)}
+                      {expiryLabel(l, t)}
                     </p>
                     <p className="truncate text-[11px] text-base-400">
-                      {l.lastAccessedAt ? '누군가 열어봤어요' : '아직 아무도 안 열었어요'}
+                      {l.lastAccessedAt ? t('share.opened') : t('share.notOpened')}
                     </p>
                   </div>
                   {!l.expired && (
                     <button
                       type="button"
                       onClick={() => onShareExisting(l.token)}
-                      aria-label="이 링크 공유"
+                      aria-label={t('share.shareThisLink')}
                       className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:hover:bg-base-800"
                     >
                       <Share2 size={16} strokeWidth={2.2} />
@@ -278,7 +267,7 @@ export function ShareSheet({
                   <button
                     type="button"
                     onClick={() => onRevoke(l.token)}
-                    aria-label="이 링크 해제"
+                    aria-label={t('share.revokeThisLink')}
                     className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-danger/10 hover:text-danger active:scale-95"
                   >
                     <Trash2 size={16} strokeWidth={2.2} />

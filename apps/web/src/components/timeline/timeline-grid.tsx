@@ -9,6 +9,7 @@ import { useToast } from '@/lib/toast'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { StoryCardData } from '@/components/story/story-card'
@@ -92,6 +93,7 @@ export function TimelineGrid({
   sort = 'taken',
   viewerCtx = null,
 }: Props) {
+  const t = useTranslations('timeline')
   const router = useRouter()
   const toast = useToast()
 
@@ -167,11 +169,11 @@ export function TimelineGrid({
       setGroups((prev) => mergeGroups(prev, revived))
       setCursor(data.nextCursor)
     } catch {
-      toast({ title: '더 불러오지 못했어요. 잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({ title: t('grid.loadMoreFailed'), variant: 'danger' })
     } finally {
       setLoadingMore(false)
     }
-  }, [cursor, loadingMore, sort, date, toast])
+  }, [cursor, loadingMore, sort, date, toast, t])
 
   useEffect(() => {
     const el = sentinelRef.current
@@ -256,16 +258,22 @@ export function TimelineGrid({
     const failures = results.filter((r) => r.status === 'rejected').length
     if (failures > 0) {
       toast({
-        title: '일부 삭제 실패',
-        description: `${ids.length - failures}/${ids.length}개 삭제됨. 다시 시도해주세요.`,
+        title: t('grid.deletePartialFailed'),
+        description: t('grid.deletePartialDesc', {
+          done: ids.length - failures,
+          total: ids.length,
+        }),
         variant: 'danger',
       })
     } else {
-      toast({ title: `${ids.length}장 삭제됨`, description: '휴지통에서 복구할 수 있어요' })
+      toast({
+        title: t('grid.deletedCount', { count: ids.length }),
+        description: t('grid.deletedDesc'),
+      })
     }
     clearSelection()
     router.refresh()
-  }, [selected, clearSelection, router, toast])
+  }, [selected, clearSelection, router, toast, t])
 
   // Esc clears the selection — only when a sheet/modal isn't taking
   // priority over the keyboard. Skipping when the picker is open lets the
@@ -323,16 +331,16 @@ export function TimelineGrid({
       return (
         <EmptyState
           icon={ImagePlus}
-          title="아직 올라온 사진이 없어요"
-          description="곧 새로운 사진이 올라올 거예요"
+          title={t('grid.emptyTitle')}
+          description={t('grid.emptyViewerDesc')}
         />
       )
     }
     return (
       <EmptyState
         icon={ImagePlus}
-        title="아직 올라온 사진이 없어요"
-        description="우측 하단 + 버튼을 눌러 첫 사진을 올려보세요"
+        title={t('grid.emptyTitle')}
+        description={t('grid.emptyUploaderDesc')}
       />
     )
   }
@@ -358,7 +366,7 @@ export function TimelineGrid({
             {showDivider && i === boundaryIndex && (
               <div className="my-6 flex items-center gap-3 px-1">
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
-                <span className="text-[12px] font-medium text-base-400">여기까지 봤어요</span>
+                <span className="text-[12px] font-medium text-base-400">{t('grid.seenUpTo')}</span>
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
               </div>
             )}
@@ -415,8 +423,8 @@ export function TimelineGrid({
       <ConfirmSheet
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
-        title={`${selected.size}장을 삭제할까요?`}
-        description="휴지통으로 옮겨지고, 거기서 30일 안에 복구할 수 있어요."
+        title={t('grid.confirmDeleteTitle', { count: selected.size })}
+        description={t('grid.confirmDeleteDesc')}
         onConfirm={bulkDelete}
       />
 
@@ -457,6 +465,7 @@ function SelectionBar({
   onAlbum: () => void
   onDelete: () => void
 }) {
+  const t = useTranslations('timeline')
   return (
     <div
       className="fixed inset-x-0 bottom-16 z-40 mx-auto flex max-w-md items-center gap-1.5 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
@@ -465,13 +474,13 @@ function SelectionBar({
       <button
         type="button"
         onClick={onCancel}
-        aria-label="선택 해제"
+        aria-label={t('grid.clearSelection')}
         className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 dark:hover:bg-base-800"
       >
         <X size={18} strokeWidth={2} />
       </button>
       <span className="shrink-0 whitespace-nowrap px-1 text-[13px] font-medium tabular-nums">
-        {count}장 선택됨
+        {t('grid.selectedCount', { count })}
       </span>
       <div className="flex-1" />
       <BulkDownloadButton
@@ -484,7 +493,7 @@ function SelectionBar({
         <button
           type="button"
           onClick={onDelete}
-          aria-label="삭제"
+          aria-label={t('grid.delete')}
           className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
         >
           <Trash2 size={18} strokeWidth={2.2} />
@@ -497,7 +506,7 @@ function SelectionBar({
           className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-500 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
         >
           <FolderPlus size={14} strokeWidth={2.4} />
-          앨범에 추가
+          {t('grid.addToAlbum')}
         </button>
       )}
     </div>

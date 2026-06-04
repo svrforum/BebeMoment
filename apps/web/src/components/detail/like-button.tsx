@@ -4,6 +4,7 @@ import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 type Controlled = {
@@ -28,6 +29,7 @@ export function LikeButton(props: Props) {
   const [pending, setPending] = useState(false)
   const toast = useToast()
   const likesOn = useFeature('likes')
+  const t = useTranslations('social')
 
   const liked = props.controlled ? props.controlled.liked : internalLiked
   const count = props.controlled ? props.controlled.count : internalCount
@@ -53,9 +55,9 @@ export function LikeButton(props: Props) {
       setLiked(prevLiked)
       setCount(prevCount)
       toast({
-        title: '좋아요를 반영하지 못했어요',
+        title: t('like.failed'),
         variant: 'danger',
-        action: { label: '다시 시도', onClick },
+        action: { label: t('like.retry'), onClick },
       })
     } finally {
       setPending(false)
@@ -69,7 +71,7 @@ export function LikeButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={liked}
-      aria-label={liked ? '좋아요 취소' : '좋아요'}
+      aria-label={liked ? t('like.unlike') : t('like.like')}
       className={cn(
         'focus-ring inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',
