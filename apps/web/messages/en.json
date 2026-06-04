@@ -19,7 +19,12 @@
       "clear": "Clear"
     },
     "confirm": "OK",
-    "loading": "Loading…"
+    "loading": "Loading…",
+    "notFound": {
+      "title": "Page not found",
+      "body": "Please check the address and try again.",
+      "home": "Go home"
+    }
   },
   "settings": {
     "language": {
@@ -1225,6 +1230,12 @@
         "auto": "Follow system",
         "light": "Light",
         "dark": "Dark"
+      },
+      "defaultLocale": "Default language",
+      "defaultLocaleHelp": "The shared family language used for server-sent messages like notifications. Each person can change their own display language in settings.",
+      "locale": {
+        "ko": "한국어",
+        "en": "English"
       }
     },
     "features": {
@@ -1502,5 +1513,22 @@
       "emptyTitle": "Nothing saved yet",
       "emptyDescription": "Tap the bookmark icon on a photo or story and it'll gather here"
     }
+  },
+  "push": {
+    "titleFallback": "Our family",
+    "assetUploaded": "A new photo was added 📷",
+    "commentMention": "You were mentioned in a comment 💬",
+    "commentMentionSnippet": "You were mentioned in a comment 💬 \"{snippet}\"",
+    "albumAdded": "A new photo was added to an album 📁",
+    "albumAddedNamed": "A photo was added to {album} 📁",
+    "diaryCreated": "A new story was posted ✍️",
+    "growthCreated": "{baby}A growth record was added 📏",
+    "milestoneCreated": "{baby}Milestone{label} 🎉",
+    "memory": "A memory from {interval} ago 💝",
+    "memoryWithCount": "A memory from {interval} ago 💝 · {count} photos",
+    "digestBoth": "{photos} new photos and {others} new updates 💌",
+    "digestPhotos": "{photos} new photos were added 📷",
+    "digestOthers": "{others} new updates 💌",
+    "digestEmpty": "New updates 💌"
   }
 }

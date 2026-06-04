@@ -1,5 +1,9 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
+import type { Locale } from '@/i18n/request'
+import { type ServerT, getServerTranslator } from '@/i18n/translator'
 import { resolveRecipients } from './recipients'
+
+type PushT = ServerT
 
 /** comment.created payload 는 mentionedUserIds 를 JSON 문자열로 싣는다. */
 function parseMentionedUserIds(raw: string | undefined): string[] | undefined {
@@ -52,43 +56,45 @@ export type NotifContext = {
 export function buildNotification(
   job: NotificationJob,
   ctx: NotifContext,
+  t: PushT,
 ): {
   title: string
   body: string
   url: string
 } {
-  const title = ctx.familyName || '우리 가족'
+  const title = ctx.familyName || t('titleFallback')
   switch (job.type) {
     case 'asset.uploaded':
-      return { title, body: '새 사진이 올라왔어요 📷', url: `/detail/${job.payload.assetId}` }
+      return { title, body: t('assetUploaded'), url: `/detail/${job.payload.assetId}` }
     case 'comment.created':
       return {
         title,
         body: ctx.commentSnippet
-          ? `댓글에서 회원님을 멘션했어요 💬 "${ctx.commentSnippet}"`
-          : '댓글에서 회원님을 멘션했어요 💬',
+          ? t('commentMentionSnippet', { snippet: ctx.commentSnippet })
+          : t('commentMention'),
         url: `/detail/${job.payload.assetId}`,
       }
     case 'album.asset_added':
       return {
         title,
-        body: ctx.albumName
-          ? `'${ctx.albumName}' 앨범에 사진이 추가됐어요 📁`
-          : '앨범에 새 사진이 추가됐어요 📁',
+        body: ctx.albumName ? t('albumAddedNamed', { album: ctx.albumName }) : t('albumAdded'),
         url: `/albums/${job.payload.albumId}`,
       }
     case 'diary.created':
-      return { title, body: '새 이야기가 올라왔어요 ✍️', url: `/story/${job.payload.entryId}` }
+      return { title, body: t('diaryCreated'), url: `/story/${job.payload.entryId}` }
     case 'growth.created':
       return {
         title,
-        body: `${ctx.babyName ? `${ctx.babyName} ` : ''}성장 기록이 추가됐어요 📏`,
+        body: t('growthCreated', { baby: ctx.babyName ? `${ctx.babyName} ` : '' }),
         url: '/timeline',
       }
     case 'milestone.created':
       return {
         title,
-        body: `${ctx.babyName ? `${ctx.babyName} ` : ''}마일스톤${ctx.milestoneLabel ? ` · ${ctx.milestoneLabel}` : ''} 🎉`,
+        body: t('milestoneCreated', {
+          baby: ctx.babyName ? `${ctx.babyName} ` : '',
+          label: ctx.milestoneLabel ? ` · ${ctx.milestoneLabel}` : '',
+        }),
         url: '/timeline',
       }
     case 'memory.yearly':
@@ -97,7 +103,7 @@ export function buildNotification(
       const count = job.payload.count ?? ''
       return {
         title,
-        body: `${interval} 전 오늘의 추억 💝${count ? ` · 사진 ${count}장` : ''}`,
+        body: count ? t('memoryWithCount', { interval, count }) : t('memory', { interval }),
         url: '/memories',
       }
     }
@@ -105,10 +111,10 @@ export function buildNotification(
       const photos = Number(job.payload.photos ?? '0')
       const others = Number(job.payload.others ?? '0')
       let body: string
-      if (photos > 0 && others > 0) body = `새 사진 ${photos}장과 새 소식 ${others}개가 있어요 💌`
-      else if (photos > 0) body = `새 사진 ${photos}장이 올라왔어요 📷`
-      else if (others > 0) body = `새 소식 ${others}개가 있어요 💌`
-      else body = '새 소식이 있어요 💌'
+      if (photos > 0 && others > 0) body = t('digestBoth', { photos, others })
+      else if (photos > 0) body = t('digestPhotos', { photos })
+      else if (others > 0) body = t('digestOthers', { others })
+      else body = t('digestEmpty')
       return { title, body, url: '/timeline' }
     }
   }
@@ -143,8 +149,10 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
   }
   if (recipients.length === 0) return
 
-  const ctx = deps.enrich ? await deps.enrich(job) : { familyName: '우리 가족' }
-  const notification = buildNotification(job, ctx)
+  const ctx = deps.enrich ? await deps.enrich(job) : { familyName: '' }
+  const locale: Locale =
+    (await deps.settingsGet('appearance.default_locale')) === 'en' ? 'en' : 'ko'
+  const notification = buildNotification(job, ctx, getServerTranslator(locale, 'push'))
   const subs = await deps.subscriptionsFor(recipients)
   const payload = JSON.stringify(notification)
   await Promise.all(

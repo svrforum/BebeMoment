@@ -19,7 +19,12 @@
       "clear": "지우기"
     },
     "confirm": "확인",
-    "loading": "불러오는 중…"
+    "loading": "불러오는 중…",
+    "notFound": {
+      "title": "페이지를 찾을 수 없어요",
+      "body": "주소를 다시 확인해주세요.",
+      "home": "홈으로"
+    }
   },
   "settings": {
     "language": {
@@ -1225,6 +1230,12 @@
         "auto": "시스템 따름",
         "light": "라이트",
         "dark": "다크"
+      },
+      "defaultLocale": "기본 언어",
+      "defaultLocaleHelp": "알림 등 서버가 보내는 메시지에 쓰는 가족 공통 언어예요. 화면 언어는 각자 설정에서 바꿀 수 있어요.",
+      "locale": {
+        "ko": "한국어",
+        "en": "English"
       }
     },
     "features": {
@@ -1502,5 +1513,22 @@
       "emptyTitle": "저장한 항목이 없어요",
       "emptyDescription": "사진이나 스토리의 북마크 아이콘을 누르면 여기에 모여요"
     }
+  },
+  "push": {
+    "titleFallback": "우리 가족",
+    "assetUploaded": "새 사진이 올라왔어요 📷",
+    "commentMention": "댓글에서 회원님을 멘션했어요 💬",
+    "commentMentionSnippet": "댓글에서 회원님을 멘션했어요 💬 \"{snippet}\"",
+    "albumAdded": "앨범에 새 사진이 추가됐어요 📁",
+    "albumAddedNamed": "{album} 앨범에 사진이 추가됐어요 📁",
+    "diaryCreated": "새 이야기가 올라왔어요 ✍️",
+    "growthCreated": "{baby}성장 기록이 추가됐어요 📏",
+    "milestoneCreated": "{baby}마일스톤{label} 🎉",
+    "memory": "{interval} 전 오늘의 추억 💝",
+    "memoryWithCount": "{interval} 전 오늘의 추억 💝 · 사진 {count}장",
+    "digestBoth": "새 사진 {photos}장과 새 소식 {others}개가 있어요 💌",
+    "digestPhotos": "새 사진 {photos}장이 올라왔어요 📷",
+    "digestOthers": "새 소식 {others}개가 있어요 💌",
+    "digestEmpty": "새 소식이 있어요 💌"
   }
 }

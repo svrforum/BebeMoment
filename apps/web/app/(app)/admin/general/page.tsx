@@ -8,11 +8,14 @@ import { useEffect, useState } from 'react'
 
 type ThemeChoice = 'auto' | 'light' | 'dark'
 const THEME_VALUES: ThemeChoice[] = ['auto', 'light', 'dark']
+type LocaleChoice = 'ko' | 'en'
+const LOCALE_VALUES: LocaleChoice[] = ['ko', 'en']
 
 export default function GeneralSettingsPage() {
   const t = useTranslations('admin')
   const [familyName, setFamilyName] = useState('')
   const [defaultTheme, setDefaultTheme] = useState<ThemeChoice>('auto')
+  const [defaultLocale, setDefaultLocale] = useState<LocaleChoice>('ko')
   const [saving, setSaving] = useState(false)
   const [status, setStatus] = useState<string | null>(null)
 
@@ -20,8 +23,10 @@ export default function GeneralSettingsPage() {
     void fetch('/api/admin/settings')
       .then((r) => r.json())
       .then((d) => {
-        const t = d.appearance?.default_theme
-        if (t === 'auto' || t === 'light' || t === 'dark') setDefaultTheme(t)
+        const theme = d.appearance?.default_theme
+        if (theme === 'auto' || theme === 'light' || theme === 'dark') setDefaultTheme(theme)
+        const loc = d.appearance?.default_locale
+        if (loc === 'ko' || loc === 'en') setDefaultLocale(loc)
       })
     void fetch('/api/admin/family')
       .then((r) => r.json())
@@ -41,6 +46,11 @@ export default function GeneralSettingsPage() {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ key: 'appearance.default_theme', value: defaultTheme }),
+      }),
+      fetch('/api/admin/settings', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ key: 'appearance.default_locale', value: defaultLocale }),
       }),
     ])
     setSaving(false)
@@ -78,6 +88,22 @@ export default function GeneralSettingsPage() {
                 ))}
               </select>
               <p className="mt-1.5 text-xs text-base-500">{t('general.defaultThemeHelp')}</p>
+            </div>
+            <div>
+              <Label htmlFor="defaultLocale">{t('general.defaultLocale')}</Label>
+              <select
+                id="defaultLocale"
+                value={defaultLocale}
+                onChange={(e) => setDefaultLocale(e.target.value as LocaleChoice)}
+                className="h-11 w-full rounded-xl border border-base-200 bg-base-0 px-4 text-base dark:border-base-800 dark:bg-base-900"
+              >
+                {LOCALE_VALUES.map((v) => (
+                  <option key={v} value={v}>
+                    {t(`general.locale.${v}`)}
+                  </option>
+                ))}
+              </select>
+              <p className="mt-1.5 text-xs text-base-500">{t('general.defaultLocaleHelp')}</p>
             </div>
             {status && <p className="text-sm text-base-500">{status}</p>}
             <Button onClick={save} disabled={saving}>
