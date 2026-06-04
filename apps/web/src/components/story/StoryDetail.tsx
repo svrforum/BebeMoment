@@ -6,11 +6,12 @@ import {
   pickDisplayUrl,
   pickThumbTrio,
   pickThumbUrl,
+  pickVideoPosterUrl,
 } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
-import { LayoutGrid, ShieldCheck, Square } from 'lucide-react'
+import { LayoutGrid, Play, ShieldCheck, Square } from 'lucide-react'
 import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -28,6 +29,22 @@ const MarkdownBody = dynamic(() => import('./markdown-body'), { ssr: false })
 type Entry = Story & {
   assets: (StoryAsset & { asset: AssetWithUrls | null })[]
   baby: Baby | null
+}
+
+// 영상 썸네일/포스터 위 중앙 재생 아이콘 — 영상임을 알리고 탭(→ 전체화면 뷰어에서
+// 클릭 재생)을 유도. 자동재생은 안 한다.
+function VideoPlayOverlay({ size = 'lg' }: { size?: 'lg' | 'sm' }) {
+  const box = size === 'lg' ? 'h-14 w-14' : 'h-8 w-8'
+  const icon = size === 'lg' ? 24 : 15
+  return (
+    <span className="pointer-events-none absolute inset-0 z-10 flex items-center justify-center">
+      <span
+        className={`flex items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm ${box}`}
+      >
+        <Play size={icon} className="ml-0.5 fill-white text-white" strokeWidth={0} />
+      </span>
+    </span>
+  )
 }
 
 const DAYS = ['일', '월', '화', '수', '목', '금', '토']
@@ -203,18 +220,21 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                 className="story-carousel aspect-square w-full"
               >
                 {sortedAssets.map((link) => {
-                  const trio = pickDisplayTrio(link.asset?.urls ?? null)
-                  const fallbackUrl = pickDisplayUrl(link.asset?.urls ?? null)
+                  const isVid = link.asset?.kind === 'video'
+                  const trio = isVid ? null : pickDisplayTrio(link.asset?.urls ?? null)
+                  const fallbackUrl = isVid
+                    ? pickVideoPosterUrl(link.asset?.urls ?? null)
+                    : pickDisplayUrl(link.asset?.urls ?? null)
                   return (
                     <SwiperSlide
                       key={link.assetId}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      {/* 탭하면 격자와 동일하게 전체화면 뷰어로. 스와이프(드래그)는
-                          Swiper 가 클릭과 구분해 처리하므로 슬라이드 넘김은 그대로. */}
+                      {/* 탭하면 격자와 동일하게 전체화면 뷰어로(영상은 거기서 클릭 재생).
+                          스와이프(드래그)는 Swiper 가 클릭과 구분해 처리. */}
                       <Link
                         href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
-                        className="flex aspect-square w-full items-center justify-center"
+                        className="relative flex aspect-square w-full items-center justify-center"
                       >
                         <PictureImage
                           trio={trio}
@@ -228,6 +248,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                           loading="eager"
                           fade={false}
                         />
+                        {isVid && <VideoPlayOverlay />}
                       </Link>
                     </SwiperSlide>
                   )
@@ -241,24 +262,32 @@ export function StoryDetail({ entry }: { entry: Entry }) {
             </>
           ) : (
             <div className="grid grid-cols-3 gap-0.5">
-              {sortedAssets.map((link) => (
-                <Link
-                  key={link.assetId}
-                  href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
-                  className="block aspect-square"
-                >
-                  <PictureImage
-                    trio={pickThumbTrio(link.asset?.urls ?? null)}
-                    fallbackUrl={pickThumbUrl(link.asset?.urls ?? null)}
-                    alt=""
-                    dominantColor={link.asset?.urls?.dominantColor ?? null}
-                    blurhash={pickBlurhash(link.asset?.urls ?? null)}
-                    aspectRatio={1}
-                    className="aspect-square w-full"
-                    objectFit="cover"
-                  />
-                </Link>
-              ))}
+              {sortedAssets.map((link) => {
+                const isVid = link.asset?.kind === 'video'
+                return (
+                  <Link
+                    key={link.assetId}
+                    href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
+                    className="relative block aspect-square"
+                  >
+                    <PictureImage
+                      trio={isVid ? null : pickThumbTrio(link.asset?.urls ?? null)}
+                      fallbackUrl={
+                        isVid
+                          ? pickVideoPosterUrl(link.asset?.urls ?? null)
+                          : pickThumbUrl(link.asset?.urls ?? null)
+                      }
+                      alt=""
+                      dominantColor={link.asset?.urls?.dominantColor ?? null}
+                      blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                      aspectRatio={1}
+                      className="aspect-square w-full"
+                      objectFit="cover"
+                    />
+                    {isVid && <VideoPlayOverlay size="sm" />}
+                  </Link>
+                )
+              })}
             </div>
           )}
         </div>

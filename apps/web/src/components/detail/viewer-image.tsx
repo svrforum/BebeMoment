@@ -1,7 +1,7 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
-import { ChevronLeft, ChevronRight } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
@@ -398,6 +398,9 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
 
 function VideoWithFallback({ src, poster }: { src: string; poster: string | undefined }) {
   const [failed, setFailed] = useState(false)
+  // 자동재생 안 함 — 포스터 + 중앙 재생버튼을 보여주고, 탭하면 그때 재생(+네이티브 컨트롤).
+  const [started, setStarted] = useState(false)
+  const ref = useRef<HTMLVideoElement>(null)
   if (failed) {
     return (
       <div className="flex flex-col items-center gap-3 p-8 text-center text-sm text-base-300">
@@ -409,18 +412,36 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
     )
   }
   return (
-    <video
-      src={src}
-      poster={poster}
-      controls
-      playsInline
-      onError={() => setFailed(true)}
-      className="max-h-full max-w-full"
-      // 영상은 기본 touch-action: auto 라 모바일 WebView 가 가로 터치를 자체 제스처에
-      // 쓸 수 있다 → Swiper 에 도달 못 함. pan-y 로 좁혀서 가로는 JS(Swiper) 로 패스.
-      style={{ touchAction: 'pan-y' }}
-    >
-      <track kind="captions" />
-    </video>
+    <div className="relative flex max-h-full max-w-full items-center justify-center">
+      <video
+        ref={ref}
+        src={src}
+        poster={poster}
+        controls={started}
+        playsInline
+        onPlay={() => setStarted(true)}
+        onError={() => setFailed(true)}
+        className="max-h-full max-w-full"
+        // 영상은 기본 touch-action: auto 라 모바일 WebView 가 가로 터치를 자체 제스처에
+        // 쓸 수 있다 → Swiper 에 도달 못 함. pan-y 로 좁혀서 가로는 JS(Swiper) 로 패스.
+        style={{ touchAction: 'pan-y' }}
+      >
+        <track kind="captions" />
+      </video>
+      {!started && (
+        <button
+          type="button"
+          onClick={() => {
+            void ref.current?.play()
+          }}
+          aria-label="재생"
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
+            <Play size={28} className="ml-1 fill-white text-white" strokeWidth={0} />
+          </span>
+        </button>
+      )}
+    </div>
   )
 }
