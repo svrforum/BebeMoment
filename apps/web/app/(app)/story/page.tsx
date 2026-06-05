@@ -91,7 +91,7 @@ export default async function StoryPage({
           <StoryDateFilter />
         </div>
 
-        {!query && !dateFilter && baby && (
+        {!query && !dateFilter && baby && ctx.capabilities.includes('record.read') && (
           <div className="mb-4 grid grid-cols-2 gap-2">
             <Link
               href={`/babies/${baby.id}/growth`}

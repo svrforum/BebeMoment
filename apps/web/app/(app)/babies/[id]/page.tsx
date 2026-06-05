@@ -21,39 +21,44 @@ export default async function BabyDetailPage({ params }: { params: Promise<{ id:
     where: { id, familyId: ctx.family.id, deletedAt: null },
   })
   if (!baby) notFound()
+  const canRecord = ctx.capabilities.includes('record.read')
 
   return (
     <>
       <AppHeader title={baby.name} />
       <div className="mx-auto max-w-md space-y-3 px-5 py-4">
-        <Card>
-          <CardBody>
-            <Link
-              href={`/babies/${baby.id}/growth`}
-              className="flex items-center justify-between py-1"
-            >
-              <div>
-                <div className="font-medium">{t('babies.growth')}</div>
-                <div className="text-xs text-base-500">{t('babies.growthSubtitle')}</div>
-              </div>
-              <span aria-hidden>›</span>
-            </Link>
-          </CardBody>
-        </Card>
-        <Card>
-          <CardBody>
-            <Link
-              href={`/babies/${baby.id}/milestones`}
-              className="flex items-center justify-between py-1"
-            >
-              <div>
-                <div className="font-medium">{t('babies.milestones')}</div>
-                <div className="text-xs text-base-500">{t('babies.milestonesSubtitle')}</div>
-              </div>
-              <span aria-hidden>›</span>
-            </Link>
-          </CardBody>
-        </Card>
+        {canRecord && (
+          <>
+            <Card>
+              <CardBody>
+                <Link
+                  href={`/babies/${baby.id}/growth`}
+                  className="flex items-center justify-between py-1"
+                >
+                  <div>
+                    <div className="font-medium">{t('babies.growth')}</div>
+                    <div className="text-xs text-base-500">{t('babies.growthSubtitle')}</div>
+                  </div>
+                  <span aria-hidden>›</span>
+                </Link>
+              </CardBody>
+            </Card>
+            <Card>
+              <CardBody>
+                <Link
+                  href={`/babies/${baby.id}/milestones`}
+                  className="flex items-center justify-between py-1"
+                >
+                  <div>
+                    <div className="font-medium">{t('babies.milestones')}</div>
+                    <div className="text-xs text-base-500">{t('babies.milestonesSubtitle')}</div>
+                  </div>
+                  <span aria-hidden>›</span>
+                </Link>
+              </CardBody>
+            </Card>
+          </>
+        )}
       </div>
     </>
   )
