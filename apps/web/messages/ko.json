@@ -153,6 +153,10 @@
         "bookmarkPinnedLabel": "북마크 고정",
         "bookmarkPinnedDesc": "고른 북마크 사진 한 장만 보여요"
       }
+    },
+    "about": {
+      "github": "GitHub",
+      "sponsor": "커피 한 잔 후원하기"
     }
   },
   "auth": {

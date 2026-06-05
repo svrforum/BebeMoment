@@ -153,6 +153,10 @@
         "bookmarkPinnedLabel": "Bookmarks, pinned",
         "bookmarkPinnedDesc": "Shows just one bookmarked photo you choose"
       }
+    },
+    "about": {
+      "github": "GitHub",
+      "sponsor": "Buy me a coffee"
     }
   },
   "auth": {
