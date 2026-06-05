@@ -1,108 +1,86 @@
 # Deployment — Synology DSM
 
+> 배포 토폴로지는 **단일 앱 컨테이너 + postgres + redis** 3개뿐입니다. web·media·알림 워커는
+> 한 이미지(`app`)의 세 프로세스로 돌고 **포트 3000 하나만** 노출합니다. 브라우저는
+> `PUBLIC_URL/media/*` 로 미디어에 접근하고, 컨테이너 내부에서 Next 가 `localhost:3001` 로
+> 프록시합니다. **별도 Caddy·리버스 프록시 컨테이너가 필요 없습니다.**
+
 ## 요구 사항
 - DSM 7.2+
-- Container Manager 패키지 설치
-- 공유 폴더: `docker` (또는 원하는 이름)
+- Container Manager 패키지
+- 공유 폴더 `docker` (또는 원하는 이름)
+- amd64 시놀로지 (현재 이미지는 `linux/amd64` 전용 — ARM 모델은 `arm64` 이미지 추가 전까지 미지원)
 
-## 설치
+## 1. 폴더 준비
 
-1. **DSM → Container Manager → 프로젝트 → 만들기**
-2. **프로젝트 이름**: `bebe-moment`
-3. **경로**: `/volume1/docker/bebe-moment`
-4. **소스**: `docker-compose.yml 만들기`
-5. **docker-compose.yml 내용 붙여넣기**: 아래 병합본 참고
-6. **`Caddyfile` 도 같은 경로에 업로드**: File Station 으로
-   `/volume1/docker/bebe-moment/Caddyfile` 위치에 `compose/Caddyfile` 내용을
-   복사. Caddy 컨테이너가 이 파일을 read-only 로 마운트한다.
+File Station 으로 `/volume1/docker/bebe-moment` 아래에 미리 만들어 두면 권한 꼬임이 적습니다:
 
-### `docker-compose.yml` (Synology)
+```
+/volume1/docker/bebe-moment/
+  data/      # 사진 원본 + 파생물
+  pg/        # Postgres 데이터
+  redis/     # 큐(임시)
+  backups/   # 백업 번들
+```
+
+## 2. 프로젝트 만들기
+
+1. **Container Manager → 프로젝트 → 만들기**
+2. **이름**: `bebe-moment`, **경로**: `/volume1/docker/bebe-moment`
+3. **소스**: `docker-compose.yml 만들기` → 아래 내용 붙여넣기
 
 ```yaml
 services:
-  caddy:
-    image: caddy:2-alpine
+  app:
+    image: ghcr.io/svrforum/bebe-moment/app:latest
     ports:
-      - "3000:80"
-    volumes:
-      - /volume1/docker/bebe-moment/Caddyfile:/etc/caddy/Caddyfile:ro
-      - /volume1/docker/bebe-moment/caddy/data:/data
-      - /volume1/docker/bebe-moment/caddy/config:/config
-    depends_on:
-      web: { condition: service_healthy }
-      media: { condition: service_healthy }
-    restart: unless-stopped
-
-  web:
-    image: ghcr.io/svrforum/bebe-moment/web:latest
+      - "3000:3000"
     environment:
       DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
       DATABASE_URL_WEB: postgres://bebe_web:${BEBE_WEB_DB_PASSWORD}@postgres:5432/bebe
+      DATABASE_URL_MEDIA: postgres://bebe_media:${BEBE_MEDIA_DB_PASSWORD}@postgres:5432/bebe
       REDIS_URL: redis://redis:6379
       SECRET_KEY: ${SECRET_KEY}
       PUBLIC_URL: ${PUBLIC_URL}
-      STORAGE_MODE: local
-      STORAGE_PATH: /data
-      PUID: "1026"
-      PGID: "100"
-      ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL}
-      MEDIA_INTERNAL_URL: http://media:3001
+      # 알림 방해금지·다이제스트·추억 푸시는 컨테이너 로컬 시각으로 판단 → 가족 시간대로.
+      TZ: ${TZ:-Asia/Seoul}
+      # web → 같은 컨테이너의 media(런타임) + Next /media rewrite(빌드). 단일 컨테이너라 localhost.
+      MEDIA_INTERNAL_URL: http://localhost:3001
+      # 보통 미설정으로 두면 PUBLIC_URL 로 폴백된다(동일 오리진 /media/*). :3001 등을 넣지 말 것.
+      NEXT_PUBLIC_MEDIA_BASE_URL: ${PUBLIC_URL}
+      MEDIA_PUBLIC_BASE_URL: ${PUBLIC_URL}
       MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
-      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL}
+      STORAGE_MODE: local
+      STORAGE_PATH: /data
+      BACKUP_DIR: /backups
+      # DSM admin: uid 1026 / gid users(100). 다른 사용자면 SSH 후 `id <user>` 로 확인.
+      PUID: ${PUID:-1026}
+      PGID: ${PGID:-100}
+      ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
+      LOG_LEVEL: ${LOG_LEVEL:-info}
       BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
+      # 얼굴 인식(옵트인) ML 사이드카. ml 컨테이너를 안 띄우면 호출도 없다.
+      FACE_ML_URL: ${FACE_ML_URL:-http://ml:8000}
     volumes:
       - /volume1/docker/bebe-moment/data:/data
-    expose:
-      - "3000"
+      - /volume1/docker/bebe-moment/backups:/backups
     depends_on:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
-      media: { condition: service_healthy }
     restart: unless-stopped
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
-
-  media:
-    image: ghcr.io/svrforum/bebe-moment/media:latest
-    environment:
-      DATABASE_URL: postgres://bebe:${POSTGRES_PASSWORD}@postgres:5432/bebe
-      DATABASE_URL_MEDIA: postgres://bebe_media:${BEBE_MEDIA_DB_PASSWORD}@postgres:5432/bebe
-      REDIS_URL: redis://redis:6379
-      SECRET_KEY: ${SECRET_KEY}
-      PUBLIC_URL: ${PUBLIC_URL}
-      STORAGE_MODE: local
-      STORAGE_PATH: /data
-      MEDIA_ROLE: both
-      MEDIA_PORT: "3001"
-      MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
-      MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
-      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL}
-      BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
-      BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
-      PUID: "1026"
-      PGID: "100"
-    volumes:
-      - /volume1/docker/bebe-moment/data:/data
-    expose:
-      - "3001"
-    depends_on:
-      postgres: { condition: service_healthy }
-      redis: { condition: service_healthy }
-    healthcheck:
-      test: ["CMD", "wget", "-qO-", "http://localhost:3001/media/v1/health"]
-      interval: 30s
-      timeout: 5s
-      retries: 3
-      start_period: 30s
-    restart: unless-stopped
+      start_period: 40s
 
   postgres:
-    image: postgres:16-alpine
+    # pgvector 포함(얼굴 임베딩 벡터검색). 기존 alpine 데이터에서 올리면 소유권을
+    # 999(debian postgres)로 chown 후 사용.
+    image: pgvector/pgvector:pg17
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe
@@ -112,105 +90,98 @@ services:
     restart: unless-stopped
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U bebe"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   redis:
-    image: redis:7-alpine
+    # Valkey (Redis BSD 포크). 서비스명은 redis 유지.
+    image: valkey/valkey:9-alpine
     volumes:
       - /volume1/docker/bebe-moment/redis:/data
     restart: unless-stopped
     healthcheck:
-      test: ["CMD", "redis-cli", "ping"]
+      test: ["CMD", "valkey-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 3
 ```
 
-> **포트 라우팅**: 외부에 노출되는 컨테이너는 **Caddy 하나뿐** (호스트
-> `3000` → Caddy `:80`). Caddy 가 `/media/*` 는 `media:3001` 로, 그 외는
-> `web:3000` 으로 내부 도커 네트워크에서 reverse proxy 한다. 따라서 web /
-> media 는 `ports:` 가 아니라 `expose:` 만 사용 — Synology 호스트 포트
-> 충돌이 줄어든다.
+> 표준 [`compose/docker-compose.yml`](../compose/docker-compose.yml) 과 동일한 구조에 시놀로지
+> 절대경로·PUID/PGID 만 맞춘 것입니다. 리소스 한도(`deploy.resources`)·얼굴인식 `ml` 서비스는
+> 표준 compose 를 참고해 그대로 옮길 수 있습니다(아래 "얼굴 인식" 참고).
 
-6. **.env 편집** (하단 env 파일 탭):
+## 3. 환경변수 (env 탭)
+
+프로젝트 생성 화면의 **환경 변수(.env)** 탭에 입력합니다. 시크릿은 반드시 여기(런타임 env)에
+넣습니다 — 이미지에는 들어가지 않습니다.
+
 ```
-SECRET_KEY=<openssl rand -hex 32 결과>
+SECRET_KEY=<openssl rand -hex 32>
 POSTGRES_PASSWORD=<복잡한 문자열>
 PUBLIC_URL=https://bebe.mydomain.synology.me
-ADMIN_USER_EMAIL=<관리자 이메일>
+ADMIN_USER_EMAIL=<관리자 이메일(선택)>
+TZ=Asia/Seoul
 
-# Phase B — media 서비스 분리
-# web ↔ media 서비스 간 내부 인증 (JWT signing 키와 관리용 공유 시크릿)
-MEDIA_SERVICE_TOKEN=<openssl rand -hex 32>
-MEDIA_JWT_SECRET=<openssl rand -hex 32>
-# 브라우저가 media 서비스로 직접 업로드/SSE 할 때 쓰는 공개 베이스 URL.
-# 리버스 프록시에서 /media → media:3001 매핑했다면 ${PUBLIC_URL} 그대로.
-# 별도 서브도메인이면 https://media.mydomain.synology.me.
-MEDIA_PUBLIC_BASE_URL=${PUBLIC_URL}
-NEXT_PUBLIC_MEDIA_BASE_URL=${PUBLIC_URL}
+# 서비스 간 인증/서명 (각 32바이트+) — 생성: openssl rand -hex 32
+MEDIA_SERVICE_TOKEN=<랜덤 hex>
+MEDIA_JWT_SECRET=<랜덤 hex>
 
-# Phase B — DB role 분리 (web 은 public 스키마만, media 는 media 스키마만)
-# postgres entrypoint 가 bebe_web / bebe_media 역할을 이 비밀번호로 생성한다.
+# DB role 분리 (web=public 스키마, media=media 스키마). entrypoint 가 이 비번으로 역할 생성.
 BEBE_WEB_DB_PASSWORD=<복잡한 문자열>
 BEBE_MEDIA_DB_PASSWORD=<복잡한 문자열>
 ```
 
-7. **시작**.
+> ⚠️ `MEDIA_PUBLIC_BASE_URL` / `NEXT_PUBLIC_MEDIA_BASE_URL` 에 `:3001` 같은 값을 **넣지 마세요.**
+> 노출되지 않은 포트를 가리켜 사진이 안 뜹니다. 미설정(또는 `PUBLIC_URL` 과 동일)이 정답입니다.
 
-## TLS
+## 4. 시작 & 첫 로그인
 
-내부 Caddy 가 이미 `/media/*` 와 그 외 트래픽을 분리해 web/media 컨테이너로
-나눠 보내므로, **외부에서는 단일 호스트·단일 포트 (3000) 만 신경쓰면 된다.**
-TLS 종단은 두 가지 방법 중 하나:
+빌드/시작 후:
+- `PUBLIC_URL`(또는 NAS `http://<NAS-IP>:3000`) 접속 → **첫 사용자 가입** → 온보딩(가족·아기 설정)
+- 첫 가입자가 곧 **관리자(owner)** 입니다. 이후 구성원은 **초대 링크로만** 합류합니다.
+- 관리 화면은 `/admin`, 또는 설정 → 관리자.
 
-### 방법 1 — DSM 리버스 프록시로 TLS 종단 (가장 간단)
+## 5. TLS / 외부 공개 — DSM 리버스 프록시
 
-- DSM → 제어판 → 로그인 포털 → 고급 → 리버스 프록시
-- Source: `bebe.mydomain.synology.me`, 443, HTTPS
-- Destination: `localhost`, 3000, HTTP  *(내부 Caddy)*
-- 사용자 정의 헤더에서 **WebSocket** 켜기, **타임아웃 ≥ 600 초** (큰 tus
-  업로드·SSE 가 끊기지 않도록).
-- `NEXT_PUBLIC_MEDIA_BASE_URL=${PUBLIC_URL}` 그대로. 별도 서브도메인 불필요
-  — 내부 Caddy 가 `/media/*` 경로 라우팅을 처리한다.
+내부에 별도 프록시가 없으므로 **DSM 리버스 프록시로 TLS 종단**만 하면 됩니다.
 
-### 방법 2 — Caddy 자체에서 TLS 종단
+- DSM → 제어판 → 로그인 포털 → 고급 → **리버스 프록시** → 만들기
+  - **Source**: `bebe.mydomain.synology.me`, 443, HTTPS
+  - **Destination**: `localhost`, 3000, HTTP
+- **사용자 정의 헤더**에서 **WebSocket** 켜기(`Create > WebSocket`), **타임아웃 ≥ 600초**
+  (큰 tus 업로드·SSE 가 끊기지 않도록).
+- `PUBLIC_URL` 은 이 공개 도메인(`https://…`)으로 맞춥니다. https 로 바뀌면 세션 쿠키가
+  `__Secure-` 접두사로 전환되어 한 번 재로그인이 필요할 수 있습니다.
+- 인증서는 DSM → 보안 → 인증서에서 Let's Encrypt 로 발급해 이 리버스 프록시에 적용.
 
-`Caddyfile` 의 `:80 { … }` 블록을 도메인 블록으로 교체:
+## 6. 얼굴 인식 (옵트인)
 
-```caddyfile
-bebe.mydomain.synology.me {
-  handle /media/* {
-    reverse_proxy media:3001 {
-      flush_interval -1
-      transport http {
-        response_header_timeout 0s
-        read_timeout 600s
-      }
-    }
-  }
-  handle {
-    reverse_proxy web:3000
-  }
-  encode gzip zstd
-}
-```
+기본은 꺼져 있습니다. 켜려면 표준 [`compose/docker-compose.yml`](../compose/docker-compose.yml) 의
+`ml` 서비스 블록(profile `faces`, 이미지 `ghcr.io/svrforum/bebe-moment/ml`)을 위 compose 에
+추가하고, `FACE_ML_URL=http://ml:8000` 으로 둔 뒤 관리자 → 기능에서 얼굴 인식을 켜면 됩니다.
+모델팩은 첫 기동 때 받아 볼륨에 캐시됩니다(amd64 CPU 추론, 메모리 ~3GB 권장).
 
-이 경우 compose 의 caddy `ports:` 를 `"443:443"` + `"80:80"` 으로 바꾸고
-DSM 80/443 포트가 비어 있어야 한다 (DSM 기본은 5000/5001 이라 보통 OK,
-다른 패키지가 점유 중이면 충돌). Caddy 가 자동으로 Let's Encrypt 인증서를
-발급·갱신한다 — 도메인이 NAS 의 공인 IP 로 정상 해석되는지 먼저 확인.
+## 7. 백업 — Hyper Backup
 
-## PUID/PGID
-
-- DSM 기본 admin 사용자 uid = 1026, gid = users(100). 위 예시는 그 값을 사용.
-- 다른 사용자로 돌리려면 SSH 접속 후 `id <username>` 으로 확인.
-
-## 백업 — Hyper Backup
-
-Hyper Backup 에서 다음 공유 폴더 또는 하위를 백업 대상으로 지정:
+앱 자체 백업(설정 → 관리자 → 백업, 전체·증분·원격 S3)을 권장하되, NAS 레벨로도:
 - `/volume1/docker/bebe-moment/data` — 사진 원본 + 파생물
 - `/volume1/docker/bebe-moment/pg` — 메타데이터 DB
+- `/volume1/docker/bebe-moment/backups` — 앱 백업 번들
 
-redis 데이터는 큐 임시 상태라 백업 불필요. `caddy/data` 는 Let's Encrypt
-인증서·키 캐시 — 사라져도 자동 재발급되지만 같이 백업하면 재시작 시
-rate-limit 위험을 줄일 수 있다.
+`redis` 는 큐 임시 상태라 백업 불필요합니다.
 
-## 업데이트
+## 8. 업데이트
 
-Container Manager → 프로젝트 → `bebe-moment` → "내려받기" → "다시 빌드" 로 최신 이미지 적용.
+Container Manager → 프로젝트 `bebe-moment` → **이미지 → 내려받기(pull)** → **다시 빌드**.
+기동 시 `prisma migrate deploy` 가 자동 실행되어 스키마가 최신으로 맞춰집니다.
+
+## 트러블슈팅
+
+- **사진 페이지가 500 / 로그에 `MEDIA_SERVICE_TOKEN env required`** — env 탭에
+  `MEDIA_SERVICE_TOKEN`·`MEDIA_JWT_SECRET` 가 빠졌습니다. `/api/health` 는 미디어를 안 거쳐
+  200 으로 남으니 실제 사진 페이지로 확인하세요.
+- **페이지는 뜨는데 썸네일이 깨짐** — `MEDIA_PUBLIC_BASE_URL`/`NEXT_PUBLIC_MEDIA_BASE_URL` 에
+  `:3001` 등 노출 안 된 포트를 넣은 경우입니다. 미설정(PUBLIC_URL 폴백)으로 두세요.
+- **pg16 → pg17 업그레이드** — 데이터 디렉터리 비호환. `pg_dump`(구버전)→restore(pg17) 후
+  `pg/` 를 비우고 시작하거나, 앱 백업/복구를 사용하세요.
