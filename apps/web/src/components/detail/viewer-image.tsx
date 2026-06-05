@@ -1,6 +1,5 @@
 'use client'
-import { PictureImage } from '@/components/ui/picture-image'
-import { pickBlurhash, pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
+import { pickDisplayTrio, pickDisplayUrl } from '@/lib/asset-url'
 import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
@@ -367,7 +366,6 @@ function SwiperViewport({
 function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean }) {
   const trio = pickDisplayTrio(slim.urls)
   const fallbackUrl = pickDisplayUrl(slim.urls)
-  const blurhash = pickBlurhash(slim.urls)
   const isVideo = slim.kind === 'video'
 
   if (isVideo) {
@@ -403,21 +401,27 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
     ? ({ viewTransitionName: `asset-${slim.id}` } as CSSProperties)
     : undefined
 
+  // ⚠️ 뷰어 줌 전용 bare <img> (§12 PictureImage 예외). Swiper Zoom 은
+  // `.swiper-zoom-container 의 *직접 자식* <img>` 를 타겟·측정한다(zoom.css 의 `> img`
+  // 규칙 + JS). PictureImage 의 `span(overflow:hidden) > picture > img` 구조를 쓰면
+  // ⓐ Swiper 가 inline `<picture>` 를 줌 타겟으로 잡아 offsetWidth 가 부정확하고
+  // ⓑ overflow:hidden span 이 변형된 이미지를 클리핑해 줌/팬이 코너로 드리프트한다.
+  // 포맷 협상은 webp 로 유지(전 타깃 브라우저 지원), 실패 시 jpeg/레거시 url 로 폴백.
+  const src = trio?.webp ?? fallbackUrl ?? ''
+  const fallback = trio?.jpeg ?? fallbackUrl ?? ''
+
   return (
-    <PictureImage
-      trio={trio}
-      fallbackUrl={fallbackUrl}
+    // biome-ignore lint/performance/noImgElement: Swiper Zoom 직접자식 img 요구 — 위 주석 참조
+    <img
+      src={src}
       alt=""
-      dominantColor={slim.urls?.dominantColor ?? null}
-      blurhash={blurhash}
-      aspectRatio={slim.urls?.aspectRatio ?? null}
+      decoding="async"
       loading="eager"
       fetchPriority={isCurrent ? 'high' : 'low'}
-      objectFit="contain"
-      // 뷰어는 페이드 끔 — 영상→사진처럼 current 슬롯이 비디오에서 새 이미지로 교체될 때
-      // blurhash 페이드인이 재생돼 깜빡이는 걸 막는다(형제 슬라이드가 이미 디코드됨).
-      fade={false}
-      className="max-h-full max-w-full"
+      draggable={false}
+      onError={(e) => {
+        if (fallback && e.currentTarget.src !== fallback) e.currentTarget.src = fallback
+      }}
       {...(style ? { style } : {})}
     />
   )
