@@ -70,7 +70,7 @@ export function ViewerBottomSheet({
   }, [open, initialDetailsOpen])
 
   // 좋아요/북마크 + 세부정보(접이식) 는 댓글 리스트와 같은 스크롤 영역의 헤더로,
-  // 작성칸은 시트 하단에 고정 (인스타 스타일). 고정 높이 flex 컬럼은 Sheet `fill`.
+  // 작성칸은 시트 하단에 고정. 고정 높이 flex 컬럼은 Sheet `fill`.
   const header = (
     <div className="pb-2">
       <div className="flex flex-col gap-2 border-b border-base-100 pb-3 dark:border-base-800">

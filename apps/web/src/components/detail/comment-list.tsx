@@ -28,7 +28,7 @@ export function CommentList({
   initialComments: CommentWithAuthor[]
   onCountChange?: (count: number) => void
   /**
-   * Instagram-style sheet layout: this component becomes a flex column that
+   * Sheet layout: this component becomes a flex column that
    * fills its parent — `header` + comments scroll in a single region and the
    * composer is pinned to the bottom (above the keyboard). Requires a parent
    * with a bounded height (e.g. Sheet `fill`).

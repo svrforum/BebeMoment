@@ -232,7 +232,7 @@
       0 20px 40px -24px color-mix(in srgb, #000 60%, transparent);
   }
   /* 다이어리 캐러셀(.story-carousel) 의 swiper 페이지네이션 — 흰 점, 활성 시 또렷.
-     인스타 포스트 캐러셀과 비슷한 절제된 도트. Swiper 기본 파란 점을 덮어쓴다. */
+     절제된 도트 인디케이터. Swiper 기본 파란 점을 덮어쓴다. */
   .story-carousel .swiper-pagination {
     bottom: 8px !important;
   }

@@ -11,7 +11,7 @@ type Props = {
 /**
  * 작은 unread 배지 — 1~99 는 숫자, 100+ 는 "99+". 0 이하면 렌더 안 함.
  *
- * Toss/Apple 톤: 작고 둥글게(점-크기), tabular-nums 로 흔들림 없이, point/red
+ * 작고 둥글게(점-크기), tabular-nums 로 흔들림 없이, point/red
  * 가 아닌 살짝 가라앉은 red-500 — 너무 시끄럽지 않게.
  */
 export function UnreadBadge({ count, className }: Props) {

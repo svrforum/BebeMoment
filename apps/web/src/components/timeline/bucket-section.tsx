@@ -98,8 +98,7 @@ export function BucketSection({
       <header className="mb-3 flex items-end justify-between gap-3 px-1">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-baseline gap-2.5">
-            {/* Date — Toss/Apple style: tabular numerals, generous tracking,
-                bold but not heavy. */}
+            {/* Date — tabular numerals, generous tracking, bold but not heavy. */}
             <h2 className="text-[22px] font-bold tracking-tight tabular-nums leading-none text-base-900 dark:text-base-50">
               {label}
             </h2>

@@ -21,7 +21,7 @@ type AssetSlim = {
   posterUrl: string | undefined
 }
 
-// Swiper.js + Zoom module 으로 iOS Photos 식 카루셀. Swiper 가 velocity·momentum·
+// Swiper.js + Zoom module 으로 풀스크린 사진 카루셀. Swiper 가 velocity·momentum·
 // rubber-band·pinch 를 다 가져가고, 우리는 (1) 세로 swipe-down 닫기, (2) 탭 토글
 // 크로미, (3) navigateTo 콜백으로 ViewerShell state 갱신만 담당. Swiper 는 마운트된
 // 채로 슬라이드 데이터(slim 배열) 만 교체된다 — 페이지 unmount/remount 가 없어
@@ -131,7 +131,7 @@ function SwiperViewport({
   const t = useTranslations('viewer')
   // 슬라이드 배열 + initialSlide 계산. 타임라인 = 최신이 위 → 카루셀에서
   // "다음으로 넘기는 방향(왼쪽 스와이프)" = 더 newer. 그래서 slot 0 = next(older),
-  // slot 2 = prev(newer) 로 정렬한다 (Instagram/Kakao 등 한국 사용자가 익숙한 방향).
+  // slot 2 = prev(newer) 로 정렬한다 (한국 사용자에게 익숙한 방향).
   // 키는 슬롯 역할('prev'/'current'/'next')로 — id 로 키하면 사진 전환 시 DOM 이
   // 재셔플되어 Swiper 가 의도와 다른 슬라이드로 움직인다. 슬롯 키면 슬라이드 노드는
   // 그대로 두고 안의 SlideContent 만 새 slim 으로 리렌더 → 부드러운 슬라이드 + slideTo
@@ -394,7 +394,7 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
   }
 
   // current 만 view-transition-name 부여 — 타임라인 썸네일(같은 asset-{id})에서
-  // 풀스크린 이미지로 매칭돼 자라는 iOS Photos 식 morph. 클라이언트 사이드 nav 는
+  // 풀스크린 이미지로 매칭돼 자라는 morph 전환. 클라이언트 사이드 nav 는
   // URL 을 history.replaceState 로만 바꿔 RSC 가 안 돌므로 view transition 은 첫 진입에만
   // 동작 — 의도된 거동(스와이프 자체는 Swiper transform 으로 부드럽게 처리됨).
   const style: CSSProperties | undefined = isCurrent

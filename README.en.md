@@ -25,7 +25,7 @@
 
 ## One instance = one family
 
-**Bebe Moment** is a **self-hosted family baby photo journal**, inspired by Bebememo. Instead of trusting a cloud with your child's photos, you run it on **your own server** (a Synology NAS, a home Linux box, a VPS) and keep everything within the family.
+**Bebe Moment** is a **self-hosted family baby photo journal**. Instead of trusting a cloud with your child's photos, you run it on **your own server** (a Synology NAS, a home Linux box, a VPS) and keep everything within the family.
 
 - 🔒 **Your data on your server** — no third-party cloud upload, no ads, no tracking, no subscription
 - 👨‍👩‍👧 **One instance = one family** — the first user (admin) sets up the family; everyone else joins **by invite link only**

@@ -19,7 +19,7 @@ type Props = {
  * 이라 새로고침·공유 시에도 살아남는다. 클라 상태 없이 `<Link>` 두 개로
  * 구현 — 폼/JS 없이도 동작.
  *
- * Toss + Apple 결: pill-shaped track, active 알약은 화이트(다크모드는 base-900)
+ * pill-shaped track, active 알약은 화이트(다크모드는 base-900)
  * + soft shadow, inactive 는 muted. 그라데이션·강한 primary 컬러 금지.
  */
 export async function TimelineSortToggle({ value, preserveParams = {}, right }: Props) {

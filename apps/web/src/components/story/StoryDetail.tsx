@@ -98,7 +98,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
     ),
   )
 
-  // 인스타식 아바타 — 아기 이름의 첫 글자를 point 컬러 그라데이션 원에. 아기가 없으면
+  // 아바타 — 아기 이름의 첫 글자를 point 컬러 그라데이션 원에. 아기가 없으면
   // bullet 점. 추후 아기 프로필 사진이 생기면 여기서 보여줄 수 있음.
   const initial = entry.baby?.name?.charAt(0) ?? '·'
   const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
@@ -129,7 +129,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
 
   return (
     <article className="overflow-hidden rounded-3xl border border-base-200 bg-base-0 shadow-card dark:border-base-800 dark:bg-base-900">
-      {/* 헤더 — 아바타 · 이름 · 날짜 · 공개범위 칩. 인스타 포스트 상단과 동일한 운율. */}
+      {/* 헤더 — 아바타 · 이름 · 날짜 · 공개범위 칩. */}
       <header className="flex items-center gap-3 px-4 py-3">
         <div
           aria-hidden
@@ -186,7 +186,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         </div>
       )}
 
-      {/* 사진 — 슬라이드(인스타식 캐러셀) 또는 격자(갤러리) 토글. 여러 장일 때만 토글 노출.
+      {/* 사진 — 슬라이드(캐러셀) 또는 격자(갤러리) 토글. 여러 장일 때만 토글 노출.
           격자에서 탭하면 전체화면 뷰어(/detail/<publicNo>)로 연다. */}
       {sortedAssets.length > 0 && (
         <div className="relative bg-base-100 dark:bg-base-950">

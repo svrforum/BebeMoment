@@ -11,8 +11,8 @@ type SheetProps = {
   /**
    * Fixed-height column layout: the shell stops wrapping children in its own
    * scroll container so children can own internal scroll regions (e.g. a
-   * scrollable list + a pinned footer). Used by the comment sheet for an
-   * Instagram-style fixed header / scrolling list / fixed composer.
+   * scrollable list + a pinned footer). Used by the comment sheet for a
+   * fixed header / scrolling list / fixed composer.
    */
   fill?: boolean | undefined
 }
