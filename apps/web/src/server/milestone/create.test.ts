@@ -162,6 +162,34 @@ describe('createMilestone', () => {
     ).rejects.toThrow(/exactly one/i)
   })
 
+  it('rejects creation by a family-role member', async () => {
+    const { family, baby } = await setup()
+    const { user: member } = await signup(
+      {
+        email: `fam-${Date.now()}-${Math.random()}@b.com`,
+        password: 'password123',
+        displayName: 'M',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: member.id, role: 'family' },
+    })
+    await expect(
+      createMilestone(
+        {
+          familyId: family.id,
+          babyId: baby.id,
+          presetKey: 'first_smile',
+          achievedAt: '2026-03-01',
+          byUserId: member.id,
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow(/No permission/i)
+  })
+
   it('rejects asset from another family', async () => {
     const { user, family, baby } = await setup()
     const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)

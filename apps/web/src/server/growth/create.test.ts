@@ -159,6 +159,33 @@ describe('createGrowthRecord', () => {
     ).rejects.toThrow(/permission|member/i)
   })
 
+  it('rejects creation by a family-role member', async () => {
+    const { family, baby } = await setup()
+    const { user: member } = await signup(
+      {
+        email: `fam-${Date.now()}-${Math.random()}@b.com`,
+        password: 'password123',
+        displayName: 'M',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: member.id, role: 'family' },
+    })
+    await expect(
+      createGrowthRecord(
+        {
+          familyId: family.id,
+          babyId: baby.id,
+          measuredAt: '2026-04-15',
+          heightCm: 70,
+          byUserId: member.id,
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/No permission/i)
+  })
+
   it('rejects when baby belongs to another family', async () => {
     const { user, baby } = await setup()
     const { family: family2 } = await createFamily({ name: 'F2', userId: user.id }, db.prismaPublic)
