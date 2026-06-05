@@ -1403,7 +1403,10 @@
       "headValue": "Head {value}cm",
       "measuredAt": "Measured on",
       "noteOptional": "Note (optional)",
-      "save": "Save"
+      "save": "Save",
+      "addHead": "+ Add head circumference",
+      "lastRecordPrefix": "Last",
+      "atLeastOne": "Enter at least one measurement"
     },
     "milestone": {
       "categoryMotor": "Motor",

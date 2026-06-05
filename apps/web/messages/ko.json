@@ -1403,7 +1403,10 @@
       "headValue": "머리 {value}cm",
       "measuredAt": "측정일",
       "noteOptional": "메모 (선택)",
-      "save": "저장"
+      "save": "저장",
+      "addHead": "+ 머리둘레 입력",
+      "lastRecordPrefix": "지난 기록",
+      "atLeastOne": "키·몸무게·머리둘레 중 하나는 입력해주세요"
     },
     "milestone": {
       "categoryMotor": "운동",
