@@ -64,11 +64,11 @@ describe('record capabilities', () => {
     ['guardian', 'record.edit.any', true],
     ['guardian', 'record.delete.own', true],
     ['guardian', 'record.delete.any', true],
-    ['family', 'record.read', true],
-    ['family', 'record.create', true],
-    ['family', 'record.edit.own', true],
+    ['family', 'record.read', false],
+    ['family', 'record.create', false],
+    ['family', 'record.edit.own', false],
     ['family', 'record.edit.any', false],
-    ['family', 'record.delete.own', true],
+    ['family', 'record.delete.own', false],
     ['family', 'record.delete.any', false],
   ] as const)('%s can %s → %s', (role, cap, expected) => {
     expect(can(role, cap)).toBe(expected)
@@ -82,6 +82,7 @@ describe('effectiveFamilyCapabilities', () => {
     expect(s.has('asset.view.family')).toBe(true)
     expect(s.has('asset.upload')).toBe(false)
     expect(s.has('record.create')).toBe(false)
+    expect(s.has('record.read')).toBe(false)
   })
   it('adds grantable keys', () => {
     expect(effectiveFamilyCapabilities(['asset.upload']).has('asset.upload')).toBe(true)
