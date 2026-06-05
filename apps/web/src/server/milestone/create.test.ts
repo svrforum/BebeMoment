@@ -78,7 +78,7 @@ describe('createMilestone', () => {
       familyId: family.id,
       actorUserId: user.id,
       type: 'milestone.created',
-      payload: { milestoneId: ms.id, babyId: baby.id },
+      payload: { milestoneId: ms.id, babyId: baby.id, visibility: 'guardians' },
     })
   })
 

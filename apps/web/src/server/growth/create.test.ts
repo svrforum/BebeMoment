@@ -92,7 +92,7 @@ describe('createGrowthRecord', () => {
       familyId: family.id,
       actorUserId: user.id,
       type: 'growth.created',
-      payload: { recordId: rec.id, babyId: baby.id },
+      payload: { recordId: rec.id, babyId: baby.id, visibility: 'guardians' },
     })
   })
 

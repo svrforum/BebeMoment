@@ -67,7 +67,7 @@ export async function createGrowthRecord(
     familyId: input.familyId,
     actorUserId: input.byUserId,
     type: 'growth.created',
-    payload: { recordId: record.id, babyId: input.babyId },
+    payload: { recordId: record.id, babyId: input.babyId, visibility: 'guardians' },
   })
 
   return record

@@ -95,7 +95,7 @@ export async function createMilestone(
     familyId: input.familyId,
     actorUserId: input.byUserId,
     type: 'milestone.created',
-    payload: { milestoneId: milestone.id, babyId: input.babyId },
+    payload: { milestoneId: milestone.id, babyId: input.babyId, visibility: 'guardians' },
   })
 
   return milestone
