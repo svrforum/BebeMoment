@@ -6,7 +6,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { latestGrowth } from '@/server/growth/latest'
 import { getTranslations } from 'next-intl/server'
-import { redirect } from 'next/navigation'
+import { notFound, redirect } from 'next/navigation'
 import { createGrowthAction } from './actions'
 
 export default async function NewGrowthPage({ params }: { params: Promise<{ id: string }> }) {
@@ -20,6 +20,7 @@ export default async function NewGrowthPage({ params }: { params: Promise<{ id: 
     prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
+  if (!ctx.capabilities.includes('record.read')) notFound()
 
   const last = await latestGrowth(ctx.family.id, id, prismaPublic)
   const lastRecord = last

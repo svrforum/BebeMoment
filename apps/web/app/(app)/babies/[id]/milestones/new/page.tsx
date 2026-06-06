@@ -25,6 +25,7 @@ export default async function NewMilestonePage({
     prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
+  if (!ctx.capabilities.includes('record.read')) notFound()
   const { id } = await params
   const sp = await searchParams
   const preset = sp.presetKey ? getPreset(sp.presetKey) : undefined

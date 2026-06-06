@@ -22,6 +22,7 @@ export default async function EditGrowthPage({
     prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
+  if (!ctx.capabilities.includes('record.read')) notFound()
   const { id, recordId } = await params
   const rec = await prismaPublic.growthRecord.findFirst({
     where: { id: recordId, familyId: ctx.family.id, babyId: id, deletedAt: null },

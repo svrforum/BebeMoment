@@ -19,6 +19,7 @@ export default async function MilestonesPage({ params }: { params: Promise<{ id:
     prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
+  if (!ctx.capabilities.includes('record.read')) notFound()
   const { id } = await params
   const baby = await prismaPublic.baby.findFirst({
     where: { id, familyId: ctx.family.id, deletedAt: null },

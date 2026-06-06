@@ -24,6 +24,7 @@ export default async function EditMilestonePage({
     prismaPublic,
   )
   if (!ctx.family) redirect('/onboarding')
+  if (!ctx.capabilities.includes('record.read')) notFound()
   const { id, msId } = await params
   const ms = await prismaPublic.milestone.findFirst({
     where: { id: msId, familyId: ctx.family.id, babyId: id, deletedAt: null },
