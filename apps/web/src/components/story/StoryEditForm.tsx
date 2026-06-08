@@ -4,7 +4,7 @@ import { useUploadManager } from '@/components/upload/upload-manager'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
-import { ImagePlus, Loader2, Pencil, X } from 'lucide-react'
+import { ChevronDown, Globe, ImagePlus, Loader2, Pencil, ShieldCheck, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
@@ -21,6 +21,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
   })
 }
 
+type Visibility = 'family' | 'guardians'
 type ExistingAsset = { id: string; kind: 'image' | 'video'; urls: AssetUrls | null }
 type NewAttachment = {
   fileId: string
@@ -39,11 +40,15 @@ export function StoryEditForm({
   defaultBody,
   existingAssets,
   canUpload,
+  viewerRole,
+  defaultVisibility,
 }: {
   entryId: string
   defaultBody: string
   existingAssets: ExistingAsset[]
   canUpload: boolean
+  viewerRole: 'owner' | 'guardian' | 'family'
+  defaultVisibility: Visibility
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -52,7 +57,11 @@ export function StoryEditForm({
   const filesRef = useRef(files)
   filesRef.current = files
 
+  const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
+
   const [body, setBody] = useState(defaultBody)
+  const [visibility, setVisibility] = useState<Visibility>(defaultVisibility)
+  const [visMenuOpen, setVisMenuOpen] = useState(false)
   const [kept, setKept] = useState<ExistingAsset[]>(existingAssets)
   const [attachments, setAttachments] = useState<NewAttachment[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -188,7 +197,7 @@ export function StoryEditForm({
       const res = await fetch(`/api/story/${entryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: trimmed || ' ', assetIds }),
+        body: JSON.stringify({ body: trimmed || ' ', assetIds, visibility }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -207,6 +216,7 @@ export function StoryEditForm({
     attachments,
     kept,
     entryId,
+    visibility,
     submitting,
     startStagedUploads,
     router,
@@ -312,30 +322,85 @@ export function StoryEditForm({
       )}
 
       <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
-        {canUpload ? (
-          <>
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              disabled={submitting || photoCount >= MAX_PHOTOS}
-              aria-label={t('edit.addPhoto')}
-              className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-100 hover:text-point-500 disabled:opacity-40 dark:text-base-300 dark:hover:bg-base-800"
-            >
-              <ImagePlus size={18} strokeWidth={2} />
-              <span>{t('edit.addPhoto')}</span>
-            </button>
-            <input
-              ref={fileInputRef}
-              type="file"
-              accept="image/*,video/*"
-              multiple
-              onChange={onPick}
-              className="hidden"
-            />
-          </>
-        ) : (
-          <span aria-hidden />
-        )}
+        <div className="flex items-center gap-1">
+          {canUpload ? (
+            <>
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={submitting || photoCount >= MAX_PHOTOS}
+                aria-label={t('edit.addPhoto')}
+                className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-100 hover:text-point-500 disabled:opacity-40 dark:text-base-300 dark:hover:bg-base-800"
+              >
+                <ImagePlus size={18} strokeWidth={2} />
+                <span>{t('edit.addPhoto')}</span>
+              </button>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*,video/*"
+                multiple
+                onChange={onPick}
+                className="hidden"
+              />
+            </>
+          ) : null}
+          {canPostGuardian && (
+            <div className="relative">
+              <button
+                type="button"
+                onClick={() => setVisMenuOpen((v) => !v)}
+                className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-base-600 transition-colors hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
+                aria-label={t('edit.visibility')}
+                aria-expanded={visMenuOpen}
+              >
+                {visibility === 'family' ? (
+                  <Globe size={13} strokeWidth={2.2} />
+                ) : (
+                  <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" />
+                )}
+                <span>
+                  {visibility === 'family'
+                    ? t('edit.visibilityFamily')
+                    : t('edit.visibilityGuardians')}
+                </span>
+                <ChevronDown size={12} strokeWidth={2.2} />
+              </button>
+              {visMenuOpen && (
+                <>
+                  <button
+                    type="button"
+                    aria-label={t('edit.remove')}
+                    onClick={() => setVisMenuOpen(false)}
+                    className="fixed inset-0 z-30 cursor-default bg-transparent"
+                  />
+                  <div className="absolute left-0 bottom-full z-40 mb-2 w-56 overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-elevated dark:border-base-800/70 dark:bg-base-900">
+                    <VisibilityOption
+                      active={visibility === 'family'}
+                      icon={<Globe size={14} strokeWidth={2.2} />}
+                      title={t('edit.visibilityFamily')}
+                      subtitle={t('edit.visibilityFamilyDesc')}
+                      onClick={() => {
+                        setVisibility('family')
+                        setVisMenuOpen(false)
+                      }}
+                    />
+                    <VisibilityOption
+                      active={visibility === 'guardians'}
+                      icon={<ShieldCheck size={14} strokeWidth={2.2} className="text-point-500" />}
+                      title={t('edit.visibilityGuardians')}
+                      subtitle={t('edit.visibilityGuardiansDesc')}
+                      onClick={() => {
+                        setVisibility('guardians')
+                        setVisMenuOpen(false)
+                      }}
+                    />
+                  </div>
+                </>
+              )}
+            </div>
+          )}
+        </div>
         <button
           type="button"
           onClick={submit}
@@ -346,5 +411,37 @@ export function StoryEditForm({
         </button>
       </div>
     </div>
+  )
+}
+
+function VisibilityOption({
+  active,
+  icon,
+  title,
+  subtitle,
+  onClick,
+}: {
+  active: boolean
+  icon: React.ReactNode
+  title: string
+  subtitle: string
+  onClick: () => void
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-base-100 dark:hover:bg-base-800 ${
+        active ? 'bg-point-500/8 dark:bg-point-500/10' : ''
+      }`}
+    >
+      <div className="mt-0.5 flex h-5 w-5 shrink-0 items-center justify-center text-base-500">
+        {icon}
+      </div>
+      <div className="min-w-0 flex-1">
+        <div className="text-[13px] font-semibold text-base-900 dark:text-base-50">{title}</div>
+        <div className="mt-0.5 text-[11px] text-base-500">{subtitle}</div>
+      </div>
+    </button>
   )
 }

@@ -81,6 +81,8 @@ export default async function StoryDetailPage({
             defaultBody={entry.body}
             existingAssets={existingAssets}
             canUpload={ctx.capabilities.includes('asset.upload')}
+            viewerRole={ctx.membership?.role ?? 'family'}
+            defaultVisibility={entry.visibility}
           />
         </div>
       </>

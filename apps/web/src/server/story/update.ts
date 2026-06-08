@@ -19,6 +19,7 @@ const Input = z.object({
     title: z.string().max(120).nullable().optional(),
     body: z.string().min(1).max(20000).optional(),
     mood: z.enum(MOODS).nullable().optional(),
+    visibility: z.enum(['family', 'guardians']).optional(),
     // 사진 필수 — 편집에서 assetIds 를 줄 땐 최소 1장(전부 비워 0장 되는 것 방지).
     assetIds: z.array(z.string().uuid()).min(1, '사진을 최소 1장 추가해주세요').max(10).optional(),
   }),
@@ -74,6 +75,7 @@ export async function updateStoryEntry(
   if (input.patch.title !== undefined) data.title = input.patch.title
   if (input.patch.body !== undefined) data.body = input.patch.body
   if (input.patch.mood !== undefined) data.mood = input.patch.mood
+  if (input.patch.visibility !== undefined) data.visibility = input.patch.visibility
   if (input.patch.assetIds !== undefined) {
     data.assets = {
       deleteMany: {},

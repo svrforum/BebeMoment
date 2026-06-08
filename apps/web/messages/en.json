@@ -639,7 +639,12 @@
       "maxPhotos": "Up to {max} photos",
       "needContent": "Add some text or a photo",
       "uploadNotReady": "Photos aren't ready yet. Please try again in a moment.",
-      "saveFailed": "Couldn't save"
+      "saveFailed": "Couldn't save",
+      "visibility": "Visibility",
+      "visibilityFamily": "Everyone",
+      "visibilityGuardians": "Guardians only",
+      "visibilityFamilyDesc": "Visible to the whole family",
+      "visibilityGuardiansDesc": "Only owner / guardian roles can see this"
     },
     "delete": {
       "trigger": "Delete",

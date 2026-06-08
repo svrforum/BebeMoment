@@ -125,6 +125,97 @@ describe('updateStoryEntry', () => {
     expect(updated.babyId).toBeNull()
   })
 
+  it('owner 가 family 스토리를 guardians 로 바꾼다', async () => {
+    const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'd'.repeat(64), 'upd-vis1')
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '본문',
+        assetIds: [a.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(entry.visibility).toBe('family')
+    const updated = await updateStoryEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { visibility: 'guardians' },
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.visibility).toBe('guardians')
+    const row = await db.prismaPublic.story.findUnique({ where: { id: entry.id } })
+    expect(row?.visibility).toBe('guardians')
+  })
+
+  it('owner 가 guardians 스토리를 family 로 되돌린다', async () => {
+    const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'e'.repeat(64), 'upd-vis2')
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '본문',
+        assetIds: [a.id],
+        visibility: 'guardians',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(entry.visibility).toBe('guardians')
+    const updated = await updateStoryEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { visibility: 'family' },
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.visibility).toBe('family')
+  })
+
+  it('visibility 없는 patch 는 기존 공개범위를 유지한다', async () => {
+    const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'f'.repeat(64), 'upd-vis3')
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '본문',
+        assetIds: [a.id],
+        visibility: 'guardians',
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const updated = await updateStoryEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { body: '바뀐본문' },
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.body).toBe('바뀐본문')
+    expect(updated.visibility).toBe('guardians')
+  })
+
   it('아직 처리 중(non-ready)인 새 사진도 첨부할 수 있다 — 편집 "사진 추가" 회귀', async () => {
     const { user, family } = await setup()
     const seed = await makeReadyAsset(family.id, user.id, 'c'.repeat(64), 'upd-o3')

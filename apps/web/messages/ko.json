@@ -639,7 +639,12 @@
       "maxPhotos": "사진은 최대 {max}장까지예요",
       "needContent": "내용이나 사진을 추가해주세요",
       "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
-      "saveFailed": "저장에 실패했어요"
+      "saveFailed": "저장에 실패했어요",
+      "visibility": "공개 범위",
+      "visibilityFamily": "전체 공개",
+      "visibilityGuardians": "보호자만",
+      "visibilityFamilyDesc": "가족 모두가 볼 수 있어요",
+      "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요"
     },
     "delete": {
       "trigger": "삭제",
