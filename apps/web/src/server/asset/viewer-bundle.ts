@@ -1,6 +1,8 @@
 import { pickVideoPosterUrl, pickVideoUrl } from '@/lib/asset-url'
+import { listSecretAssetIds } from '@/server/story/secret-assets'
 import type { TimelineSort } from '@/server/timeline/merged-list'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { AssetUrls, MediaClient } from '@bebe/media-client'
 import { getAssetForFamily } from './get'
 
@@ -37,9 +39,13 @@ export async function loadViewerBundle(
     /** 추억·앨범 등 특정 컬렉션에서 열렸으면 그 순서대로의 자산 UUID 목록. 주어지면
      *  prev/next 를 전역 타임라인이 아니라 이 목록 안에서 찾는다(컬렉션 이탈 방지). */
     neighborIds?: string[]
+    /** 뷰어 역할 — family 면 비밀 스토리 사진을 현재 자산(404)·전역 prev/next 에서 제외.
+     *  prismaPublic 과 함께 주어져야 동작(없으면 비밀 필터 미적용). */
+    viewerRole?: Role
   },
   prismaMedia: PrismaMedia,
   media: MediaClient,
+  prismaPublic?: PrismaPublic,
 ): Promise<ViewerBundle | null> {
   // assetId may be the sequential publicNo (page URL) or the UUID (API route).
   let uuid = args.assetId
@@ -53,11 +59,23 @@ export async function loadViewerBundle(
   }
 
   const asset = await getAssetForFamily(
-    { assetId: uuid, familyId: args.familyId },
+    {
+      assetId: uuid,
+      familyId: args.familyId,
+      ...(args.viewerRole ? { viewerRole: args.viewerRole } : {}),
+    },
     prismaMedia,
     media,
+    prismaPublic,
   )
   if (!asset) return null
+
+  // 전역 prev/next(컬렉션 밖)에서도 family 에게 비밀 사진을 제외한다. neighborIds 경로는
+  // 상위 컬렉션 목록이 이미 비밀 필터를 거쳐 안전하다.
+  const hidden =
+    args.viewerRole === 'family' && prismaPublic
+      ? await listSecretAssetIds(prismaPublic, args.familyId)
+      : []
 
   // prev/next 의 정렬 기준은 타임라인과 일치해야 한다 — 업로드순(createdAt)으로 보던
   // 사용자가 뷰어를 열면 스와이프 이웃도 createdAt 기준이어야 그리드와 어긋나지 않는다.
@@ -66,6 +84,7 @@ export async function loadViewerBundle(
     deletedAt: null,
     status: 'ready' as const,
     duplicateOf: null,
+    ...(hidden.length ? { id: { notIn: hidden } } : {}),
   }
   const select = { id: true, publicNo: true, kind: true } as const
   type Slim = { id: string; publicNo: number; kind: 'image' | 'video' }

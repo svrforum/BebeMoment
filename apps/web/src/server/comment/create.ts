@@ -5,6 +5,7 @@ import type { AssetComment, PrismaClient as PrismaPublic } from '@bebe/db-public
 import type IORedis from 'ioredis'
 import { z } from 'zod'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
+import { isAssetHiddenFromViewer } from '../story/secret-assets'
 import { parseMentions } from './parse-mentions'
 
 const Input = z.object({
@@ -33,6 +34,13 @@ export async function createComment(
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'social.comment.create')) {
     throw new Error('No permission: not a member of this family')
+  }
+
+  if (
+    membership.role === 'family' &&
+    (await isAssetHiddenFromViewer('family', input.assetId, prismaPublic, input.familyId))
+  ) {
+    throw new Error('asset not found in this family')
   }
 
   const familyMembers = await prismaPublic.membership.findMany({

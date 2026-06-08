@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { AssetWithUrls } from '../asset/types'
 
 export type TimelineItem =
@@ -81,6 +82,13 @@ export async function listTimeline(
     dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
   }
 
+  // 비밀 스토리(guardians) 사진은 family 에게 그리드·썸네일 모두에서 숨긴다.
+  const hidden = await hiddenAssetIdsForViewer(
+    params.viewerRole ?? 'family',
+    prismaPublic,
+    familyId,
+  )
+
   // Model B — 사진(자산)이 페이지네이션을 주도하고, 스토리는 "안에 든 사진이
   // 찍힌 날"을 따라간다(스토리 자신의 entryDate/작성일이 아니라). 그래서 자산을
   // 먼저 페이징한 뒤, 그 페이지 자산을 소유한 스토리를 역으로 찾아 같이 싣는다.
@@ -92,6 +100,7 @@ export async function listTimeline(
       status: 'ready',
       deletedAt: null,
       duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
+      ...(hidden.length ? { id: { notIn: hidden } } : {}),
       ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
       ...(cursorTs && cur
         ? sort === 'uploaded'
@@ -141,7 +150,11 @@ export async function listTimeline(
   )
   const extraAssets = extraIds.length
     ? await prismaMedia.asset.findMany({
-        where: { id: { in: extraIds }, familyId, deletedAt: null },
+        where: {
+          id: { in: extraIds, ...(hidden.length ? { notIn: hidden } : {}) },
+          familyId,
+          deletedAt: null,
+        },
       })
     : []
   const assetById = new Map([...pageAssets, ...extraAssets].map((a) => [a.id, a]))

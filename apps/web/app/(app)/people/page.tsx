@@ -18,7 +18,12 @@ export default async function PeoplePage() {
   const features = await getFeatureFlags(prismaPublic)
   if (!features.faces) notFound()
 
-  const people = await listPeople({ familyId: ctx.family.id }, prismaMedia, getMediaClient())
+  const people = await listPeople(
+    { familyId: ctx.family.id, viewerRole: ctx.membership?.role ?? 'family' },
+    prismaMedia,
+    getMediaClient(),
+    prismaPublic,
+  )
 
   return (
     <>

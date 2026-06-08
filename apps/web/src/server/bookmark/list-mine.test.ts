@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { listMyBookmarks } from './list-mine'
 import { toggleBookmark } from './toggle'
 
@@ -18,6 +19,8 @@ beforeEach(async () => {
   await db.prismaPublic.assetComment.deleteMany()
   await db.prismaPublic.assetBookmark.deleteMany()
   await db.prismaPublic.assetLike.deleteMany()
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
@@ -134,5 +137,54 @@ describe('listMyBookmarks', () => {
     )
     expect(p2.items.length).toBe(2)
     expect(p2.nextCursor).toBeNull()
+  })
+
+  it('hides a bookmarked photo from family once it lands in a secret story (shown to owner)', async () => {
+    const { user, family } = await setup()
+    const normal = await makeReadyAsset(family.id, user.id, 'bm-n')
+    const secret = await makeReadyAsset(family.id, user.id, 'bm-s')
+    await toggleBookmark(
+      { assetId: normal.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await toggleBookmark(
+      { assetId: secret.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const familyView = await listMyBookmarks(
+      family.id,
+      user.id,
+      { viewerRole: 'family' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(familyView.items.map((b) => b.assetId)).toEqual([normal.id])
+
+    const ownerView = await listMyBookmarks(
+      family.id,
+      user.id,
+      { viewerRole: 'owner' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(ownerView.items.map((b) => b.assetId).sort()).toEqual([normal.id, secret.id].sort())
   })
 })

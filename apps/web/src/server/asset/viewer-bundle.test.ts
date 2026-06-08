@@ -3,6 +3,7 @@ import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { createAsset } from './create'
 import { updateAssetStatus } from './update-status'
 import { loadViewerBundle } from './viewer-bundle'
@@ -16,6 +17,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
@@ -183,6 +186,54 @@ describe('loadViewerBundle', () => {
     // b 는 목록 끝(i=1). nextId=list[0]=a, prevId=list[2]=없음.
     expect(bundle?.nextId).toBe(a)
     expect(bundle?.prevId).toBeUndefined()
+  })
+
+  it('family viewer cannot open a secret-story asset, and it is excluded from global neighbors', async () => {
+    const { user, family } = await setup()
+    const aId = await makeReadyAsset(family.id, user.id, 'sec-a', new Date('2026-04-01'))
+    const bId = await makeReadyAsset(family.id, user.id, 'sec-b', new Date('2026-04-02'))
+    const cId = await makeReadyAsset(family.id, user.id, 'sec-c', new Date('2026-04-03'))
+    // B is in a secret story.
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [bId],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    // family opening B directly → 404 (null)
+    expect(
+      await loadViewerBundle(
+        { assetId: bId, familyId: family.id, viewerRole: 'family' },
+        db.prismaMedia,
+        new FakeMediaClient(),
+        db.prismaPublic,
+      ),
+    ).toBeNull()
+    // family opening A → next skips secret B, lands on C
+    const fromA = await loadViewerBundle(
+      { assetId: aId, familyId: family.id, viewerRole: 'family' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+      db.prismaPublic,
+    )
+    expect(fromA?.nextId).toBe(cId)
+    // owner sees B normally (between A and C)
+    const ownerB = await loadViewerBundle(
+      { assetId: bId, familyId: family.id, viewerRole: 'owner' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+      db.prismaPublic,
+    )
+    expect(ownerB?.current.id).toBe(bId)
+    expect(ownerB?.prevId).toBe(aId)
+    expect(ownerB?.nextId).toBe(cId)
   })
 
   it('does not leak across families', async () => {

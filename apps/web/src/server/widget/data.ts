@@ -1,4 +1,5 @@
 import { pickDisplayUrl } from '@/lib/asset-url'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -33,10 +34,17 @@ export async function getWidgetData(
 ): Promise<WidgetData | null> {
   const membership = await prismaPublic.membership.findFirst({
     where: { userId, deletedAt: null },
-    select: { familyId: true, lastSeenAt: true },
+    select: { familyId: true, lastSeenAt: true, role: true },
   })
   if (!membership) return null
   const familyId = membership.familyId
+
+  // family 위젯에는 비밀 스토리 사진을 노출하지 않는다(최근사진·북마크·새사진 수 모두).
+  const hidden = await hiddenAssetIdsForViewer(membership.role, prismaPublic, familyId)
+  const hiddenSet = new Set(hidden)
+  // baseWhere 에 직접 넣으면 북마크 쿼리의 `id: { in: order }` 와 충돌하므로(같은 `id`
+  // 키), 비밀 제외는 쿼리별로 적용한다(open 쿼리는 notIn, in-list 는 JS 필터).
+  const notHidden = hidden.length ? { id: { notIn: hidden } } : {}
 
   const baseWhere = {
     familyId,
@@ -49,7 +57,7 @@ export async function getWidgetData(
 
   const selectRecent = () =>
     prismaMedia.asset.findMany({
-      where: baseWhere,
+      where: { ...baseWhere, ...notHidden },
       orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       take: WIDGET_PHOTO_POOL,
       select: { id: true, takenAt: true },
@@ -64,7 +72,7 @@ export async function getWidgetData(
       select: { assetId: true },
       take: 100,
     })
-    let order = bms.map((b) => b.assetId)
+    let order = bms.map((b) => b.assetId).filter((id) => !hiddenSet.has(id))
     if (
       source === 'bookmark_pinned' &&
       config?.pinnedAssetId &&
@@ -93,7 +101,7 @@ export async function getWidgetData(
     }),
     membership.lastSeenAt
       ? prismaMedia.asset.count({
-          where: { ...baseWhere, createdAt: { gt: membership.lastSeenAt } },
+          where: { ...baseWhere, ...notHidden, createdAt: { gt: membership.lastSeenAt } },
         })
       : Promise.resolve(0),
   ])

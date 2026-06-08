@@ -45,7 +45,7 @@ export async function resolveNeighborIds(
       const { items } = await listMyBookmarks(
         v.familyId,
         v.userId,
-        { limit: LIMIT },
+        { limit: LIMIT, viewerRole: v.viewerRole },
         prismaPublic,
         prismaMedia,
         media,
@@ -54,7 +54,7 @@ export async function resolveNeighborIds(
     }
     if (kind === 'album' && id) {
       const { assets } = await listAlbumAssets(
-        { albumId: id, familyId: v.familyId, limit: LIMIT },
+        { albumId: id, familyId: v.familyId, limit: LIMIT, viewerRole: v.viewerRole },
         prismaPublic,
         prismaMedia,
         media,
@@ -63,9 +63,10 @@ export async function resolveNeighborIds(
     }
     if (kind === 'person' && id) {
       const { assets } = await getPersonAssets(
-        { familyId: v.familyId, personId: id },
+        { familyId: v.familyId, personId: id, viewerRole: v.viewerRole },
         prismaMedia,
         media,
+        prismaPublic,
       )
       return assets.map((a) => a.id)
     }

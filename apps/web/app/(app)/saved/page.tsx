@@ -41,7 +41,7 @@ export default async function SavedPage() {
     listMyBookmarks(
       ctx.family.id,
       ctx.user.id,
-      { limit: 100 },
+      { limit: 100, viewerRole: role },
       prismaPublic,
       prismaMedia,
       getMediaClient(),
@@ -126,7 +126,11 @@ export default async function SavedPage() {
   // 사람(얼굴 인식) 진입점 — features.faces 켜졌을 때만. 북마크 탭에서도 사람으로 진입.
   const features = await getFeatureFlags(prismaPublic)
   const peopleCount = features.faces
-    ? await countPeople({ familyId: ctx.family.id }, prismaMedia)
+    ? await countPeople(
+        { familyId: ctx.family.id, viewerRole: ctx.membership?.role ?? 'family' },
+        prismaMedia,
+        prismaPublic,
+      )
     : 0
 
   return (

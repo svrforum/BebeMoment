@@ -2,6 +2,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Baby, Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { hiddenAssetIdsForViewer } from './secret-assets'
 
 export async function getStoryEntry(
   idOrPublicNo: string,
@@ -32,7 +33,10 @@ export async function getStoryEntry(
   })
   if (!entry) return null
 
-  const assetIds = entry.assets.map((ea) => ea.assetId)
+  // family 가 보는 (가족 공개) 스토리라도, 그 사진이 비밀 스토리에도 속해 있으면
+  // 하이드레이션에서 제외(Rule A 일관 — 비밀 사진은 어디서도 안 보인다).
+  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
+  const assetIds = entry.assets.map((ea) => ea.assetId).filter((id) => !hidden.has(id))
   const assets = assetIds.length
     ? await prismaMedia.asset.findMany({
         where: { id: { in: assetIds }, familyId, deletedAt: null },
@@ -45,12 +49,14 @@ export async function getStoryEntry(
 
   return {
     ...entry,
-    assets: entry.assets.map((ea) => {
-      const base = byId.get(ea.assetId) ?? null
-      const withUrls: AssetWithUrls | null = base
-        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
-        : null
-      return { ...ea, asset: withUrls }
-    }),
+    assets: entry.assets
+      .filter((ea) => !hidden.has(ea.assetId))
+      .map((ea) => {
+        const base = byId.get(ea.assetId) ?? null
+        const withUrls: AssetWithUrls | null = base
+          ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+          : null
+        return { ...ea, asset: withUrls }
+      }),
   }
 }

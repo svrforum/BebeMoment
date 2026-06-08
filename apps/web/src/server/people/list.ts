@@ -1,5 +1,7 @@
 import type { AssetWithUrls } from '@/server/asset/types'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
+import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { AssetUrls, MediaClient } from '@bebe/media-client'
 
 export type FaceBox = { x: number; y: number; w: number; h: number }
@@ -30,13 +32,14 @@ type LiveFaceRow = {
  * 점수가 가장 높은 것을 골라 thumb URL + bbox 로 — bbox 중심 CSS 크롭에 쓴다.
  */
 export async function listPeople(
-  args: { familyId: string },
+  args: { familyId: string; viewerRole?: Role },
   prismaMedia: PrismaMedia,
   media: MediaClient,
+  prismaPublic?: PrismaPublic,
 ): Promise<PersonSummary[]> {
   const { familyId } = args
 
-  const rows = await prismaMedia.$queryRawUnsafe<LiveFaceRow[]>(
+  const rowsRaw = await prismaMedia.$queryRawUnsafe<LiveFaceRow[]>(
     `SELECT f.person_id, f.asset_id, f.bbox_x, f.bbox_y, f.bbox_w, f.bbox_h, f.det_score
        FROM media.faces f
        JOIN media.assets a ON a.id = f.asset_id
@@ -44,6 +47,12 @@ export async function listPeople(
         AND a.deleted_at IS NULL AND a.status = 'ready'`,
     familyId,
   )
+  // family 에게는 비밀 스토리 사진의 얼굴을 인물 집계에서 제외(사진까지 숨김 일관).
+  const hidden =
+    args.viewerRole === 'family' && prismaPublic
+      ? new Set(await hiddenAssetIdsForViewer('family', prismaPublic, familyId))
+      : new Set<string>()
+  const rows = hidden.size ? rowsRaw.filter((r) => !hidden.has(r.asset_id)) : rowsRaw
   if (rows.length === 0) return []
 
   type Agg = { count: number; best: LiveFaceRow }
@@ -83,17 +92,33 @@ export async function listPeople(
 
 /** 살아있는 얼굴이 1개 이상인 사람 수 — 진입점 뱃지용(목록과 같은 기준). */
 export async function countPeople(
-  args: { familyId: string },
+  args: { familyId: string; viewerRole?: Role },
   prismaMedia: PrismaMedia,
+  prismaPublic?: PrismaPublic,
 ): Promise<number> {
-  const rows = await prismaMedia.$queryRawUnsafe<{ c: number }[]>(
-    `SELECT count(DISTINCT f.person_id)::int AS c
-       FROM media.faces f
-       JOIN media.assets a ON a.id = f.asset_id
-      WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
-        AND a.deleted_at IS NULL AND a.status = 'ready'`,
-    args.familyId,
-  )
+  const hidden =
+    args.viewerRole === 'family' && prismaPublic
+      ? await hiddenAssetIdsForViewer('family', prismaPublic, args.familyId)
+      : []
+  const rows = hidden.length
+    ? await prismaMedia.$queryRawUnsafe<{ c: number }[]>(
+        `SELECT count(DISTINCT f.person_id)::int AS c
+           FROM media.faces f
+           JOIN media.assets a ON a.id = f.asset_id
+          WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
+            AND a.deleted_at IS NULL AND a.status = 'ready'
+            AND f.asset_id <> ALL($2::uuid[])`,
+        args.familyId,
+        hidden,
+      )
+    : await prismaMedia.$queryRawUnsafe<{ c: number }[]>(
+        `SELECT count(DISTINCT f.person_id)::int AS c
+           FROM media.faces f
+           JOIN media.assets a ON a.id = f.asset_id
+          WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
+            AND a.deleted_at IS NULL AND a.status = 'ready'`,
+        args.familyId,
+      )
   return rows[0]?.c ?? 0
 }
 
@@ -102,21 +127,41 @@ export async function countPeople(
  * 알림 점(dot)용. 살아있는(미삭제·ready) 얼굴이 있는 사람만 센다(목록 기준과 동일).
  */
 export async function hasUnnamedPerson(
-  args: { familyId: string },
+  args: { familyId: string; viewerRole?: Role },
   prismaMedia: PrismaMedia,
+  prismaPublic?: PrismaPublic,
 ): Promise<boolean> {
-  const rows = await prismaMedia.$queryRawUnsafe<{ exists: boolean }[]>(
-    `SELECT EXISTS (
-       SELECT 1 FROM media.persons p
-        WHERE p.family_id = $1::uuid AND p.name IS NULL
-          AND EXISTS (
-            SELECT 1 FROM media.faces f
-              JOIN media.assets a ON a.id = f.asset_id
-             WHERE f.person_id = p.id AND a.deleted_at IS NULL AND a.status = 'ready'
-          )
-     ) AS exists`,
-    args.familyId,
-  )
+  const hidden =
+    args.viewerRole === 'family' && prismaPublic
+      ? await hiddenAssetIdsForViewer('family', prismaPublic, args.familyId)
+      : []
+  const rows = hidden.length
+    ? await prismaMedia.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT EXISTS (
+           SELECT 1 FROM media.persons p
+            WHERE p.family_id = $1::uuid AND p.name IS NULL
+              AND EXISTS (
+                SELECT 1 FROM media.faces f
+                  JOIN media.assets a ON a.id = f.asset_id
+                 WHERE f.person_id = p.id AND a.deleted_at IS NULL AND a.status = 'ready'
+                   AND f.asset_id <> ALL($2::uuid[])
+              )
+         ) AS exists`,
+        args.familyId,
+        hidden,
+      )
+    : await prismaMedia.$queryRawUnsafe<{ exists: boolean }[]>(
+        `SELECT EXISTS (
+           SELECT 1 FROM media.persons p
+            WHERE p.family_id = $1::uuid AND p.name IS NULL
+              AND EXISTS (
+                SELECT 1 FROM media.faces f
+                  JOIN media.assets a ON a.id = f.asset_id
+                 WHERE f.person_id = p.id AND a.deleted_at IS NULL AND a.status = 'ready'
+              )
+         ) AS exists`,
+        args.familyId,
+      )
   return rows[0]?.exists ?? false
 }
 
@@ -132,9 +177,10 @@ const MAX_PERSON_ASSETS = 500
 /** 한 사람의 사진(타임라인 포맷, 촬영일 내림차순). 같은 자산에 여러 얼굴이 있어도 1번만.
  *  가장 많이 찍히는 사람(아기)도 무제한 로드하지 않도록 상한을 둔다(앨범과 동일 패턴). */
 export async function getPersonAssets(
-  args: { familyId: string; personId: string },
+  args: { familyId: string; personId: string; viewerRole?: Role },
   prismaMedia: PrismaMedia,
   media: MediaClient,
+  prismaPublic?: PrismaPublic,
 ): Promise<PersonDetail> {
   const { familyId, personId } = args
   const person = await prismaMedia.person.findFirst({
@@ -147,7 +193,12 @@ export async function getPersonAssets(
     where: { familyId, personId },
     select: { assetId: true },
   })
-  const assetIds = Array.from(new Set(faces.map((f) => f.assetId)))
+  // family 에게는 비밀 스토리 사진을 인물 상세에서도 제외.
+  const hidden =
+    args.viewerRole === 'family' && prismaPublic
+      ? new Set(await hiddenAssetIdsForViewer('family', prismaPublic, familyId))
+      : new Set<string>()
+  const assetIds = Array.from(new Set(faces.map((f) => f.assetId))).filter((id) => !hidden.has(id))
   if (assetIds.length === 0) return { person, assets: [], truncated: false }
 
   const rows = await prismaMedia.asset.findMany({

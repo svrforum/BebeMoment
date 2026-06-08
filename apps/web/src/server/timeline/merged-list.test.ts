@@ -204,6 +204,92 @@ describe('listTimeline', () => {
     expect(uploaded.items.map((i) => i.id)).toEqual([a3.id, a2.id, a1.id])
   })
 
+  it('hides secret-story photos from family but shows them to owner', async () => {
+    const { user, family } = await setup()
+    const normal = await makeAsset(family.id, user.id, new Date('2026-04-10'), 'normal')
+    const secret = await makeAsset(family.id, user.id, new Date('2026-04-11'), 'secret')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-11',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const familyView = await listTimeline(
+      family.id,
+      { limit: 20, viewerRole: 'family' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const familyAssetIds = familyView.items
+      .filter(
+        (i): i is Extract<(typeof familyView.items)[number], { kind: 'asset' }> =>
+          i.kind === 'asset',
+      )
+      .map((i) => i.id)
+    // 비밀 사진은 그리드에서 빠지고, 비밀 스토리 카드 자체도 family 에겐 안 뜬다.
+    expect(familyAssetIds).toEqual([normal.id])
+    expect(familyView.items.some((i) => i.kind === 'story')).toBe(false)
+
+    const ownerView = await listTimeline(
+      family.id,
+      { limit: 20, viewerRole: 'owner' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const ownerAssetIds = ownerView.items
+      .filter(
+        (i): i is Extract<(typeof ownerView.items)[number], { kind: 'asset' }> =>
+          i.kind === 'asset',
+      )
+      .map((i) => i.id)
+    expect(ownerAssetIds).toContain(secret.id)
+  })
+
+  it('hides a secret-story photo even when it is a story thumbnail (extraAssets)', async () => {
+    const { user, family } = await setup()
+    // 다른 날 사진(페이지엔 뜨지만)이 비밀 스토리 썸네일로 해석되지 않아야 한다.
+    const pageAsset = await makeAsset(family.id, user.id, new Date('2026-05-31'), 'pageasset')
+    const secretThumb = await makeAsset(family.id, user.id, new Date('2026-05-12'), 'secretthumb')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-06-01',
+        body: 'secret trip',
+        visibility: 'guardians',
+        assetIds: [pageAsset.id, secretThumb.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const familyView = await listTimeline(
+      family.id,
+      { limit: 20, viewerRole: 'family' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const ids = familyView.items
+      .filter(
+        (i): i is Extract<(typeof familyView.items)[number], { kind: 'asset' }> =>
+          i.kind === 'asset',
+      )
+      .map((i) => i.id)
+    expect(ids).not.toContain(secretThumb.id)
+    expect(ids).not.toContain(pageAsset.id)
+  })
+
   it('supports cursor-based pagination', async () => {
     const { user, family } = await setup()
     for (let i = 0; i < 5; i++) {

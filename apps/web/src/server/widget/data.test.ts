@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { getWidgetData } from './data'
 
 let db: FullTestDb
@@ -14,6 +15,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.baby.deleteMany()
   await db.prismaPublic.membership.deleteMany()
@@ -166,6 +169,48 @@ describe('getWidgetData', () => {
       pinnedAssetId: null,
     })
     expect(fallback?.photoUrls.length).toBe(2)
+  })
+
+  it('비밀 스토리 사진은 family 위젯에서 빠지고 owner 위젯엔 보인다', async () => {
+    const { user, family } = await setup()
+    // family-role 멤버 추가
+    const { user: fam } = await signup(
+      {
+        username: `f${Date.now()}${Math.floor(Math.random() * 1e6)}`,
+        password: 'password123',
+        displayName: 'Fam',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+
+    const normal = await makeAsset(family.id, user.id, new Date('2026-06-01'))
+    const secret = await makeAsset(family.id, user.id, new Date('2026-06-05')) // 최신
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-06-05',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const media = new FakeMediaClient()
+    media.setUrlsForAsset(normal.id, fakeUrls())
+    media.setUrlsForAsset(secret.id, fakeUrls())
+
+    const familyData = await getWidgetData(fam.id, db.prismaMedia, db.prismaPublic, media)
+    const ownerData = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media)
+    // family: 비밀 사진 제외 → 최신이 normal
+    expect(familyData?.photoUrls.length).toBe(1)
+    // owner: 둘 다(최신이 secret)
+    expect(ownerData?.photoUrls.length).toBe(2)
   })
 })
 

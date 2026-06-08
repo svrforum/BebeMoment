@@ -4,6 +4,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vites
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { createComment } from './create'
 
 let db: FullTestDb
@@ -17,6 +18,8 @@ beforeEach(async () => {
   await db.prismaPublic.assetComment.deleteMany()
   await db.prismaPublic.assetBookmark.deleteMany()
   await db.prismaPublic.assetLike.deleteMany()
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
@@ -154,6 +157,80 @@ describe('createComment', () => {
     )
     const job = enqueue.mock.calls[0]?.[0]
     expect(JSON.parse(job?.payload.mentionedUserIds ?? '[]')).toEqual([bob.id])
+  })
+
+  it('family 역할은 비밀 스토리 자산에 댓글을 달 수 없다(거부)', async () => {
+    const { user, family } = await setup()
+    const { user: fam } = await signup(
+      { email: `fam-${Date.now()}@b.com`, password: 'password123', displayName: 'Fam' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    const secret = await makeReadyAsset(family.id, user.id, 'secret')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await expect(
+      createComment(
+        { assetId: secret.id, familyId: family.id, body: '몰래 댓글', byUserId: fam.id },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow(/not found/i)
+  })
+
+  it('owner 는 비밀 스토리 자산에 댓글을 달 수 있다(게이트는 family 한정)', async () => {
+    const { user, family } = await setup()
+    const secret = await makeReadyAsset(family.id, user.id, 'secret')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const c = await createComment(
+      { assetId: secret.id, familyId: family.id, body: 'owner 댓글', byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(c.body).toBe('owner 댓글')
+  })
+
+  it('family 역할은 비밀 아닌 자산에 댓글을 달 수 있다(게이트는 비밀 한정)', async () => {
+    const { user, family } = await setup()
+    const { user: fam } = await signup(
+      { email: `fam2-${Date.now()}@b.com`, password: 'password123', displayName: 'Fam2' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    const normal = await makeReadyAsset(family.id, user.id, 'normal')
+    const c = await createComment(
+      { assetId: normal.id, familyId: family.id, body: '평범 댓글', byUserId: fam.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(c.body).toBe('평범 댓글')
   })
 
   it('rejects asset from another family', async () => {

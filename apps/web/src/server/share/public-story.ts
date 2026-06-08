@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { listSecretAssetIds } from '../story/secret-assets'
 
 // og:image 는 외부 크롤러(카톡·페북)가 가져가므로 반드시 공개 절대 URL이어야 한다. media 가
 // 내부(localhost)·루트-상대 URL 을 줄 수 있어, 경로만 떼어 baseUrl(요청 도메인)로 재절대화.
@@ -67,7 +68,9 @@ export async function getPublicStoryPreview(
   const assetRows = await prismaPublic.$queryRaw<{ asset_id: string }[]>`
     SELECT asset_id FROM story_assets WHERE entry_id = ${row.id}::uuid ORDER BY "order" ASC
   `
-  const orderedIds = assetRows.map((a) => a.asset_id)
+  // 이 스토리가 가족 공개라도, 사진이 다른 비밀 스토리에도 속하면 공개 프리뷰에서 제외(Rule A).
+  const secret = new Set(await listSecretAssetIds(prismaPublic, row.family_id))
+  const orderedIds = assetRows.map((a) => a.asset_id).filter((id) => !secret.has(id))
   let imageUrl: string | null = null
   let totalPhotos = 0
   if (orderedIds.length) {

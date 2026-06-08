@@ -4,6 +4,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { getSetting } from '@/server/settings/get'
+import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
 import { z } from 'zod'
 
 const QUERY = z.object({ q: z.enum(['original', 'hd', 'sd']).default('original') })
@@ -20,6 +21,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const url = new URL(req.url)
   const { q } = QUERY.parse(Object.fromEntries(url.searchParams))
   const { id } = await params
+
+  // family 역할은 비밀 스토리 사진을 다운로드(공유 저장 포함)할 수 없다 — 다른 노출
+  // 지점과 동일한 경계(defense-in-depth: id 를 직접 쳐도 차단).
+  if (
+    (ctx.membership?.role ?? 'family') === 'family' &&
+    (await isAssetHiddenFromViewer('family', id, prismaPublic, ctx.family.id))
+  ) {
+    return errorJsonKey('notFound', 404)
+  }
 
   // 압축 옵션이 꺼져 있으면 hd/sd 요청을 원본으로 폴백한다 — UI 가 숨겨져 있어도
   // URL 을 직접 친 경우에 대비한 서버측 최종 방어.

@@ -1,5 +1,6 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { AssetUrls, MediaClient } from '@bebe/media-client'
 
 export type CalendarAsset = { id: string; takenAtISO: string; urls: AssetUrls | null }
@@ -23,11 +24,15 @@ export async function loadCalendarMonth(
   const start = new Date(Date.UTC(year, month, 1))
   const end = new Date(Date.UTC(year, month + 1, 1))
 
+  // 비밀 스토리(guardians) 사진은 family 에게 커버·뱃지 모두에서 숨긴다.
+  const hidden = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId)
+
   const rawAssets = await prismaMedia.asset.findMany({
     where: {
       familyId,
       status: 'ready',
       deletedAt: null,
+      ...(hidden.length ? { id: { notIn: hidden } } : {}),
       // 중복 별칭은 제외 — 타임라인(merged-list)과 동일. 안 빼면 스토리·앨범에 추가한
       // "이미 있는 사진"(별칭)이 캘린더 커버로 떠, 그 날짜 타임라인엔 없는데 사진이 있는
       // 것처럼 보였다.

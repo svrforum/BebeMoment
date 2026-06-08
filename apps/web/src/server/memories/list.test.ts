@@ -4,7 +4,8 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
-import { listMemories } from './list'
+import { createStoryEntry } from '../story/create'
+import { countMemories, listMemories } from './list'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -117,5 +118,85 @@ describe('listMemories', () => {
     expect(groups[0]?.assets).toHaveLength(2)
     expect(groups[0]?.label).toBe('1년 전 오늘')
     expect(groups[1]?.stories).toHaveLength(1)
+  })
+
+  it('비밀 스토리 단독 사진은 family 에게 숨기고 owner 에겐 보인다', async () => {
+    const { user, family } = await setup()
+    const normal = await makeAsset(family.id, user.id, new Date('2025-05-30T10:00:00Z'))
+    const secret = await makeAsset(family.id, user.id, new Date('2025-05-30T11:00:00Z'))
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2025-05-30',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const familyGroups = await listMemories(
+      { familyId: family.id, today: TODAY, viewerRole: 'family' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    const familyAssetIds = familyGroups.flatMap((g) => g.assets.map((a) => a.id))
+    expect(familyAssetIds).toContain(normal.id)
+    expect(familyAssetIds).not.toContain(secret.id)
+    // 비밀 스토리 카드 자체도 family 에겐 안 뜬다.
+    expect(familyGroups.flatMap((g) => g.stories)).toHaveLength(0)
+
+    const ownerGroups = await listMemories(
+      { familyId: family.id, today: TODAY, viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    const ownerStoryAssetIds = ownerGroups.flatMap((g) =>
+      g.stories.flatMap((s) => s.assets.map((ea) => ea.asset?.id)),
+    )
+    expect(ownerStoryAssetIds).toContain(secret.id)
+  })
+})
+
+describe('countMemories', () => {
+  it('family 카운트에서 비밀 스토리 단독 사진을 제외한다', async () => {
+    const { user, family } = await setup()
+    await makeAsset(family.id, user.id, new Date('2025-05-30T10:00:00Z'))
+    const secret = await makeAsset(family.id, user.id, new Date('2025-05-30T11:00:00Z'))
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2025-05-30',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    // family: 일반 사진 1장만(비밀 사진·비밀 스토리 둘 다 제외).
+    expect(
+      await countMemories(
+        { familyId: family.id, today: TODAY, viewerRole: 'family' },
+        db.prismaMedia,
+        db.prismaPublic,
+      ),
+    ).toBe(1)
+    // owner: 일반 사진 + 비밀 사진(별칭 아님) + 비밀 스토리.
+    expect(
+      await countMemories(
+        { familyId: family.id, today: TODAY, viewerRole: 'owner' },
+        db.prismaMedia,
+        db.prismaPublic,
+      ),
+    ).toBe(3)
   })
 })

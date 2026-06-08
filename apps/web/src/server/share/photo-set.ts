@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { listSecretAssetIds } from '../story/secret-assets'
 import { toAbsolute } from './public-story'
 
 // 주의: 공개 프리뷰에는 원본(다운로드) URL 을 절대 넣지 않는다 — 익명 클라이언트로
@@ -38,12 +39,18 @@ export async function buildPhotoSetPreview(
 
   if (assetIds.length === 0) return { familyName, items: [], total: 0, ids: [] }
 
+  // 비밀 스토리에 속한 사진은 공개 공유에서도 절대 노출하지 않는다(발급 후 비밀로
+  // 전환된 사진까지 — 해석 시점에 제외하므로 견고).
+  const secret = new Set(await listSecretAssetIds(prismaPublic, familyId))
+  const sourceIds = secret.size ? assetIds.filter((id) => !secret.has(id)) : assetIds
+  if (sourceIds.length === 0) return { familyName, items: [], total: 0, ids: [] }
+
   const ready = await prismaMedia.asset.findMany({
-    where: { id: { in: assetIds }, familyId, status: 'ready', deletedAt: null },
+    where: { id: { in: sourceIds }, familyId, status: 'ready', deletedAt: null },
     select: { id: true, kind: true },
   })
   const kindById = new Map(ready.map((a) => [a.id, a.kind]))
-  const ordered = assetIds.filter((id) => kindById.has(id))
+  const ordered = sourceIds.filter((id) => kindById.has(id))
   const total = ordered.length
   const shown = ordered.slice(0, DISPLAY_CAP)
 

@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { toggleBookmark } from './toggle'
 
 let db: FullTestDb
@@ -16,6 +17,8 @@ beforeEach(async () => {
   await db.prismaPublic.assetComment.deleteMany()
   await db.prismaPublic.assetBookmark.deleteMany()
   await db.prismaPublic.assetLike.deleteMany()
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.assetBaby.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
@@ -100,6 +103,80 @@ describe('toggleBookmark', () => {
         db.prismaMedia,
       ),
     ).rejects.toThrow(/not found|asset/i)
+  })
+
+  it('family 역할은 비밀 스토리 자산을 북마크할 수 없다(거부)', async () => {
+    const { user, family } = await setup()
+    const { user: fam } = await signup(
+      { email: `fam-${Date.now()}@b.com`, password: 'password123', displayName: 'Fam' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    const secret = await makeReadyAsset(family.id, user.id, 'secret')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await expect(
+      toggleBookmark(
+        { assetId: secret.id, familyId: family.id, byUserId: fam.id },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow(/not found/i)
+  })
+
+  it('owner 는 비밀 스토리 자산을 북마크할 수 있다(게이트는 family 한정)', async () => {
+    const { user, family } = await setup()
+    const secret = await makeReadyAsset(family.id, user.id, 'secret')
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secret.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const result = await toggleBookmark(
+      { assetId: secret.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(result.bookmarked).toBe(true)
+  })
+
+  it('family 역할은 비밀 아닌 자산을 북마크할 수 있다(게이트는 비밀 한정)', async () => {
+    const { user, family } = await setup()
+    const { user: fam } = await signup(
+      { email: `fam2-${Date.now()}@b.com`, password: 'password123', displayName: 'Fam2' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: fam.id, role: 'family' },
+    })
+    const normal = await makeReadyAsset(family.id, user.id, 'normal')
+    const result = await toggleBookmark(
+      { assetId: normal.id, familyId: family.id, byUserId: fam.id },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(result.bookmarked).toBe(true)
   })
 
   it('동시 토글에서 P2002 가 사용자에게 새지 않는다(멱등)', async () => {

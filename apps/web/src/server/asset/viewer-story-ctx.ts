@@ -1,4 +1,4 @@
-import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 
 export type StoryViewerCtx = {
   index: number
@@ -18,12 +18,20 @@ export async function resolveStoryViewerCtx(
   currentAssetId: string,
   familyId: string,
   prisma: PrismaPublic,
+  // 기본값은 제한적인 'family' — family 면 비밀 스토리 본문이 새지 않도록 가시성 필터를
+  // 직접 건다(neighborIds 게이트에만 의존하던 fragile 한 방어를 자체 필터로 강화).
+  viewerRole: Role | 'owner' | 'guardian' | 'family' = 'family',
 ): Promise<StoryViewerCtx | null> {
   if (!ctx?.startsWith('story:') || !neighborIds?.length) return null
   const idx = neighborIds.indexOf(currentAssetId)
   if (idx < 0) return null
   const story = await prisma.story.findFirst({
-    where: { id: ctx.slice('story:'.length), familyId, deletedAt: null },
+    where: {
+      id: ctx.slice('story:'.length),
+      familyId,
+      deletedAt: null,
+      ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
+    },
     select: { body: true, publicNo: true },
   })
   if (!story) return null

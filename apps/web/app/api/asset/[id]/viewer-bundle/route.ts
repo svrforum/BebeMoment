@@ -33,10 +33,18 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       prismaMedia,
       getMediaClient(),
     )
+    const viewerRole = ctx.membership?.role ?? 'family'
     const bundle = await loadViewerBundle(
-      { assetId: id, familyId: ctx.family.id, sort, ...(neighborIds ? { neighborIds } : {}) },
+      {
+        assetId: id,
+        familyId: ctx.family.id,
+        sort,
+        viewerRole,
+        ...(neighborIds ? { neighborIds } : {}),
+      },
       prismaMedia,
       getMediaClient(),
+      prismaPublic,
     )
     if (!bundle) return errorJsonKey('notFound', 404)
 
@@ -46,6 +54,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       bundle.current.id,
       ctx.family.id,
       prismaPublic,
+      viewerRole,
     )
 
     // 새 자산의 social state (좋아요·북마크·댓글수·좋아요 목록) — chrome 컴포넌트가

@@ -1,3 +1,4 @@
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -43,7 +44,13 @@ export async function listAlbumEntries(
     include: { assets: true },
   })
 
-  const entryAssetIds = Array.from(new Set(entries.flatMap((e) => e.assets.map((a) => a.assetId))))
+  // family 에게는 비밀 스토리에도 속한 사진을 하이드레이션에서 제외(Rule A 일관).
+  const hidden = new Set(
+    await hiddenAssetIdsForViewer(args.viewerRole ?? 'family', prismaPublic, args.familyId),
+  )
+  const entryAssetIds = Array.from(
+    new Set(entries.flatMap((e) => e.assets.map((a) => a.assetId))),
+  ).filter((id) => !hidden.has(id))
   const entryAssets = entryAssetIds.length
     ? await prismaMedia.asset.findMany({
         where: { id: { in: entryAssetIds }, familyId: args.familyId, deletedAt: null },

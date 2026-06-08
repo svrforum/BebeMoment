@@ -1,4 +1,5 @@
 import type { AssetWithUrls } from '@/server/asset/types'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { type MemoryInterval, intervalLabel, intervalMonths, memoryInterval } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
@@ -31,6 +32,9 @@ export async function listMemories(
   const day = today.getUTCDate()
   const todayStr = today.toISOString().slice(0, 10)
 
+  // 비밀 스토리(guardians) 사진은 family 에게 단독 사진·스토리 썸네일 모두에서 숨긴다.
+  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
+
   const assetIdRows = await prismaMedia.$queryRaw<{ id: string }[]>`
     SELECT id FROM media.assets
     WHERE family_id = ${familyId}::uuid
@@ -38,7 +42,7 @@ export async function listMemories(
       AND EXTRACT(DAY FROM taken_at) = ${day}::int
       AND taken_at::date < ${todayStr}::date
   `
-  const assetIds = assetIdRows.map((r) => r.id)
+  const assetIds = assetIdRows.map((r) => r.id).filter((id) => !hidden.has(id))
   const assets = assetIds.length
     ? await prismaMedia.asset.findMany({
         where: { id: { in: assetIds }, familyId, deletedAt: null },
@@ -63,7 +67,9 @@ export async function listMemories(
       })
     : []
 
-  const storyAssetIds = Array.from(new Set(stories.flatMap((s) => s.assets.map((a) => a.assetId))))
+  const storyAssetIds = Array.from(
+    new Set(stories.flatMap((s) => s.assets.map((a) => a.assetId))),
+  ).filter((id) => !hidden.has(id))
   const storyAssets = storyAssetIds.length
     ? await prismaMedia.asset.findMany({
         where: { id: { in: storyAssetIds }, familyId, deletedAt: null },
@@ -131,13 +137,16 @@ export async function countMemories(
   const day = today.getUTCDate()
   const todayStr = today.toISOString().slice(0, 10)
 
-  const assetRows = await prismaMedia.$queryRaw<{ c: number }[]>`
-    SELECT count(*)::int AS c FROM media.assets
+  // 비밀 스토리 사진은 family 카운트에서 제외 — 후보 id 를 받아 hidden 을 떨군 뒤 센다.
+  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
+  const assetIdRows = await prismaMedia.$queryRaw<{ id: string }[]>`
+    SELECT id FROM media.assets
     WHERE family_id = ${familyId}::uuid
       AND deleted_at IS NULL AND status = 'ready' AND duplicate_of IS NULL
       AND EXTRACT(DAY FROM taken_at) = ${day}::int
       AND taken_at::date < ${todayStr}::date
   `
+  const assetCount = assetIdRows.filter((r) => !hidden.has(r.id)).length
   const storyRows = await prismaPublic.$queryRaw<{ c: number }[]>`
     SELECT count(*)::int AS c FROM stories
     WHERE family_id = ${familyId}::uuid AND deleted_at IS NULL
@@ -145,5 +154,5 @@ export async function countMemories(
       AND entry_date::date < ${todayStr}::date
       AND (visibility = 'family' OR ${viewerRole}::text <> 'family')
   `
-  return (assetRows[0]?.c ?? 0) + (storyRows[0]?.c ?? 0)
+  return assetCount + (storyRows[0]?.c ?? 0)
 }

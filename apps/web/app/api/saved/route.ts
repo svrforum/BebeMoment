@@ -19,7 +19,7 @@ export async function GET(req: Request) {
   const page = await listMyBookmarks(
     ctx.family.id,
     ctx.user.id,
-    { ...(cursor ? { cursor } : {}), limit },
+    { ...(cursor ? { cursor } : {}), limit, viewerRole: ctx.membership?.role ?? 'family' },
     prismaPublic,
     prismaMedia,
     getMediaClient(),

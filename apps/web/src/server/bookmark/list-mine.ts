@@ -1,5 +1,6 @@
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { AssetBookmark, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { AssetBookmark, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
 
@@ -19,7 +20,7 @@ function decodeCursor(s: string): Cursor | null {
 export async function listMyBookmarks(
   familyId: string,
   userId: string,
-  params: { cursor?: string; limit?: number },
+  params: { cursor?: string; limit?: number; viewerRole?: Role },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -31,7 +32,12 @@ export async function listMyBookmarks(
   const cur = params.cursor ? decodeCursor(params.cursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
-  const items = await prismaPublic.assetBookmark.findMany({
+  // family 가 북마크해 둔 사진이라도 비밀 스토리로 들어갔으면 저장됨에서 제외한다.
+  const hidden = new Set(
+    await hiddenAssetIdsForViewer(params.viewerRole ?? 'family', prismaPublic, familyId),
+  )
+
+  const fetched = await prismaPublic.assetBookmark.findMany({
     where: {
       familyId,
       userId,
@@ -47,6 +53,7 @@ export async function listMyBookmarks(
     orderBy: [{ createdAt: 'desc' }, { assetId: 'desc' }],
     take: limit + 1,
   })
+  const items = hidden.size ? fetched.filter((b) => !hidden.has(b.assetId)) : fetched
 
   const hasMore = items.length > limit
   const page = items.slice(0, limit)

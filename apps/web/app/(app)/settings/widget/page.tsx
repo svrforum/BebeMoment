@@ -22,7 +22,7 @@ export default async function WidgetSettingsPage() {
     listMyBookmarks(
       ctx.family.id,
       ctx.user.id,
-      { limit: 60 },
+      { limit: 60, viewerRole: ctx.membership?.role ?? 'family' },
       prismaPublic,
       prismaMedia,
       getMediaClient(),

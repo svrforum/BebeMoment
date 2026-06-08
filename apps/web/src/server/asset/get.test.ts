@@ -3,6 +3,7 @@ import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { createAsset } from './create'
 import { getAssetForFamily } from './get'
 import { updateAssetStatus } from './update-status'
@@ -16,6 +17,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
@@ -103,5 +106,45 @@ describe('getAssetForFamily', () => {
     expect(found?.id).toBe(a.id)
     expect(found?.urls).toBeNull()
     expect(media.calls.getAssetUrls).toHaveLength(0)
+  })
+
+  it('hides a secret-story asset from the family role (404) but not from owner', async () => {
+    const { user, family } = await setup()
+    const a = await makeAsset(family.id, user.id, 's1')
+    await updateAssetStatus({ assetId: a.id, familyId: family.id, status: 'ready' }, db.prismaMedia)
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [a.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const media = new FakeMediaClient()
+    // family viewer + prismaPublic → blocked
+    expect(
+      await getAssetForFamily(
+        { assetId: a.id, familyId: family.id, viewerRole: 'family' },
+        db.prismaMedia,
+        media,
+        db.prismaPublic,
+      ),
+    ).toBeNull()
+    // owner sees it
+    expect(
+      (
+        await getAssetForFamily(
+          { assetId: a.id, familyId: family.id, viewerRole: 'owner' },
+          db.prismaMedia,
+          media,
+          db.prismaPublic,
+        )
+      )?.id,
+    ).toBe(a.id)
   })
 })

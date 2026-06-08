@@ -45,7 +45,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   const [children, assetsResult, entries] = await Promise.all([
     listAlbums({ familyId: ctx.family.id, parentId: album.id, viewerRole }, prismaPublic),
     listAlbumAssets(
-      { albumId: album.id, familyId: ctx.family.id },
+      { albumId: album.id, familyId: ctx.family.id, viewerRole },
       prismaPublic,
       prismaMedia,
       getMediaClient(),

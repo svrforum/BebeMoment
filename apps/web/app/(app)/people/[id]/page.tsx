@@ -22,9 +22,10 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
 
   const { id } = await params
   const { person, assets, truncated } = await getPersonAssets(
-    { familyId: ctx.family.id, personId: id },
+    { familyId: ctx.family.id, personId: id, viewerRole: ctx.membership?.role ?? 'family' },
     prismaMedia,
     getMediaClient(),
+    prismaPublic,
   )
   if (!person) notFound()
 

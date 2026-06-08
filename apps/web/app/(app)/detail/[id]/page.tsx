@@ -40,9 +40,16 @@ export default async function DetailPage({
   // /api/asset/[id]/viewer-bundle so client-side swipe gets identical shape).
   // sort 는 타임라인의 정렬 모드와 일치시켜 prev/next 이웃이 그리드와 어긋나지 않게.
   const bundle = await loadViewerBundle(
-    { assetId: id, familyId: ctx.family.id, sort, ...(neighborIds ? { neighborIds } : {}) },
+    {
+      assetId: id,
+      familyId: ctx.family.id,
+      sort,
+      viewerRole: ctx.membership?.role ?? 'family',
+      ...(neighborIds ? { neighborIds } : {}),
+    },
     prismaMedia,
     media,
+    prismaPublic,
   )
   if (!bundle) notFound()
 
@@ -115,6 +122,7 @@ export default async function DetailPage({
     bundle.current.id,
     ctx.family.id,
     prismaPublic,
+    role,
   )
 
   return (

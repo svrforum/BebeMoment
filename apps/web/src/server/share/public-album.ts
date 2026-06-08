@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { listSecretAssetIds } from '../story/secret-assets'
 import { toAbsolute } from './public-story'
 
 export type PublicAlbumPreview = {
@@ -39,17 +40,34 @@ export async function getPublicAlbumPreview(
   const row = rows[0]
   if (!row) return null
 
+  // 비밀 스토리에 속한 사진은 공개 앨범 프리뷰의 표지·장수에서도 제외한다.
+  const secret = await listSecretAssetIds(prismaPublic, familyId)
+  const secretSet = new Set(secret)
+
   const countRows = await prismaPublic.$queryRaw<{ n: bigint }[]>`
     SELECT count(*)::bigint AS n FROM album_assets WHERE album_id = ${albumId}::uuid
   `
-  const photoCount = Number(countRows[0]?.n ?? 0)
-
-  let coverId = row.cover_asset_id
-  if (!coverId) {
-    const firstRows = await prismaPublic.$queryRaw<{ asset_id: string }[]>`
-      SELECT asset_id FROM album_assets WHERE album_id = ${albumId}::uuid
-      ORDER BY sort_index ASC, added_at ASC LIMIT 1
+  let photoCount = Number(countRows[0]?.n ?? 0)
+  if (secret.length) {
+    const secretInAlbum = await prismaPublic.$queryRaw<{ n: bigint }[]>`
+      SELECT count(*)::bigint AS n FROM album_assets
+      WHERE album_id = ${albumId}::uuid AND asset_id = ANY(${secret}::uuid[])
     `
+    photoCount -= Number(secretInAlbum[0]?.n ?? 0)
+  }
+
+  let coverId = row.cover_asset_id && !secretSet.has(row.cover_asset_id) ? row.cover_asset_id : null
+  if (!coverId) {
+    const firstRows = secret.length
+      ? await prismaPublic.$queryRaw<{ asset_id: string }[]>`
+          SELECT asset_id FROM album_assets
+          WHERE album_id = ${albumId}::uuid AND asset_id <> ALL(${secret}::uuid[])
+          ORDER BY sort_index ASC, added_at ASC LIMIT 1
+        `
+      : await prismaPublic.$queryRaw<{ asset_id: string }[]>`
+          SELECT asset_id FROM album_assets WHERE album_id = ${albumId}::uuid
+          ORDER BY sort_index ASC, added_at ASC LIMIT 1
+        `
     coverId = firstRows[0]?.asset_id ?? null
   }
 

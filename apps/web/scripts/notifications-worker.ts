@@ -21,6 +21,7 @@ import {
 } from '@/server/notifications/fcm'
 import { runScheduledBackupTick } from '@/server/backup/scheduled'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
+import { resolveNotificationVisibility } from '@/server/notifications/visibility'
 import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
@@ -426,7 +427,9 @@ async function main(): Promise<void> {
             where: { familyId, deletedAt: null, suspendedAt: null },
             select: { userId: true, role: true },
           })
-          const visibility = job.data.payload.visibility === 'guardians' ? 'guardians' : 'family'
+          // payload 문자열을 믿지 않고 DB 의 권위 있는 가시성을 다시 읽는다(fail-open
+          // 방지 + in-flight 비밀↔공개 전환 반영) — server/notifications/visibility.ts.
+          const visibility = await resolveNotificationVisibility(job.data, prismaPublic)
           return {
             members: rows.map((r) => ({ userId: r.userId, role: r.role as Role })),
             visibility,

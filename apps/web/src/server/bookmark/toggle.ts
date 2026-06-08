@@ -3,6 +3,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { isUniqueViolation } from '../prisma-errors'
+import { isAssetHiddenFromViewer } from '../story/secret-assets'
 
 const Input = z.object({
   assetId: z.string().uuid(),
@@ -27,6 +28,13 @@ export async function toggleBookmark(
   })
   if (!membership || membership.deletedAt || !can(membership.role, 'social.react')) {
     throw new Error('No permission: not a member of this family')
+  }
+
+  if (
+    membership.role === 'family' &&
+    (await isAssetHiddenFromViewer('family', input.assetId, prismaPublic, input.familyId))
+  ) {
+    throw new Error('asset not found in this family')
   }
 
   const existing = await prismaPublic.assetBookmark.findFirst({

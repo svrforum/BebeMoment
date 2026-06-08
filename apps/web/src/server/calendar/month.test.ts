@@ -5,6 +5,7 @@ import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createStoryEntry } from '../story/create'
 import { loadCalendarMonth } from './month'
 
 let db: FullTestDb
@@ -15,6 +16,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.storyAsset.deleteMany()
+  await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
   await db.prismaPublic.membership.deleteMany()
   await db.prismaPublic.family.deleteMany()
@@ -65,6 +68,52 @@ describe('loadCalendarMonth', () => {
       new FakeMediaClient(),
     )
     expect(data.assets.map((a) => a.id)).toEqual([mayId])
+  })
+
+  it('비밀 스토리 사진은 family 에게 캘린더에서 숨기고 owner 에겐 보인다', async () => {
+    const { user, family } = await setup()
+    const normalId = await makeReady(
+      family.id,
+      user.id,
+      'cnormal',
+      new Date('2026-05-10T12:00:00Z'),
+    )
+    const secretId = await makeReady(
+      family.id,
+      user.id,
+      'csecret',
+      new Date('2026-05-20T12:00:00Z'),
+    )
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-05-20',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secretId],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const familyView = await loadCalendarMonth(
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'family' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(familyView.assets.map((a) => a.id)).toEqual([normalId])
+    expect(familyView.storyDays).toEqual([])
+
+    const ownerView = await loadCalendarMonth(
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(ownerView.assets.map((a) => a.id)).toContain(secretId)
   })
 
   it('하루 여러 장이면 커버 1장만 URL 사인한다', async () => {

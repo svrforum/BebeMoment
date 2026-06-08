@@ -193,7 +193,11 @@ export default async function TimelinePage({
   // 사람·추억 진입점 알림 점 — 전체 개수가 아니라 "새로 확인할 게 있을 때만". 사람은
   // 아직 이름 안 붙인(새로 잡힌) 사람이 있을 때, 추억은 오늘 해당 추억이 있을 때.
   const hasNewPeople = features.faces
-    ? await hasUnnamedPerson({ familyId: ctx.family.id }, prismaMedia)
+    ? await hasUnnamedPerson(
+        { familyId: ctx.family.id, viewerRole: ctx.membership?.role ?? 'family' },
+        prismaMedia,
+        prismaPublic,
+      )
     : false
   const hasMemoryToday = memoryGroups.length > 0
 
