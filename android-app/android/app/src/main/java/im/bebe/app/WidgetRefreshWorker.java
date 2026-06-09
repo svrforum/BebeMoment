@@ -37,7 +37,9 @@ public class WidgetRefreshWorker extends Worker {
     static final String EXTRA_WIDGET_ID = "widgetId";
     private static final int MAX_PHOTOS = 10;
     private static final int SINGLE_MAX_PX = 420;
-    private static final int GRID_MAX_PX = 240;
+    // 4장 콜라주 한 장의 정사각 캔버스(px). 비트맵 1개라 RemoteViews/바인더 예산 안전
+    // (440²×4 ≈ 0.77MB < 1MB). 각 칸은 절반(220px) 정밀도로 다운샘플 디코드.
+    private static final int QUAD_CANVAS_PX = 440;
 
     public WidgetRefreshWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -78,14 +80,14 @@ public class WidgetRefreshWorker extends Worker {
         for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeWidgetProvider.class))) {
             processWidget(ctx, sp, mgr, id, false);
         }
-        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeGridWidgetProvider.class))) {
+        for (int id : mgr.getAppWidgetIds(new ComponentName(ctx, BebeQuadWidgetProvider.class))) {
             processWidget(ctx, sp, mgr, id, true);
         }
         return Result.success();
     }
 
     /** 위젯 1개: 서버/토큰 해석(필요 시 활성 가족으로 bind) → fetch → render. */
-    private void processWidget(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id, boolean grid) {
+    private void processWidget(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id, boolean quad) {
         String server = sp.getString(wk(id, "server"), null);
         String token = sp.getString(wk(id, "token"), null);
         if (server == null || token == null) {
@@ -106,7 +108,7 @@ public class WidgetRefreshWorker extends Worker {
             }
         }
         try {
-            if (grid) renderGrid(ctx, sp, mgr, id);
+            if (quad) renderQuad(ctx, sp, mgr, id);
             else renderSingle(ctx, sp, mgr, id);
         } catch (Throwable ignored) {
         }
@@ -219,20 +221,36 @@ public class WidgetRefreshWorker extends Worker {
         ed.apply();
     }
 
-    /** 새로고침(랜덤) 버튼 — 해당 위젯을 캐시된 사진 중 직전과 다른 무작위 한 장으로. */
+    /** 새로고침 버튼 — 단일 위젯은 무작위 1장으로, 4장 위젯은 다음 4장 묶음으로 교체. */
     static void shuffle(Context ctx, int id) {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
+        boolean quad = isQuad(ctx, mgr, id);
         int count = sp.getInt(wk(id, "photoCount"), 0);
         if (count > 1) {
             int cur = sp.getInt(wk(id, "shuffleIdx"), 0);
-            int next = cur;
-            for (int t = 0; t < 8 && next == cur; t++) next = (int) (Math.random() * count);
+            int next;
+            if (quad) {
+                // 다음 4장 윈도로 회전(사진이 4장 이하면 사실상 그대로라 표시 변화 없음).
+                next = (cur + 4) % count;
+            } else {
+                next = cur;
+                for (int t = 0; t < 8 && next == cur; t++) next = (int) (Math.random() * count);
+            }
             sp.edit().putInt(wk(id, "shuffleIdx"), next).apply();
         }
         try {
-            renderSingle(ctx, sp, AppWidgetManager.getInstance(ctx), id);
+            if (quad) renderQuad(ctx, sp, mgr, id);
+            else renderSingle(ctx, sp, mgr, id);
         } catch (Throwable ignored) {
         }
+    }
+
+    private static boolean isQuad(Context ctx, AppWidgetManager mgr, int id) {
+        for (int q : mgr.getAppWidgetIds(new ComponentName(ctx, BebeQuadWidgetProvider.class))) {
+            if (q == id) return true;
+        }
+        return false;
     }
 
     private static void renderSingle(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
@@ -267,20 +285,94 @@ public class WidgetRefreshWorker extends Worker {
         mgr.updateAppWidget(id, rv);
     }
 
-    private static void renderGrid(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
+    /**
+     * 4장 위젯 — 단일 위젯과 동일한 레이아웃(bebe_widget)·동일한 단일-비트맵 구조를 쓴다.
+     * 4장을 2×2 콜라주 비트맵 "한 장"으로 합성해 widget_photo 에 넣으므로, RemoteViews 에
+     * 비트맵이 1개만 실려 (과거 그리드의) 비트맵 예산 초과·부분 누락 문제가 없다.
+     * 사진이 4장 미만이면 가진 사진을 순환해 칸을 채운다(빈 칸 방지).
+     */
+    private static void renderQuad(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
+        String babyName = sp.getString(wk(id, "babyName"), "");
         int photoCount = sp.getInt(wk(id, "photoCount"), 0);
         int newCount = sp.getInt(wk(id, "newCount"), 0);
-        int[] cells = { R.id.grid_0, R.id.grid_1, R.id.grid_2, R.id.grid_3 };
-        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget_grid);
-        for (int i = 0; i < cells.length; i++) {
-            if (i < photoCount) {
-                Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, id, i)), 24f, GRID_MAX_PX);
-                if (b != null) rv.setImageViewBitmap(cells[i], b);
-            }
+        int offset = sp.getInt(wk(id, "shuffleIdx"), 0);
+        if (photoCount > 0) offset = ((offset % photoCount) + photoCount) % photoCount;
+
+        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
+        rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
+        rv.setViewVisibility(R.id.widget_age, View.GONE);
+
+        String photoDate = "";
+        if (photoCount > 0) {
+            int[] idx = new int[4];
+            for (int k = 0; k < 4; k++) idx[k] = (offset + k) % photoCount; // 사진 적으면 순환
+            Bitmap collage = composeQuad(ctx, id, idx, QUAD_CANVAS_PX);
+            if (collage != null) rv.setImageViewBitmap(R.id.widget_photo, collage);
+            photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx[0]);
         }
+        if (photoDate != null && !photoDate.isEmpty()) {
+            rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
+            rv.setTextViewText(R.id.widget_date, photoDate);
+        } else {
+            rv.setViewVisibility(R.id.widget_date, View.GONE);
+        }
+
         applyBadge(rv, newCount);
         rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+        if (photoCount > 1) {
+            rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
+            rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
+        } else {
+            rv.setViewVisibility(R.id.widget_refresh, View.GONE);
+        }
         mgr.updateAppWidget(id, rv);
+    }
+
+    /** 4장을 2×2 로 합성한 정사각 비트맵 1장. 각 칸은 centerCrop, 바깥 둥근모서리는 OS 가 처리. */
+    private static Bitmap composeQuad(Context ctx, int id, int[] photoIdx, int canvasPx) {
+        Bitmap out = Bitmap.createBitmap(canvasPx, canvasPx, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(out);
+        // widget_bg 블루와 같은 톤으로 채워, 디코드 실패 등으로 빈 칸이 생겨도 위화감 없게.
+        c.drawColor(0xFF7BA0F7);
+        android.graphics.Paint p = new android.graphics.Paint(
+            android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG);
+        int half = canvasPx / 2;
+        boolean any = false;
+        for (int q = 0; q < 4; q++) {
+            if (photoIdx[q] < 0) continue;
+            Bitmap src = decodeFileSampled(photoFile(ctx, id, photoIdx[q]), half);
+            if (src == null) continue;
+            drawCenterCrop(c, src, p, (q % 2) * half, (q / 2) * half, half, half);
+            src.recycle();
+            any = true;
+        }
+        return any ? out : null;
+    }
+
+    /** src 를 dst 사각형에 centerCrop(꽉 채움) 으로 그린다. */
+    private static void drawCenterCrop(
+            android.graphics.Canvas c, Bitmap src, android.graphics.Paint p,
+            int dl, int dt, int dw, int dh) {
+        int sw = src.getWidth(), sh = src.getHeight();
+        if (sw <= 0 || sh <= 0) return;
+        float scale = Math.max((float) dw / sw, (float) dh / sh);
+        float vw = dw / scale, vh = dh / scale; // 원본에서 잘라낼 영역
+        int sx = Math.round((sw - vw) / 2f), sy = Math.round((sh - vh) / 2f);
+        android.graphics.Rect srcR = new android.graphics.Rect(
+            sx, sy, sx + Math.round(vw), sy + Math.round(vh));
+        android.graphics.Rect dstR = new android.graphics.Rect(dl, dt, dl + dw, dt + dh);
+        c.drawBitmap(src, srcR, dstR, p);
+    }
+
+    /** 캐시 JPEG 를 targetPx 근처로 다운샘플 디코드(콜라주 칸 크기 기준 — 메모리 절감). */
+    private static Bitmap decodeFileSampled(String path, int targetPx) {
+        BitmapFactory.Options bounds = new BitmapFactory.Options();
+        bounds.inJustDecodeBounds = true;
+        BitmapFactory.decodeFile(path, bounds);
+        if (bounds.outWidth <= 0) return null;
+        BitmapFactory.Options opts = new BitmapFactory.Options();
+        opts.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, targetPx);
+        return BitmapFactory.decodeFile(path, opts);
     }
 
     /** 비트맵 모서리를 둥글게 + RemoteViews 예산에 맞춰 maxPx 로 다운스케일. */

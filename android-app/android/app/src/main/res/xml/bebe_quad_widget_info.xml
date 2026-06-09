@@ -9,7 +9,7 @@
     android:targetCellWidth="3"
     android:targetCellHeight="3"
     android:updatePeriodMillis="0"
-    android:initialLayout="@layout/bebe_widget_grid"
-    android:previewLayout="@layout/bebe_widget_grid"
+    android:initialLayout="@layout/bebe_widget"
+    android:previewLayout="@layout/bebe_widget"
     android:resizeMode="horizontal|vertical"
     android:widgetCategory="home_screen" />

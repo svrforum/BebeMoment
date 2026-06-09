@@ -4,8 +4,12 @@ import android.appwidget.AppWidgetManager;
 import android.appwidget.AppWidgetProvider;
 import android.content.Context;
 
-/** 사진 그리드 홈 위젯(최신 4장 2x2). 갱신은 WidgetRefreshWorker 가 양쪽 위젯을 함께 처리. */
-public class BebeGridWidgetProvider extends AppWidgetProvider {
+/**
+ * 사진 4장 위젯(2×2 콜라주). 단일 위젯과 동일한 레이아웃·단일-비트맵 구조를 쓰며,
+ * 갱신·셔플·정리는 WidgetRefreshWorker / BebeWidgetProvider 의 공용 경로를 탄다
+ * (renderQuad 가 4장을 한 장으로 합성). 탭·새로고침 PendingIntent 는 BebeWidgetProvider 공유.
+ */
+public class BebeQuadWidgetProvider extends AppWidgetProvider {
 
     @Override
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
