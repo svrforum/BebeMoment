@@ -48,12 +48,20 @@ export function AppUpdateBanner() {
             html_url: string
             prerelease: boolean
             draft: boolean
+            assets?: Array<{ name: string; browser_download_url: string }>
           }>
           const android = releases.find(
             (r) => !r.draft && !r.prerelease && r.tag_name.startsWith('android-v'),
           )
           if (!android) return
-          data = { version: android.tag_name.replace('android-v', ''), url: android.html_url }
+          // .apk 자산으로 바로 보낸다 — 릴리즈 HTML 페이지를 열면 사용자가 'Source code
+          // (zip)' 를 오선택하거나 브라우저가 .apk 를 받다 끊겨 "패키지가 잘못됨" 으로 설치가
+          // 깨지는 함정이 있다. apk 자산이 있으면 직링크, 없으면 페이지로 폴백.
+          const apk = android.assets?.find((a) => a.name.toLowerCase().endsWith('.apk'))
+          data = {
+            version: android.tag_name.replace('android-v', ''),
+            url: apk?.browser_download_url ?? android.html_url,
+          }
           sessionStorage.setItem('bebe.appLatest', JSON.stringify(data))
         }
         if (cancelled || !data) return
