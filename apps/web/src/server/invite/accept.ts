@@ -36,7 +36,15 @@ export async function acceptInvite(
     const membership = existing
       ? await tx.membership.update({
           where: { familyId_userId: { familyId: invite.familyId, userId: input.userId } },
-          data: { role: invite.role, deletedAt: null },
+          // 정지 이력을 초기화하고 부활시킨다 — 안 그러면 '정지→제거→재초대' 멤버가
+          // 합류 즉시 전면 정지 상태(suspendedAt 잔존)가 돼 로그인이 막힌다.
+          data: {
+            role: invite.role,
+            deletedAt: null,
+            suspendedAt: null,
+            suspendedReason: null,
+            suspendedByUserId: null,
+          },
         })
       : await tx.membership.create({
           data: {

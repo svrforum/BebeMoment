@@ -88,6 +88,41 @@ describe('acceptInvite', () => {
     ).rejects.toThrow('invite.revoked')
   })
 
+  it('clears suspension state when re-inviting a suspended-then-removed member', async () => {
+    const { owner, family } = await setup()
+    const { user: member } = await signup(
+      { username: 'member', password: 'password123', displayName: 'M' },
+      db.prismaPublic,
+    )
+    const first = await createInvite(
+      { familyId: family.id, role: 'family', byUserId: owner.id },
+      db.prismaPublic,
+    )
+    await acceptInvite({ token: first.token, userId: member.id }, db.prismaPublic)
+
+    // 정지 → 제거(소프트삭제) 시퀀스. remove 는 정지 필드를 지우지 않는다.
+    await db.prismaPublic.membership.update({
+      where: { familyId_userId: { familyId: family.id, userId: member.id } },
+      data: {
+        suspendedAt: new Date(),
+        suspendedReason: 'test',
+        suspendedByUserId: owner.id,
+        deletedAt: new Date(),
+      },
+    })
+
+    const second = await createInvite(
+      { familyId: family.id, role: 'family', byUserId: owner.id },
+      db.prismaPublic,
+    )
+    const r = await acceptInvite({ token: second.token, userId: member.id }, db.prismaPublic)
+
+    expect(r.membership.deletedAt).toBeNull()
+    expect(r.membership.suspendedAt).toBeNull()
+    expect(r.membership.suspendedReason).toBeNull()
+    expect(r.membership.suspendedByUserId).toBeNull()
+  })
+
   it('accepts regardless of user email (token-only)', async () => {
     const { invite } = await setup()
     const { user } = await signup(
