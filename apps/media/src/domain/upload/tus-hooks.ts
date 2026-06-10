@@ -1,8 +1,11 @@
+import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { getStorage } from '@/lib/storage'
 import type { UploadTokenPayload } from '@/lib/jwt'
 import { parseEnv } from '@bebe/config'
 import type { PrismaClient } from '@bebe/db-media'
+import type { StorageAdapter } from '@bebe/storage'
 import type { Upload } from '@tus/server'
 import type { Queue } from 'bullmq'
 import type pino from 'pino'
@@ -20,20 +23,33 @@ export async function removeTusTmp(assetId: string): Promise<void> {
   await fs.unlink(`${tusPath}.json`).catch(() => {})
 }
 
-async function moveTusToFinal(args: { assetId: string; finalKey: string }): Promise<void> {
+async function moveTusToFinal(args: {
+  assetId: string
+  finalKey: string
+  storage: StorageAdapter
+}): Promise<void> {
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', args.assetId)
-  const finalPath = path.join(env.STORAGE_PATH, args.finalKey)
-  await fs.mkdir(path.dirname(finalPath), { recursive: true })
-  try {
-    await fs.rename(tusPath, finalPath)
-  } catch (err) {
-    if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
-      // Cross-device — fall back to copy + unlink
-      await fs.copyFile(tusPath, finalPath)
-      await fs.unlink(tusPath)
-    } else {
-      throw err
+
+  if (env.STORAGE_MODE === 's3') {
+    // tus FileStore 는 항상 로컬 디스크(STORAGE_PATH/tus-tmp)에 쓴다. s3 모드에선 그
+    // 바이트를 스토리지 어댑터로 업로드해야 워커가 storage.read 로 읽을 수 있다 —
+    // 안 그러면 원본이 s3 에 없어 모든 신규 업로드가 dedup 단계에서 failed 처리된다.
+    await args.storage.write(args.finalKey, createReadStream(tusPath))
+    await fs.unlink(tusPath).catch(() => {})
+  } else {
+    const finalPath = path.join(env.STORAGE_PATH, args.finalKey)
+    await fs.mkdir(path.dirname(finalPath), { recursive: true })
+    try {
+      await fs.rename(tusPath, finalPath)
+    } catch (err) {
+      if ((err as NodeJS.ErrnoException).code === 'EXDEV') {
+        // Cross-device — fall back to copy + unlink
+        await fs.copyFile(tusPath, finalPath)
+        await fs.unlink(tusPath)
+      } else {
+        throw err
+      }
     }
   }
   // tus-server also writes a sidecar metadata file at `<id>.json` — remove it
@@ -46,8 +62,10 @@ export async function onUploadFinishMedia(args: {
   prisma: PrismaClient
   queue: Queue
   logger: pino.Logger | pino.BaseLogger
+  storage?: StorageAdapter
 }): Promise<void> {
   const { upload, token, prisma, queue, logger } = args
+  const storage = args.storage ?? getStorage()
 
   // Resolve the asset's final storage key (set during init)
   const asset = await prisma.asset.findFirst({
@@ -80,7 +98,7 @@ export async function onUploadFinishMedia(args: {
     throw new Error(message)
   }
 
-  await moveTusToFinal({ assetId: token.assetId, finalKey: asset.originalKey })
+  await moveTusToFinal({ assetId: token.assetId, finalKey: asset.originalKey, storage })
 
   await prisma.asset.update({
     where: { id: token.assetId, familyId: token.familyId },
