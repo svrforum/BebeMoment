@@ -14,13 +14,7 @@ const nextConfig = {
   reactStrictMode: true,
   output: 'standalone',
   outputFileTracingRoot: repoRoot,
-  transpilePackages: [
-    '@bebe/config',
-    '@bebe/core',
-    '@bebe/db-public',
-    '@bebe/db-media',
-    '@bebe/storage',
-  ],
+  transpilePackages: ['@bebe/config', '@bebe/core', '@bebe/db-public', '@bebe/db-media'],
   experimental: {
     serverActions: { bodySizeLimit: '10mb' },
     // Tree-shake barrel imports of icon/util libraries so only the actually

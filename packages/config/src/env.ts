@@ -1,5 +1,16 @@
 import { z } from 'zod'
 
+// z.coerce.boolean() 은 비어있지 않은 모든 문자열을 true 로 만든다 — "false"·"0" 도 true.
+// env 로 끄는 걸 가능하게 하려면 문자열을 직접 해석한다(미설정/빈값은 기본값).
+const envBool = (def: boolean) =>
+  z
+    .string()
+    .optional()
+    .transform((v) => {
+      if (v === undefined || v.trim() === '') return def
+      return v.trim().toLowerCase() === 'true' || v.trim() === '1'
+    })
+
 const EnvSchema = z
   .object({
     DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
@@ -27,8 +38,8 @@ const EnvSchema = z
     PGID: z.coerce.number().int().default(1000),
     ADMIN_USER_EMAIL: z.string().optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    METRICS_ENABLED: z.coerce.boolean().default(false),
-    TRUST_PROXY: z.coerce.boolean().default(true),
+    METRICS_ENABLED: envBool(false),
+    TRUST_PROXY: envBool(true),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   })
   .transform((env) => ({
