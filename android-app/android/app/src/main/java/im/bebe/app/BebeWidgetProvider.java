@@ -10,16 +10,20 @@ import android.content.Intent;
 public class BebeWidgetProvider extends AppWidgetProvider {
 
     static final String ACTION_SHUFFLE = "im.bebe.app.WIDGET_SHUFFLE";
+    static final String ACTION_MODE = "im.bebe.app.WIDGET_MODE";
 
     @Override
     public void onReceive(Context ctx, Intent intent) {
-        if (ACTION_SHUFFLE.equals(intent.getAction())) {
-            // 새로고침(랜덤) 버튼 — 그 위젯을 캐시된 사진 중 무작위로 교체(네트워크 없음).
+        final String action = intent.getAction();
+        if (ACTION_SHUFFLE.equals(action) || ACTION_MODE.equals(action)) {
             final int id = intent.getIntExtra(
                 WidgetRefreshWorker.EXTRA_WIDGET_ID, AppWidgetManager.INVALID_APPWIDGET_ID);
             if (id != AppWidgetManager.INVALID_APPWIDGET_ID) {
                 try {
-                    WidgetRefreshWorker.shuffle(ctx, id);
+                    // SHUFFLE = 캐시 사진 중 무작위/다음 묶음으로(네트워크 없음).
+                    // MODE = 4장 위젯의 그리드↔큰사진 전환(그 위젯만).
+                    if (ACTION_MODE.equals(action)) WidgetRefreshWorker.toggleMode(ctx, id);
+                    else WidgetRefreshWorker.shuffle(ctx, id);
                 } catch (Throwable ignored) {
                 }
             }
@@ -36,6 +40,16 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (android.os.Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
         return PendingIntent.getBroadcast(ctx, id, intent, flags);
+    }
+
+    /** 위젯ID별 모드 토글 PendingIntent — shuffle 과 다른 requestCode 공간으로 충돌 회피. */
+    static PendingIntent modeIntent(Context ctx, int id) {
+        Intent intent = new Intent(ctx, BebeWidgetProvider.class)
+            .setAction(ACTION_MODE)
+            .putExtra(WidgetRefreshWorker.EXTRA_WIDGET_ID, id);
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (android.os.Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
+        return PendingIntent.getBroadcast(ctx, 0x40000000 | id, intent, flags);
     }
 
     @Override

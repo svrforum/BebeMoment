@@ -72,6 +72,21 @@
         android:visibility="gone"
         android:contentDescription="@string/app_name" />
 
+    <!-- 모드 토글(그리드↔큰사진) — 4장(3×3) 위젯에서만 코드가 노출. 새로고침 버튼 왼쪽. -->
+    <ImageView
+        android:id="@+id/widget_mode"
+        android:layout_width="34dp"
+        android:layout_height="34dp"
+        android:layout_gravity="bottom|end"
+        android:layout_marginBottom="8dp"
+        android:layout_marginEnd="50dp"
+        android:padding="7dp"
+        android:background="@drawable/widget_icon_bg"
+        android:src="@drawable/widget_mode_grid"
+        android:scaleType="fitCenter"
+        android:visibility="gone"
+        android:contentDescription="@string/app_name" />
+
     <TextView
         android:id="@+id/widget_badge"
         android:layout_width="wrap_content"

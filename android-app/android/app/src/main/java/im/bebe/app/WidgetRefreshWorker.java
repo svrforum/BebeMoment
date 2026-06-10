@@ -40,6 +40,9 @@ public class WidgetRefreshWorker extends Worker {
     // 4장 콜라주 한 장의 정사각 캔버스(px). 비트맵 1개라 RemoteViews/바인더 예산 안전
     // (440²×4 ≈ 0.77MB < 1MB). 각 칸은 절반(220px) 정밀도로 다운샘플 디코드.
     private static final int QUAD_CANVAS_PX = 440;
+    // 4장 위젯의 표시 모드(위젯별 SharedPrefs). 기본은 큰사진 1장, 토글로 그리드 전환.
+    static final String MODE_SINGLE = "single";
+    static final String MODE_GRID = "grid";
 
     public WidgetRefreshWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -207,7 +210,7 @@ public class WidgetRefreshWorker extends Worker {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor ed = sp.edit();
         final String[] suffixes = {
-            "server", "token", "babyName", "newCount", "photoCount", "shuffleIdx", "photoDates"
+            "server", "token", "babyName", "newCount", "photoCount", "shuffleIdx", "photoDates", "mode"
         };
         for (int id : ids) {
             for (String s : suffixes) ed.remove(wk(id, s));
@@ -221,16 +224,17 @@ public class WidgetRefreshWorker extends Worker {
         ed.apply();
     }
 
-    /** 새로고침 버튼 — 단일 위젯은 무작위 1장으로, 4장 위젯은 다음 4장 묶음으로 교체. */
+    /** 새로고침 버튼 — 큰사진(단일/4장-단일모드)은 무작위 1장, 4장-그리드모드는 다음 4장 묶음. */
     static void shuffle(Context ctx, int id) {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         boolean quad = isQuad(ctx, mgr, id);
+        boolean grid = quad && MODE_GRID.equals(sp.getString(wk(id, "mode"), MODE_SINGLE));
         int count = sp.getInt(wk(id, "photoCount"), 0);
         if (count > 1) {
             int cur = sp.getInt(wk(id, "shuffleIdx"), 0);
             int next;
-            if (quad) {
+            if (grid) {
                 // 다음 4장 윈도로 회전(사진이 4장 이하면 사실상 그대로라 표시 변화 없음).
                 next = (cur + 4) % count;
             } else {
@@ -242,6 +246,17 @@ public class WidgetRefreshWorker extends Worker {
         try {
             if (quad) renderQuad(ctx, sp, mgr, id);
             else renderSingle(ctx, sp, mgr, id);
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** 모드 토글 버튼 — 그 4장 위젯만 그리드↔큰사진 1장으로 전환. */
+    static void toggleMode(Context ctx, int id) {
+        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        String cur = sp.getString(wk(id, "mode"), MODE_SINGLE);
+        sp.edit().putString(wk(id, "mode"), MODE_GRID.equals(cur) ? MODE_SINGLE : MODE_GRID).apply();
+        try {
+            renderQuad(ctx, sp, AppWidgetManager.getInstance(ctx), id);
         } catch (Throwable ignored) {
         }
     }
@@ -286,10 +301,11 @@ public class WidgetRefreshWorker extends Worker {
     }
 
     /**
-     * 4장 위젯 — 단일 위젯과 동일한 레이아웃(bebe_widget)·동일한 단일-비트맵 구조를 쓴다.
-     * 4장을 2×2 콜라주 비트맵 "한 장"으로 합성해 widget_photo 에 넣으므로, RemoteViews 에
-     * 비트맵이 1개만 실려 (과거 그리드의) 비트맵 예산 초과·부분 누락 문제가 없다.
-     * 사진이 4장 미만이면 가진 사진을 순환해 칸을 채운다(빈 칸 방지).
+     * 4장(3×3) 위젯 — 단일 위젯과 동일한 레이아웃(bebe_widget)·단일-비트맵 구조. 모드(위젯별)
+     * 에 따라 큰사진 1장(기본) 또는 4장 2×2 콜라주를 widget_photo 한 장으로 그린다. 그리드는
+     * 4장을 콜라주 비트맵 "한 장"으로 합성하므로 RemoteViews 에 비트맵이 1개만 실려 (과거
+     * 그리드의) 비트맵 예산 초과 문제가 없다. 사진이 4장 미만이면 순환해 칸을 채운다.
+     * 우하단 모드 토글 버튼으로 그리드↔큰사진을 전환한다.
      */
     private static void renderQuad(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
         String babyName = sp.getString(wk(id, "babyName"), "");
@@ -297,6 +313,7 @@ public class WidgetRefreshWorker extends Worker {
         int newCount = sp.getInt(wk(id, "newCount"), 0);
         int offset = sp.getInt(wk(id, "shuffleIdx"), 0);
         if (photoCount > 0) offset = ((offset % photoCount) + photoCount) % photoCount;
+        boolean grid = MODE_GRID.equals(sp.getString(wk(id, "mode"), MODE_SINGLE));
 
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
         rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
@@ -304,11 +321,18 @@ public class WidgetRefreshWorker extends Worker {
 
         String photoDate = "";
         if (photoCount > 0) {
-            int[] idx = new int[4];
-            for (int k = 0; k < 4; k++) idx[k] = (offset + k) % photoCount; // 사진 적으면 순환
-            Bitmap collage = composeQuad(ctx, id, idx, QUAD_CANVAS_PX);
-            if (collage != null) rv.setImageViewBitmap(R.id.widget_photo, collage);
-            photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx[0]);
+            if (grid) {
+                int[] idx = new int[4];
+                for (int k = 0; k < 4; k++) idx[k] = (offset + k) % photoCount; // 사진 적으면 순환
+                Bitmap collage = composeQuad(ctx, id, idx, QUAD_CANVAS_PX);
+                if (collage != null) rv.setImageViewBitmap(R.id.widget_photo, collage);
+                photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx[0]);
+            } else {
+                Bitmap b = rounded(
+                    BitmapFactory.decodeFile(photoFile(ctx, id, offset)), 40f, SINGLE_MAX_PX);
+                if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
+                photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), offset);
+            }
         }
         if (photoDate != null && !photoDate.isEmpty()) {
             rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
@@ -325,6 +349,11 @@ public class WidgetRefreshWorker extends Worker {
         } else {
             rv.setViewVisibility(R.id.widget_refresh, View.GONE);
         }
+        // 모드 토글 — 현재가 grid 면 '큰사진' 아이콘(전환 대상)을, 아니면 '그리드' 아이콘을 보인다.
+        rv.setViewVisibility(R.id.widget_mode, View.VISIBLE);
+        rv.setImageViewResource(
+            R.id.widget_mode, grid ? R.drawable.widget_mode_single : R.drawable.widget_mode_grid);
+        rv.setOnClickPendingIntent(R.id.widget_mode, BebeWidgetProvider.modeIntent(ctx, id));
         mgr.updateAppWidget(id, rv);
     }
 
