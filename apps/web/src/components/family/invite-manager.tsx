@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Label } from '@/components/ui/input'
 import { Check, Copy, QrCode, Share2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 type Invite = {
@@ -16,6 +16,7 @@ type Invite = {
 
 export function InviteManager() {
   const t = useTranslations('family')
+  const locale = useLocale()
   const [invites, setInvites] = useState<Invite[]>([])
   const [role, setRole] = useState<'guardian' | 'family'>('family')
   const [lastToken, setLastToken] = useState<string | null>(null)
@@ -229,7 +230,7 @@ export function InviteManager() {
                   })}
                 </div>
                 <div className="text-xs text-base-500">
-                  {new Date(inv.expiresAt).toLocaleDateString('ko-KR', {
+                  {new Date(inv.expiresAt).toLocaleDateString(locale, {
                     month: 'long',
                     day: 'numeric',
                     hour: '2-digit',

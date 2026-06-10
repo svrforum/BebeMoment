@@ -3,7 +3,7 @@ import { Sheet } from '@/components/ui/sheet'
 import { shareOrCopy } from '@/lib/share-link'
 import { useToast } from '@/lib/toast'
 import { Link2, Loader2, Share2, Trash2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
 type Translate = ReturnType<typeof useTranslations>
@@ -62,11 +62,10 @@ type Link = {
   expired: boolean
 }
 
-const dateFmt = new Intl.DateTimeFormat('ko-KR', { month: 'long', day: 'numeric' })
-
-function expiryLabel(l: Link, t: Translate): string {
+function expiryLabel(l: Link, t: Translate, locale: string): string {
   if (l.expiresAt === null) return t('share.expiryPermanent')
   if (l.expired) return t('share.expiryExpired')
+  const dateFmt = new Intl.DateTimeFormat(locale, { month: 'long', day: 'numeric' })
   return t('share.expiryUntil', { date: dateFmt.format(new Date(l.expiresAt)) })
 }
 
@@ -93,6 +92,7 @@ export function ShareSheet({
 }) {
   const toast = useToast()
   const t = useTranslations('social')
+  const locale = useLocale()
   const [ttl, setTtl] = useState<Ttl>('permanent')
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(false)
@@ -248,7 +248,7 @@ export function ShareSheet({
                         l.expired ? 'text-base-400' : 'text-base-800 dark:text-base-100'
                       }`}
                     >
-                      {expiryLabel(l, t)}
+                      {expiryLabel(l, t, locale)}
                     </p>
                     <p className="truncate text-[11px] text-base-400">
                       {l.lastAccessedAt ? t('share.opened') : t('share.notOpened')}

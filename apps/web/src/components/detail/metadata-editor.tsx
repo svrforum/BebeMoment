@@ -1,7 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Calendar, FileText, Pencil, Type } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type KeyboardEvent, useState } from 'react'
 
@@ -34,6 +34,7 @@ export function MetadataEditor({
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('social')
+  const locale = useLocale()
 
   const [filename, setFilename] = useState(initialFilename)
   const [caption, setCaption] = useState(initialCaption ?? '')
@@ -131,7 +132,7 @@ export function MetadataEditor({
           />
         ) : (
           <ClickRow
-            label={new Date(takenAt).toLocaleString('ko-KR', {
+            label={new Date(takenAt).toLocaleString(locale, {
               year: 'numeric',
               month: 'long',
               day: 'numeric',

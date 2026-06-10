@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Calendar } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useActionState, useCallback, useRef, useState } from 'react'
 import { useFormStatus } from 'react-dom'
 import { completeOnboarding } from './actions'
@@ -35,6 +35,7 @@ function daysFromNowISO(days: number): string {
 
 export function OnboardingWizard() {
   const t = useTranslations('onboarding')
+  const locale = useLocale()
   const [state, formAction] = useActionState(completeOnboarding, null)
 
   const [step, setStep] = useState<Step>('family')
@@ -199,7 +200,7 @@ export function OnboardingWizard() {
                       )}
                     >
                       {birthDate
-                        ? new Date(`${birthDate}T00:00:00`).toLocaleDateString('ko-KR', {
+                        ? new Date(`${birthDate}T00:00:00`).toLocaleDateString(locale, {
                             year: 'numeric',
                             month: 'long',
                             day: 'numeric',

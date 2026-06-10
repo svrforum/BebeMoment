@@ -4,7 +4,7 @@ import { useFamilySSE } from '@/lib/sse'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
@@ -45,6 +45,7 @@ function daysInMonth(year: number, month: number): Date[] {
 
 export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }: Props) {
   const t = useTranslations('timeline')
+  const locale = useLocale()
   const router = useRouter()
   const searchParams = useSearchParams()
 
@@ -152,7 +153,7 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
     go(pickerYear, m)
   }
 
-  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString('ko-KR', {
+  const monthLabel = new Date(Date.UTC(year, month, 1)).toLocaleDateString(locale, {
     year: 'numeric',
     month: 'long',
     timeZone: 'UTC',

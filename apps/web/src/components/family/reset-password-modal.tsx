@@ -2,7 +2,7 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/lib/toast'
 import { Copy } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
 type Props = {
@@ -14,6 +14,7 @@ type Props = {
 
 export function ResetPasswordModal({ open, onOpenChange, membershipId, displayName }: Props) {
   const t = useTranslations('family')
+  const locale = useLocale()
   const toast = useToast()
   const [url, setUrl] = useState<string | null>(null)
   const [expiresAt, setExpiresAt] = useState<string | null>(null)
@@ -83,7 +84,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
             </div>
             {expiresAt && (
               <p className="text-center text-xs text-base-400">
-                {t('resetModal.validUntil', { date: new Date(expiresAt).toLocaleString('ko-KR') })}
+                {t('resetModal.validUntil', { date: new Date(expiresAt).toLocaleString(locale) })}
               </p>
             )}
             <button

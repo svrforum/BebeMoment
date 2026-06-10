@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import { AlertTriangle, Download, RotateCcw, Trash2 } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
 type Backup = {
@@ -43,6 +43,7 @@ const HOURS = Array.from({ length: 24 }, (_, i) => i)
 
 export default function BackupAdminPage() {
   const t = useTranslations('admin')
+  const locale = useLocale()
   const WEEKDAYS = [
     t('backup.weekdaySun'),
     t('backup.weekdayMon'),
@@ -523,7 +524,7 @@ export default function BackupAdminPage() {
                   >
                     <div className="min-w-0 flex-1">
                       <div className="truncate text-sm font-medium">
-                        {new Date(b.createdAt).toLocaleString('ko-KR')}
+                        {new Date(b.createdAt).toLocaleString(locale)}
                         <span className="ml-2 rounded bg-base-100 px-1.5 py-0.5 text-[11px] text-base-500 dark:bg-base-800">
                           {b.type === 'full' ? t('backup.full') : t('backup.incr')}
                         </span>

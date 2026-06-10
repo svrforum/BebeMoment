@@ -9,7 +9,7 @@ import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/p
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
 import type { Metadata } from 'next'
-import { getTranslations } from 'next-intl/server'
+import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { AlbumShareView } from './album-view'
 import { PhotoSetShareView } from './photo-set-view'
@@ -17,12 +17,6 @@ import { GoneCard } from './share-frame'
 import { StoryShareView } from './story-view'
 
 export const dynamic = 'force-dynamic'
-
-const monthDay = new Intl.DateTimeFormat('ko-KR', {
-  month: 'long',
-  day: 'numeric',
-  timeZone: 'UTC',
-})
 
 async function requestBaseUrl(): Promise<string> {
   const h = await headers()
@@ -71,6 +65,7 @@ async function load(token: string, base: string): Promise<Loaded> {
 
   // asset(1장)·selection(N장)·date(그 날) — 전부 "사진 집합" 한 뷰로.
   const t = await getTranslations('share')
+  const locale = await getLocale()
   let ids: string[]
   let meta: string
   if (r.target.kind === 'asset') {
@@ -81,6 +76,11 @@ async function load(token: string, base: string): Promise<Loaded> {
     meta = t('photoset.metaCount', { n: ids.length })
   } else {
     ids = await getDateAssetIds(r.target.date, r.familyId, prismaMedia)
+    const monthDay = new Intl.DateTimeFormat(locale, {
+      month: 'long',
+      day: 'numeric',
+      timeZone: 'UTC',
+    })
     meta = t('photoset.metaDateCount', {
       date: monthDay.format(new Date(`${r.target.date}T00:00:00.000Z`)),
       n: ids.length,

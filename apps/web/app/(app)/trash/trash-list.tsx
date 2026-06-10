@@ -6,7 +6,7 @@ import { pickDisplayTrio, pickDisplayUrl, pickThumbTrio, pickThumbUrl } from '@/
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { X } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
@@ -21,6 +21,7 @@ type Props = { assets: Asset[]; canPurge: boolean }
 
 export function TrashList({ assets, canPurge }: Props) {
   const t = useTranslations('misc')
+  const locale = useLocale()
   const router = useRouter()
   const toast = useToast()
   const [preview, setPreview] = useState<Asset | null>(null)
@@ -104,7 +105,7 @@ export function TrashList({ assets, canPurge }: Props) {
                 <div className="font-medium truncate">{a.originalFilename}</div>
                 <div className="text-xs text-base-500">
                   {t('trash.deletedOn', {
-                    date: new Date(a.deletedAtISO).toLocaleDateString('ko-KR'),
+                    date: new Date(a.deletedAtISO).toLocaleDateString(locale),
                   })}
                 </div>
               </button>

@@ -3,7 +3,7 @@ import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { MoreHorizontal } from 'lucide-react'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useState } from 'react'
 
 type Member = { id: string; displayName: string }
@@ -58,6 +58,7 @@ export function CommentItem({
   const [menuOpen, setMenuOpen] = useState(false)
   const toast = useToast()
   const t = useTranslations('social')
+  const locale = useLocale()
 
   const isOwn = comment.author.id === currentUserId
   const canEdit = isOwn && !comment.deletedAt
@@ -105,7 +106,7 @@ export function CommentItem({
               {comment.author.displayName}
             </span>
             {' · '}
-            {ts.toLocaleString('ko-KR', {
+            {ts.toLocaleString(locale, {
               year: '2-digit',
               month: '2-digit',
               day: '2-digit',
