@@ -12,6 +12,9 @@ export async function streamProgress(args: {
   const { request, reply, assetId, redisUrl } = args
   const heartbeatMs = args.heartbeatMs ?? 15_000
 
+  // SSE 인증은 ?token= 쿼리(업로드 JWT)로 하고 쿠키는 안 쓴다. 따라서 credentials 를
+  // 허용하면 안 된다 — any-origin 반사 + allow-credentials:true 조합은 서버 CORS 정책
+  // (credentials:false, server.ts)과 모순되는 위험 패턴이라 제거했다.
   const origin = (request.headers.origin as string | undefined) ?? '*'
   reply.raw.writeHead(200, {
     'content-type': 'text/event-stream',
@@ -19,7 +22,6 @@ export async function streamProgress(args: {
     'x-accel-buffering': 'no',
     connection: 'keep-alive',
     'access-control-allow-origin': origin,
-    'access-control-allow-credentials': 'true',
     vary: 'Origin',
   })
   reply.raw.write(': connected\n\n')
