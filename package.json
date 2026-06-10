@@ -19,7 +19,7 @@
     "check:lines": "scripts/check-line-limit.sh",
     "licenses": "pnpm licenses list --prod",
     "licenses:check": "scripts/check-licenses.sh",
-    "db:migrate": "pnpm --filter @bebe/db-public migrate:dev && pnpm --filter @bebe/db-media migrate:dev",
+    "db:migrate": "pnpm --filter @bebe/db-public migrate:deploy && pnpm --filter @bebe/db-public generate && pnpm --filter @bebe/db-media migrate:deploy && pnpm --filter @bebe/db-media generate",
     "db:studio": "pnpm --filter @bebe/db-public studio"
   },
   "devDependencies": {
