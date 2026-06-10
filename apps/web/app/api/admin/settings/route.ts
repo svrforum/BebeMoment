@@ -13,11 +13,27 @@ const BodySchema = z.object({
   value: z.unknown(),
 })
 
+// 암호화 저장·전용 라우트로만 다뤄야 하는 내부 키 — 이 일반 설정 엔드포인트로 평문/임의
+// 값을 덮어쓰면 푸시·백업·메일이 조용히 깨진다(예: vapid_private 손상은 발송 때만 드러남).
+// 각자 전용 라우트가 있으므로(notifications/vapid·smtp/password·backups/remote) 여기선 거부.
+function isProtectedSettingKey(key: string): boolean {
+  return (
+    key === 'push.vapid_private' ||
+    key === 'push.vapid_public' ||
+    key === 'push.fcm_service_account' ||
+    key.endsWith('.secret_key') ||
+    key.endsWith('_enc')
+  )
+}
+
 export async function POST(req: Request) {
   const ctx = await requireAdmin()
   if (ctx instanceof NextResponse) return ctx
   try {
     const body = BodySchema.parse(await req.json())
+    if (isProtectedSettingKey(body.key)) {
+      return NextResponse.json({ error: 'protected setting key' }, { status: 403 })
+    }
     await setSetting(body.key, body.value, ctx.user.id, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
