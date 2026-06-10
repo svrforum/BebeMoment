@@ -61,13 +61,20 @@ export async function purgeAsset(
     throw new Error('asset is not in trash; soft-delete first before purge')
   }
 
-  // 중복 별칭(duplicateOf=이 자산)이 살아있으면 이 자산의 originalKey·파생물 바이트를
-  // 그 별칭들이 공유한다(dedup 시 canonical 키를 복사). 바이트를 지우면 스토리·앨범에
-  // 있는 별칭이 깨지므로, 살아있는 별칭이 있으면 바이트는 보존하고 행만 하드삭제한다.
-  const aliasCount = await prisma.asset.count({
-    where: { familyId: args.familyId, duplicateOf: asset.id, deletedAt: null },
+  // dedup 별칭은 canonical 의 originalKey·파생물 키를 그대로 복사해 같은 바이트를
+  // 가리킨다(jobs/dedup.ts). 따라서 같은 originalKey 를 가진 다른 행이 하나라도 남아
+  // 있으면 바이트를 지우면 안 된다 — 그 행(canonical 이든 다른 별칭이든)이 깨진다.
+  // 키 공유 refcount 로 판정: 다른 보유자가 없을 때만(=이 자산이 마지막 보유자) 바이트
+  // 삭제. 이 자산이 별칭이고 canonical 이 살아있는 경우, canonical 이 먼저 purge 돼 별칭만
+  // 남은 경우, canonical 에 별칭이 붙어있는 경우 모두 안전하게 보존된다.
+  const otherHoldersOfBytes = await prisma.asset.count({
+    where: {
+      familyId: args.familyId,
+      originalKey: asset.originalKey,
+      NOT: { id: asset.id },
+    },
   })
-  const keys = aliasCount > 0 ? [] : collectKeys(asset)
+  const keys = otherHoldersOfBytes > 0 ? [] : collectKeys(asset)
   const deletedKeys: string[] = []
   const failedKeys: { key: string; error: string }[] = []
 
