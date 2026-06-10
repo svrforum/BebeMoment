@@ -39,7 +39,9 @@ export function AppUpdateBanner() {
         const cached = sessionStorage.getItem('bebe.appLatest')
         let data: Latest | null = cached ? (JSON.parse(cached) as Latest) : null
         if (!data) {
-          const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=30`, {
+          // per_page=100(API 최대) — web(v*) 릴리즈가 잦아 30개만 보면 그 사이에 묻힌
+          // 최신 android-v* 를 놓쳐 업데이트 안내가 조용히 끊긴다.
+          const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`, {
             headers: { Accept: 'application/vnd.github+json' },
           })
           if (!res.ok) return

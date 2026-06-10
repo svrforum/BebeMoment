@@ -112,85 +112,17 @@ jobs:
           cache-from: type=gha,scope=ml
           cache-to: type=gha,scope=ml,mode=max
 
-  android:
-    needs: [verify]
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: android-app/package-lock.json
-      - uses: actions/setup-java@v4
-        with:
-          distribution: temurin
-          java-version: '17'
-      - uses: gradle/actions/setup-gradle@v4
-      - name: App version from tag
-        run: |
-          VERSION="${GITHUB_REF_NAME#v}"
-          # Derive a monotonic versionCode from the semver tag (vMAJOR.MINOR.PATCH).
-          # Format: MAJOR*10000 + MINOR*100 + PATCH. Pre-release suffixes are
-          # stripped (e.g. v1.2.3-rc.1 → 1.2.3 → 10203).
-          CORE="${VERSION%%-*}"
-          IFS='.' read -r MAJOR MINOR PATCH <<<"$CORE"
-          : "${MAJOR:=0}"; : "${MINOR:=0}"; : "${PATCH:=0}"
-          VERSION_CODE=$(( MAJOR * 10000 + MINOR * 100 + PATCH ))
-          printf 'versionName=%s\nversionCode=%s\n' "$VERSION" "$VERSION_CODE" \
-            > android-app/android/version.properties
-          cat android-app/android/version.properties
-      - name: Write signing config from secrets
-        env:
-          KS_B64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
-          KS_PASS: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
-        run: |
-          KS_PATH="$RUNNER_TEMP/bebe-release.jks"
-          printf '%s' "$KS_B64" | base64 -d > "$KS_PATH"
-          {
-            echo "storeFile=$KS_PATH"
-            echo "storePassword=$KS_PASS"
-            echo "keyAlias=bebe"
-            echo "keyPassword=$KS_PASS"
-          } > "$RUNNER_TEMP/keystore.properties"
-          # Symlink the properties file to where build.gradle expects it
-          # (rootProject.file('keystore.properties') = android-app/android/).
-          # Using a symlink (not a copy) means cleanup of the temp file
-          # invalidates this reference too.
-          ln -sf "$RUNNER_TEMP/keystore.properties" \
-            "$GITHUB_WORKSPACE/android-app/android/keystore.properties"
-      - name: Build signed release APK
-        working-directory: android-app
-        run: |
-          npm ci
-          npx cap sync android
-          cd android
-          ./gradlew assembleRelease --no-daemon
-      - name: Stage APK
-        run: |
-          mkdir -p dist
-          cp android-app/android/app/build/outputs/apk/release/app-release.apk \
-            "dist/bebe-${GITHUB_REF_NAME}.apk"
-      - name: Clean up signing secrets
-        if: always()
-        run: |
-          rm -f "$RUNNER_TEMP/bebe-release.jks" "$RUNNER_TEMP/keystore.properties"
-          rm -f "$GITHUB_WORKSPACE/android-app/android/keystore.properties"
-      - uses: actions/upload-artifact@v4
-        with:
-          name: bebe-apk
-          path: dist/*.apk
+  # 안드로이드 APK 는 이 web 릴리즈(v* 태그)에서 빌드하지 않는다 — 앱은 별도 `android-v*`
+  # 채널(로컬 서명 빌드 + gh release, 인앱 배너가 읽는 유일 채널)로만 배포한다. 과거엔 이
+  # 잡이 v* 태그마다 semver 파생 versionCode(예: v0.0.54→54) APK 를 v* 릴리즈에 붙여,
+  # android-v* 채널(versionCode 다른 산식)과 충돌 — CI APK 설치자가 android-v* 로 업데이트할
+  # 때 다운그레이드 거부로 막다른 길이 됐다. 채널을 android-v* 하나로 단일화했다.
 
   release:
-    needs: [build, android]
+    needs: [build, ml]
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
-        with:
-          name: bebe-apk
-          path: dist
       - uses: softprops/action-gh-release@v2
         with:
           name: ${{ github.ref_name }}
           generate_release_notes: true
-          files: dist/*.apk
