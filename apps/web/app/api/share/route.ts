@@ -68,6 +68,10 @@ export async function POST(req: Request) {
   if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
   const r = await getCtx()
   if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
+  // 공유 링크 발행은 인증 경계 밖 노출이라 역할 게이트가 필요하다(owner/guardian 기본,
+  // family 는 관리자가 share.create 를 부여한 경우만). 보기 전용 family 가 영구 공개
+  // 링크를 만들던 갭을 막는다.
+  if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
   try {
     const body = createSchema.parse(await req.json())
     const target: ShareTarget = body.storyId

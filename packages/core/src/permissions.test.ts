@@ -136,6 +136,23 @@ describe('member-admin capabilities', () => {
   })
 })
 
+describe('share.create capability', () => {
+  it('owner/guardian can share, family cannot by default', () => {
+    expect(can('owner', 'share.create')).toBe(true)
+    expect(can('guardian', 'share.create')).toBe(true)
+    expect(
+      capabilitiesForRole('family', effectiveFamilyCapabilities([])).includes('share.create'),
+    ).toBe(false)
+  })
+
+  it('family can share only when admin grants it', () => {
+    expect(resolveCan('family', 'share.create', effectiveFamilyCapabilities([]))).toBe(false)
+    expect(
+      resolveCan('family', 'share.create', effectiveFamilyCapabilities(['share.create'])),
+    ).toBe(true)
+  })
+})
+
 describe('social capabilities', () => {
   it.each([
     ['owner', 'social.react', true],

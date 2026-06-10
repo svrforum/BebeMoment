@@ -38,6 +38,7 @@ export type Capability =
   | 'album.asset.attach'
   | 'album.asset.detach'
   | 'person.rename'
+  | 'share.create'
 
 const MATRIX: Record<Role, Capability[]> = {
   owner: [
@@ -78,6 +79,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.asset.attach',
     'album.asset.detach',
     'person.rename',
+    'share.create',
   ],
   guardian: [
     'family.edit',
@@ -112,6 +114,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.asset.attach',
     'album.asset.detach',
     'person.rename',
+    'share.create',
   ],
   family: [
     'asset.upload',
@@ -128,6 +131,7 @@ const MATRIX: Record<Role, Capability[]> = {
     'album.asset.attach',
     'album.asset.detach',
     'person.rename',
+    'share.create',
   ],
 }
 
@@ -153,6 +157,9 @@ export const GRANTABLE_FAMILY_CAPABILITIES: Capability[] = [
   'album.asset.attach',
   'album.asset.detach',
   'person.rename',
+  // 공유 링크 발행은 인증 경계 밖 노출이라 family 기본은 차단(DEFAULT 미포함). 관리자가
+  // 명시적으로 부여할 수 있게 grantable 로만 둔다.
+  'share.create',
 ]
 
 const GRANTABLE_SET = new Set<string>(GRANTABLE_FAMILY_CAPABILITIES)
