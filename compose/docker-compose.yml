@@ -15,8 +15,12 @@ services:
       TZ: ${TZ:-Asia/Seoul}
       # web 서버사이드가 같은 컨테이너의 media 로 호출(런타임) + Next /media rewrite(빌드)
       MEDIA_INTERNAL_URL: http://localhost:3001
-      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-${PUBLIC_URL}}
-      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-${PUBLIC_URL}}
+      # ⚠️ 미디어를 별도 호스트로 분리할 때만 설정. 비워두면 signed URL 이 상대경로
+      # (/media/...)라 브라우저가 현재 오리진(IP/도메인) 기준으로 가져간다 — PUBLIC_URL 로
+      # 자동 채우면 http IP↔https 도메인 불일치(mixed-content)로 이미지가 안 뜨는 회귀가
+      # 단일포트 기본 배포에서 재발한다(signed-url.ts 참고). 그래서 폴백을 두지 않는다.
+      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-}
+      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
       MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
       STORAGE_MODE: ${STORAGE_MODE:-local}
