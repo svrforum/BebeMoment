@@ -12,7 +12,7 @@ import { createRedisConnection } from './lib/redis'
 import { getStorage } from './lib/storage'
 import { createProgressPublisher } from './progress/publisher'
 
-export async function startWorker(): Promise<void> {
+export async function startWorker(): Promise<() => Promise<void>> {
   const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
   const connection = createRedisConnection(redisUrl)
   const publisher = createRedisConnection(redisUrl)
@@ -114,7 +114,11 @@ export async function startWorker(): Promise<void> {
   const reapTimer = setInterval(reap, 60 * 60 * 1000)
   reap()
 
-  const shutdown = async (): Promise<void> => {
+  logger.info('bebe-media worker consumer started')
+
+  // 종료는 main.ts 가 단일 핸들러로 조율한다(서버·워커 동시 graceful close). 여기서
+  // 직접 SIGTERM 을 잡으면 main 의 즉시 exit 과 경쟁해 진행 중 잡이 잘렸다.
+  return async () => {
     logger.info('worker shutting down')
     clearInterval(reapTimer)
     await worker.close()
@@ -122,9 +126,4 @@ export async function startWorker(): Promise<void> {
     await connection.quit()
     await publisher.quit()
   }
-
-  process.on('SIGINT', shutdown)
-  process.on('SIGTERM', shutdown)
-
-  logger.info('bebe-media worker consumer started')
 }

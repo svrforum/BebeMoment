@@ -62,11 +62,14 @@ export function buildApp(): FastifyInstance {
   return app
 }
 
-export async function startServer(): Promise<void> {
+export async function startServer(): Promise<() => Promise<void>> {
   const port = Number(process.env.MEDIA_PORT ?? 3001)
   const host = process.env.MEDIA_HOST ?? '0.0.0.0'
 
   const app = buildApp()
   await app.listen({ port, host })
   logger.info({ port, host }, 'bebe-media server listening')
+  return async () => {
+    await app.close()
+  }
 }
