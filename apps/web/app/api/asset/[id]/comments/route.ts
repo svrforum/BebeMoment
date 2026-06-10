@@ -4,6 +4,7 @@ import { createComment } from '@/server/comment/create'
 import { listComments } from '@/server/comment/list'
 import { resolveContext } from '@/server/context'
 import { isFeatureEnabled } from '@/server/settings/features'
+import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
 import { getPublisher } from '@/server/upload/pubsub'
 import { NextResponse } from 'next/server'
 
@@ -16,6 +17,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   )
   if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
   const { id } = await params
+  // 비밀 스토리(guardians) 사진은 family 역할에게 숨긴다 — 댓글 목록도 마찬가지(생성·
+  // 다운로드 경로와 대칭). id 를 직접 쳐도 404 로 막는 defense-in-depth.
+  if (
+    ctx.membership?.role === 'family' &&
+    (await isAssetHiddenFromViewer('family', id, prismaPublic, ctx.family.id))
+  ) {
+    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  }
   const items = await listComments(ctx.family.id, id, prismaPublic)
   return NextResponse.json({ items })
 }
