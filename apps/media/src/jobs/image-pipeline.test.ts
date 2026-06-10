@@ -53,6 +53,28 @@ describe('processImage', () => {
     }
   }, 60_000)
 
+  test('reports orientation-corrected dimensions for EXIF-rotated photos', async () => {
+    // 1600×900 가로 픽셀 + EXIF Orientation 6(시계 90°) → 표시상으론 900×1600 세로.
+    // 파생물은 .rotate() 로 회전되므로 저장 치수도 회전 보정값(900×1600)이어야 한다.
+    const buf = await sharp({
+      create: { width: 1600, height: 900, channels: 3, background: { r: 10, g: 20, b: 30 } },
+    })
+      .withMetadata({ orientation: 6 })
+      .jpeg()
+      .toBuffer()
+    const adapter = createAdapter({ mode: 'local', path: dir })
+    await adapter.writeBuffer('originals/rot.jpg', buf, 'image/jpeg')
+
+    const r = await processImage(
+      { originalKey: 'originals/rot.jpg', assetId: 'asset-rot' },
+      adapter,
+    )
+
+    expect(r.width).toBe(900)
+    expect(r.height).toBe(1600)
+    expect(r.aspectRatio).toBeCloseTo(900 / 1600, 3)
+  }, 30_000)
+
   test('skips AVIF when MEDIA_DERIVATIVES_INCLUDE_AVIF=false', async () => {
     const orig = process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF
     process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF = 'false'

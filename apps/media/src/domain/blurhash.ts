@@ -9,6 +9,9 @@ import sharp from 'sharp'
 export async function computeBlurhash(input: Buffer): Promise<string | null> {
   try {
     const { data, info } = await sharp(input, { failOn: 'none' })
+      // .rotate() 로 EXIF Orientation 을 픽셀에 반영 — 안 하면 세로 사진의 blurhash
+      // placeholder 가 최종(자동회전된) 파생물 대비 90° 돌아간 채 표시된다.
+      .rotate()
       .raw()
       .ensureAlpha()
       .resize(64, 64, { fit: 'inside' })

@@ -37,6 +37,12 @@ export async function processImage(
 ): Promise<ProcessImageResult> {
   const buf = input.buffer ?? (await collect(await storage.read(input.originalKey)))
   const meta = await sharp(buf, { failOn: 'none' }).metadata()
+  // EXIF Orientation 5-8(세로 촬영) 사진은 sharp metadata 의 width/height 가 회전 전
+  // raw 치수다. 파생물은 .rotate() 로 자동회전되므로(derivative-trios), 표시 비율과
+  // 맞추려면 회전 보정된 치수(autoOrient)를 써야 한다. 안 그러면 가로/세로가 전치된
+  // 치수·aspectRatio 가 DB 에 영구 저장돼 레이아웃 reservation 이 틀어진다.
+  const orientedWidth = meta.autoOrient?.width ?? meta.width
+  const orientedHeight = meta.autoOrient?.height ?? meta.height
 
   let dominantColor: string | null = null
   try {
@@ -53,13 +59,13 @@ export async function processImage(
   const trios = await generateTrios({ buffer: buf, assetId: input.assetId, storage })
 
   const aspectRatio =
-    meta.width && meta.height && meta.width > 0 && meta.height > 0
-      ? Number((meta.width / meta.height).toFixed(4))
+    orientedWidth && orientedHeight && orientedWidth > 0 && orientedHeight > 0
+      ? Number((orientedWidth / orientedHeight).toFixed(4))
       : null
 
   return {
-    width: meta.width,
-    height: meta.height,
+    width: orientedWidth,
+    height: orientedHeight,
     aspectRatio,
     blurhash,
     dominantColor,
