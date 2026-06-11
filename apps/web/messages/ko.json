@@ -1145,6 +1145,10 @@
         "system": {
           "label": "시스템 정보",
           "description": "구동 스펙·메모리·디스크 사용량, 버전"
+        },
+        "share": {
+          "label": "공유 링크",
+          "description": "발행된 공개 공유 링크 점검·회수"
         }
       }
     },
@@ -1303,6 +1307,29 @@
       "group4Title": "4. 마무리",
       "g4s1": "이 페이지에서 <b>안드로이드 앱 푸시(FCM)</b> 토글과 맨 위 <b>알림 마스터</b>를 켜요.",
       "g4s2": "가족 구성원은 앱 <b>설정 → 알림 → 푸시 알림</b>에서 알림을 켜고 <b>테스트 알림 보내기</b>로 확인하면 돼요."
+    },
+    "share": {
+      "title": "공유 링크",
+      "subtitle": "발행된 공개 링크 전체를 점검하고 회수해요",
+      "heading": "발행된 공유 링크",
+      "help": "인증 없이 누구나 열 수 있는 공개 링크예요. 의심되면 회수하세요.",
+      "empty": "발행된 공유 링크가 없어요",
+      "revokeAll": "전체 회수",
+      "revoke": "회수",
+      "revoked": "링크를 회수했어요",
+      "revokeFailed": "회수에 실패했어요",
+      "confirmAll": "발행된 공유 링크를 모두 회수할까요? 되돌릴 수 없어요.",
+      "expiresPermanent": "영구",
+      "expiresOn": "{date} 만료",
+      "expiredTag": "만료됨",
+      "createdBy": "{name} · {date}",
+      "kind": {
+        "story": "스토리",
+        "asset": "사진",
+        "album": "앨범",
+        "date": "날짜",
+        "selection": "여러 장"
+      }
     }
   },
   "onboarding": {

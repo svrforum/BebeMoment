@@ -1145,6 +1145,10 @@
         "system": {
           "label": "System info",
           "description": "Specs, memory, disk usage, version"
+        },
+        "share": {
+          "label": "Share links",
+          "description": "Review and revoke public share links"
         }
       }
     },
@@ -1303,6 +1307,29 @@
       "group4Title": "4. Finish",
       "g4s1": "On this page, turn on the <b>Android app push (FCM)</b> toggle and the <b>notification master</b> at the top.",
       "g4s2": "Family members turn on notifications in the app under <b>Settings → Notifications → Push notifications</b> and confirm with <b>Send test notification</b>."
+    },
+    "share": {
+      "title": "Share links",
+      "subtitle": "Review and revoke every public link in your family",
+      "heading": "Active share links",
+      "help": "These public links open without signing in. Revoke any you don’t recognize.",
+      "empty": "No share links",
+      "revokeAll": "Revoke all",
+      "revoke": "Revoke",
+      "revoked": "Link revoked",
+      "revokeFailed": "Failed to revoke",
+      "confirmAll": "Revoke all share links? This can’t be undone.",
+      "expiresPermanent": "Permanent",
+      "expiresOn": "Expires {date}",
+      "expiredTag": "Expired",
+      "createdBy": "{name} · {date}",
+      "kind": {
+        "story": "Story",
+        "asset": "Photo",
+        "album": "Album",
+        "date": "Date",
+        "selection": "Multiple"
+      }
     }
   },
   "onboarding": {
