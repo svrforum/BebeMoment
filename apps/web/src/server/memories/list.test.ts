@@ -5,7 +5,7 @@ import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'
-import { countMemories, listMemories } from './list'
+import { countMemories, listMemories, listMemoryGroupsForCount } from './list'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -117,6 +117,26 @@ describe('listMemories', () => {
     ])
     expect(groups[0]?.assets).toHaveLength(2)
     expect(groups[0]?.label).toBe('1년 전 오늘')
+    expect(groups[1]?.stories).toHaveLength(1)
+  })
+
+  it('listMemoryGroupsForCount: 미디어 클라이언트 없이 같은 그룹 개수를 낸다', async () => {
+    const { user, family } = await setup()
+    await makeAsset(family.id, user.id, new Date('2025-05-30T10:00:00Z'))
+    await makeAsset(family.id, user.id, new Date('2025-05-30T12:00:00Z'))
+    await makeStory(family.id, user.id, '2025-11-30', '여섯 달 전')
+
+    const groups = await listMemoryGroupsForCount(
+      { familyId: family.id, today: TODAY, viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+    )
+    expect(groups.map((g) => g.interval)).toEqual([
+      { kind: 'year', n: 1 },
+      { kind: 'month', n: 6 },
+    ])
+    expect(groups[0]?.assets).toHaveLength(2)
+    expect(groups[0]?.assets[0]?.urls).toBeNull()
     expect(groups[1]?.stories).toHaveLength(1)
   })
 

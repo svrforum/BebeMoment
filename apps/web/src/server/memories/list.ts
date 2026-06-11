@@ -22,12 +22,18 @@ type ViewerRole = 'owner' | 'guardian' | 'family'
  * raw 로 좁히고, `memoryInterval` 로 whole-month 만 정밀 필터한다. 정렬은 먼 과거(큰 간격)
  * 먼저 — "1년 전 오늘"이 "6개월 전 오늘" 위에.
  */
-export async function listMemories(
+type CollectedMemoryData = {
+  today: Date
+  assets: Awaited<ReturnType<PrismaMedia['asset']['findMany']>>
+  stories: (Story & { assets: StoryAsset[] })[]
+  storyAssetById: Map<string, Awaited<ReturnType<PrismaMedia['asset']['findMany']>>[number]>
+}
+
+async function collectMemoryData(
   args: { familyId: string; today: Date; viewerRole: ViewerRole },
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
-  media: MediaClient,
-): Promise<MemoryGroup[]> {
+): Promise<CollectedMemoryData> {
   const { familyId, today, viewerRole } = args
   const day = today.getUTCDate()
   const todayStr = today.toISOString().slice(0, 10)
@@ -77,14 +83,14 @@ export async function listMemories(
     : []
   const storyAssetById = new Map(storyAssets.map((a) => [a.id, a]))
 
-  const allUrlIds = Array.from(
-    new Set<string>([
-      ...assets.map((a) => a.id),
-      ...storyAssets.filter((a) => a.status === 'ready').map((a) => a.id),
-    ]),
-  )
-  const urls = allUrlIds.length ? await media.getAssetUrlsBatch(familyId, allUrlIds) : {}
+  return { today, assets, stories, storyAssetById }
+}
 
+function buildMemoryGroups(
+  data: CollectedMemoryData,
+  urls: Record<string, AssetWithUrls['urls']>,
+): MemoryGroup[] {
+  const { today, assets, stories, storyAssetById } = data
   const groups = new Map<string, MemoryGroup>()
   const ensure = (iv: MemoryInterval): MemoryGroup => {
     const key = `${iv.kind}-${iv.n}`
@@ -121,6 +127,38 @@ export async function listMemories(
   return [...groups.values()].sort(
     (a, b) => intervalMonths(b.interval) - intervalMonths(a.interval),
   )
+}
+
+export async function listMemories(
+  args: { familyId: string; today: Date; viewerRole: ViewerRole },
+  prismaMedia: PrismaMedia,
+  prismaPublic: PrismaPublic,
+  media: MediaClient,
+): Promise<MemoryGroup[]> {
+  const data = await collectMemoryData(args, prismaMedia, prismaPublic)
+  const allUrlIds = Array.from(
+    new Set<string>([
+      ...data.assets.map((a) => a.id),
+      ...Array.from(data.storyAssetById.values())
+        .filter((a) => a.status === 'ready')
+        .map((a) => a.id),
+    ]),
+  )
+  const urls = allUrlIds.length ? await media.getAssetUrlsBatch(args.familyId, allUrlIds) : {}
+  return buildMemoryGroups(data, urls)
+}
+
+/**
+ * 추억 그룹을 미디어 URL 없이 반환(간격별 개수만 필요한 알림 스캔 워커용). 매일 스캔이
+ * media 서비스를 호출하지 않게 한다 — 카운트만 보는 decideMemoryPush 에 충분.
+ */
+export async function listMemoryGroupsForCount(
+  args: { familyId: string; today: Date; viewerRole: ViewerRole },
+  prismaMedia: PrismaMedia,
+  prismaPublic: PrismaPublic,
+): Promise<MemoryGroup[]> {
+  const data = await collectMemoryData(args, prismaMedia, prismaPublic)
+  return buildMemoryGroups(data, {})
 }
 
 /**

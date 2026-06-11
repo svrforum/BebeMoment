@@ -2,7 +2,7 @@ import { createHash } from 'node:crypto'
 import { decryptSecret } from '@/lib/crypto'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { listMemories } from '@/server/memories/list'
+import { listMemoryGroupsForCount } from '@/server/memories/list'
 import { decideMemoryPush } from '@/server/memories/scan'
 import { deleteDeviceToken, listDeviceTokensForUsers } from '@/server/notifications/device-tokens'
 import {
@@ -138,11 +138,11 @@ async function runMemoriesScan(): Promise<void> {
   const families = await prismaPublic.family.findMany({ select: { id: true } })
   for (const fam of families) {
     // 카운트는 family-가시 기준(전체 멤버 대상 발송이라 숨김 콘텐츠 수 노출 방지).
-    const groups = await listMemories(
+    // 개수만 필요하므로 media URL 을 안 받는 경량 변형 사용(매일 스캔이 media 미호출).
+    const groups = await listMemoryGroupsForCount(
       { familyId: fam.id, today, viewerRole: 'family' },
       prismaMedia,
       prismaPublic,
-      getMediaClient(),
     )
     const lastYearly = await settingsGet(`memory.last_yearly.${fam.id}`)
     const lastMonthly = await settingsGet(`memory.last_monthly.${fam.id}`)
