@@ -1,9 +1,11 @@
+import { prismaPublic } from '@/lib/db-init'
+import { errorJsonKey } from '@/lib/error-response'
 import { requireAdmin } from '@/lib/require-admin'
 import { backupDir } from '@/server/backup/config'
 import { findBackup, listBackups } from '@/server/backup/list'
-import { deleteBackupFiles, hasDependentDescendant } from '@/server/backup/retention'
 import { isValidBackupId } from '@/server/backup/manifest'
-import { errorJsonKey } from '@/lib/error-response'
+import { deleteBackupFromRemote, loadRemoteConfig, redactSecrets } from '@/server/backup/remote'
+import { deleteBackupFiles, hasDependentDescendant } from '@/server/backup/retention'
 import { NextResponse } from 'next/server'
 
 export const runtime = 'nodejs'
@@ -22,5 +24,12 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     return errorJsonKey('backup.hasDependents', 409)
   }
   await deleteBackupFiles(dir, id)
+  // 원격 미러도 함께 삭제(best-effort — 원격 실패가 로컬 삭제 결과를 뒤집지 않는다).
+  try {
+    const cfg = await loadRemoteConfig(prismaPublic, process.env.SECRET_KEY ?? '')
+    if (cfg) await deleteBackupFromRemote(cfg, id)
+  } catch (e) {
+    console.warn('remote backup delete failed:', redactSecrets((e as Error).message).slice(0, 200))
+  }
   return NextResponse.json({ ok: true })
 }

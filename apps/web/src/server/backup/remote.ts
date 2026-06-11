@@ -101,6 +101,21 @@ export async function uploadBackupToRemote(args: {
   }
 }
 
+/** 원격 번들 + 매니페스트 삭제(로컬 리텐션과 동기화 — 안 그러면 원격 버킷이 무한 증가). */
+export async function deleteBackupFromRemote(cfg: RemoteConfig, id: string): Promise<void> {
+  const s3 = makeClient(cfg)
+  try {
+    await s3.send(
+      new DeleteObjectCommand({ Bucket: cfg.bucket, Key: objectKey(cfg, bundleName(id)) }),
+    )
+    await s3.send(
+      new DeleteObjectCommand({ Bucket: cfg.bucket, Key: objectKey(cfg, manifestName(id)) }),
+    )
+  } finally {
+    s3.destroy()
+  }
+}
+
 /** 자격증명·버킷 검증 — 작은 객체 PUT 후 DELETE. */
 export async function testRemote(cfg: RemoteConfig): Promise<void> {
   const s3 = makeClient(cfg)

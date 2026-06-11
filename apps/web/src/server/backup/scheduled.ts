@@ -3,7 +3,7 @@ import { setSetting } from '@/server/settings/set'
 import type { PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { backupDir } from './config'
-import { redactSecrets } from './remote'
+import { deleteBackupFromRemote, loadRemoteConfig, redactSecrets } from './remote'
 import { applyRetention } from './retention'
 import { runBackup } from './run'
 import { DEFAULT_SCHEDULE, type ScheduleSettings, dayKey, decideScheduledBackup } from './schedule'
@@ -65,6 +65,20 @@ export async function runScheduledBackupTick(
     const keep = await getSetting('backup.retention.keep', z.number(), 14, prisma)
     const deleted = await applyRetention(backupDir(), keep)
     log(`scheduled backup done: ${manifest.id} (retention deleted ${deleted.length})`)
+
+    // 로컬에서 지운 백업을 원격에서도 지워 버킷이 무한 증가하지 않게 한다(best-effort —
+    // 원격 정리 실패는 로컬 백업/리텐션을 깨지 않는다).
+    if (deleted.length > 0) {
+      try {
+        const cfg = await loadRemoteConfig(prisma, process.env.SECRET_KEY ?? '')
+        if (cfg) {
+          for (const id of deleted) await deleteBackupFromRemote(cfg, id)
+          log(`remote retention pruned ${deleted.length}`)
+        }
+      } catch (e) {
+        log(`remote retention prune failed: ${redactSecrets((e as Error).message).slice(0, 200)}`)
+      }
+    }
 
     if (onCreated) await onCreated(manifest.id)
   } catch (e) {
