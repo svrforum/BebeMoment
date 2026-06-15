@@ -1,4 +1,5 @@
 'use client'
+import { fromUtcInputValue, toUtcInputValue } from '@/lib/taken-at-input'
 import { useToast } from '@/lib/toast'
 import { Calendar, FileText, Pencil, Type } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -299,16 +300,15 @@ function DateTimeEditor({
   onCancel: () => void
   disabled: boolean
 }) {
-  // <input type="datetime-local"> wants "YYYY-MM-DDTHH:mm" without zone.
-  const local = toLocalInputValue(initialISO)
-  const [v, setV] = useState(local)
+  // takenAt 은 UTC 벽시계 저장 — 입력칸도 UTC 로 다뤄 표시와 일치시킨다(taken-at-input.ts).
+  const [v, setV] = useState(toUtcInputValue(initialISO))
 
   const commit = () => {
     if (!v) {
       onCancel()
       return
     }
-    const next = new Date(v).toISOString()
+    const next = fromUtcInputValue(v)
     if (next === initialISO) onCancel()
     else onSave(next)
   }
@@ -329,10 +329,4 @@ function DateTimeEditor({
       className="w-full rounded-lg border border-base-200 bg-base-0 px-2.5 py-1.5 text-[14px] tabular-nums outline-none focus:border-point-500 dark:border-base-800 dark:bg-base-900"
     />
   )
-}
-
-function toLocalInputValue(iso: string): string {
-  const d = new Date(iso)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`
 }
