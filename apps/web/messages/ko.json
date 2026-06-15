@@ -1424,7 +1424,13 @@
       "addName": "이름 붙이기",
       "namePlaceholder": "이름",
       "save": "저장",
-      "cancel": "취소"
+      "cancel": "취소",
+      "merge": "합치기",
+      "mergeTitle": "다른 사람과 합치기",
+      "mergeHint": "같은 사람이 따로 잡혔다면, 이 사진들을 합칠 사람을 골라주세요.",
+      "mergeConfirm": "합치기",
+      "merging": "합치는 중…",
+      "mergeFailed": "합치지 못했어요"
     },
     "growth": {
       "empty": "첫 성장 기록을 남겨보세요.",

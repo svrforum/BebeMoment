@@ -48,7 +48,7 @@ export function PersonCard({ person }: { person: PersonSummary }) {
           {label}
         </div>
         <div className="text-xs tabular-nums text-base-500">
-          {t('people.cardPhotoCount', { count: person.faceCount })}
+          {t('people.cardPhotoCount', { count: person.photoCount })}
         </div>
       </div>
     </Link>

@@ -1424,7 +1424,13 @@
       "addName": "Add name",
       "namePlaceholder": "Name",
       "save": "Save",
-      "cancel": "Cancel"
+      "cancel": "Cancel",
+      "merge": "Merge",
+      "mergeTitle": "Merge with another person",
+      "mergeHint": "If the same person was detected separately, pick who to merge these photos into.",
+      "mergeConfirm": "Merge",
+      "merging": "Merging…",
+      "mergeFailed": "Couldn't merge"
     },
     "growth": {
       "empty": "Add your first growth record.",

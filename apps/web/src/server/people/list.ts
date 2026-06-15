@@ -11,7 +11,8 @@ export type PersonCover = { assetId: string; urls: AssetUrls | null; bbox: FaceB
 export type PersonSummary = {
   id: string
   name: string | null
-  faceCount: number
+  /** 고유 사진 수(상세 화면과 동일 기준). 한 사진에 같은 사람이 여러 번 검출돼도 1장. */
+  photoCount: number
   cover: PersonCover | null
 }
 
@@ -44,7 +45,8 @@ export async function listPeople(
        FROM media.faces f
        JOIN media.assets a ON a.id = f.asset_id
       WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
-        AND a.deleted_at IS NULL AND a.status = 'ready'`,
+        AND a.deleted_at IS NULL AND a.status = 'ready'
+        AND a.duplicate_of IS NULL`,
     familyId,
   )
   // family 에게는 비밀 스토리 사진의 얼굴을 인물 집계에서 제외(사진까지 숨김 일관).
@@ -55,13 +57,15 @@ export async function listPeople(
   const rows = hidden.size ? rowsRaw.filter((r) => !hidden.has(r.asset_id)) : rowsRaw
   if (rows.length === 0) return []
 
-  type Agg = { count: number; best: LiveFaceRow }
+  // 사진 수는 고유 asset 기준 — 상세(getPersonAssets)와 일치시킨다. face 행 수로 세면
+  // 한 사진에 같은 얼굴이 여러 번 검출됐을 때 목록("사진 N장")과 상세 장수가 어긋난다.
+  type Agg = { assets: Set<string>; best: LiveFaceRow }
   const byPerson = new Map<string, Agg>()
   for (const r of rows) {
     const cur = byPerson.get(r.person_id)
-    if (!cur) byPerson.set(r.person_id, { count: 1, best: r })
+    if (!cur) byPerson.set(r.person_id, { assets: new Set([r.asset_id]), best: r })
     else {
-      cur.count += 1
+      cur.assets.add(r.asset_id)
       if (r.det_score > cur.best.det_score) cur.best = r
     }
   }
@@ -80,14 +84,14 @@ export async function listPeople(
     .map(([personId, agg]) => ({
       id: personId,
       name: nameById.get(personId) ?? null,
-      faceCount: agg.count,
+      photoCount: agg.assets.size,
       cover: {
         assetId: agg.best.asset_id,
         urls: urls[agg.best.asset_id] ?? null,
         bbox: { x: agg.best.bbox_x, y: agg.best.bbox_y, w: agg.best.bbox_w, h: agg.best.bbox_h },
       } satisfies PersonCover,
     }))
-    .sort((a, b) => b.faceCount - a.faceCount || a.id.localeCompare(b.id))
+    .sort((a, b) => b.photoCount - a.photoCount || a.id.localeCompare(b.id))
 }
 
 /** 살아있는 얼굴이 1개 이상인 사람 수 — 진입점 뱃지용(목록과 같은 기준). */
@@ -225,6 +229,35 @@ export async function getPersonAssets(
     assets: assets.map((a) => ({ ...a, urls: urls[a.id] ?? null })),
     truncated,
   }
+}
+
+/**
+ * 두 사람(군집)을 합친다 — source 의 모든 얼굴을 target 으로 옮기고 source 사람 행을
+ * 삭제한다. 같은 사람을 여러 군집으로 잘못 나눴을 때 하나로 모으는 용도. family 스코프.
+ *
+ * ⚠️ 순서 중요: Face.person 은 onDelete:SetNull 이라 source 를 **먼저 지우면** 얼굴들의
+ * personId 가 null 로 풀려 미배정으로 흩어진다. 반드시 얼굴을 target 으로 옮긴 뒤 삭제.
+ * 두 사람이 모두 이 family 의 것이어야 하며(cross-family 차단), 동일 id 는 거부한다.
+ */
+export async function mergePeople(
+  args: { familyId: string; sourceId: string; targetId: string },
+  prismaMedia: PrismaMedia,
+): Promise<{ moved: number }> {
+  const { familyId, sourceId, targetId } = args
+  if (sourceId === targetId) throw new Error('cannot merge a person into itself')
+  const found = await prismaMedia.person.findMany({
+    where: { id: { in: [sourceId, targetId] }, familyId },
+    select: { id: true },
+  })
+  if (found.length !== 2) throw new Error('person not found')
+  return await prismaMedia.$transaction(async (tx) => {
+    const moved = await tx.face.updateMany({
+      where: { familyId, personId: sourceId },
+      data: { personId: targetId },
+    })
+    await tx.person.deleteMany({ where: { id: sourceId, familyId } })
+    return { moved: moved.count }
+  })
 }
 
 /** 사람 이름 변경(빈 문자열 → null = "이름 없음"). family 스코프 강제. */

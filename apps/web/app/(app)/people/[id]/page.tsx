@@ -1,12 +1,14 @@
+import { PersonMergeButton } from '@/components/people/person-merge-button'
 import { PersonNameEditor } from '@/components/people/person-name-editor'
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { EmptyState } from '@/components/ui/empty-state'
+import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
-import { getPersonAssets } from '@/server/people/list'
+import { getPersonAssets, listPeople } from '@/server/people/list'
 import { getFeatureFlags } from '@/server/settings/features'
 import { ChevronLeft, ImageOff } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -29,6 +31,26 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
   )
   if (!person) notFound()
 
+  const canManage = ctx.capabilities.includes('person.rename')
+  // 합치기 대상 = 현재 사람을 뺀 나머지 사람들(사진 많은 순). family 가시성 그대로 사용.
+  const mergeTargets = canManage
+    ? (
+        await listPeople(
+          { familyId: ctx.family.id, viewerRole: ctx.membership?.role ?? 'family' },
+          prismaMedia,
+          getMediaClient(),
+          prismaPublic,
+        )
+      )
+        .filter((p) => p.id !== person.id)
+        .map((p) => ({
+          id: p.id,
+          name: p.name,
+          photoCount: p.photoCount,
+          thumbUrl: pickThumbUrl(p.cover?.urls ?? null),
+        }))
+    : []
+
   return (
     <>
       <PullToRefresh />
@@ -50,8 +72,11 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
           </Link>
         }
         right={
-          ctx.capabilities.includes('person.rename') ? (
-            <PersonNameEditor personId={person.id} initialName={person.name} />
+          canManage ? (
+            <div className="flex items-center gap-2">
+              <PersonMergeButton sourceId={person.id} targets={mergeTargets} />
+              <PersonNameEditor personId={person.id} initialName={person.name} />
+            </div>
           ) : undefined
         }
       />
