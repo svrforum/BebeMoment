@@ -42,10 +42,11 @@ import webpush from 'web-push'
 import { z } from 'zod'
 
 const stringSetting = z.string()
-// diary.created 푸시 지연 — 스토리 사진이 모두 처리될 때까지 5초 간격으로 재시도하며
-// 미룬다. 36회(=3분) 넘으면 처리가 멈췄다고 보고 그냥 발송(푸시 유실 방지).
+// diary.created 푸시 지연 — 스토리 사진/영상이 모두 처리될 때까지 5초 간격으로 재시도하며
+// 미룬다. 영상 트랜스코딩은 사진보다 오래 걸려 3분으론 부족할 수 있어 5분(60회)까지 기다린
+// 뒤, 그래도 안 끝나면 처리가 멈췄다고 보고 그냥 발송(푸시 유실 방지).
 const STORY_PUSH_DEFER_MS = 5000
-const STORY_PUSH_MAX_DEFERS = 36
+const STORY_PUSH_MAX_DEFERS = 60
 const MEMORIES_SCAN_JOB = 'memories-scan'
 const BACKUP_TICK_JOB = 'backup-tick'
 const TRASH_PURGE_JOB = 'trash-purge'

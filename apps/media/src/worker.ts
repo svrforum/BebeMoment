@@ -101,11 +101,15 @@ export async function startWorker(): Promise<() => Promise<void>> {
   // 중단된 업로드 정리 — 부팅 직후 1회 + 매시간. (media 엔 BullMQ 반복잡 인프라가 없어
   // 경량 setInterval 로; reapStaleUploads 는 멱등하고 raw SQL 한 방이라 cheap.)
   const storagePath = parseEnv(process.env as Record<string, string | undefined>).STORAGE_PATH
+  // 중단된 업로드를 failed 로 마킹하는 기준 시간(시간). 기본 6h — 낮추면 stuck 업로드가
+  // 빨리 정리되지만, 느린 망의 대용량 영상이 아직 업로드 중인데도 죽일 수 있으니 주의.
+  const staleHours = Number(process.env.MEDIA_STALE_UPLOAD_HOURS ?? '6')
+  const staleMs = (Number.isFinite(staleHours) && staleHours > 0 ? staleHours : 6) * 60 * 60 * 1000
   const reap = (): void => {
-    void reapStaleUploads(prisma, logger).catch((e) =>
+    void reapStaleUploads(prisma, logger, staleMs).catch((e) =>
       logger.error({ err: (e as Error).message }, 'reapStaleUploads failed'),
     )
-    void reapStaleTusTmp(storagePath)
+    void reapStaleTusTmp(storagePath, staleMs)
       .then((n) => {
         if (n > 0) logger.warn({ count: n }, 'reaped stale tus-tmp files')
       })
