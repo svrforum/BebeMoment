@@ -35,12 +35,17 @@ import {
   getPreset,
 } from '@bebe/core'
 import type { NotifContext } from '@/server/notifications/worker'
-import { createRedisConnection, enqueueFaceDetect } from '@bebe/queue'
+import { decideStoryPush } from '@/server/notifications/story-readiness'
+import { createRedisConnection, enqueueFaceDetect, getNotificationQueue } from '@bebe/queue'
 import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
 import { z } from 'zod'
 
 const stringSetting = z.string()
+// diary.created 푸시 지연 — 스토리 사진이 모두 처리될 때까지 5초 간격으로 재시도하며
+// 미룬다. 36회(=3분) 넘으면 처리가 멈췄다고 보고 그냥 발송(푸시 유실 방지).
+const STORY_PUSH_DEFER_MS = 5000
+const STORY_PUSH_MAX_DEFERS = 36
 const MEMORIES_SCAN_JOB = 'memories-scan'
 const BACKUP_TICK_JOB = 'backup-tick'
 const TRASH_PURGE_JOB = 'trash-purge'
@@ -413,6 +418,47 @@ async function main(): Promise<void> {
         if (inQuietHours(delivery, hour)) return
       } else if (!digestExempt) {
         if (!shouldSendImmediate(delivery, hour)) return
+      }
+      // diary.created: 스토리 사진이 아직 처리 중이면 모두 settle(ready/failed)될 때까지
+      // 푸시를 미룬다 — 사진보다 푸시가 먼저 가던 문제. cap 초과 시엔 그냥 보낸다.
+      if (job.data.type === 'diary.created') {
+        const entryId = job.data.payload.entryId
+        const links = entryId
+          ? await prismaPublic.storyAsset.findMany({
+              where: { entryId },
+              select: { assetId: true },
+            })
+          : []
+        const assetIds = links.map((l) => l.assetId)
+        const settled =
+          assetIds.length === 0
+            ? 0
+            : await prismaMedia.asset.count({
+                where: {
+                  id: { in: assetIds },
+                  familyId: job.data.familyId,
+                  status: { in: ['ready', 'failed'] },
+                },
+              })
+        const attempts = Number(job.data.payload.deferAttempts ?? '0')
+        if (
+          decideStoryPush({
+            total: assetIds.length,
+            settled,
+            attempts,
+            maxAttempts: STORY_PUSH_MAX_DEFERS,
+          }) === 'defer'
+        ) {
+          await getNotificationQueue().add(
+            job.name,
+            { ...job.data, payload: { ...job.data.payload, deferAttempts: String(attempts + 1) } },
+            { delay: STORY_PUSH_DEFER_MS, removeOnComplete: true, removeOnFail: 100 },
+          )
+          console.log(
+            `[notifications-worker] diary push deferred (photos not ready) entry=${entryId} settled=${settled}/${assetIds.length} attempt=${attempts + 1}`,
+          )
+          return
+        }
       }
       await refreshVapidIfChanged()
       const fcm = await buildFcmDeps()
