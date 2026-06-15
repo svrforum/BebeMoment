@@ -17,6 +17,9 @@ export const initAssetRequest = z.object({
   sizeBytes: z.number().int().positive(),
   originalName: z.string().min(1),
   takenAt: z.string().datetime().optional(),
+  // 클라가 보낸 파일 수정시각(File.lastModified). EXIF 촬영일·파일명 패턴이 없을 때의
+  // 폴백으로 쓴다(takenAtSource='filemtime') — 갤러리가 보여주는 날짜와 맞춘다.
+  fileModifiedAt: z.string().datetime().optional(),
   clientBlurhash: z.string().min(6).max(128).optional(),
   clientAspectRatio: z.number().positive().optional(),
   clientWidth: z.number().int().positive().optional(),

@@ -73,6 +73,39 @@ describe('process-asset module', () => {
     })
   })
 
+  it('EXIF·파일명 날짜가 없으면 init 이 심은 filemtime(클라 파일 수정시각)으로 takenAt 을 정한다', async () => {
+    const mtime = new Date('2026-06-13T10:00:00Z')
+    const asset = fakeAsset({
+      takenAtSource: 'filemtime',
+      takenAt: mtime,
+      originalFilename: 'IMG_no_date.jpg',
+    })
+    const prisma = fakePrisma(asset)
+
+    await processAsset({
+      job: {
+        type: 'process-asset',
+        assetId: asset.id,
+        familyId: asset.familyId,
+        convertToCompatible: false,
+      },
+      // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+      prisma: prisma as any,
+      storage: noopStorage,
+      publishProgress: async () => {},
+      logger: silentLogger,
+      enqueueNotification: vi.fn(async () => {}),
+    })
+
+    const updates = prisma.asset.update.mock.calls.map((c) => (c[0] as { data: unknown }).data)
+    const finalUpdate = updates.find(
+      (d): d is { takenAt: Date; takenAtSource: string } =>
+        typeof d === 'object' && d !== null && 'takenAtSource' in d,
+    )
+    expect(finalUpdate?.takenAtSource).toBe('filemtime')
+    expect(finalUpdate?.takenAt).toEqual(mtime)
+  })
+
   it('still enqueues asset.uploaded with suppressPush when job.notify is false (story photo)', async () => {
     // 스토리 첨부 사진: 잡은 보내되(얼굴 인식 등 유지) payload.suppressPush 로 워커가 푸시만 생략.
     const asset = fakeAsset()

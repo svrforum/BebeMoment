@@ -11,6 +11,7 @@ export type InitAssetInput = {
   sizeBytes: number
   originalName: string
   takenAt?: string | undefined
+  fileModifiedAt?: string | undefined
   clientBlurhash?: string | undefined
   clientAspectRatio?: number | undefined
   clientWidth?: number | undefined
@@ -51,8 +52,10 @@ export async function initAsset(
       // Replaced with the real SHA256 of the original bytes after tus finish
       // (process-asset.ts hashes the buffer).
       sha256: randomBytes(32).toString('hex'),
-      takenAt: input.takenAt ? new Date(input.takenAt) : new Date(),
-      takenAtSource: input.takenAt ? 'manual' : 'uploaded',
+      // 명시 takenAt > 파일 수정시각(filemtime) > 업로드시각(uploaded). 워커가 EXIF·파일명
+      // 으로 다시 확정하지만, 둘 다 없으면 process-asset 이 이 filemtime 값을 폴백으로 쓴다.
+      takenAt: new Date(input.takenAt ?? input.fileModifiedAt ?? Date.now()),
+      takenAtSource: input.takenAt ? 'manual' : input.fileModifiedAt ? 'filemtime' : 'uploaded',
       status: 'uploading',
       width: input.clientWidth ?? null,
       height: input.clientHeight ?? null,

@@ -65,6 +65,9 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     const derived = deriveTakenAt({
       ...(exifResult.takenAt !== undefined ? { exifDateTimeOriginal: exifResult.takenAt } : {}),
       filename: asset.originalFilename,
+      // init 이 클라 File.lastModified 를 filemtime 으로 심어둠 — EXIF·파일명 둘 다 없을 때
+      // 업로드시각 대신 이 값으로 폴백(갤러리 날짜와 일치).
+      ...(asset.takenAtSource === 'filemtime' ? { fileModifiedAt: asset.takenAt } : {}),
       uploadedAt: asset.uploadedAt,
     })
 

@@ -11,6 +11,7 @@ export type WebInitAssetInput = {
   sizeBytes: number
   originalName: string
   takenAt?: string
+  fileModifiedAt?: string
   clientBlurhash?: string
   clientAspectRatio?: number
   clientWidth?: number

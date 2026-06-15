@@ -29,6 +29,7 @@ export type StartUploadInput = {
   mime: string
   sizeBytes: number
   originalName: string
+  fileModifiedAt?: string
   clientBlurhash?: string
   clientAspectRatio?: number
   clientWidth?: number
@@ -61,6 +62,7 @@ export async function startUpload(input: StartUploadInput): Promise<InitAssetRes
     mime: input.mime,
     sizeBytes: input.sizeBytes,
     originalName: input.originalName,
+    ...(input.fileModifiedAt !== undefined && { fileModifiedAt: input.fileModifiedAt }),
     ...(input.clientBlurhash !== undefined && { clientBlurhash: input.clientBlurhash }),
     ...(input.clientAspectRatio !== undefined && { clientAspectRatio: input.clientAspectRatio }),
     ...(input.clientWidth !== undefined && { clientWidth: input.clientWidth }),

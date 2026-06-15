@@ -196,10 +196,19 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
               }
             }
             if (!file) return
+            // 파일 수정시각을 촬영일 폴백으로 보낸다 — EXIF 촬영일이 없는 사진(스크린샷·
+            // 메신저 저장본 등)이 업로드 날짜가 아니라 갤러리가 보여주는 날짜로 잡히게.
+            // 말도 안 되는 값(0·1970·미래)은 거른다(2000 이후 ~ 오늘+1일).
+            const lm = file.data instanceof File ? file.data.lastModified : undefined
+            const fileModifiedAt =
+              typeof lm === 'number' && lm > 946684800000 && lm <= Date.now() + 86400000
+                ? new Date(lm).toISOString()
+                : undefined
             const init = await startUpload({
               mime: file.type ?? 'application/octet-stream',
               sizeBytes: file.size ?? 0,
               originalName: file.name ?? `upload-${id}`,
+              ...(fileModifiedAt ? { fileModifiedAt } : {}),
               notify: notifyRef.current,
             })
             u.setFileMeta(id, { uploadToken: init.uploadToken, assetId: init.assetId })
