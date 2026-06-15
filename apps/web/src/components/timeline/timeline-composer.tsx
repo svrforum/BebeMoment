@@ -75,7 +75,8 @@ export function TimelineComposer({
   const t = useTranslations('timeline')
   const router = useRouter()
   const toast = useToast()
-  const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
+  const { files, addFiles, removeFile, clearStaged, startStagedUploads, replaceFileData } =
+    useUploadManager()
   // 최신 매니저 files 를 ref 로 — submit 의 async 대기 루프가 닫힌(stale)
   // attachments 대신 실시간 assetId 를 읽을 수 있게.
   const filesRef = useRef(files)
@@ -179,13 +180,18 @@ export function TimelineComposer({
     [addFiles],
   )
 
-  const removeAttachment = useCallback((fileId: string) => {
-    setAttachments((prev) => {
-      const target = prev.find((a) => a.fileId === fileId)
-      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
-      return prev.filter((a) => a.fileId !== fileId)
-    })
-  }, [])
+  const removeAttachment = useCallback(
+    (fileId: string) => {
+      // Uppy 에서도 제거해야 같은 사진 재선택이 noDuplicates 로 막히지 않는다.
+      removeFile(fileId)
+      setAttachments((prev) => {
+        const target = prev.find((a) => a.fileId === fileId)
+        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+        return prev.filter((a) => a.fileId !== fileId)
+      })
+    },
+    [removeFile],
+  )
 
   const openEditor = useCallback(
     async (fileId: string) => {
@@ -213,6 +219,9 @@ export function TimelineComposer({
   )
 
   const reset = useCallback(() => {
+    // 시작 안 한 staged 파일을 Uppy 에서 정리(취소). 제출 후 호출돼도 진행 중
+    // 업로드는 started 라 건드리지 않는다(백그라운드 처리 보존).
+    clearStaged()
     setAttachments((prev) => {
       for (const a of prev) {
         if (a.previewUrl) URL.revokeObjectURL(a.previewUrl)
@@ -221,7 +230,7 @@ export function TimelineComposer({
     })
     setBody('')
     setExpanded(false)
-  }, [])
+  }, [clearStaged])
 
   // 본문/첨부는 보존한 채 펼침만 닫는다. 다시 펼치면 그대로 이어쓰기 가능.
   const collapse = useCallback(() => {

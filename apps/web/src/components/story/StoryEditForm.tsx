@@ -53,7 +53,8 @@ export function StoryEditForm({
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('story')
-  const { files, addFiles, startStagedUploads, replaceFileData } = useUploadManager()
+  const { files, addFiles, removeFile, clearStaged, startStagedUploads, replaceFileData } =
+    useUploadManager()
   const filesRef = useRef(files)
   filesRef.current = files
 
@@ -91,11 +92,14 @@ export function StoryEditForm({
     })
   }, [files])
 
-  // 언마운트 시 object URL 정리.
+  // 언마운트 시 object URL 정리 + 시작 안 한 staged 파일을 Uppy 에서 비운다(편집을
+  // 저장 없이 떠난 경우). 그대로 두면 같은 사진 재선택이 noDuplicates 로 막혔다.
+  // 저장 후 이탈이면 업로드가 started 라 clearStaged 가 건드리지 않는다.
   // biome-ignore lint/correctness/useExhaustiveDependencies: 언마운트 1회 정리.
   useEffect(() => {
     return () => {
       for (const a of attachments) if (a.previewUrl) URL.revokeObjectURL(a.previewUrl)
+      clearStaged()
     }
   }, [])
 
@@ -130,13 +134,18 @@ export function StoryEditForm({
     [addFiles, photoCount, toast, t],
   )
 
-  const removeAttachment = useCallback((fileId: string) => {
-    setAttachments((prev) => {
-      const target = prev.find((a) => a.fileId === fileId)
-      if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
-      return prev.filter((a) => a.fileId !== fileId)
-    })
-  }, [])
+  const removeAttachment = useCallback(
+    (fileId: string) => {
+      // Uppy 에서도 제거 — 같은 사진 재선택이 noDuplicates 로 막히지 않게.
+      removeFile(fileId)
+      setAttachments((prev) => {
+        const target = prev.find((a) => a.fileId === fileId)
+        if (target?.previewUrl) URL.revokeObjectURL(target.previewUrl)
+        return prev.filter((a) => a.fileId !== fileId)
+      })
+    },
+    [removeFile],
+  )
 
   const removeExisting = useCallback((id: string) => {
     setKept((prev) => prev.filter((a) => a.id !== id))

@@ -42,6 +42,10 @@ export type UploadManager = {
   doneIds: Set<string>
   addFiles: (list: FileList | File[]) => Promise<string[]>
   removeFile: (id: string) => void
+  /** 아직 업로드를 시작하지 않은(staged) 파일을 모두 Uppy 에서 제거. 시트·컴포저를
+   *  닫거나 취소할 때 호출 — 잔존 staged 파일이 다음 선택에서 Uppy 의 noDuplicates
+   *  로 막히는 것을 막는다. 진행 중(started) 업로드는 건드리지 않는다(백그라운드 보존). */
+  clearStaged: () => void
   markAssetDone: (assetId: string) => void
   /** opts.notify=false 면 이 배치 사진들의 개별 'asset.uploaded' 푸시를 생략한다
    *  (스토리 첨부 — 스토리 푸시 하나로 갈음). 기본 true. */
@@ -330,6 +334,16 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])
 
+  const clearStaged = useCallback(() => {
+    if (!uppy) return
+    for (const f of uppy.getFiles() as unknown as FileRow[]) {
+      // assetId 가 있으면 이미 업로드에 커밋된 파일(preprocessor 의 init 통과). 제출
+      // 직후엔 assetId 는 잡혔지만 uploadStarted 가 아직 false 인 레이스 윈도우가 있어
+      // uploadStarted 만 보면 업로드 직전 파일을 abort 한다 — assetId 도 함께 본다.
+      if (!f.progress?.uploadStarted && !f.meta?.assetId) uppy.removeFile(f.id)
+    }
+  }, [uppy])
+
   // initUppy() (not the `uppy` state) so this works even on the very first
   // upload of a session: when a caller does `addFiles(...)` then
   // `startStagedUploads()` in the same handler, `setUppy()` hasn't
@@ -376,6 +390,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       doneIds,
       addFiles,
       removeFile,
+      clearStaged,
       markAssetDone,
       startStagedUploads,
       replaceFileData,
@@ -385,7 +400,16 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       processingCount: processing,
       totalActive: uploading + processing,
     }
-  }, [files, doneIds, addFiles, removeFile, markAssetDone, startStagedUploads, replaceFileData])
+  }, [
+    files,
+    doneIds,
+    addFiles,
+    removeFile,
+    clearStaged,
+    markAssetDone,
+    startStagedUploads,
+    replaceFileData,
+  ])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

@@ -2,8 +2,8 @@
 import { Sheet } from '@/components/ui/sheet'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
-import { type ReactNode, createContext, useContext, useMemo, useState } from 'react'
-import { UploadManagerProvider } from './upload-manager'
+import { type ReactNode, createContext, useCallback, useContext, useMemo, useState } from 'react'
+import { UploadManagerProvider, useUploadManager } from './upload-manager'
 import { UploadStatusPill } from './upload-status-pill'
 
 const LazyUploadDashboard = dynamic(
@@ -40,22 +40,53 @@ export function UploadSheetProvider({
   canCreateStory?: boolean
   storyBabyId?: string | null
 }) {
-  const [isOpen, setOpen] = useState(false)
-  const t = useTranslations('upload')
-
-  const value = useMemo(() => ({ open: () => setOpen(true), close: () => setOpen(false) }), [])
-
   return (
     <UploadManagerProvider>
-      <UploadSheetContext.Provider value={value}>
+      <UploadSheetInner canCreateStory={canCreateStory} storyBabyId={storyBabyId}>
         {children}
-        <Sheet open={isOpen} onOpenChange={setOpen} title={t('sheetTitle')}>
-          {isOpen && (
-            <LazyUploadDashboard canCreateStory={canCreateStory} storyBabyId={storyBabyId} />
-          )}
-        </Sheet>
-        <UploadStatusPill onClick={() => setOpen(true)} />
-      </UploadSheetContext.Provider>
+      </UploadSheetInner>
     </UploadManagerProvider>
+  )
+}
+
+function UploadSheetInner({
+  children,
+  canCreateStory,
+  storyBabyId,
+}: {
+  children: ReactNode
+  canCreateStory: boolean
+  storyBabyId: string | null
+}) {
+  const [isOpen, setOpen] = useState(false)
+  const t = useTranslations('upload')
+  const { clearStaged } = useUploadManager()
+
+  // 시트를 닫으면(취소·드래그 dismiss 포함) 아직 시작 안 한 staged 파일을 비운다 —
+  // 그대로 두면 같은 사진 재선택이 Uppy noDuplicates 로 막혔다. 진행 중 업로드는 보존.
+  const close = useCallback(() => {
+    setOpen(false)
+    clearStaged()
+  }, [clearStaged])
+  const handleOpenChange = useCallback(
+    (next: boolean) => {
+      if (next) setOpen(true)
+      else close()
+    },
+    [close],
+  )
+
+  const value = useMemo(() => ({ open: () => setOpen(true), close }), [close])
+
+  return (
+    <UploadSheetContext.Provider value={value}>
+      {children}
+      <Sheet open={isOpen} onOpenChange={handleOpenChange} title={t('sheetTitle')}>
+        {isOpen && (
+          <LazyUploadDashboard canCreateStory={canCreateStory} storyBabyId={storyBabyId} />
+        )}
+      </Sheet>
+      <UploadStatusPill onClick={() => setOpen(true)} />
+    </UploadSheetContext.Provider>
   )
 }
