@@ -79,8 +79,13 @@ services:
       REDIS_URL: redis://...
       SECRET_KEY: <32+ bytes>
       PUBLIC_URL: https://bebe.example.com
+      # (optional) On low-power NAS / large batches, disabling AVIF derivatives
+      # speeds processing up a lot (WebP+JPEG only, <picture> auto-fallback). Default true.
+      MEDIA_DERIVATIVES_INCLUDE_AVIF: "false"
     # PUID/PGID, volumes (./data:/data), media secrets, etc. — see the docs
 ```
+
+> 💡 **If uploads/processing feel slow**: set `MEDIA_DERIVATIVES_INCLUDE_AVIF=false` — AVIF encoding dominates derivative-generation time, so turning it off greatly speeds up processing (virtually no quality difference, slightly larger files). Full env reference: [`compose/.env.example`](compose/.env.example).
 
 ## 🛠️ Tech stack
 

@@ -79,8 +79,13 @@ services:
       REDIS_URL: redis://...
       SECRET_KEY: <32바이트 이상>
       PUBLIC_URL: https://bebe.example.com
+      # (선택) 저사양 NAS·대량 업로드에서 처리가 느리면 AVIF 파생물을 꺼 속도를 크게
+      # 높일 수 있다(WebP+JPEG 만, <picture> 자동 폴백). 기본은 true.
+      MEDIA_DERIVATIVES_INCLUDE_AVIF: "false"
     # PUID/PGID, 볼륨(./data:/data), media 시크릿 등은 배포 문서 참조
 ```
+
+> 💡 **업로드/처리가 느릴 때**: `MEDIA_DERIVATIVES_INCLUDE_AVIF=false` — AVIF 인코딩이 파생물 생성 시간의 대부분을 차지하므로, 끄면 처리 속도가 크게 빨라집니다(화질 차이 거의 없음, 파일만 약간 큼). 전체 환경변수는 [`compose/.env.example`](compose/.env.example) 참조.
 
 ## 🛠️ 기술 스택
 

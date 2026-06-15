@@ -25,6 +25,10 @@ services:
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
       STORAGE_MODE: ${STORAGE_MODE:-local}
       STORAGE_PATH: /data
+      # 파생물에 AVIF 포함 여부(기본 true). AVIF 는 인코딩이 비싸 파생물 생성 시간의
+      # 대부분을 차지한다 — 저사양 NAS·대량 업로드에서 처리가 느리면 false 로. 그러면
+      # WebP+JPEG 만 만들고 <picture> 가 자동 폴백한다(화질 거의 동일, 파일만 약간 큼).
+      MEDIA_DERIVATIVES_INCLUDE_AVIF: ${MEDIA_DERIVATIVES_INCLUDE_AVIF:-true}
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
