@@ -97,7 +97,8 @@ describe('process-asset module', () => {
       enqueueNotification: vi.fn(async () => {}),
     })
 
-    const updates = prisma.asset.update.mock.calls.map((c) => (c[0] as { data: unknown }).data)
+    const calls = (prisma.asset.update as unknown as { mock: { calls: unknown[][] } }).mock.calls
+    const updates = calls.map((c) => (c[0] as { data: unknown }).data)
     const finalUpdate = updates.find(
       (d): d is { takenAt: Date; takenAtSource: string } =>
         typeof d === 'object' && d !== null && 'takenAtSource' in d,
