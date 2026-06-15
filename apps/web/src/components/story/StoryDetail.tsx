@@ -11,6 +11,7 @@ import {
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
+import { useToast } from '@/lib/toast'
 import { LayoutGrid, Play, ShieldCheck, Square } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import dynamic from 'next/dynamic'
@@ -236,24 +237,28 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                     >
                       {/* 탭하면 격자와 동일하게 전체화면 뷰어로(영상은 거기서 클릭 재생).
                           스와이프(드래그)는 Swiper 가 클릭과 구분해 처리. */}
-                      <Link
-                        href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
-                        className="relative flex aspect-square w-full items-center justify-center"
-                      >
-                        <PictureImage
-                          trio={trio}
-                          fallbackUrl={fallbackUrl}
-                          alt=""
-                          dominantColor={link.asset?.urls?.dominantColor ?? null}
-                          blurhash={pickBlurhash(link.asset?.urls ?? null)}
-                          aspectRatio={1}
-                          className="aspect-square w-full"
-                          objectFit="cover"
-                          loading="eager"
-                          fade={false}
-                        />
-                        {isVid && <VideoPlayOverlay />}
-                      </Link>
+                      {link.asset?.status === 'failed' ? (
+                        <StoryFailedPhoto assetId={link.assetId} />
+                      ) : (
+                        <Link
+                          href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
+                          className="relative flex aspect-square w-full items-center justify-center"
+                        >
+                          <PictureImage
+                            trio={trio}
+                            fallbackUrl={fallbackUrl}
+                            alt=""
+                            dominantColor={link.asset?.urls?.dominantColor ?? null}
+                            blurhash={pickBlurhash(link.asset?.urls ?? null)}
+                            aspectRatio={1}
+                            className="aspect-square w-full"
+                            objectFit="cover"
+                            loading="eager"
+                            fade={false}
+                          />
+                          {isVid && <VideoPlayOverlay />}
+                        </Link>
+                      )}
                     </SwiperSlide>
                   )
                 })}
@@ -268,6 +273,13 @@ export function StoryDetail({ entry }: { entry: Entry }) {
             <div className="grid grid-cols-3 gap-0.5">
               {sortedAssets.map((link) => {
                 const isVid = link.asset?.kind === 'video'
+                if (link.asset?.status === 'failed') {
+                  return (
+                    <div key={link.assetId} className="relative aspect-square">
+                      <StoryFailedPhoto assetId={link.assetId} compact />
+                    </div>
+                  )
+                }
                 return (
                   <Link
                     key={link.assetId}
@@ -297,5 +309,44 @@ export function StoryDetail({ entry }: { entry: Entry }) {
         </div>
       )}
     </article>
+  )
+}
+
+/** 처리 실패한 스토리 사진 — 빈 슬라이드 대신 상태를 보여주고 그 자리에서 재처리. 상세
+ *  뷰어엔 재시도가 없어(스토리에서 직접) 같은 /api/asset/:id/retry 를 호출한다. */
+function StoryFailedPhoto({ assetId, compact }: { assetId: string; compact?: boolean }) {
+  const t = useTranslations('story')
+  const router = useRouter()
+  const toast = useToast()
+  const [busy, setBusy] = useState(false)
+  const retry = async () => {
+    if (busy) return
+    setBusy(true)
+    try {
+      const res = await fetch(`/api/asset/${assetId}/retry`, { method: 'POST' })
+      if (!res.ok) throw new Error()
+      toast({ title: t('detail.photoRetrying'), variant: 'success' })
+      router.refresh()
+    } catch {
+      toast({ title: t('detail.photoRetryFailed'), variant: 'danger' })
+      setBusy(false)
+    }
+  }
+  return (
+    <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 bg-base-100 px-3 text-center dark:bg-base-800">
+      <span className={`text-base-500 ${compact ? 'text-[11px]' : 'text-sm'}`}>
+        {t('detail.photoFailed')}
+      </span>
+      <button
+        type="button"
+        onClick={retry}
+        disabled={busy}
+        className={`rounded-full bg-base-900 font-medium text-base-50 transition active:scale-95 disabled:opacity-50 dark:bg-base-50 dark:text-base-900 ${
+          compact ? 'px-2.5 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
+        }`}
+      >
+        {busy ? t('detail.photoRetrying') : t('detail.photoRetry')}
+      </button>
+    </div>
   )
 }

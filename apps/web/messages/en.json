@@ -605,6 +605,10 @@
       "savePhotos": "Save photos",
       "storyFallback": "Story",
       "guardiansOnly": "Guardians only",
+      "photoFailed": "Processing failed",
+      "photoRetry": "Retry",
+      "photoRetrying": "Retrying…",
+      "photoRetryFailed": "Couldn't retry",
       "dateLine": "{date} · {day}",
       "monthDay": "{m}/{d}",
       "photoMeta": "{n} photos",
@@ -1635,6 +1639,7 @@
     "postStory": "Post a story with {n} photos",
     "uploadCount": "Upload {n}",
     "waitingToProcess": "Waiting to process…",
+    "processingFailed": "A photo failed to process. Open it to try again.",
     "editor": {
       "rotateFailed": "Couldn't rotate the photo",
       "applyFailed": "Couldn't apply the edits",

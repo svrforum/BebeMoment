@@ -1,4 +1,5 @@
 'use client'
+import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
@@ -188,16 +189,7 @@ export function StoryEditForm({
       // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
       if (attachments.length > 0) startStagedUploads({ notify: false })
       const fileIds = attachments.map((a) => a.fileId)
-      const resolveIds = () =>
-        fileIds
-          .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
-          .filter((id): id is string => typeof id === 'string')
-
-      const deadline = Date.now() + 30_000
-      while (Date.now() < deadline && resolveIds().length < fileIds.length) {
-        await new Promise((r) => setTimeout(r, 200))
-      }
-      const newAssetIds = resolveIds()
+      const newAssetIds = await collectAssetIds(() => filesRef.current, fileIds)
       if (newAssetIds.length !== fileIds.length) {
         throw new Error(t('edit.uploadNotReady'))
       }

@@ -5,6 +5,7 @@ import { ImagePlus, Images, Pencil, PencilLine, Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { collectAssetIds } from './collect-asset-ids'
 import { useUploadSheet } from './upload-sheet'
 import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
@@ -66,9 +67,10 @@ export function UploadDashboard({
 }) {
   const {
     files,
+    doneIds,
+    failedIds,
     addFiles,
     removeFile,
-    markAssetDone,
     startStagedUploads,
     replaceFileData,
     pauseAutoDismiss,
@@ -110,16 +112,7 @@ export function UploadDashboard({
       const fileIds = stagedFiles.map((f) => f.id)
       // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
       startStagedUploads({ notify: false })
-      const resolveIds = () =>
-        fileIds
-          .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
-          .filter((id): id is string => typeof id === 'string')
-
-      const deadline = Date.now() + 30_000
-      while (Date.now() < deadline && resolveIds().length < fileIds.length) {
-        await new Promise((r) => setTimeout(r, 200))
-      }
-      const assetIds = resolveIds()
+      const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
       if (assetIds.length !== fileIds.length) {
         // 타임아웃 — startStagedUploads 로 시작된 업로드는 계속 진행돼 타임라인에
         // 저장된다(사진은 유실되지 않음). "재시도"로 오안내하지 않는다: 이미 시작된
@@ -354,9 +347,15 @@ export function UploadDashboard({
         <ul className="max-h-[360px] divide-y divide-base-100 overflow-y-auto rounded-xl border border-base-200 px-1 dark:divide-base-800 dark:border-base-800">
           {started.map((f) => {
             const assetId = f.meta?.assetId
-            const uploadToken = f.meta?.uploadToken
             const pct = Math.round(f.progress?.percentage ?? 0)
             const complete = f.progress?.uploadComplete ?? false
+            const procStatus = assetId
+              ? failedIds.has(assetId)
+                ? ('failed' as const)
+                : doneIds.has(assetId)
+                  ? ('ready' as const)
+                  : ('processing' as const)
+              : null
             return (
               <li key={f.id} className="flex items-center gap-3 px-1 py-2">
                 <div className="h-12 w-12 shrink-0">
@@ -366,12 +365,8 @@ export function UploadDashboard({
                   <div className="truncate text-sm font-medium">{f.name}</div>
                   <div className="mt-1.5">
                     {complete ? (
-                      assetId && uploadToken ? (
-                        <UploadProgressBar
-                          assetId={assetId}
-                          uploadToken={uploadToken}
-                          onComplete={() => markAssetDone(assetId)}
-                        />
+                      procStatus ? (
+                        <UploadProgressBar status={procStatus} />
                       ) : (
                         <div className="text-xs text-base-500">{t('waitingToProcess')}</div>
                       )

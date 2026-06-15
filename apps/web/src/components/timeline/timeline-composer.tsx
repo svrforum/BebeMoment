@@ -1,4 +1,5 @@
 'use client'
+import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useToast } from '@/lib/toast'
@@ -258,18 +259,8 @@ export function TimelineComposer({
       if (attachments.length > 0) startStagedUploads({ notify: false })
       const fileIds = attachments.map((a) => a.fileId)
       // assetId 는 매니저 files 의 meta 로 들어온다. 닫힌 attachments 가 아니라
-      // filesRef(매 렌더 갱신)에서 읽어야 업로드 진행분이 보인다.
-      const resolveIds = () =>
-        fileIds
-          .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
-          .filter((id): id is string => typeof id === 'string')
-
-      const deadline = Date.now() + 30_000
-      while (Date.now() < deadline && resolveIds().length < fileIds.length) {
-        await new Promise((r) => setTimeout(r, 200))
-      }
-
-      const finalAssetIds = resolveIds()
+      // filesRef(매 렌더 갱신)에서 읽는다(공유 헬퍼).
+      const finalAssetIds = await collectAssetIds(() => filesRef.current, fileIds)
       if (finalAssetIds.length !== fileIds.length) {
         throw new Error(t('composer.uploadNotReady'))
       }

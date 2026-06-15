@@ -605,6 +605,10 @@
       "savePhotos": "사진 저장",
       "storyFallback": "스토리",
       "guardiansOnly": "보호자만",
+      "photoFailed": "처리 실패",
+      "photoRetry": "다시 시도",
+      "photoRetrying": "다시 시도 중…",
+      "photoRetryFailed": "다시 시도하지 못했어요",
       "dateLine": "{date} · {day}요일",
       "monthDay": "{m}월 {d}일",
       "photoMeta": "사진 {n}장",
@@ -1635,6 +1639,7 @@
     "postStory": "사진 {n}장으로 스토리 올리기",
     "uploadCount": "{n}개 업로드",
     "waitingToProcess": "처리 대기 중…",
+    "processingFailed": "사진 처리에 실패했어요. 사진을 열어 다시 시도할 수 있어요.",
     "editor": {
       "rotateFailed": "회전을 적용하지 못했어요",
       "applyFailed": "편집을 적용하지 못했어요",

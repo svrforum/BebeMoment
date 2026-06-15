@@ -1,63 +1,27 @@
 'use client'
 import { useTranslations } from 'next-intl'
-import { useEffect, useState } from 'react'
-
-type ProgressEvent =
-  | { type: 'progress'; assetId: string; uploadedBytes: number; totalBytes: number }
-  | {
-      type: 'status'
-      assetId: string
-      status: 'processing' | 'ready' | 'failed'
-      reason?: string
-    }
 
 export type UploadStatus = 'uploading' | 'processing' | 'ready' | 'failed'
 
-type Props = {
-  assetId: string
-  uploadToken: string
-  onComplete?: () => void
-}
-
-export function UploadProgressBar({ assetId, uploadToken, onComplete }: Props) {
-  const [progress, setProgress] = useState(0)
-  const [status, setStatus] = useState<UploadStatus>('uploading')
+/**
+ * 업로드 후 처리 단계의 상태 표시(프레젠테이션 전용). 상태는 공유 family SSE 가 구동하는
+ * 매니저 상태(doneIds/failedIds)에서 내려온다 — 과거엔 사진마다 별도 EventSource 를
+ * 열어 배치 업로드에서 브라우저 연결 한도를 넘겨 멈췄다(이제 연결 0개).
+ */
+export function UploadProgressBar({ status }: { status: 'processing' | 'ready' | 'failed' }) {
   const t = useTranslations('upload')
-
-  useEffect(() => {
-    const mediaBaseUrl = process.env.NEXT_PUBLIC_MEDIA_BASE_URL ?? ''
-    const url = `${mediaBaseUrl}/media/v1/progress/sse?assetId=${encodeURIComponent(
-      assetId,
-    )}&token=${encodeURIComponent(uploadToken)}`
-    const es = new EventSource(url)
-
-    es.onmessage = (ev) => {
-      try {
-        const evt = JSON.parse(ev.data) as ProgressEvent
-        if (evt.type === 'progress') {
-          setProgress(evt.totalBytes > 0 ? evt.uploadedBytes / evt.totalBytes : 0)
-        } else if (evt.type === 'status') {
-          setStatus(evt.status)
-          if (evt.status === 'ready' || evt.status === 'failed') {
-            onComplete?.()
-            es.close()
-          }
-        }
-      } catch {
-        // ignore malformed messages
-      }
-    }
-    es.onerror = () => {
-      // browser will retry or close; no-op
-    }
-
-    return () => es.close()
-  }, [assetId, uploadToken, onComplete])
-
+  const danger = status === 'failed'
   return (
     <div aria-label={t('progress.aria')} className="flex items-center gap-2">
-      <progress value={progress} max={1} className="h-1 flex-1" />
-      <span className="text-xs text-base-500">{t(`progress.${status}`)}</span>
+      <progress
+        // processing 은 값 없는(indeterminate) 바, ready/failed 는 가득.
+        {...(status === 'processing' ? {} : { value: 1 })}
+        max={1}
+        className="h-1 flex-1"
+      />
+      <span className={`text-xs ${danger ? 'text-red-500' : 'text-base-500'}`}>
+        {t(`progress.${status}`)}
+      </span>
     </div>
   )
 }

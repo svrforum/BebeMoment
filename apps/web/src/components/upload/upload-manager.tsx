@@ -2,6 +2,7 @@
 import { isOptimizeEnabled, optimizeImage } from '@/lib/image-optimize'
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
+import { useTranslations } from 'next-intl'
 import type { UppyFile } from '@uppy/core'
 import {
   type ReactNode,
@@ -40,6 +41,10 @@ const MAX_FILE_SIZE = 2 * 1024 * 1024 * 1024
 export type UploadManager = {
   files: FileRow[]
   doneIds: Set<string>
+  /** 처리(워커) 실패로 끝난 assetId — 공유 family SSE 가 status:'failed' 를 전해줄 때 기록.
+   *  진행바를 '실패'로 표시하는 데 쓴다(과거엔 per-asset SSE 가 했지만 배치에서 연결이
+   *  폭증해 제거 — 이제 단일 family SSE 로 상태를 구동). */
+  failedIds: Set<string>
   addFiles: (list: FileList | File[]) => Promise<string[]>
   removeFile: (id: string) => void
   /** 아직 업로드를 시작하지 않은(staged) 파일을 모두 Uppy 에서 제거. 시트·컴포저를
@@ -81,8 +86,15 @@ export function useUploadManager(): UploadManager {
  */
 export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
+  const t = useTranslations('upload')
   const [files, setFiles] = useState<FileRow[]>([])
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
+  const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
+  // 최신 files 를 SSE 콜백에서 읽기 위한 ref(콜백을 re-subscribe 시키지 않으려고).
+  const filesRef = useRef(files)
+  filesRef.current = files
+  // 처리 실패 토스트를 assetId 당 1회만 — SSE 가 같은 이벤트를 재전송해도 중복 알림 방지.
+  const toastedFailRef = useRef<Set<string>>(new Set())
   const [uppy, setUppy] = useState<UppyInstance | null>(null)
   // 스토리 제출처럼 assetId 를 비동기로 모은 뒤 POST 하는 흐름 중에는 자동정리
   // (cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다(POST 실패 후 재시도 보호).
@@ -273,14 +285,18 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   useFamilySSE(
     useCallback(
       (event) => {
-        if (
-          event.type === 'asset.updated' &&
-          (event.status === 'ready' || event.status === 'failed')
-        ) {
-          markAssetDone(event.assetId)
+        if (event.type !== 'asset.updated') return
+        if (event.status === 'ready' || event.status === 'failed') markAssetDone(event.assetId)
+        if (event.status !== 'failed') return
+        setFailedIds((prev) => (prev.has(event.assetId) ? prev : new Set(prev).add(event.assetId)))
+        // 이 배치(현재 업로드 세션)의 사진이 처리 실패하면 조용히 넘기지 않고 1회 알린다.
+        const mine = filesRef.current.some((f) => f.meta?.assetId === event.assetId)
+        if (mine && !toastedFailRef.current.has(event.assetId)) {
+          toastedFailRef.current.add(event.assetId)
+          toast({ title: t('processingFailed'), variant: 'danger' })
         }
       },
-      [markAssetDone],
+      [markAssetDone, toast, t],
     ),
   )
 
@@ -298,11 +314,13 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       return id ? doneIds.has(id) : false
     })
     if (!allDone) return
-    const t = setTimeout(() => {
+    const timer = setTimeout(() => {
       uppy.cancelAll()
       setDoneIds(new Set())
+      setFailedIds(new Set())
+      toastedFailRef.current.clear()
     }, 700)
-    return () => clearTimeout(t)
+    return () => clearTimeout(timer)
   }, [files, doneIds, uppy, autoDismissPaused])
 
   const addFiles = useCallback(
@@ -397,6 +415,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     return {
       files,
       doneIds,
+      failedIds,
       addFiles,
       removeFile,
       clearStaged,
@@ -412,6 +431,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   }, [
     files,
     doneIds,
+    failedIds,
     addFiles,
     removeFile,
     clearStaged,

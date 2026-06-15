@@ -69,7 +69,10 @@ export async function optimizeImage(file: File): Promise<File> {
   const h0 = img.naturalHeight
   if (!w0 || !h0) return file
   const longEdge = Math.max(w0, h0)
-  const scale = longEdge > MAX_EDGE ? MAX_EDGE / longEdge : 1
+  // 긴 변이 한도 이하면 리사이즈 이득이 없다 — 재인코딩(q0.85)은 화질만 깎으므로 원본을
+  // 그대로 둔다("원본은 원본"). 최적화는 실제로 축소가 필요한 큰 사진에만 적용.
+  if (longEdge <= MAX_EDGE) return file
+  const scale = MAX_EDGE / longEdge
   const w = Math.round(w0 * scale)
   const h = Math.round(h0 * scale)
 
