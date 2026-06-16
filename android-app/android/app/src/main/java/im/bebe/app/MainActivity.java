@@ -207,6 +207,16 @@ public class MainActivity extends BridgeActivity {
                     pendingShareInjectJs = null;
                     view.evaluateJavascript(js, null);
                 }
+                // 원격 서버 페이지가 뜰 때 계정 목록에 보장 + 가족 이름 라벨을 채운다. 초대
+                // "이어하기"로 새 서버에 연결하거나 WebView 안에서 로그인한 직후, 다음
+                // onResume 을 기다리지 않고 가족이 전환 목록에 이름과 함께 나타나게 한다.
+                // 라벨이 없을 때만 — 매 화면 전환마다 요청을 보내지 않도록(localhost 로컬 페이지 제외).
+                if (url != null
+                    && (url.startsWith("http://") || url.startsWith("https://"))
+                    && !url.contains("localhost")
+                    && activeAccountNeedsLabel()) {
+                    tryLabelActiveFamily();
+                }
             }
         });
     }
@@ -469,6 +479,36 @@ public class MainActivity extends BridgeActivity {
                 .putString("serverUrl", base)
                 .apply();
         } catch (Exception ignored) {
+        }
+    }
+
+    /**
+     * 활성 서버 계정이 아직 가족 이름 라벨이 없는지(또는 목록에 없는지) — 페이지 로드 후
+     * 라벨이 필요할 때만 한 번 채우려고 쓴다. onResume 만으론 WebView 안에서 로그인/초대수락
+     * 직후(액티비티 재개가 없어) 라벨이 안 갱신됐다. 이미 이름이 있으면 매 탐색마다 라벨
+     * 요청을 보내지 않게 false.
+     */
+    private boolean activeAccountNeedsLabel() {
+        final String serverUrl = readServerUrl();
+        if (serverUrl == null) return false;
+        final String base = serverUrl.replaceAll("/+$", "");
+        synchronized (ACCOUNTS_LOCK) {
+            try {
+                final SharedPreferences sp =
+                    getApplicationContext().getSharedPreferences(CAP_PREFS, Context.MODE_PRIVATE);
+                final String raw = sp.getString(ACCOUNTS_KEY, null);
+                if (raw == null || raw.isEmpty()) return true; // 아직 시드 전
+                final org.json.JSONArray list = new org.json.JSONArray(raw);
+                for (int i = 0; i < list.length(); i++) {
+                    final org.json.JSONObject o = list.optJSONObject(i);
+                    if (o != null && base.equals(o.optString("url"))) {
+                        return o.optString("name", "").trim().isEmpty();
+                    }
+                }
+                return true; // 목록에 아직 없음 → 시드+라벨 필요
+            } catch (Exception e) {
+                return true;
+            }
         }
     }
 
