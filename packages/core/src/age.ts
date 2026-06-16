@@ -21,7 +21,7 @@ export function monthsBetween(from: Date, to: Date): number {
  *   출산 전     → "D-N" (출산 예정일까지 남은 일수, 태아기 기록)
  *   0..98일  → "생후 N일" (N = daysBetween + 1, 한국 관례)
  *   99일     → "100일" (daysBetween + 1 이 100인 시점)
- *   100일+   → "생후 N개월"
+ *   100일+   → "생후 N개월" (1년 넘으면 "· 만 N세" 병기 — 97개월이 만 몇 살인지 직관적이게)
  *   정확히 N주년 당일 → "1주년 (돌)" / "N주년"
  */
 export function bucketLabel(birthDate: Date, at: Date): string {
@@ -40,5 +40,7 @@ export function bucketLabel(birthDate: Date, at: Date): string {
     if (anniversary) return years === 1 ? '1주년 (돌)' : `${years}주년`
   }
 
-  return `생후 ${months}개월`
+  // 개월수가 커지면(예: 97개월) 만 나이가 직관적이지 않다 — 1년 이상이면 만 나이를 병기.
+  // years = floor(months/12) 가 곧 만 나이(monthsBetween 이 생일 경과를 이미 반영).
+  return years >= 1 ? `생후 ${months}개월 · 만 ${years}세` : `생후 ${months}개월`
 }

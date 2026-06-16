@@ -48,8 +48,15 @@ describe('bucketLabel', () => {
   it('정확히 1년 뒤는 "1주년 (돌)"', () => {
     expect(bucketLabel(birth, new Date('2027-01-01'))).toBe('1주년 (돌)')
   })
-  it('돌 이후는 개월수로 돌아감', () => {
-    expect(bucketLabel(birth, new Date('2027-07-01'))).toBe('생후 18개월')
+  it('돌 이후는 개월수 + 만 나이 병기', () => {
+    expect(bucketLabel(birth, new Date('2027-07-01'))).toBe('생후 18개월 · 만 1세')
+  })
+  it('개월수가 커도 만 나이를 병기 (97개월 → 만 8세)', () => {
+    // 2026-01-01 + 97개월 = 2034-02 → floor(97/12)=8
+    expect(bucketLabel(birth, new Date('2034-02-15'))).toBe('생후 97개월 · 만 8세')
+  })
+  it('1년 미만은 만 나이 병기 안 함', () => {
+    expect(bucketLabel(birth, new Date('2026-12-15'))).toBe('생후 11개월')
   })
   it('2주년', () => {
     expect(bucketLabel(birth, new Date('2028-01-01'))).toBe('2주년')
