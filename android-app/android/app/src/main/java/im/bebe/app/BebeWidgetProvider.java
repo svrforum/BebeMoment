@@ -11,6 +11,7 @@ public class BebeWidgetProvider extends AppWidgetProvider {
 
     static final String ACTION_SHUFFLE = "im.bebe.app.WIDGET_SHUFFLE";
     static final String ACTION_MODE = "im.bebe.app.WIDGET_MODE";
+    static final String ACTION_WIDGET_TAP = "im.bebe.app.WIDGET_TAP";
 
     @Override
     public void onReceive(Context ctx, Intent intent) {
@@ -79,11 +80,20 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         }
     }
 
-    static PendingIntent tapIntent(Context ctx) {
-        Intent intent = new Intent(ctx, MainActivity.class);
-        intent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+    /**
+     * 위젯 탭 — 그 위젯이 보여주는 가족 서버를 담아 앱을 연다(멀티 인스턴스: 활성 가족이
+     * 달라도 위젯의 가족으로 전환). server 가 비면(아직 미바인딩) 활성 가족을 연다.
+     * ⚠️ requestCode 를 위젯ID별로(0x20000000|id) 구분한다 — 안 그러면 IMMUTABLE
+     * PendingIntent 가 위젯끼리 같아져 server extra 가 첫 위젯 것으로 공유돼, 어느 위젯을
+     * 눌러도 같은 가족으로 갔다(이번 버그의 원인 중 하나).
+     */
+    static PendingIntent tapIntent(Context ctx, int id, String server) {
+        Intent intent = new Intent(ctx, MainActivity.class)
+            .setAction(ACTION_WIDGET_TAP)
+            .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_SINGLE_TOP);
+        if (server != null && !server.isEmpty()) intent.putExtra("server", server);
         int flags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (android.os.Build.VERSION.SDK_INT >= 23) flags |= PendingIntent.FLAG_IMMUTABLE;
-        return PendingIntent.getActivity(ctx, 0, intent, flags);
+        return PendingIntent.getActivity(ctx, 0x20000000 | id, intent, flags);
     }
 }

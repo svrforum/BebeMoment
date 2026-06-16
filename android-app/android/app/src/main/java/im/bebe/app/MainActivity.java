@@ -58,6 +58,7 @@ public class MainActivity extends BridgeActivity {
         handleAuthDeepLink(getIntent());
         handleInviteDeepLink(getIntent());
         handleOpenDeepLink(getIntent());
+        handleWidgetTap(getIntent());
         handleShareIntent(getIntent());
         setupDownloadListener();
         setupExternalSchemeHandler();
@@ -423,6 +424,7 @@ public class MainActivity extends BridgeActivity {
         handleAuthDeepLink(intent);
         handleInviteDeepLink(intent);
         handleOpenDeepLink(intent);
+        handleWidgetTap(intent);
         handleShareIntent(intent);
     }
 
@@ -896,6 +898,27 @@ public class MainActivity extends BridgeActivity {
         if (getBridge() != null && getBridge().getWebView() != null) {
             getBridge().getWebView().loadUrl(base + path);
         }
+    }
+
+    /**
+     * 홈 위젯 탭 — 위젯이 보여주는 가족 서버로 전환해서 연다(멀티 인스턴스). 위젯은 앱이
+     * 설정·토큰발급한 가족이라 신뢰하므로 invite/open 같은 확인 다이얼로그 없이 바로 전환한다.
+     * 이미 그 가족이 활성이거나 server extra 가 없으면(미바인딩) 평소대로 활성 가족이 열린다
+     * (Capacitor 가 serverUrl 로 로드). 과거엔 탭이 서버를 안 실어 항상 활성 가족으로 갔다.
+     */
+    private void handleWidgetTap(Intent intent) {
+        if (intent == null || !BebeWidgetProvider.ACTION_WIDGET_TAP.equals(intent.getAction())) return;
+        final String server = intent.getStringExtra("server");
+        if (server == null || server.isEmpty()) return;
+        final Uri s = safeParse(server);
+        final String scheme = s != null ? s.getScheme() : null;
+        if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) return;
+        final String base = server.replaceAll("/+$", "");
+        final String current = readServerUrl();
+        final String currentBase = current != null ? current.replaceAll("/+$", "") : null;
+        if (currentBase != null && sameOrigin(currentBase, base)) return; // 이미 그 가족
+        setActiveServer(base);
+        loadPath(base, "/timeline");
     }
 
     /** scheme+host+port 비교(대소문자 무시). prefix startsWith 우회(server.evil.com)를 막는다. */

@@ -290,7 +290,7 @@ public class WidgetRefreshWorker extends Worker {
             if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
         }
         applyBadge(rv, newCount);
-        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx, id, sp.getString(wk(id, "server"), null)));
         if (photoCount > 1) {
             rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
             rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
@@ -342,7 +342,7 @@ public class WidgetRefreshWorker extends Worker {
         }
 
         applyBadge(rv, newCount);
-        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx));
+        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx, id, sp.getString(wk(id, "server"), null)));
         if (photoCount > 1) {
             rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
             rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
