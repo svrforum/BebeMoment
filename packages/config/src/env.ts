@@ -72,7 +72,11 @@ const EnvSchema = z
 export type Env = z.infer<typeof EnvSchema>
 
 export function parseEnv(input: Record<string, string | undefined>): Env {
-  const result = EnvSchema.safeParse(input)
+  // 빈 문자열 env 는 "미설정"으로 취급한다. compose 가 `${VAR:-}` 로 빈값을 넘기면
+  // optional().url()·enum 등이 '' 를 거부해 부팅이 깨졌다(미설정이면 통과/기본값 적용).
+  const cleaned: Record<string, string | undefined> = {}
+  for (const [key, value] of Object.entries(input)) cleaned[key] = value === '' ? undefined : value
+  const result = EnvSchema.safeParse(cleaned)
   if (!result.success) {
     const issues = result.error.issues
       .map((i) => `  - ${i.path.join('.')}: ${i.message}`)

@@ -14,6 +14,24 @@ describe('parseEnv', () => {
     expect(env.STORAGE_MODE).toBe('local')
   })
 
+  it('treats empty-string env vars as unset (compose ${VAR:-} passes empty)', () => {
+    const env = parseEnv({
+      DATABASE_URL: 'postgres://localhost:5432/bebe',
+      REDIS_URL: 'redis://localhost:6379',
+      SECRET_KEY: 'a'.repeat(64),
+      PUBLIC_URL: 'http://localhost:3000',
+      // compose 가 미설정 기본값으로 넘기는 빈 문자열 — '' 가 url()/enum 을 깨지 않아야 한다.
+      MEDIA_PUBLIC_BASE_URL: '',
+      NEXT_PUBLIC_MEDIA_BASE_URL: '',
+      LOG_LEVEL: '',
+      ADMIN_USER_EMAIL: '',
+    })
+    expect(env.MEDIA_PUBLIC_BASE_URL).toBeUndefined()
+    expect(env.NEXT_PUBLIC_MEDIA_BASE_URL).toBeUndefined()
+    expect(env.LOG_LEVEL).toBe('info') // 기본값 적용
+    expect(env.ADMIN_USER_EMAILS).toEqual([])
+  })
+
   it('rejects SECRET_KEY that is too short', () => {
     expect(() =>
       parseEnv({

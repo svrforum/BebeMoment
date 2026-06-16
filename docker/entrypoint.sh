@@ -58,14 +58,14 @@ fi
 if [ -n "$BEBE_WEB_DB_PASSWORD" ] && [ -n "$BEBE_MEDIA_DB_PASSWORD" ] && [ -n "$DATABASE_URL" ]; then
   if command -v psql >/dev/null 2>&1; then
     echo "updating bebe_web / bebe_media role passwords from env…"
-    # psql 변수 바인딩(:'pw')으로 안전 인용 — 비밀번호에 작은따옴표가 있어도 SQL 이
-    # 깨지거나 주입되지 않는다(restore.ts ensureRole 와 동일 패턴).
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v pw="$BEBE_WEB_DB_PASSWORD" \
-      -c "ALTER ROLE bebe_web PASSWORD :'pw'" >/dev/null \
-      || echo "warn: failed to set bebe_web password (role may not exist yet)"
-    psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v pw="$BEBE_MEDIA_DB_PASSWORD" \
-      -c "ALTER ROLE bebe_media PASSWORD :'pw'" >/dev/null \
-      || echo "warn: failed to set bebe_media password (role may not exist yet)"
+    # psql 변수 바인딩(:'pw')으로 안전 인용 — 비밀번호에 작은따옴표가 있어도 깨지거나
+    # 주입되지 않는다. ⚠️ `:var` 치환은 stdin/-f 스크립트에서만 동작하고 `-c` 에선 안 돼
+    # 'syntax error at or near ":"' 로 실패한다 → here-doc(stdin) 으로 전달한다.
+    if psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -v web_pw="$BEBE_WEB_DB_PASSWORD" -v media_pw="$BEBE_MEDIA_DB_PASSWORD" >/dev/null <<'SQL'
+ALTER ROLE bebe_web PASSWORD :'web_pw';
+ALTER ROLE bebe_media PASSWORD :'media_pw';
+SQL
+    then :; else echo "warn: failed to sync bebe_web / bebe_media passwords (roles may not exist yet)"; fi
   else
     echo "warn: psql not found; skipping role password sync. Install postgresql-client in image."
   fi
