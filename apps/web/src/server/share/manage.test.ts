@@ -116,6 +116,33 @@ describe('share admin inventory', () => {
     expect(await listAllShareLinks(family.id, db.prismaPublic)).toHaveLength(0)
   })
 
+  it('excludes expired links from the inventory', async () => {
+    const { user, family } = await setup()
+    const assetId = await makeReadyAsset(family.id, user.id)
+    const live = await createShareLink(
+      {
+        target: { kind: 'asset', assetId },
+        familyId: family.id,
+        userId: user.id,
+        ttl: 'permanent',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const expiring = await createShareLink(
+      { target: { kind: 'asset', assetId }, familyId: family.id, userId: user.id, ttl: '7d' },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await db.prismaPublic.shareLink.update({
+      where: { token: expiring.token },
+      data: { expiresAt: new Date('2020-01-01') },
+    })
+
+    const links = await listAllShareLinks(family.id, db.prismaPublic)
+    expect(links.map((l) => l.token)).toEqual([live.token])
+  })
+
   it('scopes to the family — does not list or revoke another family links', async () => {
     const { user, family } = await setup()
     const assetId = await makeReadyAsset(family.id, user.id)

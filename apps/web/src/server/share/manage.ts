@@ -71,14 +71,19 @@ function classifyTarget(row: {
   return { kind: 'selection', target: '' }
 }
 
-// 가족이 발행한 **모든** 해제 안 된 공유 링크(관리자 전수 점검·일괄 회수용). 타깃별 조회만
+// 가족이 발행한 **살아있는** 공유 링크(관리자 전수 점검·일괄 회수용). 타깃별 조회만
 // 가능하던 갭을 메운다 — owner 가 가족 전체에 어떤 공개 링크가 떠 있는지 한눈에 보고 회수한다.
+// 만료된 링크는 이미 접근 불가(resolve.ts 가 거름)라 회수할 필요가 없으므로 목록에서 제외한다.
 export async function listAllShareLinks(
   familyId: string,
   prisma: PrismaClient,
 ): Promise<ShareLinkAdminInfo[]> {
   const rows = await prisma.shareLink.findMany({
-    where: { familyId, revokedAt: null },
+    where: {
+      familyId,
+      revokedAt: null,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
     orderBy: { createdAt: 'desc' },
     select: {
       token: true,
