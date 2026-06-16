@@ -1,7 +1,9 @@
 import { BrandLockup } from '@/components/brand/brand-mark'
 import { prismaPublic } from '@/lib/db-init'
+import { isRegistrationOpen } from '@/server/auth/registration'
 import { getSetting } from '@/server/settings/get'
 import { getTranslations } from 'next-intl/server'
+import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { LoginForm } from './login-form'
 import { ServerChangeLink } from './server-change-link'
@@ -23,6 +25,9 @@ export default async function LoginPage({
   searchParams: Promise<{ error?: string }>
 }) {
   const { error } = await searchParams
+  // 빈 인스턴스(가입 열림)에 로그인으로 직접 와도 첫 계정 생성(가입)으로 보낸다. 단,
+  // OIDC 등 에러 메시지가 있으면 그대로 보여주려고 리다이렉트하지 않는다.
+  if (!error && (await isRegistrationOpen(prismaPublic))) redirect('/signup')
   const t = await getTranslations('auth')
   const errorKey = error ? ERROR_KEYS[error] : undefined
   const errorMessage = errorKey ? t(errorKey) : undefined
