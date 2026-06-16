@@ -914,6 +914,15 @@ public class MainActivity extends BridgeActivity {
         final String scheme = s != null ? s.getScheme() : null;
         if (scheme == null || (!scheme.equals("http") && !scheme.equals("https"))) return;
         final String base = server.replaceAll("/+$", "");
+        // 보안: MainActivity 는 exported 라 외부 앱도 ACTION_WIDGET_TAP + 임의 server 로
+        // 띄울 수 있다 → 임의 서버로 전환하면 앱 셸 안에 공격자 페이지(피싱)가 뜬다. 그래서
+        // 사용자가 앱에서 직접 추가한 가족(bebeAccounts)으로만 전환을 허용한다 — 정상 위젯의
+        // 가족은 항상 목록에 있고, 모르는 서버는 무시한다(invite/open 의 확인 다이얼로그와 동일 의도).
+        boolean known = false;
+        for (final String acc : readAccountBases()) {
+            if (sameOrigin(acc, base)) { known = true; break; }
+        }
+        if (!known) return;
         final String current = readServerUrl();
         final String currentBase = current != null ? current.replaceAll("/+$", "") : null;
         if (currentBase != null && sameOrigin(currentBase, base)) return; // 이미 그 가족
