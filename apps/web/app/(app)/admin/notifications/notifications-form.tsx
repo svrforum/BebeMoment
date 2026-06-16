@@ -5,7 +5,7 @@ import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import type { NotificationCategory } from '@bebe/core'
 import { useTranslations } from 'next-intl'
-import { useState, useTransition } from 'react'
+import { type ReactNode, useState, useTransition } from 'react'
 import {
   generateVapidKeys,
   regenerateVapidKeys,
@@ -279,6 +279,9 @@ export function NotificationsForm({
                     <span className="text-base-500">{t('notifications.serviceAccountNone')}</span>
                   )}
                 </div>
+                <FileButton accept=".json,application/json" onText={setSaJson}>
+                  {t('notifications.uploadFile')}
+                </FileButton>
                 <textarea
                   value={saJson}
                   onChange={(e) => setSaJson(e.target.value)}
@@ -305,6 +308,9 @@ export function NotificationsForm({
                     <span className="text-base-500">{t('notifications.clientConfigNone')}</span>
                   )}
                 </div>
+                <FileButton accept=".json,application/json" onText={setClientJson}>
+                  {t('notifications.uploadGoogleServices')}
+                </FileButton>
                 <textarea
                   value={clientJson}
                   onChange={(e) => setClientJson(e.target.value)}
@@ -325,5 +331,32 @@ export function NotificationsForm({
 
       {status && <p className="text-sm text-base-500 px-2">{status}</p>}
     </div>
+  )
+}
+
+/** 다운로드한 JSON 파일을 골라 내용을 텍스트로 읽어 칸에 채운다(붙여넣기 대신 바로 업로드). */
+function FileButton({
+  accept,
+  onText,
+  children,
+}: {
+  accept: string
+  onText: (text: string) => void
+  children: ReactNode
+}) {
+  return (
+    <label className="inline-flex w-fit cursor-pointer items-center gap-1.5 rounded-full bg-base-100 px-3 py-1.5 text-xs font-medium text-base-700 transition-colors active:bg-base-200 dark:bg-base-800 dark:text-base-200">
+      {children}
+      <input
+        type="file"
+        accept={accept}
+        className="hidden"
+        onChange={(e) => {
+          const f = e.target.files?.[0]
+          e.target.value = ''
+          if (f) void f.text().then(onText)
+        }}
+      />
+    </label>
   )
 }

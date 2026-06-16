@@ -2,6 +2,7 @@
 import { encryptSecret } from '@/lib/crypto'
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
+import { normalizeFcmClientConfig } from '@/server/notifications/fcm-config'
 import { parseServiceAccount } from '@/server/notifications/fcm'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
 import { getSetting } from '@/server/settings/get'
@@ -118,15 +119,11 @@ export async function setFcmClientConfig(json: string): Promise<void> {
     return
   }
   const t = await getTranslations('admin')
-  let parsed: Record<string, unknown>
-  try {
-    parsed = JSON.parse(trimmed)
-  } catch {
-    throw new Error(t('notifications.errInvalidJson'))
-  }
-  const required = ['apiKey', 'appId', 'projectId', 'messagingSenderId'] as const
-  if (required.some((k) => typeof parsed[k] !== 'string' || !parsed[k])) {
+  // firebaseConfig 객체 또는 Firebase 에서 받은 google-services.json 을 그대로 받아 필요한
+  // 4개 필드만 추출·정규화해 저장한다(관리자가 파일을 바로 올릴 수 있게).
+  const config = normalizeFcmClientConfig(trimmed)
+  if (!config) {
     throw new Error(t('notifications.errInvalidClientConfig'))
   }
-  await setSetting('push.fcm_client_config', trimmed, userId, prismaPublic)
+  await setSetting('push.fcm_client_config', JSON.stringify(config), userId, prismaPublic)
 }
