@@ -47,7 +47,6 @@ export async function GET() {
   const AnySchema = z.unknown()
   const [
     appName,
-    signupEnabled,
     retentionDays,
     uploadConvert,
     permissionsFamily,
@@ -69,7 +68,6 @@ export async function GET() {
     backupRemoteConfigured,
   ] = await Promise.all([
     getSetting('general.app_name', AnySchema, 'Bebe Moment', prismaPublic),
-    getSetting('auth.signup_enabled', AnySchema, false, prismaPublic),
     getSetting('retention.trash_days', AnySchema, 30, prismaPublic),
     getSetting('upload.convert_to_compatible', AnySchema, false, prismaPublic),
     getSetting('permissions.family', AnySchema, [], prismaPublic),
@@ -92,7 +90,6 @@ export async function GET() {
   ])
   return NextResponse.json({
     general: { app_name: appName },
-    auth: { signup_enabled: signupEnabled },
     retention: { trash_days: retentionDays },
     upload: { convert_to_compatible: uploadConvert },
     permissions: { family: permissionsFamily },

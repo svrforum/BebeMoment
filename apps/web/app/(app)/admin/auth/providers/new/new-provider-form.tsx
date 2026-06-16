@@ -136,13 +136,15 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   const [error, setError] = useState<string | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // provider UUID 를 저장 전에 미리 생성해 콜백 주소에 박는다 — 그래야 개발자 콘솔에
-  // 실제 Redirect URI 를 등록하고 Client ID/Secret 을 발급받을 수 있다. 저장 시 이 id 로 생성.
-  // crypto.randomUUID 는 secure context 전용(HTTP LAN 에서 throw) → getRandomValues 로 v4 생성.
-  const [providerId] = useState(uuidv4)
+  // provider UUID 를 저장 전에 미리 생성해 콜백 주소에 박는다 — 저장 시 이 id 로 생성되므로
+  // Redirect URI 는 곧 최종값이다. ⚠️ SSR 에서 생성하면(useState(uuidv4)) 서버·클라 값이 달라
+  // Redirect URI 텍스트가 하이드레이션 불일치(React #418)를 낸다 → 초기값을 양쪽 동일하게 두고
+  // mount 후 채운다(origin 과 동일 패턴). crypto.randomUUID 는 secure context 전용이라 v4 직접 생성.
+  const [providerId, setProviderId] = useState('')
   // 지금 접속한 오리진(도메인) 기준 콜백 주소 — 서버도 요청 오리진을 redirect_uri 로 쓴다.
   const [origin, setOrigin] = useState(publicUrl.replace(/\/$/, ''))
   useEffect(() => {
+    setProviderId(uuidv4())
     setOrigin(window.location.origin)
   }, [])
   const redirectUri = useMemo(

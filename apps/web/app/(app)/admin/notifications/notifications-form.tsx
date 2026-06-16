@@ -263,55 +263,63 @@ export function NotificationsForm({
             />
           </div>
 
-          <FirebaseSetupGuide />
+          {/* 가이드·입력칸은 FCM 을 켰거나 이미 설정이 있을 때만 — 꺼져 있으면 토글만 보여
+              산만함을 줄인다(기존 설정이 있으면 삭제할 수 있게 계속 노출). */}
+          {(fcmOn || fcmHasKey || fcmHasClient) && (
+            <>
+              <FirebaseSetupGuide />
 
-          <div className="space-y-1.5">
-            <div className="text-sm">
-              {fcmHasKey ? (
-                <span className="text-point-500">
-                  {t('notifications.serviceAccountConfigured')}
-                </span>
-              ) : (
-                <span className="text-base-500">{t('notifications.serviceAccountNone')}</span>
-              )}
-            </div>
-            <textarea
-              value={saJson}
-              onChange={(e) => setSaJson(e.target.value)}
-              placeholder={t('notifications.serviceAccountPlaceholder')}
-              rows={4}
-              className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
-            />
-            <Button onClick={onSaveServiceAccount} disabled={pending}>
-              {saJson.trim()
-                ? t('notifications.serviceAccountSaveBtn')
-                : t('notifications.serviceAccountDeleteBtn')}
-            </Button>
-          </div>
+              <div className="space-y-1.5">
+                <div className="text-sm">
+                  {fcmHasKey ? (
+                    <span className="text-point-500">
+                      {t('notifications.serviceAccountConfigured')}
+                    </span>
+                  ) : (
+                    <span className="text-base-500">{t('notifications.serviceAccountNone')}</span>
+                  )}
+                </div>
+                <textarea
+                  value={saJson}
+                  onChange={(e) => setSaJson(e.target.value)}
+                  placeholder={t('notifications.serviceAccountPlaceholder')}
+                  rows={4}
+                  className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
+                />
+                <Button onClick={onSaveServiceAccount} disabled={pending}>
+                  {saJson.trim()
+                    ? t('notifications.serviceAccountSaveBtn')
+                    : t('notifications.serviceAccountDeleteBtn')}
+                </Button>
+              </div>
 
-          <div className="space-y-1.5 border-t border-base-100 pt-3 dark:border-base-800">
-            <div className="text-sm font-medium">{t('notifications.clientConfigHeading')}</div>
-            <div className="text-xs text-base-500">{t('notifications.clientConfigHelp')}</div>
-            <div className="text-sm">
-              {fcmHasClient ? (
-                <span className="text-point-500">{t('notifications.clientConfigConfigured')}</span>
-              ) : (
-                <span className="text-base-500">{t('notifications.clientConfigNone')}</span>
-              )}
-            </div>
-            <textarea
-              value={clientJson}
-              onChange={(e) => setClientJson(e.target.value)}
-              placeholder='{ "apiKey": ..., "appId": ..., "projectId": ..., "messagingSenderId": ... }'
-              rows={4}
-              className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
-            />
-            <Button onClick={onSaveClientConfig} disabled={pending}>
-              {clientJson.trim()
-                ? t('notifications.clientConfigSaveBtn')
-                : t('notifications.clientConfigDeleteBtn')}
-            </Button>
-          </div>
+              <div className="space-y-1.5 border-t border-base-100 pt-3 dark:border-base-800">
+                <div className="text-sm font-medium">{t('notifications.clientConfigHeading')}</div>
+                <div className="text-xs text-base-500">{t('notifications.clientConfigHelp')}</div>
+                <div className="text-sm">
+                  {fcmHasClient ? (
+                    <span className="text-point-500">
+                      {t('notifications.clientConfigConfigured')}
+                    </span>
+                  ) : (
+                    <span className="text-base-500">{t('notifications.clientConfigNone')}</span>
+                  )}
+                </div>
+                <textarea
+                  value={clientJson}
+                  onChange={(e) => setClientJson(e.target.value)}
+                  placeholder='{ "apiKey": ..., "appId": ..., "projectId": ..., "messagingSenderId": ... }'
+                  rows={4}
+                  className="w-full rounded-xl border border-base-200 bg-base-0 px-3 py-2 font-mono text-xs dark:border-base-800 dark:bg-base-900"
+                />
+                <Button onClick={onSaveClientConfig} disabled={pending}>
+                  {clientJson.trim()
+                    ? t('notifications.clientConfigSaveBtn')
+                    : t('notifications.clientConfigDeleteBtn')}
+                </Button>
+              </div>
+            </>
+          )}
         </CardBody>
       </Card>
 
