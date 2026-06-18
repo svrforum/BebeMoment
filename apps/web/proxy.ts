@@ -2,10 +2,16 @@ import { type NextRequest, NextResponse } from 'next/server'
 
 // 패스스루 + 요청 헤더에 x-pathname 추가. (app) 레이아웃이 미로그인 시 이 경로를
 // ?next= 로 붙여 로그인 후 원래 페이지(공유된 /detail/52 등)로 복귀시킨다.
+// 또한 /api/* 응답은 인증·테넌트별 동적 데이터라 어떤 캐시(WebView·프록시)도 재사용하면
+// 안 된다(설정 변경이 stale 하게 보이는 회귀 방지) → Cache-Control: no-store 강제.
 function pass(req: NextRequest): NextResponse {
   const headers = new Headers(req.headers)
   headers.set('x-pathname', req.nextUrl.pathname + req.nextUrl.search)
-  return NextResponse.next({ request: { headers } })
+  const res = NextResponse.next({ request: { headers } })
+  if (req.nextUrl.pathname.startsWith('/api/')) {
+    res.headers.set('Cache-Control', 'no-store')
+  }
+  return res
 }
 
 export function proxy(req: NextRequest): NextResponse {

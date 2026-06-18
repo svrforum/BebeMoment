@@ -58,7 +58,7 @@ export function PermissionsSection() {
   const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
-    void fetch('/api/admin/settings')
+    void fetch('/api/admin/settings', { cache: 'no-store' })
       .then((r) => r.json())
       .then((d) => {
         const caps: string[] = Array.isArray(d.permissions?.family) ? d.permissions.family : []
