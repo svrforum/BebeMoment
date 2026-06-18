@@ -121,6 +121,10 @@ const MATRIX: Record<Role, Capability[]> = {
     'asset.edit.own',
     'asset.delete.own',
     'asset.view.family',
+    'record.read',
+    'record.create',
+    'record.edit.own',
+    'record.delete.own',
     'social.react',
     'social.comment.create',
     'social.comment.edit.own',
@@ -141,6 +145,7 @@ export function can(role: Role, capability: Capability): boolean {
 
 export const DEFAULT_FAMILY_CAPABILITIES: Capability[] = [
   'asset.view.family',
+  'record.read',
   'social.react',
   'social.comment.create',
   'social.comment.edit.own',
@@ -151,6 +156,9 @@ export const GRANTABLE_FAMILY_CAPABILITIES: Capability[] = [
   'asset.upload',
   'asset.edit.own',
   'asset.delete.own',
+  'record.create',
+  'record.edit.own',
+  'record.delete.own',
   'album.create',
   'album.update.own',
   'album.delete.own',
