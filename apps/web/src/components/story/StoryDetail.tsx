@@ -14,7 +14,6 @@ import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
 import { LayoutGrid, Play, ShieldCheck, Square } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import dynamic from 'next/dynamic'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useState } from 'react'
@@ -23,10 +22,6 @@ import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
 import 'swiper/css/pagination'
 import { MOODS, isMood } from './mood'
-
-// react-markdown + rehype-sanitize together are ~80KB and only mount when
-// a diary detail page opens. Code-split out of the main bundle.
-const MarkdownBody = dynamic(() => import('./markdown-body'), { ssr: false })
 
 type Entry = Story & {
   assets: (StoryAsset & { asset: AssetWithUrls | null })[]
@@ -180,8 +175,8 @@ export function StoryDetail({ entry }: { entry: Entry }) {
           )}
 
           {trimmed.length > 0 && (
-            <div className="prose prose-base max-w-none text-[15px] leading-[1.65] text-base-800 dark:text-base-200">
-              <MarkdownBody body={entry.body} />
+            <div className="whitespace-pre-wrap break-words text-[15px] leading-[1.65] text-base-800 dark:text-base-200">
+              {trimmed}
             </div>
           )}
         </div>
