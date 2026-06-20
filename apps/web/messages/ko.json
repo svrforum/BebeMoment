@@ -764,7 +764,15 @@
       "albums": "앨범"
     },
     "story": {
-      "days": ["일", "월", "화", "수", "목", "금", "토"],
+      "days": [
+        "일",
+        "월",
+        "화",
+        "수",
+        "목",
+        "금",
+        "토"
+      ],
       "date": "{month}월 {day}일 ({weekday})",
       "photoCount": "· 사진 {count}",
       "noContent": "내용 없음",
@@ -1671,7 +1679,9 @@
       "ready": "완료",
       "failed": "실패",
       "aria": "업로드 진행 상황"
-    }
+    },
+    "coverBadge": "대표",
+    "reorderHint": "드래그해서 순서를 바꿀 수 있어요. 첫 번째 사진이 대표(썸네일)예요."
   },
   "memories": {
     "title": "추억",

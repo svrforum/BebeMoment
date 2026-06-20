@@ -29,7 +29,7 @@ export async function getStoryEntry(
       // guardians-only entries are hidden from the `family` role (returns null → 404)
       ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
     },
-    include: { assets: true, baby: true },
+    include: { assets: { orderBy: { order: 'asc' } }, baby: true },
   })
   if (!entry) return null
 

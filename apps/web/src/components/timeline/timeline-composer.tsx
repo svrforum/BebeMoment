@@ -1,5 +1,6 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useToast } from '@/lib/toast'
@@ -74,6 +75,7 @@ export function TimelineComposer({
   canUpload,
 }: Props) {
   const t = useTranslations('timeline')
+  const tu = useTranslations('upload')
   const router = useRouter()
   const toast = useToast()
   const { files, addFiles, removeFile, clearStaged, startStagedUploads, replaceFileData } =
@@ -372,52 +374,66 @@ export function TimelineComposer({
       </div>
 
       {attachments.length > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2 pl-13">
-          {attachments.map((a) => (
-            <div
-              key={a.fileId}
-              className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
-            >
-              {a.previewUrl && a.type.startsWith('video/') ? (
-                <video
-                  src={`${a.previewUrl}#t=0.1`}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-cover"
-                />
-              ) : a.previewUrl ? (
-                <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                  {t('composer.file')}
+        <div className="mt-3 pl-13">
+          <ReorderRow
+            keys={attachments.map((a) => a.fileId)}
+            onReorder={(keys) =>
+              setAttachments((prev) => {
+                const byId = new Map(prev.map((a) => [a.fileId, a]))
+                return keys.map((k) => byId.get(k)).filter((a): a is Attachment => !!a)
+              })
+            }
+            coverLabel={tu('coverBadge')}
+            renderItem={(fileId) => {
+              const a = attachments.find((x) => x.fileId === fileId)
+              if (!a) return null
+              return (
+                <div className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
+                  {a.previewUrl && a.type.startsWith('video/') ? (
+                    <video
+                      src={`${a.previewUrl}#t=0.1`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : a.previewUrl ? (
+                    <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
+                      {t('composer.file')}
+                    </div>
+                  )}
+                  {submitting && !a.assetId && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(a.fileId)}
+                    aria-label={t('composer.remove')}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <X size={12} strokeWidth={2.6} />
+                  </button>
+                  {!submitting && EDITABLE.has(a.type) && (
+                    <button
+                      type="button"
+                      onClick={() => openEditor(a.fileId)}
+                      aria-label={t('composer.edit')}
+                      className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                    >
+                      <Pencil size={11} strokeWidth={2.4} />
+                    </button>
+                  )}
                 </div>
-              )}
-              {submitting && !a.assetId && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAttachment(a.fileId)}
-                aria-label={t('composer.remove')}
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-              >
-                <X size={12} strokeWidth={2.6} />
-              </button>
-              {!submitting && EDITABLE.has(a.type) && (
-                <button
-                  type="button"
-                  onClick={() => openEditor(a.fileId)}
-                  aria-label={t('composer.edit')}
-                  className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-                >
-                  <Pencil size={11} strokeWidth={2.4} />
-                </button>
-              )}
-            </div>
-          ))}
+              )
+            }}
+          />
+          {attachments.length > 1 && (
+            <p className="mt-1.5 text-[11px] text-base-400">{tu('reorderHint')}</p>
+          )}
         </div>
       )}
 

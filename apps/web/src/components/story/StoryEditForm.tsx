@@ -1,7 +1,9 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
+import { useOrderedKeys } from '@/components/upload/use-ordered-keys'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
@@ -64,6 +66,7 @@ export function StoryEditForm({
   const [body, setBody] = useState(defaultBody)
   const [visibility, setVisibility] = useState<Visibility>(defaultVisibility)
   const [visMenuOpen, setVisMenuOpen] = useState(false)
+  const tu = useTranslations('upload')
   const [kept, setKept] = useState<ExistingAsset[]>(existingAssets)
   const [attachments, setAttachments] = useState<NewAttachment[]>([])
   const [submitting, setSubmitting] = useState(false)
@@ -71,6 +74,12 @@ export function StoryEditForm({
   const fileInputRef = useRef<HTMLInputElement>(null)
 
   const photoCount = kept.length + attachments.length
+
+  // 기존(e:assetId) + 신규(n:fileId) 를 한 줄로 섞어 드래그 재정렬. 1번 = 대표(썸네일).
+  const currentKeys = [...kept.map((a) => `e:${a.id}`), ...attachments.map((a) => `n:${a.fileId}`)]
+  const [order, setOrder] = useOrderedKeys(currentKeys)
+  const orderRef = useRef(order)
+  orderRef.current = order
 
   // 업로드 매니저 files 의 meta.assetId 를 우리 attachment 로 동기화 (컴포저와 동일).
   // biome-ignore lint/correctness/useExhaustiveDependencies: files 변경 시에만 재동기화; attachments 읽기는 가드.
@@ -188,13 +197,17 @@ export function StoryEditForm({
     try {
       // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
       if (attachments.length > 0) startStagedUploads({ notify: false })
-      const fileIds = attachments.map((a) => a.fileId)
-      const newAssetIds = await collectAssetIds(() => filesRef.current, fileIds)
-      if (newAssetIds.length !== fileIds.length) {
+      // 통합 순서(order)에서 신규(n:fileId)만 추려 assetId 를 모으고, 그 순서대로
+      // 기존(e:assetId)과 섞어 최종 assetIds 를 만든다 — 드래그한 순서 그대로 저장.
+      const newFileIds = orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2))
+      const newAssetIds = await collectAssetIds(() => filesRef.current, newFileIds)
+      if (newAssetIds.length !== newFileIds.length) {
         throw new Error(t('edit.uploadNotReady'))
       }
-
-      const assetIds = [...kept.map((a) => a.id), ...newAssetIds]
+      const assetIdByFileId = new Map(newFileIds.map((fid, i) => [fid, newAssetIds[i]]))
+      const assetIds = orderRef.current
+        .map((k) => (k.startsWith('e:') ? k.slice(2) : assetIdByFileId.get(k.slice(2))))
+        .filter((id): id is string => typeof id === 'string')
       const res = await fetch(`/api/story/${entryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
@@ -215,7 +228,6 @@ export function StoryEditForm({
     body,
     photoCount,
     attachments,
-    kept,
     entryId,
     visibility,
     submitting,
@@ -237,79 +249,87 @@ export function StoryEditForm({
       />
 
       {photoCount > 0 && (
-        <div className="mt-3 flex flex-wrap gap-2">
-          {kept.map((a) => {
-            const thumb = a.kind === 'video' ? pickVideoPosterUrl(a.urls) : pickThumbUrl(a.urls)
-            return (
-              <div
-                key={a.id}
-                className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
-              >
-                {thumb ? (
-                  // biome-ignore lint/performance/noImgElement: 미디어 서버 signed URL — next/image 부적합
-                  <img src={thumb} alt="" className="h-full w-full object-cover" />
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                    {t('edit.processing')}
+        <div className="mt-3">
+          <ReorderRow
+            keys={order}
+            onReorder={setOrder}
+            coverLabel={tu('coverBadge')}
+            renderItem={(key) => {
+              if (key.startsWith('e:')) {
+                const a = kept.find((x) => x.id === key.slice(2))
+                if (!a) return null
+                const thumb = a.kind === 'video' ? pickVideoPosterUrl(a.urls) : pickThumbUrl(a.urls)
+                return (
+                  <div className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
+                    {thumb ? (
+                      // biome-ignore lint/performance/noImgElement: 미디어 서버 signed URL — next/image 부적합
+                      <img src={thumb} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
+                        {t('edit.processing')}
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeExisting(a.id)}
+                      aria-label={t('edit.remove')}
+                      className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                    >
+                      <X size={12} strokeWidth={2.6} />
+                    </button>
                   </div>
-                )}
-                <button
-                  type="button"
-                  onClick={() => removeExisting(a.id)}
-                  aria-label={t('edit.remove')}
-                  className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-                >
-                  <X size={12} strokeWidth={2.6} />
-                </button>
-              </div>
-            )
-          })}
-          {attachments.map((a) => (
-            <div
-              key={a.fileId}
-              className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
-            >
-              {a.previewUrl && a.type.startsWith('video/') ? (
-                <video
-                  src={`${a.previewUrl}#t=0.1`}
-                  muted
-                  playsInline
-                  preload="metadata"
-                  className="h-full w-full object-cover"
-                />
-              ) : a.previewUrl ? (
-                // biome-ignore lint/performance/noImgElement: 로컬 미리보기 object URL
-                <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
-                  {t('edit.file')}
+                )
+              }
+              const a = attachments.find((x) => x.fileId === key.slice(2))
+              if (!a) return null
+              return (
+                <div className="group relative h-20 w-20 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
+                  {a.previewUrl && a.type.startsWith('video/') ? (
+                    <video
+                      src={`${a.previewUrl}#t=0.1`}
+                      muted
+                      playsInline
+                      preload="metadata"
+                      className="h-full w-full object-cover"
+                    />
+                  ) : a.previewUrl ? (
+                    // biome-ignore lint/performance/noImgElement: 로컬 미리보기 object URL
+                    <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
+                      {t('edit.file')}
+                    </div>
+                  )}
+                  {submitting && !a.assetId && (
+                    <div className="absolute inset-0 flex items-center justify-center bg-black/30">
+                      <Loader2 className="h-4 w-4 animate-spin text-white" />
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => removeAttachment(a.fileId)}
+                    aria-label={t('edit.remove')}
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                  >
+                    <X size={12} strokeWidth={2.6} />
+                  </button>
+                  {!submitting && EDITABLE.has(a.type) && (
+                    <button
+                      type="button"
+                      onClick={() => openEditor(a.fileId)}
+                      aria-label={t('edit.editPhoto')}
+                      className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                    >
+                      <Pencil size={11} strokeWidth={2.4} />
+                    </button>
+                  )}
                 </div>
-              )}
-              {submitting && !a.assetId && (
-                <div className="absolute inset-0 flex items-center justify-center bg-black/30">
-                  <Loader2 className="h-4 w-4 animate-spin text-white" />
-                </div>
-              )}
-              <button
-                type="button"
-                onClick={() => removeAttachment(a.fileId)}
-                aria-label={t('edit.remove')}
-                className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-              >
-                <X size={12} strokeWidth={2.6} />
-              </button>
-              {!submitting && EDITABLE.has(a.type) && (
-                <button
-                  type="button"
-                  onClick={() => openEditor(a.fileId)}
-                  aria-label={t('edit.editPhoto')}
-                  className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
-                >
-                  <Pencil size={11} strokeWidth={2.4} />
-                </button>
-              )}
-            </div>
-          ))}
+              )
+            }}
+          />
+          {photoCount > 1 && (
+            <p className="mt-1.5 text-[11px] text-base-400">{tu('reorderHint')}</p>
+          )}
         </div>
       )}
 

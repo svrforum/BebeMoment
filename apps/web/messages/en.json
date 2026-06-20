@@ -764,7 +764,15 @@
       "albums": "Albums"
     },
     "story": {
-      "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
+      "days": [
+        "Sun",
+        "Mon",
+        "Tue",
+        "Wed",
+        "Thu",
+        "Fri",
+        "Sat"
+      ],
       "date": "{month}/{day} ({weekday})",
       "photoCount": "· {count} photos",
       "noContent": "No content",
@@ -1671,7 +1679,9 @@
       "ready": "Done",
       "failed": "Failed",
       "aria": "Upload progress"
-    }
+    },
+    "coverBadge": "Cover",
+    "reorderHint": "Drag to reorder. The first photo becomes the cover (thumbnail)."
   },
   "memories": {
     "title": "Memories",

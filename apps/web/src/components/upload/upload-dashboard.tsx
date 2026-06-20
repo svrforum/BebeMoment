@@ -6,6 +6,8 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { collectAssetIds } from './collect-asset-ids'
+import { ReorderRow } from './reorder-row'
+import { useOrderedKeys } from './use-ordered-keys'
 import { useUploadSheet } from './upload-sheet'
 import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
@@ -90,6 +92,11 @@ export function UploadDashboard({
   // 스토리 제출의 async 폴링이 신선한 assetId 를 읽도록 최신 files 를 ref 로.
   const filesRef = useRef(files)
   filesRef.current = files
+  // 스테이징 사진의 수동 정렬 순서(드래그 재정렬). 제출 시 이 순서로 assetIds 를 보낸다.
+  const stagedIds = files.filter((f) => !f.progress?.uploadStarted).map((f) => f.id)
+  const [order, setOrder] = useOrderedKeys(stagedIds)
+  const orderRef = useRef(order)
+  orderRef.current = order
 
   useEffect(() => {
     setOptimize(isOptimizeEnabled())
@@ -109,7 +116,9 @@ export function UploadDashboard({
     // (빠른 사진은 POST 전에 ready 처리돼 파일이 정리될 수 있어 실패 후 재시도가 깨졌다).
     pauseAutoDismiss(true)
     try {
-      const fileIds = stagedFiles.map((f) => f.id)
+      // 드래그로 만든 수동 순서로 제출(현재 스테이징된 것만). 1번 = 대표(썸네일).
+      const stagedSet = new Set(stagedFiles.map((f) => f.id))
+      const fileIds = orderRef.current.filter((id) => stagedSet.has(id))
       // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
       startStagedUploads({ notify: false })
       const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
@@ -226,41 +235,54 @@ export function UploadDashboard({
 
       {staged.length > 0 && (
         <>
-          <div className="grid grid-cols-3 gap-2">
-            {staged.map((f) => (
-              <div key={f.id} className="relative aspect-square">
-                <Thumb file={f} />
-                <button
-                  type="button"
-                  aria-label={t('remove')}
-                  onClick={() => removeFile(f.id)}
-                  className="absolute top-1 right-1 rounded-full bg-black/55 p-1 text-white"
-                >
-                  <X size={14} />
-                </button>
-                {f.type && EDITABLE.has(f.type) && (
-                  <button
-                    type="button"
-                    aria-label={t('edit')}
-                    onClick={() => openEditor(f)}
-                    className="absolute right-1 bottom-1 rounded-full bg-black/55 p-1 text-white"
-                  >
-                    <Pencil size={14} />
-                  </button>
-                )}
-              </div>
-            ))}
+          <div className="flex items-start gap-2">
+            <ReorderRow
+              keys={order}
+              onReorder={setOrder}
+              coverLabel={t('coverBadge')}
+              className="flex-1"
+              renderItem={(id) => {
+                const f = files.find((x) => x.id === id)
+                if (!f) return null
+                return (
+                  <div className="relative h-24 w-24">
+                    <Thumb file={f} />
+                    <button
+                      type="button"
+                      aria-label={t('remove')}
+                      onClick={() => removeFile(f.id)}
+                      className="absolute top-1 right-1 rounded-full bg-black/55 p-1 text-white"
+                    >
+                      <X size={14} />
+                    </button>
+                    {f.type && EDITABLE.has(f.type) && (
+                      <button
+                        type="button"
+                        aria-label={t('edit')}
+                        onClick={() => openEditor(f)}
+                        className="absolute right-1 bottom-1 rounded-full bg-black/55 p-1 text-white"
+                      >
+                        <Pencil size={14} />
+                      </button>
+                    )}
+                  </div>
+                )
+              }}
+            />
             {/* 추가 선택 타일 */}
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
               aria-label={t('addMore')}
-              className="flex aspect-square flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-base-200 text-base-400 transition hover:border-point-400 hover:text-point-500 dark:border-base-700"
+              className="flex h-24 w-24 shrink-0 flex-col items-center justify-center gap-1 rounded-xl border-2 border-dashed border-base-200 text-base-400 transition hover:border-point-400 hover:text-point-500 dark:border-base-700"
             >
               <Plus size={22} strokeWidth={2} />
               <span className="text-[11px] font-medium">{t('more')}</span>
             </button>
           </div>
+          {staged.length > 1 && (
+            <p className="-mt-1 text-[11px] text-base-400">{t('reorderHint')}</p>
+          )}
           {canCreateStory && (
             <div className="grid grid-cols-2 gap-1 rounded-2xl bg-base-100 p-1 dark:bg-base-800">
               <button
