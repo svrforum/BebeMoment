@@ -57,6 +57,7 @@ test.describe('P6 social smoke', () => {
     const detailLink = page.locator('main a[href^="/detail/"]').first()
     const href = await detailLink.getAttribute('href')
     expect(href).toMatch(/^\/detail\/[0-9a-f-]+$/)
+    if (!href) throw new Error('detail link href missing')
     await detailLink.click()
     await page.waitForURL(/\/detail\//)
 
@@ -87,7 +88,7 @@ test.describe('P6 social smoke', () => {
 
     // Mobile layout
     await page.setViewportSize({ width: 375, height: 800 })
-    await page.goto(href!)
+    await page.goto(href)
     await expect(page.getByRole('heading', { name: '세부정보' })).not.toBeVisible()
     await expect(page.getByRole('button', { name: '댓글' })).toBeVisible({ timeout: 3000 })
   })

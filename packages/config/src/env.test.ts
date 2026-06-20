@@ -14,7 +14,7 @@ describe('parseEnv', () => {
     expect(env.STORAGE_MODE).toBe('local')
   })
 
-  it('treats empty-string env vars as unset (compose ${VAR:-} passes empty)', () => {
+  it('treats empty-string env vars as unset (compose VAR:- default passes empty)', () => {
     const env = parseEnv({
       DATABASE_URL: 'postgres://localhost:5432/bebe',
       REDIS_URL: 'redis://localhost:6379',

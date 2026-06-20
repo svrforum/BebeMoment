@@ -764,15 +764,7 @@
       "albums": "Albums"
     },
     "story": {
-      "days": [
-        "Sun",
-        "Mon",
-        "Tue",
-        "Wed",
-        "Thu",
-        "Fri",
-        "Sat"
-      ],
+      "days": ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"],
       "date": "{month}/{day} ({weekday})",
       "photoCount": "· {count} photos",
       "noContent": "No content",
