@@ -102,7 +102,7 @@ export function CommentList({
   }, [liveCount, onCountChange])
 
   if (!commentsOn) {
-    return fill ? <div className="flex min-h-0 flex-1 flex-col">{header}</div> : <>{header}</>
+    return fill ? <div className="flex min-h-0 flex-1 flex-col">{header}</div> : header
   }
 
   const list =

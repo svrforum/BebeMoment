@@ -424,7 +424,8 @@
       "memoriesNew": "추억 (새 추억)",
       "people": "사람",
       "peopleNew": "사람 (새 사람)",
-      "me": "나"
+      "me": "나",
+      "search": "검색"
     },
     "calendar": {
       "title": "캘린더",
@@ -1673,7 +1674,17 @@
       "aria": "업로드 진행 상황"
     },
     "coverBadge": "대표",
-    "reorderHint": "드래그해서 순서를 바꿀 수 있어요. 첫 번째 사진이 대표(썸네일)예요."
+    "reorderHint": "드래그해서 순서를 바꿀 수 있어요. 첫 번째 사진이 대표(썸네일)예요.",
+    "optimizeMode": {
+      "original": "원본",
+      "high": "고화질",
+      "standard": "빠르게"
+    },
+    "optimizeModeHint": {
+      "original": "원본 그대로 올려요 (가장 큼·느림)",
+      "high": "큰 사진만 줄여요 (화질 우선, 기본)",
+      "standard": "2560px로 줄여 빠르게 (감상 화질 차이 거의 없음)"
+    }
   },
   "memories": {
     "title": "추억",
@@ -1682,5 +1693,19 @@
     "emptyDescription": "시간이 쌓이면 '몇 달 전 오늘', '작년 오늘'의 사진과 스토리를 여기서 다시 만나요",
     "photoCount": "사진 {n}",
     "storyCount": "스토리 {n}"
+  },
+  "search": {
+    "placeholder": "사진·스토리·앨범·인물 검색",
+    "hint": "이름·내용·날짜로 추억을 찾아보세요",
+    "searching": "검색 중…",
+    "noResults": "'{q}' 검색 결과가 없어요",
+    "back": "뒤로",
+    "section": {
+      "stories": "스토리",
+      "milestones": "기록·마일스톤",
+      "albums": "앨범",
+      "babies": "아기",
+      "people": "인물"
+    }
   }
 }

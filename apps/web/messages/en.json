@@ -424,7 +424,8 @@
       "memoriesNew": "Memories (new)",
       "people": "People",
       "peopleNew": "People (new)",
-      "me": "Me"
+      "me": "Me",
+      "search": "Search"
     },
     "calendar": {
       "title": "Calendar",
@@ -1673,7 +1674,17 @@
       "aria": "Upload progress"
     },
     "coverBadge": "Cover",
-    "reorderHint": "Drag to reorder. The first photo becomes the cover (thumbnail)."
+    "reorderHint": "Drag to reorder. The first photo becomes the cover (thumbnail).",
+    "optimizeMode": {
+      "original": "Original",
+      "high": "High",
+      "standard": "Fast"
+    },
+    "optimizeModeHint": {
+      "original": "Upload as-is (largest, slowest)",
+      "high": "Shrink only large photos (quality first, default)",
+      "standard": "Resize to 2560px for speed (barely noticeable)"
+    }
   },
   "memories": {
     "title": "Memories",
@@ -1682,5 +1693,19 @@
     "emptyDescription": "As time goes by, you'll find photos and stories from 'a few months ago today' and 'a year ago today' right here",
     "photoCount": "{n} photos",
     "storyCount": "{n} stories"
+  },
+  "search": {
+    "placeholder": "Search photos, stories, albums, people",
+    "hint": "Find moments by name, content, or album",
+    "searching": "Searching…",
+    "noResults": "No results for '{q}'",
+    "back": "Back",
+    "section": {
+      "stories": "Stories",
+      "milestones": "Records & milestones",
+      "albums": "Albums",
+      "babies": "Babies",
+      "people": "People"
+    }
   }
 }

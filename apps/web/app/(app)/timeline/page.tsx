@@ -19,7 +19,7 @@ import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
 import { bucketLabel } from '@bebe/core'
 import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
-import { ArrowLeft, Sparkles, UsersRound } from 'lucide-react'
+import { ArrowLeft, Search, Sparkles, UsersRound } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
 import { z } from 'zod'
@@ -220,6 +220,13 @@ export default async function TimelinePage({
         value={sortMode}
         right={
           <>
+            <Link
+              href="/search"
+              aria-label={t('page.search')}
+              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+            >
+              <Search className="h-[18px] w-[18px]" strokeWidth={2} />
+            </Link>
             <Link
               href="/memories"
               aria-label={hasMemoryToday ? t('page.memoriesNew') : t('page.memories')}
