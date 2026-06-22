@@ -149,10 +149,11 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
         // 회복한다. 서버 namingFunction 이 토큰의 assetId 로 이름지어 완료가 정상 동작.
         endpoint: `${window.location.origin}/media/v1/tus`,
         chunkSize: 8 * 1024 * 1024,
-        // 동시 업로드 4개로 제한. HTTP/1.1 은 오리진당 ~6 연결뿐인데, 대량 배치에서
-        // 사진마다 tus PATCH + 진행률 SSE 가 연결을 잡으면 한계를 넘겨 업로드·진행바가
-        // 멈췄다(사진당 EventSource — 추후 단일 멀티플렉스 스트림으로 개선 예정).
-        limit: 4,
+        // 동시 업로드 수. 과거엔 사진당 EventSource 가 연결을 폭증시켜 4로 묶었지만, 그
+        // per-photo SSE 는 단일 family SSE 로 대체됐고(연결 1개) 공개 도메인은 HTTP/2 라
+        // 멀티플렉싱된다 → 대량 배치 처리량을 위해 6으로 상향(PATCH 스트림만 점유,
+        // 서버 파생물 처리는 BullMQ 로 분리돼 영향 없음).
+        limit: 6,
         retryDelays: [0, 1000, 3000, 5000],
         // We always create a fresh upload via startUpload server action.
         // localStorage-based resume of a previous session's URL has caused

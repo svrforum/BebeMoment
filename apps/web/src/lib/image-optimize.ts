@@ -3,19 +3,35 @@ import { reinjectExif } from './exif-reinject'
 // 업로드 전 클라이언트 최적화: 긴 변을 MAX_EDGE 로 제한 + JPEG 재인코딩으로 용량을
 // 줄인다. EXIF(촬영일·GPS)는 재주입해 보존(Orientation=1, 픽셀은 이미 정위치).
 // 안드로이드/iOS/웹 공통 — <img> 디코드(브라우저가 EXIF 회전 자동 적용)+canvas.
-const MAX_EDGE = 4096
-const QUALITY = 0.85
+// 업로드 화질 프리셋 — 사용자가 화질↔속도를 직접 고른다.
+//  · original: 손대지 않음(원본 그대로, 가장 큼·느림)
+//  · high:     큰 사진만 4096px 로(현재 기본, 화질 우선)
+//  · standard: 2560px 로 줄여 용량·시간 대폭↓(폰·웹 감상엔 차이 거의 없음)
+export type OptimizeMode = 'original' | 'high' | 'standard'
+
+const PRESETS: Record<Exclude<OptimizeMode, 'original'>, { maxEdge: number; quality: number }> = {
+  high: { maxEdge: 4096, quality: 0.85 },
+  standard: { maxEdge: 2560, quality: 0.82 },
+}
 
 const STORAGE_KEY = 'bebe.upload.optimize'
 
-export function isOptimizeEnabled(): boolean {
-  if (typeof window === 'undefined') return true
-  return window.localStorage.getItem(STORAGE_KEY) !== 'off'
+export function getOptimizeMode(): OptimizeMode {
+  if (typeof window === 'undefined') return 'high'
+  const v = window.localStorage.getItem(STORAGE_KEY)
+  if (v === 'off' || v === 'original') return 'original' // 구 'off' 마이그레이션
+  if (v === 'standard') return 'standard'
+  return 'high' // 'on'·null·구값 → 기존 동작(고화질) 유지
 }
 
-export function setOptimizeEnabled(on: boolean): void {
+export function setOptimizeMode(mode: OptimizeMode): void {
   if (typeof window === 'undefined') return
-  window.localStorage.setItem(STORAGE_KEY, on ? 'on' : 'off')
+  window.localStorage.setItem(STORAGE_KEY, mode)
+}
+
+/** 후방호환: 최적화가 켜져 있나(원본 모드가 아닌가). */
+export function isOptimizeEnabled(): boolean {
+  return getOptimizeMode() !== 'original'
 }
 
 function loadImage(blob: Blob): Promise<HTMLImageElement> {
@@ -56,6 +72,9 @@ function dataUrlToBlob(dataUrl: string): Blob {
 
 // 이미지면 최적화한 새 File 을, 아니거나(영상·gif) 디코드 실패·이득 없음이면 원본을 반환.
 export async function optimizeImage(file: File): Promise<File> {
+  const mode = getOptimizeMode()
+  if (mode === 'original') return file
+  const { maxEdge, quality } = PRESETS[mode]
   if (!file.type.startsWith('image/') || file.type === 'image/gif') return file
 
   let img: HTMLImageElement
@@ -71,8 +90,8 @@ export async function optimizeImage(file: File): Promise<File> {
   const longEdge = Math.max(w0, h0)
   // 긴 변이 한도 이하면 리사이즈 이득이 없다 — 재인코딩(q0.85)은 화질만 깎으므로 원본을
   // 그대로 둔다("원본은 원본"). 최적화는 실제로 축소가 필요한 큰 사진에만 적용.
-  if (longEdge <= MAX_EDGE) return file
-  const scale = MAX_EDGE / longEdge
+  if (longEdge <= maxEdge) return file
+  const scale = maxEdge / longEdge
   const w = Math.round(w0 * scale)
   const h = Math.round(h0 * scale)
 
@@ -83,7 +102,7 @@ export async function optimizeImage(file: File): Promise<File> {
   if (!ctx) return file
   ctx.drawImage(img, 0, 0, w, h)
 
-  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', QUALITY))
+  const blob = await new Promise<Blob | null>((res) => canvas.toBlob(res, 'image/jpeg', quality))
   if (!blob) return file
 
   let outBlob: Blob = blob

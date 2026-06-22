@@ -1,5 +1,5 @@
 'use client'
-import { isOptimizeEnabled, setOptimizeEnabled } from '@/lib/image-optimize'
+import { type OptimizeMode, getOptimizeMode, setOptimizeMode } from '@/lib/image-optimize'
 import { useToast } from '@/lib/toast'
 import { ImagePlus, Images, Pencil, PencilLine, Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -83,7 +83,7 @@ export function UploadDashboard({
   const { close } = useUploadSheet()
   const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
-  const [optimize, setOptimize] = useState(true)
+  const [mode, setMode] = useState<OptimizeMode>('high')
   // 업로드 대상: 'photos'(개별 사진으로) | 'story'(한 스토리로 묶기).
   const [dest, setDest] = useState<'photos' | 'story'>('photos')
   const [storyBody, setStoryBody] = useState('')
@@ -99,7 +99,7 @@ export function UploadDashboard({
   orderRef.current = order
 
   useEffect(() => {
-    setOptimize(isOptimizeEnabled())
+    setMode(getOptimizeMode())
   }, [])
 
   // 스테이징한 사진들을 업로드한 뒤, 준비된 assetId 로 스토리 1건을 만든다.
@@ -321,35 +321,33 @@ export function UploadDashboard({
               className="w-full resize-none rounded-2xl border border-base-200 bg-transparent px-4 py-3 text-[15px] leading-relaxed outline-none placeholder:text-base-400 focus:border-point-400 dark:border-base-700"
             />
           )}
-          <button
-            type="button"
-            onClick={() => {
-              const next = !optimize
-              setOptimize(next)
-              setOptimizeEnabled(next)
-            }}
-            className="flex items-center justify-between rounded-2xl border border-base-200 px-4 py-3 text-left dark:border-base-700"
-          >
-            <span>
-              <span className="block text-sm font-medium text-base-900 dark:text-base-50">
-                {t('optimize')}
-              </span>
-              <span className="block text-[12px] text-base-400">
-                {optimize ? t('optimizeOn') : t('optimizeOff')}
-              </span>
+          <div className="rounded-2xl border border-base-200 px-4 py-3 dark:border-base-700">
+            <span className="block text-sm font-medium text-base-900 dark:text-base-50">
+              {t('optimize')}
             </span>
-            <span
-              className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                optimize ? 'bg-point-500' : 'bg-base-300 dark:bg-base-600'
-              }`}
-            >
-              <span
-                className={`absolute top-0.5 h-5 w-5 rounded-full bg-white transition-transform ${
-                  optimize ? 'translate-x-[22px]' : 'translate-x-0.5'
-                }`}
-              />
+            <div className="mt-2 grid grid-cols-3 gap-1 rounded-xl bg-base-100 p-1 dark:bg-base-800">
+              {(['original', 'high', 'standard'] as const).map((m) => (
+                <button
+                  key={m}
+                  type="button"
+                  onClick={() => {
+                    setOptimizeMode(m)
+                    setMode(m)
+                  }}
+                  className={`rounded-lg py-1.5 text-[13px] font-semibold transition ${
+                    mode === m
+                      ? 'bg-base-0 text-base-900 shadow-sm dark:bg-base-900 dark:text-base-50'
+                      : 'text-base-500'
+                  }`}
+                >
+                  {t(`optimizeMode.${m}`)}
+                </button>
+              ))}
+            </div>
+            <span className="mt-1.5 block text-[12px] text-base-400">
+              {t(`optimizeModeHint.${mode}`)}
             </span>
-          </button>
+          </div>
           <button
             type="button"
             onClick={dest === 'story' ? submitStory : () => startStagedUploads()}
