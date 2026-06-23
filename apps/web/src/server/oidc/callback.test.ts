@@ -69,7 +69,12 @@ describe('linkOrCreateUser', () => {
 
   it('links to existing user by email only when BOTH the IdP and the local account are verified', async () => {
     const existing = await db.prismaPublic.user.create({
-      data: { email: 'x@example.com', displayName: 'X', passwordHash: 'bcrypt', emailVerified: true },
+      data: {
+        email: 'x@example.com',
+        displayName: 'X',
+        passwordHash: 'bcrypt',
+        emailVerified: true,
+      },
     })
     const u = await linkOrCreateUser(
       { providerId, subject: 'sub-new', email: 'x@example.com', emailVerified: true },
