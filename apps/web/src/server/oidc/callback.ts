@@ -85,7 +85,10 @@ export async function findLinkedUser(
   if (identity) return identity.user
   if (args.email && args.emailVerified) {
     const existingUser = await prisma.user.findUnique({ where: { email: args.email } })
-    if (existingUser) return existingUser
+    // 기존 로컬 계정도 이메일이 검증된 경우에만 병합한다. 커스텀 가입(비번) 계정의 이메일은
+    // 사용자가 입력만 한 미검증 값이라, 들어온 IdP 의 email_verified 만 믿고 병합하면 계정
+    // 탈취(pre-account-takeover) 가 된다.
+    if (existingUser?.emailVerified) return existingUser
   }
   return null
 }
@@ -103,7 +106,8 @@ export async function linkOrCreateUser(
 
     if (args.email && args.emailVerified) {
       const existingUser = await tx.user.findUnique({ where: { email: args.email } })
-      if (existingUser) {
+      // findLinkedUser 와 동일 — 기존 계정도 이메일 검증된 경우에만 병합(계정 탈취 방지).
+      if (existingUser?.emailVerified) {
         await tx.oidcIdentity.create({
           data: {
             userId: existingUser.id,

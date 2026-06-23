@@ -67,12 +67,12 @@ describe('linkOrCreateUser', () => {
     expect(u2.created).toBe(false)
   })
 
-  it('links to existing user by email only when IdP asserts verified', async () => {
+  it('links to existing user by email only when BOTH the IdP and the local account are verified', async () => {
     const existing = await db.prismaPublic.user.create({
-      data: { email: 'x@x.com', displayName: 'X', passwordHash: 'bcrypt' },
+      data: { email: 'x@example.com', displayName: 'X', passwordHash: 'bcrypt', emailVerified: true },
     })
     const u = await linkOrCreateUser(
-      { providerId, subject: 'sub-new', email: 'x@x.com', emailVerified: true },
+      { providerId, subject: 'sub-new', email: 'x@example.com', emailVerified: true },
       db.prismaPublic,
     )
     expect(u.user.id).toBe(existing.id)
@@ -81,6 +81,33 @@ describe('linkOrCreateUser', () => {
       where: { userId: existing.id },
     })
     expect(identity?.subject).toBe('sub-new')
+  })
+
+  it('does NOT merge into an existing UNVERIFIED account even when the IdP asserts verified', async () => {
+    // Pre-account-takeover guard: a password account stores a typed, never-verified
+    // email (emailVerified defaults to false). An attacker whose IdP asserts that
+    // same email as verified must not be auto-linked into it.
+    const existing = await db.prismaPublic.user.create({
+      data: { email: 'owner@example.com', displayName: 'Owner', passwordHash: 'bcrypt' },
+    })
+    expect(
+      await findLinkedUser(
+        { providerId, subject: 'attacker-sub', email: 'owner@example.com', emailVerified: true },
+        db.prismaPublic,
+      ),
+    ).toBeNull()
+    // linkOrCreateUser must not bind the attacker identity to the owner; it fails
+    // closed on the unique-email collision instead of hijacking the account.
+    await expect(
+      linkOrCreateUser(
+        { providerId, subject: 'attacker-sub', email: 'owner@example.com', emailVerified: true },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow()
+    const identity = await db.prismaPublic.oidcIdentity.findFirst({
+      where: { userId: existing.id },
+    })
+    expect(identity).toBeNull()
   })
 
   it('does not link to existing user by email when IdP does not verify', async () => {
