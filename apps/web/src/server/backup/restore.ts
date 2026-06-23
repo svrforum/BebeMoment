@@ -78,6 +78,14 @@ async function ensureRole(ownerUrl: string, name: string, password: string): Pro
     `SELECT 1 FROM pg_roles WHERE rolname='${name}'`,
   ])
   if (stdout.trim() === '1') return
+  // 새로 만들 때만 — 비거나 추측 가능한 기본 비밀번호('bebe')로 롤을 만들면 약한 자격증명이
+  // 영구 고착된다. 운영자가 부팅 때와 같은 강한 비밀번호를 주도록 강제(조용한 폴백 금지).
+  if (!password || password === 'bebe') {
+    throw new ServiceError(
+      500,
+      `${name} 롤을 만들려면 BEBE_WEB_DB_PASSWORD/BEBE_MEDIA_DB_PASSWORD 를 설정해야 해요`,
+    )
+  }
   // :'pw' 는 psql 이 안전하게 인용/이스케이프(인젝션 없음).
   await runFile('psql', [
     ownerUrl,
@@ -86,6 +94,28 @@ async function ensureRole(ownerUrl: string, name: string, password: string): Pro
     '-c',
     `CREATE ROLE ${name} LOGIN PASSWORD :'pw'`,
   ])
+}
+
+/**
+ * tar 전개 전 안전성 검사 — 백업 볼륨이 손상/위변조됐을 때 zip-slip(경로 탈출·심볼릭링크
+ * 통과 쓰기)을 막는다. 절대경로·`..`·심볼릭/하드링크 멤버가 있으면 전개를 거부한다.
+ */
+async function assertSafeTarMembers(tarPath: string): Promise<void> {
+  const names = await runFile('tar', ['-tf', tarPath])
+  for (const raw of names.stdout.split('\n')) {
+    const name = raw.trim()
+    if (!name) continue
+    if (name.startsWith('/') || name.split('/').includes('..')) {
+      throw new ServiceError(500, `안전하지 않은 백업 경로: ${name}`)
+    }
+  }
+  // verbose 리스트의 각 줄 첫 글자가 멤버 타입(l=심볼릭, h=하드링크).
+  const verbose = await runFile('tar', ['-tvf', tarPath])
+  for (const line of verbose.stdout.split('\n')) {
+    if (line && (line[0] === 'l' || line[0] === 'h')) {
+      throw new ServiceError(500, `안전하지 않은 백업 항목(링크): ${line.trim().slice(0, 120)}`)
+    }
+  }
 }
 
 export type RestoreArgs = {
@@ -130,12 +160,15 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
     for (const m of chain) {
       const tar = path.join(work, `${m.id}.tar`)
       await decompress(path.join(args.backupDir, bundleName(m.id)), tar)
+      // 전개 전 멤버 안전성 검사(zip-slip/심링크 통과 방지).
+      await assertSafeTarMembers(tar)
       if (m.dataFileCount > 0) {
         await runFile('tar', [
           '-xf',
           tar,
           '-C',
           args.dataDir,
+          '--no-same-owner',
           '--strip-components=1',
           'data',
         ]).catch((e) => {
@@ -147,7 +180,7 @@ export async function restoreBackup(args: RestoreArgs): Promise<RestoreResult> {
       if (m.id === args.targetId) {
         const members = ['db.dump']
         if (m.includesSecret) members.push('secret.key')
-        await runFile('tar', ['-xf', tar, '-C', work, ...members])
+        await runFile('tar', ['-xf', tar, '-C', work, '--no-same-owner', ...members])
         if (m.includesSecret) secretKeyPath = path.join(work, 'secret.key')
       }
     }
