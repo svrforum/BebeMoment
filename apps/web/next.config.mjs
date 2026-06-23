@@ -35,11 +35,28 @@ const nextConfig = {
     return [{ source: '/media/:path*', destination: `${target}/media/:path*` }]
   },
   // 보안 응답 헤더. 셀프호스팅(LAN/http 포함)을 깨지 않는 보수적 기본값.
-  // CSP 는 스크립트/스타일을 막으면 앱이 런타임에 깨지므로(브라우저 검증 필요),
-  // 여기선 기능에 영향 없는 보호만 건다: frame-ancestors(클릭재킹)·base-uri·
-  // object-src·form-action. script-src 강화는 라이브 검증 후 별도 적용.
+  // CSP: 모든 리소스를 같은 오리진으로 묶고(default-src 'self') 미디어·blurhash·폰트만
+  // 예외(data:/blob:). script/style 은 Next 16 의 인라인 부트스트랩·framer 인라인 스타일
+  // 때문에 'unsafe-inline' 을 허용한다(인라인 주입은 못 막지만, 외부 스크립트 로드·
+  // object/base-uri/connect 등은 차단 — 라이브 브라우저 검증 완료). nonce 기반 strict CSP 는
+  // 추후 별도 작업.
   async headers() {
     const isHttps = (process.env.PUBLIC_URL ?? '').startsWith('https://')
+    const csp = [
+      "default-src 'self'",
+      "script-src 'self' 'unsafe-inline'",
+      "style-src 'self' 'unsafe-inline'",
+      "img-src 'self' data: blob:",
+      "media-src 'self' blob:",
+      "font-src 'self' data:",
+      "connect-src 'self'",
+      "worker-src 'self' blob:",
+      "manifest-src 'self'",
+      "frame-ancestors 'self'",
+      "base-uri 'self'",
+      "object-src 'none'",
+      "form-action 'self'",
+    ].join('; ')
     return [
       {
         source: '/:path*',
@@ -48,10 +65,7 @@ const nextConfig = {
           { key: 'X-Content-Type-Options', value: 'nosniff' },
           { key: 'Referrer-Policy', value: 'strict-origin-when-cross-origin' },
           { key: 'Permissions-Policy', value: 'camera=(), microphone=(), geolocation=()' },
-          {
-            key: 'Content-Security-Policy',
-            value: "frame-ancestors 'self'; base-uri 'self'; object-src 'none'; form-action 'self'",
-          },
+          { key: 'Content-Security-Policy', value: csp },
           ...(isHttps
             ? [{ key: 'Strict-Transport-Security', value: 'max-age=31536000; includeSubDomains' }]
             : []),
