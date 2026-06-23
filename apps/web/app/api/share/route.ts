@@ -58,6 +58,9 @@ export async function GET(req: Request) {
   if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
   const r = await getCtx()
   if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
+  // 공유 토큰은 인증 경계 밖 접근 자격 — 발행 권한(share.create) 없는 역할이 기존 토큰을
+  // 열거(예: ?date 로)해 외부 유출하지 못하게, POST 와 동일하게 게이트.
+  if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
   const target = targetFromQuery(new URL(req.url))
   if (!target) return errorJsonKey('share.targetRequired', 400)
   const links = await listShareLinks(target, r.ctx.family!.id, prismaPublic)
