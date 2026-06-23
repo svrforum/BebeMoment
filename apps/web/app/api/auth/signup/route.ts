@@ -6,6 +6,7 @@ import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
 import { signup } from '@/server/auth/signup'
+import { acceptInvite } from '@/server/invite/accept'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
@@ -28,6 +29,7 @@ export async function POST(req: Request) {
     const input = SignupInput.parse(await readJsonLimited(req))
 
     const open = await isRegistrationOpen(prismaPublic)
+    let consumeInvite = false
     if (!open) {
       const okInvite = input.inviteToken
         ? await validateInviteForSignup(input.inviteToken, prismaPublic)
@@ -35,6 +37,7 @@ export async function POST(req: Request) {
       if (!okInvite) {
         return errorJsonKey('auth.registrationClosed', 403)
       }
+      consumeInvite = true
     }
 
     const { user } = await signup(
@@ -46,6 +49,13 @@ export async function POST(req: Request) {
       },
       prismaPublic,
     )
+
+    // 초대 가입은 토큰을 가입과 함께 즉시 소비(단일 사용)해 가족에 합류시킨다. 안 그러면
+    // 누출된 초대 링크 하나로 임의 다수 계정을 만들 수 있다(validateInviteForSignup 은 검증
+    // 전용). acceptInvite 의 트랜잭션 단일-사용 가드가 두 번째 가입의 토큰 재사용을 막는다.
+    if (consumeInvite && input.inviteToken) {
+      await acceptInvite({ token: input.inviteToken, userId: user.id }, prismaPublic)
+    }
 
     const currentFamilyId = await resolveCurrentFamilyForUser(user.id, prismaPublic)
     await createSessionAndSetCookie(user.id, currentFamilyId)

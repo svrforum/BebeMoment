@@ -137,21 +137,9 @@ function SignupWizardInner({
           }),
         })
         if (res.ok) {
-          if (inviteToken) {
-            const acceptRes = await fetch('/api/invite/accept', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ token: inviteToken }),
-            })
-            if (!acceptRes.ok) {
-              setError(t('signup.joinFailed'))
-              setSubmitting(false)
-              return
-            }
-            window.location.replace('/')
-          } else {
-            window.location.replace('/onboarding')
-          }
+          // 초대 가입은 /api/auth/signup 이 토큰을 소비하고 가족에 합류까지 처리한다
+          // (별도 accept 호출 불필요). 초대면 홈으로, 아니면 온보딩으로.
+          window.location.replace(inviteToken ? '/' : '/onboarding')
           return
         }
         const data = (await res.json().catch(() => ({}))) as { error?: string }
