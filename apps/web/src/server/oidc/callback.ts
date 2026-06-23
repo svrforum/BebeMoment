@@ -1,4 +1,5 @@
 import crypto from 'node:crypto'
+import { assertSafeOutboundUrl, safeFetch } from '@/lib/safe-fetch'
 import type { PrismaClient, User } from '@bebe/db-public'
 import { type JWTPayload, createRemoteJWKSet, jwtVerify } from 'jose'
 
@@ -31,7 +32,7 @@ export async function exchangeCodeForTokens(args: {
     client_id: args.clientId,
     client_secret: args.clientSecret,
   })
-  const res = await fetch(args.tokenEndpoint, {
+  const res = await safeFetch(args.tokenEndpoint, {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body,
@@ -44,6 +45,7 @@ export async function verifyIdToken(
   idToken: string,
   args: { jwksUri: string; issuer: string; clientId: string; nonce: string | undefined },
 ): Promise<JWTPayload> {
+  await assertSafeOutboundUrl(args.jwksUri)
   const jwks = createRemoteJWKSet(new URL(args.jwksUri))
   const { payload } = await jwtVerify(idToken, jwks, {
     issuer: args.issuer,
@@ -59,7 +61,7 @@ export async function verifyIdToken(
 }
 
 export async function fetchUserInfo(endpoint: string, accessToken: string): Promise<UserInfo> {
-  const res = await fetch(endpoint, {
+  const res = await safeFetch(endpoint, {
     headers: { Authorization: `Bearer ${accessToken}` },
   })
   if (!res.ok) throw new Error(`UserInfo failed: ${res.status}`)
