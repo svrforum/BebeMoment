@@ -9,12 +9,16 @@ const mediaUrl = z.string().refine((s) => s.startsWith('/') || /^https?:\/\//.te
   message: 'absolute URL 또는 루트 상대 경로(/...) 여야 합니다',
 })
 
+// 선언 파일 크기 절대 상한(5 GiB) — 토큰 maxBytes 가 임의로 커지는 걸 막아 tus 인라인
+// 제한이 의미를 갖게 한다.
+export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 * 1024
+
 // ─── Init ────────────────────────────────────────────────────────
 export const initAssetRequest = z.object({
   familyId: z.string().uuid(),
   uploaderId: z.string().uuid(),
   mime: z.string().min(1),
-  sizeBytes: z.number().int().positive(),
+  sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
   originalName: z.string().min(1),
   takenAt: z.string().datetime().optional(),
   // 클라가 보낸 파일 수정시각(File.lastModified). EXIF 촬영일·파일명 패턴이 없을 때의

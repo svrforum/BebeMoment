@@ -28,11 +28,19 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     done(null, payload),
   )
 
+  const globalMaxBytes = Number(process.env.MEDIA_MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024 * 1024)
+
   const tusServer = new TusServer({
     path: '/media/v1/tus',
     datastore: getTusStore(),
     locker: new MemoryLocker(),
-    maxSize: 5 * 1024 * 1024 * 1024,
+    // 토큰에 박힌 maxBytes(=선언된 파일 크기)로 PATCH 스트림을 인라인 제한 — 초과하면
+    // tus 가 413 으로 끊는다(완료 후 검사라 5GB 까지 tus-tmp 를 점유하던 갭 해소). 토큰이
+    // 없으면 전역 상한(env 조정)으로 폴백.
+    maxSize: (req) => {
+      const token = (req as unknown as NodeReqWithToken).__bebeUploadToken
+      return token?.maxBytes ?? globalMaxBytes
+    },
     // POST 생성 응답의 Location 을 상대경로(/media/v1/tus/<id>)로 — 컨테이너 내부에선
     // Host 가 localhost:3001 이라 절대 Location 을 주면 클라가 도달 못 해 PATCH 가
     // 네트워크 에러로 죽는다. 상대경로면 브라우저가 현재 오리진(도메인) 기준으로 PATCH.

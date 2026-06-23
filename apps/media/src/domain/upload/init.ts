@@ -38,6 +38,20 @@ export async function initAsset(
   const convertToCompatible = input.convertToCompatible ?? false
   const notify = input.notify ?? true
 
+  // 가족 단위 저장 쿼터(env, 기본 무제한) — 설정 시 기존 비삭제 자산 합계 + 이번 크기가
+  // 한도를 넘으면 init 에서 거부해 tus-tmp 점유 전에 막는다.
+  const quotaBytes = Number(process.env.MEDIA_FAMILY_QUOTA_BYTES ?? 0)
+  if (quotaBytes > 0) {
+    const agg = await prismaMedia.asset.aggregate({
+      where: { familyId: input.familyId, deletedAt: null },
+      _sum: { sizeBytes: true },
+    })
+    const used = agg._sum.sizeBytes ?? 0n
+    if (used + BigInt(input.sizeBytes) > BigInt(quotaBytes)) {
+      throw new Error('family storage quota exceeded')
+    }
+  }
+
   await prismaMedia.asset.create({
     data: {
       id: assetId,
