@@ -6,6 +6,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
+import { listMilestonePickerAssets } from '@/server/milestone/picker-assets'
 import { getPreset } from '@bebe/core'
 import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
@@ -32,21 +33,12 @@ export default async function EditMilestonePage({
   })
   if (!ms) notFound()
   const preset = ms.presetKey ? getPreset(ms.presetKey) : undefined
-  const assets = await prismaMedia.asset.findMany({
-    where: { familyId: ctx.family.id, status: 'ready', deletedAt: null },
-    orderBy: { takenAt: 'desc' },
-    take: 200,
-  })
-  const urlsMap = assets.length
-    ? await getMediaClient().getAssetUrlsBatch(
-        ctx.family.id,
-        assets.map((a) => a.id),
-      )
-    : {}
-  const pickerAssets = assets.map((a) => ({
-    id: a.id,
-    urls: urlsMap[a.id] ?? null,
-  }))
+  const pickerAssets = await listMilestonePickerAssets(
+    { familyId: ctx.family.id, viewerRole: ctx.membership?.role ?? 'family' },
+    prismaPublic,
+    prismaMedia,
+    getMediaClient(),
+  )
 
   return (
     <>
