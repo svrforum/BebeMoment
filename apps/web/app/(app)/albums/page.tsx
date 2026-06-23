@@ -10,6 +10,7 @@ import { listAlbums } from '@/server/album/list'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { searchAlbums } from '@/server/album/search'
 import { getContext } from '@/server/context'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { getFeatureFlags } from '@/server/settings/features'
 import { Bookmark, FolderHeart, FolderPlus, Search } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -40,11 +41,14 @@ export default async function AlbumsRootPage({
   // Up to N most-recent attachments per album in a single window-function
   // query — replaces the "fetch all rows, slice in JS" pattern which
   // scaled with total photos in albums.
+  // family 에겐 비밀 스토리 사진이 표지/프리뷰로도 노출되면 안 된다(Rule A).
+  const hiddenAssetIds = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, ctx.family.id)
   const previewByAlbum = await previewAttachmentsByAlbum(
     {
       familyId: ctx.family.id,
       albumIds: albums.map((a) => a.id),
       perAlbum: PREVIEW_PER_ALBUM,
+      excludeAssetIds: hiddenAssetIds,
     },
     prismaPublic,
   )

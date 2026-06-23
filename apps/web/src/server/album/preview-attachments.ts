@@ -14,11 +14,15 @@ export async function previewAttachmentsByAlbum(
     familyId: string
     albumIds: string[]
     perAlbum: number
+    // family 에게 숨길 자산(비밀 스토리 사진) — 표지/프리뷰가 비밀 사진으로 채워지지
+    // 않게 ROW_NUMBER 윈도 전에 제외한다(다음 visible 자산이 표지가 됨).
+    excludeAssetIds?: string[]
   },
   prismaPublic: PrismaPublic,
 ): Promise<Map<string, string[]>> {
   const { familyId, albumIds, perAlbum } = args
   if (albumIds.length === 0) return new Map()
+  const exclude = args.excludeAssetIds ?? []
 
   const rows = await prismaPublic.$queryRaw<{ album_id: string; asset_id: string }[]>`
     SELECT album_id, asset_id FROM (
@@ -29,6 +33,7 @@ export async function previewAttachmentsByAlbum(
       FROM public.album_assets
       WHERE family_id = ${familyId}::uuid
         AND album_id = ANY(${albumIds}::uuid[])
+        AND asset_id <> ALL(${exclude}::uuid[])
     ) t
     WHERE rn <= ${perAlbum}
     ORDER BY album_id, rn

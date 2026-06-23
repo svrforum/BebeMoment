@@ -17,6 +17,7 @@ import { listAlbumEntries } from '@/server/album/list-entries'
 import { previewAttachmentsByAlbum } from '@/server/album/preview-attachments'
 import { getContext } from '@/server/context'
 import { isFeatureEnabled } from '@/server/settings/features'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { ImagePlus } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
@@ -61,11 +62,14 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
 
   // Child album preview thumbs — up to N latest attachments per child album
   // in one window-function query (cheap regardless of family size).
+  // family 에겐 비밀 스토리 사진이 자식 앨범 표지로도 노출되면 안 된다(Rule A).
+  const hiddenAssetIds = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, ctx.family.id)
   const previewByAlbum = await previewAttachmentsByAlbum(
     {
       familyId: ctx.family.id,
       albumIds: children.map((c) => c.id),
       perAlbum: PREVIEW_PER_CHILD,
+      excludeAssetIds: hiddenAssetIds,
     },
     prismaPublic,
   )
