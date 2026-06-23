@@ -15,7 +15,8 @@ export type SheetTarget =
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string }
 
-// 목록 조회 쿼리(선택은 안정 식별자가 없어 null — 기존 링크 목록 없음, 만든 링크만 로컬 표시).
+// 목록 조회 쿼리. 선택(컬렉션)은 안정적인 타깃 식별자가 없어 per-target 으로 못 찾으므로,
+// 본인이 만든 링크 전체(mine=1)를 받아 selection 종류만 추려 보여준다(회수 가능하게).
 function listQuery(t: SheetTarget): string | null {
   switch (t.kind) {
     case 'story':
@@ -27,7 +28,7 @@ function listQuery(t: SheetTarget): string | null {
     case 'date':
       return `date=${t.date}`
     case 'selection':
-      return null
+      return 'mine=1'
   }
 }
 
@@ -60,6 +61,8 @@ type Link = {
   createdAt: string
   lastAccessedAt: string | null
   expired: boolean
+  // mine=1 응답에만 존재(종류) — selection 추출용. per-target 응답엔 없음.
+  kind?: string
 }
 
 function expiryLabel(l: Link, t: Translate, locale: string): string {
@@ -108,11 +111,17 @@ export function ShareSheet({
     try {
       const res = await fetch(`/api/share?${query}`)
       const data = await res.json().catch(() => ({}))
-      if (res.ok) setLinks(data.links ?? [])
+      if (res.ok) {
+        const fetched: Link[] = data.links ?? []
+        // selection 시트는 mine=1 로 받아 selection 링크만 추린다(안정 타깃 식별자 없음).
+        setLinks(
+          target.kind === 'selection' ? fetched.filter((l) => l.kind === 'selection') : fetched,
+        )
+      }
     } finally {
       setLoading(false)
     }
-  }, [query])
+  }, [query, target.kind])
 
   useEffect(() => {
     if (open) refresh()
