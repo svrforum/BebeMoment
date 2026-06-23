@@ -118,6 +118,46 @@ export async function listAllShareLinks(
   }))
 }
 
+// 현재 사용자가 발행한 살아있는 공유 링크(선택 링크 포함). 선택(컬렉션) 링크는 안정적인
+// 타깃 식별자가 없어 per-target 관리 경로(listShareLinks)로는 보이지 않던 갭을 메운다 —
+// 본인이 만든 링크를 직접 찾아 회수할 수 있게 한다(회수는 토큰 기준 DELETE).
+export async function listMyShareLinks(
+  familyId: string,
+  userId: string,
+  prisma: PrismaClient,
+): Promise<ShareLinkAdminInfo[]> {
+  const rows = await prisma.shareLink.findMany({
+    where: {
+      familyId,
+      createdByUserId: userId,
+      revokedAt: null,
+      OR: [{ expiresAt: null }, { expiresAt: { gt: new Date() } }],
+    },
+    orderBy: { createdAt: 'desc' },
+    select: {
+      token: true,
+      storyId: true,
+      assetId: true,
+      albumId: true,
+      targetDate: true,
+      createdByUserId: true,
+      expiresAt: true,
+      createdAt: true,
+      lastAccessedAt: true,
+    },
+  })
+  const now = Date.now()
+  return rows.map((r) => ({
+    token: r.token,
+    ...classifyTarget(r),
+    createdByName: null,
+    expiresAt: r.expiresAt,
+    createdAt: r.createdAt,
+    lastAccessedAt: r.lastAccessedAt,
+    expired: r.expiresAt !== null && r.expiresAt.getTime() <= now,
+  }))
+}
+
 // 가족의 모든 활성 공유 링크 일괄 회수. 회수 수 반환.
 export async function revokeAllShareLinks(familyId: string, prisma: PrismaClient): Promise<number> {
   const res = await prisma.shareLink.updateMany({

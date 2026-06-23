@@ -2,7 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { type ShareTarget, createShareLink } from '@/server/share/create'
-import { listShareLinks } from '@/server/share/manage'
+import { listMyShareLinks, listShareLinks } from '@/server/share/manage'
 import { isShareTtl } from '@/server/share/token'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
@@ -58,10 +58,17 @@ export async function GET(req: Request) {
   if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
   const r = await getCtx()
   if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
+  const url = new URL(req.url)
+  // `?mine=1` — 본인이 발행한 링크만(선택 링크 포함). 타인 토큰 열거가 아니라 자기 회수용이라
+  // share.create 게이트가 필요 없다. 선택 링크는 per-target 경로로는 안 보이던 갭을 메운다.
+  if (url.searchParams.get('mine') === '1') {
+    const links = await listMyShareLinks(r.ctx.family!.id, r.ctx.user!.id, prismaPublic)
+    return NextResponse.json({ links })
+  }
   // 공유 토큰은 인증 경계 밖 접근 자격 — 발행 권한(share.create) 없는 역할이 기존 토큰을
   // 열거(예: ?date 로)해 외부 유출하지 못하게, POST 와 동일하게 게이트.
   if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
-  const target = targetFromQuery(new URL(req.url))
+  const target = targetFromQuery(url)
   if (!target) return errorJsonKey('share.targetRequired', 400)
   const links = await listShareLinks(target, r.ctx.family!.id, prismaPublic)
   return NextResponse.json({ links })

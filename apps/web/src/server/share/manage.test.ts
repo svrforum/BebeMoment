@@ -6,7 +6,7 @@ import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'
 import { createShareLink } from './create'
-import { listAllShareLinks, revokeAllShareLinks } from './manage'
+import { listAllShareLinks, listMyShareLinks, revokeAllShareLinks } from './manage'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -114,6 +114,46 @@ describe('share admin inventory', () => {
     const revoked = await revokeAllShareLinks(family.id, db.prismaPublic)
     expect(revoked).toBe(3)
     expect(await listAllShareLinks(family.id, db.prismaPublic)).toHaveLength(0)
+  })
+
+  it('listMyShareLinks returns only the caller-created links, including selection links', async () => {
+    const { user, family } = await setup()
+    const a1 = await makeReadyAsset(family.id, user.id)
+    const a2 = await makeReadyAsset(family.id, user.id)
+    const other = await signup(
+      { username: 'other', password: 'password123', displayName: 'Other' },
+      db.prismaPublic,
+    )
+
+    // caller creates a selection link (the kind that listShareLinks can't surface)
+    await createShareLink(
+      {
+        target: { kind: 'selection', assetIds: [a1, a2] },
+        familyId: family.id,
+        userId: user.id,
+        ttl: 'permanent',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    // another member creates a link in the same family
+    await createShareLink(
+      {
+        target: { kind: 'asset', assetId: a1 },
+        familyId: family.id,
+        userId: other.user.id,
+        ttl: 'permanent',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const mine = await listMyShareLinks(family.id, user.id, db.prismaPublic)
+    expect(mine).toHaveLength(1)
+    expect(mine[0]?.kind).toBe('selection')
+    // the other member's link is not surfaced to this caller
+    const theirs = await listMyShareLinks(family.id, other.user.id, db.prismaPublic)
+    expect(theirs.map((l) => l.kind)).toEqual(['asset'])
   })
 
   it('excludes expired links from the inventory', async () => {
