@@ -2,6 +2,7 @@ import type { Role } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { isAlbumSecretForViewer } from '@/server/album/secret-visibility'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 
 export type SearchInput = {
   familyId: string
@@ -141,11 +142,30 @@ export async function searchAll(
     babyId: m.babyId,
   }))
   const babies = babyRows
-  const people = personRows
+  let people = personRows
     .filter(
       (p): p is { id: string; name: string } => typeof p.name === 'string' && p.name.length > 0,
     )
     .map((p) => ({ id: p.id, name: p.name }))
+
+  // family 역할에겐 살아있는·보이는 얼굴이 하나도 없는 사람(예: 모든 사진이 비밀 스토리
+  // 사진뿐)을 인물 결과에서 제외한다 — listPeople 과 동일 기준(비밀 사진은 어디서도 안 보임).
+  if (familyOnly && input.facesEnabled && people.length > 0) {
+    const hidden = await hiddenAssetIdsForViewer('family', prismaPublic, familyId)
+    const ids = people.map((p) => p.id)
+    const liveRows = await prismaMedia.$queryRawUnsafe<{ person_id: string }[]>(
+      `SELECT DISTINCT f.person_id FROM media.faces f
+         JOIN media.assets a ON a.id = f.asset_id
+        WHERE f.family_id = $1::uuid AND f.person_id = ANY($2::uuid[])
+          AND a.deleted_at IS NULL AND a.status = 'ready' AND a.duplicate_of IS NULL
+          AND f.asset_id <> ALL($3::uuid[])`,
+      familyId,
+      ids,
+      hidden,
+    )
+    const visible = new Set(liveRows.map((r) => r.person_id))
+    people = people.filter((p) => visible.has(p.id))
+  }
 
   const total = stories.length + milestones.length + albums.length + babies.length + people.length
   return { query: q, stories, milestones, albums, babies, people, total }
