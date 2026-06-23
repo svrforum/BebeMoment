@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
+import { readJsonLimited } from '@/lib/read-json-limited'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
@@ -19,8 +20,12 @@ const SignupInput = z.object({
 export async function POST(req: Request) {
   const rl = await rateLimit(`signup:${clientIp(req)}`, 5, 60)
   if (!rl.ok) return tooManyRequests(rl.retryAfter)
+  // IP 무관 전역 캡 — clientIp 는 프록시 헤더 기반이라 직접 노출 시 우회 가능하므로,
+  // 헤더를 돌려도 가입 시도 자체가 무한이 되지 않게 인스턴스 전역으로도 묶는다.
+  const rlGlobal = await rateLimit('signup:global', 30, 60)
+  if (!rlGlobal.ok) return tooManyRequests(rlGlobal.retryAfter)
   try {
-    const input = SignupInput.parse(await req.json())
+    const input = SignupInput.parse(await readJsonLimited(req))
 
     const open = await isRegistrationOpen(prismaPublic)
     if (!open) {

@@ -1514,6 +1514,9 @@
     "notFound": "Not found",
     "invalidInput": "Please check your input",
     "serverError": "Please try again in a moment",
+    "request": {
+      "bodyTooLarge": "Request body is too large"
+    },
     "auth": {
       "accountSuspended": "This account has been suspended by an admin. Please contact your administrator.",
       "accountSuspendedShort": "This account is suspended.",

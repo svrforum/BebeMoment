@@ -1,6 +1,7 @@
 import { prismaPublic } from '@/lib/db-init'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { mintSessionCookie } from '@/lib/oidc-session'
+import { readJsonLimited } from '@/lib/read-json-limited'
 import { exchangeAppHandoff } from '@/server/auth/app-handoff'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { isUserFullySuspended } from '@/server/auth/suspension'
@@ -16,7 +17,10 @@ export async function POST(req: Request) {
   const rl = await rateLimit(`handoff:${clientIp(req)}`, 20, 60)
   if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
-    const { code, verifier } = Body.parse(await req.json())
+    const { code, verifier } = Body.parse(await readJsonLimited(req))
+    // 코드 단위 캡(IP 무관) — 한 handoff code 에 대한 verifier 추측 시도를 묶는다.
+    const rlCode = await rateLimit(`handoff-code:${code}`, 5, 300)
+    if (!rlCode.ok) return tooManyRequests(rlCode.retryAfter)
     const { userId, currentFamilyId } = await exchangeAppHandoff({ code, verifier }, prismaPublic)
     if (await isUserFullySuspended(userId, prismaPublic)) {
       return errorJsonKey('auth.accountSuspendedShort', 403)

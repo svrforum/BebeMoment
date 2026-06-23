@@ -2,6 +2,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { readJsonLimited } from '@/lib/read-json-limited'
 import { authenticate } from '@/server/auth/authenticate'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
 import { NextResponse } from 'next/server'
@@ -16,7 +17,7 @@ export async function POST(req: Request) {
   const rl = await rateLimit(`login:${clientIp(req)}`, 10, 60)
   if (!rl.ok) return tooManyRequests(rl.retryAfter)
   try {
-    const input = LoginInput.parse(await req.json())
+    const input = LoginInput.parse(await readJsonLimited(req))
     // 계정(아이디) 단위 추가 제한 — IP 단위 제한은 X-Forwarded-For 위조로 우회될 수
     // 있으므로, 비번 무차별 대입의 표적인 "한 계정"에 5분당 8회로 캡(IP 무관).
     const idKey = input.identifier.trim().toLowerCase()
