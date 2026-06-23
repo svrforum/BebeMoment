@@ -1,7 +1,7 @@
 import { computeBlurhash } from '@/domain/blurhash'
 import { rgbToHex } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
-import sharp from 'sharp'
+import { decodeSharp } from '@/lib/sharp'
 import { type Trio, generateTrios } from './derivative-trios'
 
 export type ProcessImageInput = {
@@ -36,7 +36,7 @@ export async function processImage(
   storage: StorageAdapter,
 ): Promise<ProcessImageResult> {
   const buf = input.buffer ?? (await collect(await storage.read(input.originalKey)))
-  const meta = await sharp(buf, { failOn: 'none' }).metadata()
+  const meta = await decodeSharp(buf).metadata()
   // EXIF Orientation 5-8(세로 촬영) 사진은 sharp metadata 의 width/height 가 회전 전
   // raw 치수다. 파생물은 .rotate() 로 자동회전되므로(derivative-trios), 표시 비율과
   // 맞추려면 회전 보정된 치수(autoOrient)를 써야 한다. 안 그러면 가로/세로가 전치된
@@ -46,7 +46,7 @@ export async function processImage(
 
   let dominantColor: string | null = null
   try {
-    const stats = await sharp(buf, { failOn: 'none' }).stats()
+    const stats = await decodeSharp(buf).stats()
     if (stats.channels.length >= 3) {
       const [r, g, b] = stats.channels
       dominantColor = rgbToHex(r?.mean ?? 0, g?.mean ?? 0, b?.mean ?? 0)

@@ -1,6 +1,6 @@
 import { needsConvert } from '@bebe/core'
 import type { StorageAdapter } from '@bebe/storage'
-import sharp from 'sharp'
+import { decodeSharp } from '@/lib/sharp'
 
 export type ConvertResult = {
   newKey: string
@@ -28,7 +28,7 @@ export async function convertImageIfNeeded(
   if (!needsConvert(input.mimeType) || !input.mimeType.startsWith('image/')) return null
 
   const buf = await collect(await storage.read(input.originalKey))
-  const converted = await sharp(buf, { failOn: 'none' }).rotate().jpeg({ quality: 90 }).toBuffer()
+  const converted = await decodeSharp(buf).rotate().jpeg({ quality: 90 }).toBuffer()
 
   const newKey = `${input.originalKey}.converted.jpg`
   await storage.writeBuffer(newKey, converted, 'image/jpeg')

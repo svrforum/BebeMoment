@@ -7,7 +7,7 @@ import { computeBlurhash } from '@/domain/blurhash'
 import { rgbToHex } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
-import sharp from 'sharp'
+import { decodeSharp } from '@/lib/sharp'
 import { type Trio, generateTrios } from './derivative-trios'
 import { orientedDimensions, parseDurationMs } from './video-meta'
 
@@ -121,7 +121,7 @@ export async function processVideo(
     const posterBuf = await readFile(posterPath)
     let dominantColor: string | null = null
     try {
-      const stats = await sharp(posterBuf, { failOn: 'none' }).stats()
+      const stats = await decodeSharp(posterBuf).stats()
       if (stats.channels.length >= 3) {
         const [r, g, b] = stats.channels
         dominantColor = rgbToHex(r?.mean ?? 0, g?.mean ?? 0, b?.mean ?? 0)

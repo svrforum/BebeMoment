@@ -4,7 +4,7 @@ import { type DownloadTokenPayload, verifyDownloadToken } from '@/lib/jwt'
 import { getStorage } from '@/lib/storage'
 import { parseEnv } from '@bebe/config'
 import type { FastifyPluginAsync, FastifyReply } from 'fastify'
-import sharp from 'sharp'
+import { decodeSharp } from '@/lib/sharp'
 import { MediaHttpError } from '../middleware/error-handler'
 
 async function streamToBuffer(s: NodeJS.ReadableStream): Promise<Buffer> {
@@ -35,7 +35,7 @@ function contentDisposition(filename: string): string {
 // (회전 손실 방지) Orientation 태그 없이도 바로 선다. (무손실 마커-스트립은 Orientation
 // 까지 같이 날려 ≠1 사진이 돌아가 보이는 문제가 있어 sharp 재인코딩으로 교체.)
 async function stripJpegMetadata(buf: Buffer): Promise<Buffer> {
-  return sharp(buf, { failOn: 'none' }).rotate().jpeg({ quality: 95, mozjpeg: true }).toBuffer()
+  return decodeSharp(buf).rotate().jpeg({ quality: 95, mozjpeg: true }).toBuffer()
 }
 
 function setDownloadHeaders(reply: FastifyReply, payload: DownloadTokenPayload): void {
@@ -114,7 +114,7 @@ async function serveLiveResizedImage(
   const target = payload.quality === 'hd' ? 1080 : 720
   const input = await storage.read(payload.originalKey)
   const buf = await streamToBuffer(input)
-  const out = await sharp(buf, { failOn: 'none' })
+  const out = await decodeSharp(buf)
     .rotate()
     .resize({ height: target, withoutEnlargement: true })
     .jpeg({ quality: 88, mozjpeg: true })

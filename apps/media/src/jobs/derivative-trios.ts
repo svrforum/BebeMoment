@@ -1,5 +1,6 @@
 import type { StorageAdapter } from '@bebe/storage'
 import sharp from 'sharp'
+import { decodeSharp } from '@/lib/sharp'
 
 export type SizeKey = 'thumb256' | 'thumb512' | 'display1080'
 export type FormatKey = 'avif' | 'webp' | 'jpeg'
@@ -78,7 +79,7 @@ export async function generateTrios(args: {
 
   // Decode the source once; every (size, format) output clones this pipeline.
   // Sharp releases the GIL via libvips so concurrent encodes still parallelize.
-  const base = sharp(buffer, { failOn: 'none' }).rotate()
+  const base = decodeSharp(buffer).rotate()
   await Promise.all(
     sizeKeys.flatMap((sizeKey) =>
       formatsToGenerate.map(async (format) => {
