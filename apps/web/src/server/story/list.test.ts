@@ -311,6 +311,63 @@ describe('listStoryEntries', () => {
     expect(items.map((e) => e.body)).toEqual(['첫걸음'])
   })
 
+  it('hides secret-story photos from the family role even inside a family-visible story', async () => {
+    const { user, family, baby } = await setup()
+    const sharedAsset = await makeReadyAsset(family.id, user.id)
+    const normalAsset = await makeReadyAsset(family.id, user.id)
+
+    // family-visible story holding both the shared (also-secret) photo and a normal one
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: 'family',
+        assetIds: [sharedAsset.id, normalAsset.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    // guardians-only story that also contains the shared photo → Rule A: hidden from family everywhere
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [sharedAsset.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const familyView = await listStoryEntries(
+      family.id,
+      { viewerRole: 'family' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    // family sees only the family-visible story, and its assets must exclude the secret-shared photo
+    expect(familyView.items.map((e) => e.body)).toEqual(['family'])
+    expect(familyView.items[0]?.assets.map((ea) => ea.assetId)).toEqual([normalAsset.id])
+
+    const ownerView = await listStoryEntries(
+      family.id,
+      { viewerRole: 'owner' },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    const ownerFamilyStory = ownerView.items.find((e) => e.body === 'family')
+    expect(ownerFamilyStory?.assets.map((ea) => ea.assetId).sort()).toEqual(
+      [sharedAsset.id, normalAsset.id].sort(),
+    )
+  })
+
   it('paginates via cursor', async () => {
     const { user, family, baby } = await setup()
     for (let i = 0; i < 5; i += 1) {

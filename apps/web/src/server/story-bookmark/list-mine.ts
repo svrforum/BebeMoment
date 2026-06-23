@@ -8,6 +8,7 @@ import type {
 } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { hiddenAssetIdsForViewer } from '../story/secret-assets'
 
 type Cursor = { ts: string; entryId: string }
 
@@ -79,8 +80,14 @@ export async function listMyStoryBookmarks(
     : []
   const byId = new Map(entries.map((e) => [e.id, e]))
 
+  // family 가 보는 (가족 공개) 스토리라도, 그 사진이 비밀 스토리에도 속해 있으면 제외
+  // (Rule A — story/get.ts 와 동일하게 저장 surface 에서도 비밀 사진 바이트를 가린다).
+  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
+
   // gather all asset ids across all entries for one batched fetch
-  const allAssetIds = entries.flatMap((e) => e.assets.map((a) => a.assetId))
+  const allAssetIds = entries.flatMap((e) =>
+    e.assets.map((a) => a.assetId).filter((id) => !hidden.has(id)),
+  )
   const uniqueAssetIds = Array.from(new Set(allAssetIds))
   const assets = uniqueAssetIds.length
     ? await prismaMedia.asset.findMany({
@@ -94,13 +101,15 @@ export async function listMyStoryBookmarks(
   const joined: BookmarkedStoryEntry[] = page.map((b) => {
     const entry = byId.get(b.entryId) ?? null
     if (!entry) return { ...b, entry: null }
-    const withAssets = entry.assets.map((ea) => {
-      const base = assetById.get(ea.assetId) ?? null
-      const withUrls: AssetWithUrls | null = base
-        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
-        : null
-      return { ...ea, asset: withUrls }
-    })
+    const withAssets = entry.assets
+      .filter((ea) => !hidden.has(ea.assetId))
+      .map((ea) => {
+        const base = assetById.get(ea.assetId) ?? null
+        const withUrls: AssetWithUrls | null = base
+          ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+          : null
+        return { ...ea, asset: withUrls }
+      })
     return { ...b, entry: { ...entry, assets: withAssets } }
   })
 
