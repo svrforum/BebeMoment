@@ -1,5 +1,5 @@
 import type { StorageAdapter } from '@bebe/storage'
-import sharp from 'sharp'
+import type sharp from 'sharp'
 import { decodeSharp } from '@/lib/sharp'
 
 export type SizeKey = 'thumb256' | 'thumb512' | 'display1080'
