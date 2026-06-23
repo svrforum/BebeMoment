@@ -6,6 +6,9 @@ export async function getDateAssetIds(
   date: string,
   familyId: string,
   prismaMedia: PrismaMedia,
+  // 공유 링크 생성 시점. 주면 그 시점에 이미 존재하던 자산만 포함한다 — 날짜 공유가
+  // 발급 후 올라온 같은 날 사진까지 자동 노출(동의 없는 과다노출)하지 않게 고정.
+  createdBefore?: Date,
 ): Promise<string[]> {
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) return []
   const start = new Date(`${date}T00:00:00.000Z`)
@@ -16,6 +19,7 @@ export async function getDateAssetIds(
       status: 'ready',
       deletedAt: null,
       takenAt: { gte: start, lt: end },
+      ...(createdBefore ? { createdAt: { lte: createdBefore } } : {}),
     },
     orderBy: [{ takenAt: 'asc' }, { id: 'asc' }],
     select: { id: true },

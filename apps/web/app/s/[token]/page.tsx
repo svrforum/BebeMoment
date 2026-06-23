@@ -75,7 +75,8 @@ async function load(token: string, base: string): Promise<Loaded> {
     ids = r.target.assetIds
     meta = t('photoset.metaCount', { n: ids.length })
   } else {
-    ids = await getDateAssetIds(r.target.date, r.familyId, prismaMedia)
+    // 날짜 공유는 발급 시점에 존재하던 사진만 — 이후 같은 날 업로드는 자동 포함하지 않는다.
+    ids = await getDateAssetIds(r.target.date, r.familyId, prismaMedia, r.createdAt)
     const monthDay = new Intl.DateTimeFormat(locale, {
       month: 'long',
       day: 'numeric',

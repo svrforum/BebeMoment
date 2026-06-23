@@ -2,7 +2,7 @@ import type { PrismaClient } from '@bebe/db-public'
 import type { ShareTarget } from './create'
 
 export type ShareResolution =
-  | { status: 'ok'; target: ShareTarget; familyId: string }
+  | { status: 'ok'; target: ShareTarget; familyId: string; createdAt: Date }
   | { status: 'expired' }
   | { status: 'revoked' }
   | { status: 'notfound' }
@@ -27,9 +27,10 @@ export async function resolveShareLink(
       family_id: string
       expires_at: Date | null
       revoked_at: Date | null
+      created_at: Date
     }[]
   >`
-    SELECT story_id, asset_id, album_id, target_date, family_id, expires_at, revoked_at
+    SELECT story_id, asset_id, album_id, target_date, family_id, expires_at, revoked_at, created_at
     FROM share_links WHERE token = ${token} LIMIT 1
   `
   const row = rows[0]
@@ -53,5 +54,5 @@ export async function resolveShareLink(
     `
     target = { kind: 'selection', assetIds: assetRows.map((a) => a.asset_id) }
   }
-  return { status: 'ok', target, familyId: row.family_id }
+  return { status: 'ok', target, familyId: row.family_id, createdAt: row.created_at }
 }
