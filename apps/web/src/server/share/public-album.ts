@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { isAlbumSecretOrUnderSecret } from '../album/secret-visibility'
 import { listSecretAssetIds } from '../story/secret-assets'
 import { toAbsolute } from './public-story'
 
@@ -39,6 +40,9 @@ export async function getPublicAlbumPreview(
   `
   const row = rows[0]
   if (!row) return null
+
+  // 발급 후 부모가 비밀로 전환됐을 수 있다 — 비밀 조상 아래 앨범이면 프리뷰 차단(§21).
+  if (await isAlbumSecretOrUnderSecret({ albumId, familyId }, prismaPublic)) return null
 
   // 비밀 스토리에 속한 사진은 공개 앨범 프리뷰의 표지·장수에서도 제외한다.
   const secret = await listSecretAssetIds(prismaPublic, familyId)

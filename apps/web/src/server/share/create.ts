@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient } from '@bebe/db-public'
 import { ServiceError } from '@/server/error'
+import { isAlbumSecretOrUnderSecret } from '@/server/album/secret-visibility'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
 export type ShareTarget =
@@ -42,10 +43,18 @@ export async function createShareLink(
   } else if (t.kind === 'album') {
     const album = await prismaPublic.album.findFirst({
       where: { id: t.albumId, familyId: input.familyId, deletedAt: null },
-      select: { id: true, secret: true },
+      select: { id: true },
     })
     if (!album) throw new ServiceError(404, 'share.albumNotFound')
-    if (album.secret) throw new ServiceError(400, 'share.albumSecret')
+    // 자신뿐 아니라 비밀 조상 아래 앨범도 공개 불가(§21 — 트리에서 숨겨진 앨범의
+    // 이름·표지·장수가 인증 경계 밖으로 새지 않게).
+    if (
+      await isAlbumSecretOrUnderSecret(
+        { albumId: t.albumId, familyId: input.familyId },
+        prismaPublic,
+      )
+    )
+      throw new ServiceError(400, 'share.albumSecret')
   } else if (t.kind === 'selection') {
     if (t.assetIds.length === 0) throw new ServiceError(400, 'share.selectionEmpty')
     if (t.assetIds.length > SELECTION_MAX) throw new ServiceError(400, 'share.selectionTooMany')

@@ -9,11 +9,14 @@ import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
  * 비밀 앨범 UUID 를 외부에서 알아내면 그 앨범에 attach 하거나(은닉 콘텐츠 변조) 응답
  * 차이로 존재를 확인할 수 있었다(§21 위반). 이 헬퍼로 쓰기 경로도 동일하게 막는다.
  */
-export async function isAlbumSecretForViewer(
-  args: { albumId: string; familyId: string; viewerRole: Role },
+/**
+ * 역할 무관 — 이 앨범이 비밀이거나(자신) 비밀 조상 아래 있는지. 인증 경계 밖(공유 링크)에서는
+ * "누가 만들든" 트리에서 숨겨진 앨범을 공개하면 안 되므로 viewerRole 없이 판정한다.
+ */
+export async function isAlbumSecretOrUnderSecret(
+  args: { albumId: string; familyId: string },
   prisma: PrismaPublic,
 ): Promise<boolean> {
-  if (args.viewerRole !== 'family') return false
   const album = await prisma.album.findFirst({
     where: { id: args.albumId, familyId: args.familyId, deletedAt: null },
     select: { secret: true, path: true },
@@ -27,4 +30,12 @@ export async function isAlbumSecretForViewer(
     select: { secret: true },
   })
   return ancestors.some((a) => a.secret)
+}
+
+export async function isAlbumSecretForViewer(
+  args: { albumId: string; familyId: string; viewerRole: Role },
+  prisma: PrismaPublic,
+): Promise<boolean> {
+  if (args.viewerRole !== 'family') return false
+  return isAlbumSecretOrUnderSecret({ albumId: args.albumId, familyId: args.familyId }, prisma)
 }
