@@ -16,6 +16,13 @@ describe('assertSafeOutboundUrl', () => {
     await expect(assertSafeOutboundUrl('http://169.254.169.254/latest/meta-data')).rejects.toThrow()
   })
 
+  it('rejects unspecified and IPv4-mapped-IPv6 loopback addresses', async () => {
+    await expect(assertSafeOutboundUrl('http://0.0.0.0/x')).rejects.toThrow()
+    await expect(assertSafeOutboundUrl('http://[::]/x')).rejects.toThrow()
+    await expect(assertSafeOutboundUrl('http://[::ffff:127.0.0.1]/x')).rejects.toThrow()
+    await expect(assertSafeOutboundUrl('http://[::ffff:169.254.169.254]/x')).rejects.toThrow()
+  })
+
   it('allows a public IP literal', async () => {
     await expect(assertSafeOutboundUrl('https://8.8.8.8/')).resolves.toBeInstanceOf(URL)
   })
