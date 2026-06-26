@@ -1,7 +1,8 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { AnimatePresence, motion } from 'framer-motion'
-import { type ReactNode, useEffect } from 'react'
+import { useTranslations } from 'next-intl'
+import { type ReactNode, useEffect, useRef } from 'react'
 import { Drawer } from 'vaul'
 
 /**
@@ -25,11 +26,14 @@ export function MobileDrawerShell({
   className: string | undefined
   fill: boolean | undefined
 }) {
+  const t = useTranslations('common')
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40" />
         <Drawer.Content
+          // 제목 없는 시트도 Radix Dialog 설명 경고를 피한다(설명 없음 명시).
+          aria-describedby={undefined}
           className={cn(
             'fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col overflow-hidden rounded-t-3xl border-t border-base-200 bg-base-0 dark:border-base-800 dark:bg-base-900',
             // Fill mode wants a definite height so the inner flex column
@@ -43,11 +47,12 @@ export function MobileDrawerShell({
             className="mx-auto mt-3 h-1.5 w-12 shrink-0 rounded-full bg-base-300 dark:bg-base-700"
             aria-hidden
           />
-          {title && (
-            <Drawer.Title className="shrink-0 px-5 pt-4 pb-1 text-lg font-semibold">
-              {title}
-            </Drawer.Title>
-          )}
+          {/* Drawer.Title 은 항상 렌더 — 없으면 스크린리더용 sr-only 폴백(접근성 위반 방지). */}
+          <Drawer.Title
+            className={title ? 'shrink-0 px-5 pt-4 pb-1 text-lg font-semibold' : 'sr-only'}
+          >
+            {title ?? t('dialog')}
+          </Drawer.Title>
           {fill ? (
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           ) : (
@@ -74,6 +79,9 @@ export function DesktopModalShell({
   className: string | undefined
   fill: boolean | undefined
 }) {
+  const t = useTranslations('common')
+  const dialogRef = useRef<HTMLDivElement>(null)
+
   useEffect(() => {
     if (!open) return
     const onKey = (e: KeyboardEvent) => {
@@ -82,6 +90,39 @@ export function DesktopModalShell({
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [open, onOpenChange])
+
+  // 포커스 트랩 — 열릴 때 다이얼로그로 포커스 이동, Tab 을 다이얼로그 내부로 가두고,
+  // 닫힐 때 이전 포커스 복원(키보드/스크린리더 사용자가 모달 밖으로 새지 않게).
+  useEffect(() => {
+    if (!open) return
+    const prevFocus = document.activeElement as HTMLElement | null
+    const node = dialogRef.current
+    node?.focus()
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key !== 'Tab' || !node) return
+      const items = node.querySelectorAll<HTMLElement>(
+        'a[href],button:not([disabled]),textarea:not([disabled]),input:not([disabled]),select:not([disabled]),[tabindex]:not([tabindex="-1"])',
+      )
+      if (items.length === 0) {
+        e.preventDefault()
+        return
+      }
+      const first = items[0] as HTMLElement
+      const last = items[items.length - 1] as HTMLElement
+      if (e.shiftKey && document.activeElement === first) {
+        e.preventDefault()
+        last.focus()
+      } else if (!e.shiftKey && document.activeElement === last) {
+        e.preventDefault()
+        first.focus()
+      }
+    }
+    document.addEventListener('keydown', onKeyDown)
+    return () => {
+      document.removeEventListener('keydown', onKeyDown)
+      prevFocus?.focus?.()
+    }
+  }, [open])
 
   useEffect(() => {
     if (!open) return
@@ -106,9 +147,11 @@ export function DesktopModalShell({
             aria-hidden
           />
           <motion.div
+            ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={title}
+            aria-label={title ?? t('dialog')}
+            tabIndex={-1}
             initial={{ opacity: 0, scale: 0.96, y: 8 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.96, y: 8 }}
