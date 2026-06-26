@@ -76,6 +76,9 @@ jobs:
           context: .
           file: docker/app.Dockerfile
           platforms: linux/amd64
+          # 베이스 이미지를 매 빌드 새로 pull — node/debian apt 레이어가 캐시에 영구
+          # 고정돼 OS CVE 패치가 릴리즈마다 안 들어가던 문제 완화.
+          pull: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
@@ -111,11 +114,15 @@ jobs:
           context: apps/ml
           file: apps/ml/Dockerfile
           platforms: linux/amd64
+          pull: true
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=ml
           cache-to: type=gha,scope=ml,mode=max
+          # app 이미지와 동일하게 공급망 메타데이터 첨부.
+          provenance: true
+          sbom: true
 
   # 안드로이드 APK 는 이 web 릴리즈(v* 태그)에서 빌드하지 않는다 — 앱은 별도 `android-v*`
   # 채널(로컬 서명 빌드 + gh release, 인앱 배너가 읽는 유일 채널)로만 배포한다. 과거엔 이

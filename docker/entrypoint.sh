@@ -1,6 +1,17 @@
 #!/usr/bin/env sh
 set -e
 
+# 이 이미지는 현재 linux/amd64 전용(arm64 빌드는 보류). ARM(시놀로지 ARM·라즈베리파이)에서
+# QEMU 에뮬레이션으로 띄우면 sharp/ffmpeg 등이 불안정하다 — 일찍 명확히 안내한다.
+arch="$(uname -m 2>/dev/null || echo unknown)"
+case "$arch" in
+  aarch64 | arm64 | armv7l | armv6l)
+    echo "[entrypoint] ⚠️  This image is linux/amd64-only; detected $arch." >&2
+    echo "[entrypoint]    ARM (ARM Synology / Raspberry Pi) is not supported yet — run on x86-64." >&2
+    echo "[entrypoint]    (If you are intentionally emulating amd64 via QEMU, expect instability.)" >&2
+    ;;
+esac
+
 PUID="${PUID:-1000}"
 PGID="${PGID:-1000}"
 
