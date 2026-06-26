@@ -60,6 +60,8 @@ function SignupWizardInner({
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = inviteTokenProp ?? params?.get('invite') ?? null
+  // 첫 소유자 선점 방어용 설정 토큰(SETUP_TOKEN 인스턴스). /signup?setup=<token> 로 전달.
+  const setupToken = params?.get('setup') ?? null
   const invited = Boolean(inviteToken)
 
   const steps = useMemo<Step[]>(() => (invited ? STEPS_INVITED : STEPS_OWNER), [invited])
@@ -134,6 +136,7 @@ function SignupWizardInner({
             displayName: trimmedName,
             ...(enteredEmail ? { email: enteredEmail } : {}),
             ...(inviteToken ? { inviteToken } : {}),
+            ...(setupToken ? { setupToken } : {}),
           }),
         })
         if (res.ok) {
@@ -165,7 +168,7 @@ function SignupWizardInner({
       setError(t('signup.networkError'))
       setSubmitting(false)
     }
-  }, [username, password, displayName, email, inviteToken, invited, t])
+  }, [username, password, displayName, email, inviteToken, setupToken, invited, t])
 
   const goNext = useCallback(() => {
     if (!stepValid || submitting) return

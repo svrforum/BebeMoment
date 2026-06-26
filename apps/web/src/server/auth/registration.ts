@@ -9,6 +9,18 @@ export async function isRegistrationOpen(prisma: PrismaClient): Promise<boolean>
   return (rows[0]?.count ?? 0n) === 0n
 }
 
+/**
+ * 최초(부트스트랩) 가입 허용 여부. `SETUP_TOKEN` 환경변수가 설정돼 있으면 일치하는 토큰을
+ * 줘야만 첫 소유자 계정을 만들 수 있다 — 공개 URL 에 먼저 접속한 사람이 owner/admin 을
+ * 선점하는 landrush 를 막는다(노출 전 LAN 세팅이 어려운 경우의 방어막). 미설정이면 항상
+ * true 라 기본 단일가족 UX 는 그대로다.
+ */
+export function isBootstrapSetupAllowed(providedToken: string | undefined): boolean {
+  const required = process.env.SETUP_TOKEN?.trim()
+  if (!required) return true
+  return providedToken === required
+}
+
 export async function validateInviteForSignup(
   token: string,
   prisma: PrismaClient,

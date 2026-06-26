@@ -1,9 +1,13 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createInvite } from '../invite/create'
-import { isRegistrationOpen, validateInviteForSignup } from './registration'
+import {
+  isBootstrapSetupAllowed,
+  isRegistrationOpen,
+  validateInviteForSignup,
+} from './registration'
 
 let db: FullTestDb
 
@@ -32,6 +36,27 @@ describe('isRegistrationOpen', () => {
     )
     await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
     expect(await isRegistrationOpen(db.prismaPublic)).toBe(false)
+  })
+})
+
+describe('isBootstrapSetupAllowed', () => {
+  const orig = process.env.SETUP_TOKEN
+  afterEach(() => {
+    if (orig === undefined) delete process.env.SETUP_TOKEN
+    else process.env.SETUP_TOKEN = orig
+  })
+
+  it('allows any first signup when SETUP_TOKEN is unset (default UX)', () => {
+    delete process.env.SETUP_TOKEN
+    expect(isBootstrapSetupAllowed(undefined)).toBe(true)
+    expect(isBootstrapSetupAllowed('whatever')).toBe(true)
+  })
+
+  it('requires a matching token when SETUP_TOKEN is set', () => {
+    process.env.SETUP_TOKEN = 'secret-setup-token'
+    expect(isBootstrapSetupAllowed('secret-setup-token')).toBe(true)
+    expect(isBootstrapSetupAllowed('wrong')).toBe(false)
+    expect(isBootstrapSetupAllowed(undefined)).toBe(false)
   })
 })
 

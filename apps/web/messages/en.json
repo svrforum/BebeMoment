@@ -1522,6 +1522,7 @@
       "accountSuspendedShort": "This account is suspended.",
       "invalidCredentials": "Incorrect username or password.",
       "registrationClosed": "Public sign-up is closed. Please join with an invite link.",
+      "setupTokenRequired": "This instance requires a setup token for the first account. Open the setup link your administrator gave you.",
       "usernameInvalid": "Username must be 3-30 lowercase letters, digits, or ._-",
       "usernameTaken": "That username is already taken.",
       "emailTaken": "That email is already registered.",

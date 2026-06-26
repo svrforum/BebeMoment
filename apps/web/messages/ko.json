@@ -1522,6 +1522,7 @@
       "accountSuspendedShort": "정지된 계정이에요",
       "invalidCredentials": "아이디 또는 비밀번호가 올바르지 않아요",
       "registrationClosed": "공개 가입이 닫혀 있어요. 초대 링크로 가입해주세요.",
+      "setupTokenRequired": "이 인스턴스는 첫 계정 생성에 설정 토큰이 필요해요. 관리자가 준 설정 링크로 접속해주세요.",
       "usernameInvalid": "아이디는 영문 소문자·숫자·._- 3~30자여야 해요",
       "usernameTaken": "이미 사용 중인 아이디예요",
       "emailTaken": "이미 가입된 이메일이에요",

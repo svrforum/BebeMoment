@@ -14,7 +14,11 @@ import {
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { exchangeNaverCode, fetchNaverProfile } from '@/server/oidc/naver'
 import { createAppHandoff } from '@/server/auth/app-handoff'
-import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
+import {
+  isBootstrapSetupAllowed,
+  isRegistrationOpen,
+  validateInviteForSignup,
+} from '@/server/auth/registration'
 import { isUserFullySuspended } from '@/server/auth/suspension'
 import { acceptInvite } from '@/server/invite/accept'
 import { parseEnv } from '@bebe/config'
@@ -164,7 +168,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     if (!existing && chosenName) linkInput.displayName = chosenName
     if (!existing) {
       const open = await isRegistrationOpen(prismaPublic)
-      if (!open) {
+      if (open) {
+        // SETUP_TOKEN 으로 첫 소유자 선점을 막는 인스턴스에선 OIDC 신규 가입으로 우회하지
+        // 못하게 한다 — OIDC 는 토큰을 전달할 수 없으므로 첫 소유자는 아이디 가입(+SETUP_TOKEN)만.
+        if (!isBootstrapSetupAllowed(undefined)) {
+          clearOidcCookies(cookieStore)
+          return NextResponse.redirect(new URL('/login?error=setup_required', origin))
+        }
+      } else {
         const ok = inviteToken ? await validateInviteForSignup(inviteToken, prismaPublic) : false
         if (!ok) {
           clearOidcCookies(cookieStore)

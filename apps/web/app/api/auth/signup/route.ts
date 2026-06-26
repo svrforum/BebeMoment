@@ -4,7 +4,11 @@ import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { readJsonLimited } from '@/lib/read-json-limited'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
-import { isRegistrationOpen, validateInviteForSignup } from '@/server/auth/registration'
+import {
+  isBootstrapSetupAllowed,
+  isRegistrationOpen,
+  validateInviteForSignup,
+} from '@/server/auth/registration'
 import { signup } from '@/server/auth/signup'
 import { acceptInvite } from '@/server/invite/accept'
 import { NextResponse } from 'next/server'
@@ -16,6 +20,7 @@ const SignupInput = z.object({
   displayName: z.string().min(1, '이름을 입력해주세요').max(80),
   email: z.string().email('올바른 이메일을 입력해주세요').optional(),
   inviteToken: z.string().min(1).optional(),
+  setupToken: z.string().min(1).optional(),
 })
 
 export async function POST(req: Request) {
@@ -30,7 +35,13 @@ export async function POST(req: Request) {
 
     const open = await isRegistrationOpen(prismaPublic)
     let consumeInvite = false
-    if (!open) {
+    if (open) {
+      // 최초 소유자 선점(landrush) 방어 — SETUP_TOKEN 이 설정된 인스턴스는 첫 가입에
+      // 일치 토큰이 필요(미설정이면 통과). 노출 전 LAN 세팅이 어려운 공개 배포용 방어막.
+      if (!isBootstrapSetupAllowed(input.setupToken)) {
+        return errorJsonKey('auth.setupTokenRequired', 403)
+      }
+    } else {
       const okInvite = input.inviteToken
         ? await validateInviteForSignup(input.inviteToken, prismaPublic)
         : false
