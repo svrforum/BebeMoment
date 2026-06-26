@@ -19,12 +19,24 @@ python3 <<'PY'
 import os, json
 allow = set(os.environ["ALLOW"].split("|"))
 ack = dict(kv.split("=", 1) for kv in os.environ["ACK"].split("\n") if "=" in kv)
+
+def compatible(lic):
+    # SPDX 식 처리: 'A AND B' 는 둘 다 호환이어야, '(A OR B)' 는 하나만 호환이면 OK.
+    lic = lic.strip().strip("()").strip()
+    if lic in allow:
+        return True
+    if " OR " in lic:
+        return any(compatible(p) for p in lic.split(" OR "))
+    if " AND " in lic:
+        return all(compatible(p) for p in lic.split(" AND "))
+    return False
+
 with open(os.environ["LIC_FILE"]) as fh:
     raw = fh.read().strip()
 data = json.loads(raw or "{}")
 fail = False
 for lic, pkgs in (data.items() if isinstance(data, dict) else []):
-    if lic in allow:
+    if compatible(lic):
         continue
     for p in (pkgs if isinstance(pkgs, list) else [pkgs]):
         name = p.get("name") if isinstance(p, dict) else str(p)
