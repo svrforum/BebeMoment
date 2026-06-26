@@ -259,6 +259,8 @@ export function AssetCard({
     return (
       <button
         type="button"
+        aria-label={t('card.selectItem')}
+        aria-pressed={selected}
         onClick={handleSelectionClick}
         onContextMenu={handleContextMenu}
         onTouchStart={startPress}
@@ -278,6 +280,7 @@ export function AssetCard({
   return (
     <Link
       href={detailHref}
+      aria-label={kind === 'video' ? t('card.openVideo') : t('card.openPhoto')}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}
       onTouchStart={startPress}
