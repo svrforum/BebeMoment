@@ -40,6 +40,10 @@ export async function rateLimit(
  * x-real-ip 를 덮어쓰고 x-forwarded-for 를 append 하는 표준 구성을 전제.)
  */
 export function clientIp(req: Request): string {
+  // 프록시 뒤가 아니면(TRUST_PROXY=false) 포워딩 헤더는 클라가 위조 가능·무의미하므로
+  // 단일 버킷으로 모은다(per-IP 우회 방지). 부가 캡(계정·전역)과 함께 동작.
+  const tp = process.env.TRUST_PROXY?.trim().toLowerCase()
+  if (tp === 'false' || tp === '0') return 'no-proxy'
   const realIp = req.headers.get('x-real-ip')?.trim()
   if (realIp) return realIp
   const xff = req.headers.get('x-forwarded-for')

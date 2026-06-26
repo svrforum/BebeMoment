@@ -6,6 +6,8 @@ import { getDateAssetIds } from '@/server/share/date-assets'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
 import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/public-story'
+import { pickShareBaseUrl } from '@/lib/share-base-url'
+import { clientIp, rateLimit } from '@/server/auth/rate-limit'
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
 import type { Metadata } from 'next'
@@ -20,11 +22,18 @@ export const dynamic = 'force-dynamic'
 
 async function requestBaseUrl(): Promise<string> {
   const h = await headers()
-  const host = h.get('x-forwarded-host') ?? h.get('host')
-  const envBase = (process.env.PUBLIC_URL ?? '').replace(/\/$/, '')
-  if (!host) return envBase
-  const proto = h.get('x-forwarded-proto') ?? (envBase.startsWith('https') ? 'https' : 'http')
-  return `${proto}://${host}`
+  // x-forwarded-host 는 클라가 위조 가능 — PUBLIC_URL(또는 SHARE_ALLOWED_HOSTS) 호스트와
+  // 일치할 때만 신뢰하고, 아니면 PUBLIC_URL 로 폴백한다.
+  const allowedHosts = (process.env.SHARE_ALLOWED_HOSTS ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+  return pickShareBaseUrl({
+    host: h.get('x-forwarded-host') ?? h.get('host'),
+    proto: h.get('x-forwarded-proto'),
+    publicUrl: process.env.PUBLIC_URL,
+    allowedHosts,
+  })
 }
 
 type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
@@ -35,6 +44,10 @@ type Loaded =
   | { status: 'expired' | 'revoked' | 'notfound' }
 
 async function load(token: string, base: string): Promise<Loaded> {
+  // 무인증 공개 라우트 — IP 당 레이트리밋으로 토큰 추측·스크래핑(매 히트 DB+미디어 호출)
+  // 폭주를 막는다. 정상 열람엔 넉넉(분당 120, 페이지+OG 2히트라 ≈60뷰/분/IP).
+  const ip = clientIp({ headers: await headers() } as unknown as Request)
+  if (!(await rateLimit(`share:${ip}`, 120, 60)).ok) return { status: 'notfound' }
   // 공유 기능 OFF 면 기존 링크도 더 이상 열리지 않는다(관리자 kill-switch).
   if (!(await isFeatureEnabled('share', prismaPublic))) return { status: 'notfound' }
   const r = await resolveShareLink(token, prismaPublic)

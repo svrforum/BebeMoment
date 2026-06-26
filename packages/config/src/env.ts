@@ -65,6 +65,8 @@ const EnvSchema = z
     ADMIN_USER_EMAIL: z.string().optional(),
     // 설정 시 최초(부트스트랩) 가입에 이 토큰이 필요 — 공개 URL 첫 소유자 선점 방어.
     SETUP_TOKEN: z.string().optional(),
+    // 공유/OG 절대 URL 에 신뢰할 추가 호스트(쉼표). 기본은 PUBLIC_URL 호스트만.
+    SHARE_ALLOWED_HOSTS: z.string().optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     METRICS_ENABLED: envBool(false),
     TRUST_PROXY: envBool(true),
