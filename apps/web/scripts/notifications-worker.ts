@@ -333,21 +333,42 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
 async function main(): Promise<void> {
   const secretKey = process.env.SECRET_KEY
   if (!secretKey) throw new Error('SECRET_KEY required')
-  const keys = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
   const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
-  webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
+
+  // VAPID 키가 없거나(미설정) 복호화 불가(SECRET_KEY 회전 후)면 web-push 가 throw 한다.
+  // 과거엔 그게 워커를 죽여 컨테이너 전체를 재시작 루프에 빠뜨렸다 — web push 만 끄고
+  // web/media 는 살린다(명확히 로그. 관리자가 키를 재생성하면 아래 refresh 로 자동 복구).
+  let webPushEnabled = false
+  let currentVapidPublic = ''
+  const enableVapid = async (): Promise<void> => {
+    const keys = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
+    webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
+    webPushEnabled = true
+    currentVapidPublic = keys.publicKey
+  }
+  try {
+    await enableVapid()
+  } catch (e) {
+    console.error(
+      '[notifications-worker] web push disabled — VAPID key invalid/undecryptable',
+      '(regenerate it in admin after a SECRET_KEY change):',
+      (e as Error).message,
+    )
+  }
 
   // VAPID 키는 부팅 시 web-push 전역에 한 번 설정된다. 관리자가 키를 재생성하면(설정 UI)
-  // 워커가 옛 키로 서명해 모든 웹푸시가 401/403 으로 조용히 실패한다. 매 잡 전에 공개키
-  // (싼 settings 읽기)만 비교해 바뀌었으면 키를 다시 읽어 setVapidDetails 갱신.
-  let currentVapidPublic = keys.publicKey
+  // 워커가 옛 키로 서명해 모든 웹푸시가 조용히 실패한다. 매 잡 전에 공개키(싼 settings 읽기)
+  // 만 비교해 바뀌었으면 키를 다시 읽어 setVapidDetails 갱신(=실패했던 web push 자동 복구).
   const refreshVapidIfChanged = async (): Promise<void> => {
     const latest = await settingsGet('push.vapid_public')
     if (latest && latest !== currentVapidPublic) {
-      const fresh = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
-      webpush.setVapidDetails(contact, fresh.publicKey, fresh.privateKey)
-      currentVapidPublic = fresh.publicKey
-      console.log('[notifications-worker] VAPID keys reloaded')
+      try {
+        await enableVapid()
+        console.log('[notifications-worker] VAPID keys reloaded')
+      } catch (e) {
+        webPushEnabled = false
+        console.error('[notifications-worker] VAPID reload failed:', (e as Error).message)
+      }
     }
   }
 
@@ -495,12 +516,14 @@ async function main(): Promise<void> {
         subscriptionsFor: async (userIds) =>
           prismaPublic.pushSubscription.findMany({ where: { userId: { in: userIds } } }),
         send: (sub, payload) =>
-          webpush
-            .sendNotification(
-              { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
-              payload,
-            )
-            .then(() => undefined),
+          webPushEnabled
+            ? webpush
+                .sendNotification(
+                  { endpoint: sub.endpoint, keys: { p256dh: sub.p256dh, auth: sub.auth } },
+                  payload,
+                )
+                .then(() => undefined)
+            : Promise.resolve(undefined),
         deleteSub: async ({ endpoint, userId }) => {
           await prismaPublic.pushSubscription.deleteMany({ where: { endpoint, userId } })
         },
