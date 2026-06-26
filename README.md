@@ -65,6 +65,8 @@
 
 - 🐳 **일반 Linux Docker** → [docs/deployment-linux.md](docs/deployment-linux.md)
 - 🟦 **Synology DSM (Container Manager)** → [docs/deployment-synology.md](docs/deployment-synology.md)
+- ⚙️ **운영(업그레이드·백업·복구)** → [docs/operations.md](docs/operations.md)
+- 🔒 **보안 신고·하드닝** → [SECURITY.md](SECURITY.md) · **프라이버시(서버 밖으로 나가는 것)** → [docs/privacy.md](docs/privacy.md)
 
 이미지는 태그 푸시 시 GitHub Actions 가 `ghcr.io/svrforum/bebe-moment/app:vX.Y.Z` 로 빌드·푸시합니다. 현재 **`linux/amd64` 전용**(ARM 시놀로지용 `arm64` 는 추후 추가 예정).
 
