@@ -68,7 +68,6 @@ const EnvSchema = z
     // 공유/OG 절대 URL 에 신뢰할 추가 호스트(쉼표). 기본은 PUBLIC_URL 호스트만.
     SHARE_ALLOWED_HOSTS: z.string().optional(),
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    METRICS_ENABLED: envBool(false),
     TRUST_PROXY: envBool(true),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
   })
