@@ -11,6 +11,32 @@ const envBool = (def: boolean) =>
       return v.trim().toLowerCase() === 'true' || v.trim() === '1'
     })
 
+// 공개 리포의 .env.example 자리표시자(SECRET_KEY/미디어 토큰)는 길이만 보면 min(32)를
+// 통과해 그대로 부팅된다 — 공개 배포 시 세션 위조·at-rest 시크릿 복호화로 직결. 알려진
+// 자리표시자 패턴과 저엔트로피(반복 문자) 값을 거부해 부팅을 막는다.
+const SECRET_PLACEHOLDER_PATTERNS = [
+  'change-me',
+  'change_me',
+  'changeme',
+  'dev_secret',
+  'dev-secret',
+  'dev_media',
+  'dev-media',
+  'placeholder',
+  'example',
+  'your-secret',
+  'your_secret',
+  'replace-me',
+  'replace_me',
+  'replaceme',
+  'todo',
+]
+
+function looksLikePlaceholderSecret(value: string): boolean {
+  const low = value.toLowerCase()
+  return SECRET_PLACEHOLDER_PATTERNS.some((p) => low.includes(p))
+}
+
 const EnvSchema = z
   .object({
     DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
@@ -51,6 +77,34 @@ const EnvSchema = z
       : [],
   }))
   .superRefine((env, ctx) => {
+    // 자리표시자·저엔트로피 시크릿 거부는 **프로덕션에서만** — dev/test 는 dev_secret 류
+    // 로컬 기본값으로 돌아가야 하므로(로컬 워크플로 보존). 실제 공개 배포는 NODE_ENV=production.
+    if (env.NODE_ENV === 'production') {
+      const gen = 'generate one with: openssl rand -hex 32'
+      if (looksLikePlaceholderSecret(env.SECRET_KEY)) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SECRET_KEY'],
+          message: `SECRET_KEY looks like a placeholder/example value — ${gen}`,
+        })
+      } else if (new Set(env.SECRET_KEY).size < 8) {
+        ctx.addIssue({
+          code: 'custom',
+          path: ['SECRET_KEY'],
+          message: `SECRET_KEY is too low-entropy (repeated characters) — ${gen}`,
+        })
+      }
+      for (const key of ['MEDIA_SERVICE_TOKEN', 'MEDIA_JWT_SECRET'] as const) {
+        const v = env[key]
+        if (v && looksLikePlaceholderSecret(v)) {
+          ctx.addIssue({
+            code: 'custom',
+            path: [key],
+            message: `${key} looks like a placeholder/example value — ${gen}`,
+          })
+        }
+      }
+    }
     if (env.STORAGE_MODE === 's3') {
       for (const key of [
         'STORAGE_S3_ENDPOINT',

@@ -77,7 +77,9 @@ services:
     environment:
       DATABASE_URL: postgres://...
       REDIS_URL: redis://...
-      SECRET_KEY: <32바이트 이상>
+      # 시크릿은 반드시 직접 생성: openssl rand -hex 32
+      # (예시/자리표시자 값은 프로덕션에서 부팅이 거부됩니다)
+      SECRET_KEY: <openssl rand -hex 32 로 생성>
       PUBLIC_URL: https://bebe.example.com
       # (선택) 저사양 NAS·대량 업로드에서 처리가 느리면 AVIF 파생물을 꺼 속도를 크게
       # 높일 수 있다(WebP+JPEG 만, <picture> 자동 폴백). 기본은 true.
