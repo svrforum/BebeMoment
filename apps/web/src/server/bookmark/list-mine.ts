@@ -3,19 +3,11 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { AssetBookmark, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { decodeCursor, encodeCursor } from '../cursor'
 
 type Cursor = { ts: string; assetId: string }
-
-function encodeCursor(c: Cursor): string {
-  return Buffer.from(JSON.stringify(c)).toString('base64url')
-}
-function decodeCursor(s: string): Cursor | null {
-  try {
-    const c = JSON.parse(Buffer.from(s, 'base64url').toString('utf8'))
-    if (typeof c?.ts === 'string' && typeof c?.assetId === 'string') return c
-  } catch {}
-  return null
-}
+const isCursor = (c: Record<string, unknown>): c is Cursor =>
+  typeof c.ts === 'string' && typeof c.assetId === 'string'
 
 export async function listMyBookmarks(
   familyId: string,
@@ -29,7 +21,7 @@ export async function listMyBookmarks(
   nextCursor: string | null
 }> {
   const limit = params.limit ?? 30
-  const cur = params.cursor ? decodeCursor(params.cursor) : null
+  const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
   // family 가 북마크해 둔 사진이라도 비밀 스토리로 들어갔으면 저장됨에서 제외한다.

@@ -1,5 +1,6 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
 import type { Locale } from '@/i18n/request'
+import { logger } from '@/lib/logger'
 import { type ServerT, getServerTranslator } from '@/i18n/translator'
 import { resolveRecipients } from './recipients'
 
@@ -179,7 +180,7 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
         } catch (e) {
           // FCM 실패가 잡을 깨선 안 됨(웹푸시는 이미 성공). 단, 조용히 삼키지 말고 로그 —
           // OAuth 토큰 발급 실패 같은 FCM 전체 장애를 드러내기 위해(조용한 실패 금지).
-          console.error('[notifications] FCM send failed', (e as Error).message)
+          logger.error({ err: e }, 'notifications: FCM send failed')
         }
       }),
     )

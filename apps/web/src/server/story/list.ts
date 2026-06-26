@@ -2,20 +2,12 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { decodeCursor, encodeCursor } from '../cursor'
 import { hiddenAssetIdsForViewer } from './secret-assets'
 
 type Cursor = { ts: string; id: string }
-
-function encodeCursor(c: Cursor): string {
-  return Buffer.from(JSON.stringify(c)).toString('base64url')
-}
-function decodeCursor(s: string): Cursor | null {
-  try {
-    const c = JSON.parse(Buffer.from(s, 'base64url').toString('utf8'))
-    if (typeof c?.ts === 'string' && typeof c?.id === 'string') return c
-  } catch {}
-  return null
-}
+const isCursor = (c: Record<string, unknown>): c is Cursor =>
+  typeof c.ts === 'string' && typeof c.id === 'string'
 
 /** Free-text filter — case-insensitive ILIKE across title and body. */
 function textFilter(qRaw: string) {
@@ -63,7 +55,7 @@ export async function listStoryEntries(
   nextCursor: string | null
 }> {
   const limit = params.limit ?? 20
-  const cur = params.cursor ? decodeCursor(params.cursor) : null
+  const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
   const items = await prismaPublic.story.findMany({

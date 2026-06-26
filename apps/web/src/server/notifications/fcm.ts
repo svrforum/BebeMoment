@@ -1,4 +1,5 @@
 import { createSign } from 'node:crypto'
+import { logger } from '@/lib/logger'
 import { ServiceError } from '@/server/error'
 
 export type FcmServiceAccount = { projectId: string; clientEmail: string; privateKey: string }
@@ -92,6 +93,6 @@ export async function sendFcm(
   // token — deleting on 400 would wipe the whole table. Surface it instead.
   if (res.status === 404) return 'expired'
   const body = await res.text().catch(() => '')
-  console.error(`[fcm] send failed (${res.status}): ${body.slice(0, 300)}`)
+  logger.error({ status: res.status, body: body.slice(0, 300) }, 'fcm send failed')
   return 'error'
 }

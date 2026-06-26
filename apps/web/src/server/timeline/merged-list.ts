@@ -3,6 +3,7 @@ import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-p
 import type { MediaClient } from '@bebe/media-client'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { AssetWithUrls } from '../asset/types'
+import { decodeCursor, encodeCursor } from '../cursor'
 
 export type TimelineItem =
   | { kind: 'asset'; ts: Date; id: string; asset: AssetWithUrls }
@@ -26,23 +27,8 @@ type Cursor = {
   sort?: TimelineSort
 }
 
-function encodeCursor(c: Cursor): string {
-  return Buffer.from(JSON.stringify(c)).toString('base64url')
-}
-
-function decodeCursor(s: string): Cursor | null {
-  try {
-    const c = JSON.parse(Buffer.from(s, 'base64url').toString('utf8'))
-    if (
-      typeof c?.ts === 'string' &&
-      typeof c?.id === 'string' &&
-      (c.kind === 'asset' || c.kind === 'story')
-    ) {
-      return c
-    }
-  } catch {}
-  return null
-}
+const isCursor = (c: Record<string, unknown>): c is Cursor =>
+  typeof c.ts === 'string' && typeof c.id === 'string' && (c.kind === 'asset' || c.kind === 'story')
 
 export async function listTimeline(
   familyId: string,
@@ -68,7 +54,7 @@ export async function listTimeline(
 ): Promise<{ items: TimelineItem[]; nextCursor: string | null }> {
   const limit = params.limit ?? 50
   const sort: TimelineSort = params.sort ?? 'taken'
-  const cur = params.cursor ? decodeCursor(params.cursor) : null
+  const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   // Cursors are mode-tagged. If the request mode differs from the cursor's
   // mode (e.g. user flipped the toggle mid-scroll), the cursor is stale —
   // start a fresh page instead of mixing axes.

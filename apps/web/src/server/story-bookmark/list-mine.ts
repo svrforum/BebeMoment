@@ -8,20 +8,12 @@ import type {
 } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { decodeCursor, encodeCursor } from '../cursor'
 import { hiddenAssetIdsForViewer } from '../story/secret-assets'
 
 type Cursor = { ts: string; entryId: string }
-
-function encodeCursor(c: Cursor): string {
-  return Buffer.from(JSON.stringify(c)).toString('base64url')
-}
-function decodeCursor(s: string): Cursor | null {
-  try {
-    const c = JSON.parse(Buffer.from(s, 'base64url').toString('utf8'))
-    if (typeof c?.ts === 'string' && typeof c?.entryId === 'string') return c
-  } catch {}
-  return null
-}
+const isCursor = (c: Record<string, unknown>): c is Cursor =>
+  typeof c.ts === 'string' && typeof c.entryId === 'string'
 
 export type BookmarkedStoryEntry = StoryBookmark & {
   entry:
@@ -42,7 +34,7 @@ export async function listMyStoryBookmarks(
   media: MediaClient,
 ): Promise<{ items: BookmarkedStoryEntry[]; nextCursor: string | null }> {
   const limit = params.limit ?? 30
-  const cur = params.cursor ? decodeCursor(params.cursor) : null
+  const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
   const items = await prismaPublic.storyBookmark.findMany({
