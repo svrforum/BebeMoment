@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createMilestone } from '@/server/milestone/create'
@@ -21,6 +22,6 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ id: ms.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

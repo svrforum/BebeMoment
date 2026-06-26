@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
@@ -49,7 +50,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json({ id: entry.id, publicNo: entry.publicNo })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
@@ -68,6 +69,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await softDeleteStoryEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

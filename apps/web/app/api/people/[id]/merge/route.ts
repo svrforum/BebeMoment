@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { mergePeople } from '@/server/people/list'
@@ -31,6 +32,6 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     )
     return NextResponse.json({ ok: true, targetId, moved })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

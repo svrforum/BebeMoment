@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { softDeleteMilestone } from '@/server/milestone/soft-delete'
@@ -23,7 +24,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json({ id: ms.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
@@ -40,6 +41,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     await softDeleteMilestone({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

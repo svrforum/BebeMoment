@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaPublic } from '@/lib/db-init'
 import { softDeleteComment } from '@/server/comment/soft-delete'
 import { updateComment } from '@/server/comment/update'
@@ -27,7 +28,7 @@ export async function PATCH(
     )
     return NextResponse.json({ id: c.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
@@ -51,6 +52,6 @@ export async function DELETE(
     )
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

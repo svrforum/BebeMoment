@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { softDeleteGrowthRecord } from '@/server/growth/soft-delete'
@@ -22,7 +23,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json({ id: rec.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
 
@@ -42,6 +43,6 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     )
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

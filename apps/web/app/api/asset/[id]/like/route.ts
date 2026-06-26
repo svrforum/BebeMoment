@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { toggleLike } from '@/server/like/toggle'
@@ -26,6 +27,6 @@ export async function POST(_req: Request, { params }: { params: Promise<{ id: st
     )
     return NextResponse.json(result)
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

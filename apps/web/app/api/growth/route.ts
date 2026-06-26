@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { createGrowthRecord } from '@/server/growth/create'
@@ -20,6 +21,6 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ id: rec.id })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }

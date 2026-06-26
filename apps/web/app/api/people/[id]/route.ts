@@ -1,4 +1,5 @@
 import { getAuth } from '@/lib/auth'
+import { errorJson } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { renamePerson } from '@/server/people/list'
@@ -28,6 +29,6 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     await renamePerson({ familyId: ctx.family.id, personId: id, name }, prismaMedia)
     return NextResponse.json({ ok: true })
   } catch (e) {
-    return NextResponse.json({ error: (e as Error).message }, { status: 400 })
+    return errorJson(e)
   }
 }
