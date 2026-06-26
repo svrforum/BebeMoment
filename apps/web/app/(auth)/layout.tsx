@@ -1,4 +1,5 @@
 import { BrandLockup } from '@/components/brand/brand-mark'
+import { LanguageSwitcher } from '@/components/settings/language-switcher'
 import { getTranslations } from 'next-intl/server'
 import type { ReactNode } from 'react'
 
@@ -6,6 +7,11 @@ export default async function AuthLayout({ children }: { children: ReactNode }) 
   const t = await getTranslations('auth')
   return (
     <div className="relative min-h-[100dvh] bg-base-50 dark:bg-base-950 md:grid md:grid-cols-[1.15fr_1fr] lg:grid-cols-[1.3fr_1fr]">
+      {/* 로그인/가입 전에도 언어를 바꿀 수 있게 — 비-한국어 사용자가 온보딩에서 한국어에
+          갇히지 않게 한다(브라우저 언어 폴백에 더해 명시적 선택 제공). */}
+      <div className="absolute right-4 top-4 z-30">
+        <LanguageSwitcher />
+      </div>
       {/* Brand hero — desktop only */}
       <aside className="relative hidden overflow-hidden md:block">
         {/* Ambient gradients */}
