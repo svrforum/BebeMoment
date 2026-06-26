@@ -1,0 +1,32 @@
+version: 2
+updates:
+  # npm/pnpm dependencies (root workspace)
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+    open-pull-requests-limit: 5
+    groups:
+      # batch low-risk dev/tooling bumps into one PR to cut noise
+      dev-dependencies:
+        dependency-type: development
+    ignore:
+      # pinned intentionally (see pnpm-workspace overrides / single React copy)
+      - dependency-name: react
+      - dependency-name: react-dom
+
+  # GitHub Actions
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+
+  # Base images in the app + ml Dockerfiles
+  - package-ecosystem: docker
+    directory: /docker
+    schedule:
+      interval: weekly
+  - package-ecosystem: docker
+    directory: /apps/ml
+    schedule:
+      interval: weekly

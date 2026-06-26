@@ -42,3 +42,8 @@ jobs:
       - run: pnpm typecheck
       - run: pnpm check:lines
       - run: pnpm -r --filter '!@bebe/e2e' test
+      # next build catches proxy.ts / next.config / CSP / route errors that lint
+      # and typecheck miss — otherwise they only surface at release-tag time.
+      - run: pnpm --filter @bebe/web build
+        env:
+          NEXT_TELEMETRY_DISABLED: '1'
