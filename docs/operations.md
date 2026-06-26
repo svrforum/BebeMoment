@@ -19,6 +19,9 @@ the container is typically named `bebe-app` — substitute accordingly.
    start (see *Migration failure recovery* below).
 
 Always have a current backup before upgrading across notable version jumps.
+**Do not downgrade** to an older image after migrations have run — the old code
+may not understand the newer schema. If you must roll back, restore a backup
+taken on that older version.
 
 ## Backups
 
@@ -138,6 +141,8 @@ docker compose logs app | jq -r 'select(.level=="error")'   # pino JSON, errors 
     driver: json-file
     options: { max-size: "10m", max-file: "5" }
   ```
-- Health: `GET /api/health` returns DB status. Note it is a liveness check — it
-  can return 200 while media is misconfigured; if photos 500 but health is green,
-  check `MEDIA_SERVICE_TOKEN` / `MEDIA_JWT_SECRET` are set.
+- Health: `GET /api/health` is a **liveness** check (DB only) used by the
+  container healthcheck. For monitoring, `GET /api/health?deep=1` is a
+  **readiness** check that also pings the media service — use it to catch the
+  "photos 500 but health green" case (usually missing `MEDIA_SERVICE_TOKEN` /
+  `MEDIA_JWT_SECRET`).

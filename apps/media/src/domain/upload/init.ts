@@ -1,4 +1,5 @@
 import { randomBytes, randomUUID } from 'node:crypto'
+import { statfs } from 'node:fs/promises'
 import { signUploadToken } from '@/lib/jwt'
 import { getTusStore } from '@/lib/tus-store'
 import type { PrismaClient } from '@bebe/db-media'
@@ -49,6 +50,20 @@ export async function initAsset(
     const used = agg._sum.sizeBytes ?? 0n
     if (used + BigInt(input.sizeBytes) > BigInt(quotaBytes)) {
       throw new Error('family storage quota exceeded')
+    }
+  }
+
+  // 로컬 스토리지 디스크 여유공간 프리플라이트 — 꽉 찬 디스크에서 업로드를 시작하면
+  // tus-tmp·파생물·DB 가 깨진다. 이번 파일(+파생물 여유 ~1.5x)+256MB 마진보다 적으면 거부.
+  // statfs 미지원/오류는 가용성 우선으로 무시.
+  if ((process.env.STORAGE_MODE ?? 'local') === 'local') {
+    try {
+      const fsStat = await statfs(process.env.STORAGE_PATH ?? '/data')
+      const free = BigInt(fsStat.bavail) * BigInt(fsStat.bsize)
+      const needed = (BigInt(input.sizeBytes) * 3n) / 2n + 256n * 1024n * 1024n
+      if (free < needed) throw new Error('insufficient disk space for upload')
+    } catch (e) {
+      if ((e as Error).message === 'insufficient disk space for upload') throw e
     }
   }
 
