@@ -63,7 +63,11 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}/app
+          # 이미지 이름은 리포 캐싱(BebeMoment)과 분리해 **소문자 하이픈 경로로 고정**한다.
+          # github.repository 를 그대로 쓰면 ghcr.io/svrforum/bebemoment/app(하이픈X)로
+          # 푸시돼, compose 기본값·README 가 가리키는 ghcr.io/svrforum/bebe-moment/app 와
+          # 어긋나 기본 설치자가 stale 이미지를 받는다(2026-06 회귀).
+          images: ghcr.io/${{ github.repository_owner }}/bebe-moment/app
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
@@ -97,7 +101,8 @@ jobs:
       - uses: docker/metadata-action@v5
         id: meta
         with:
-          images: ghcr.io/${{ github.repository }}/ml
+          # app 과 동일 — 소문자 하이픈 경로로 고정(compose/README 정합).
+          images: ghcr.io/${{ github.repository_owner }}/bebe-moment/ml
           tags: |
             type=ref,event=tag
             type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
