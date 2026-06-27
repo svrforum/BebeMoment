@@ -3,7 +3,7 @@
 # -------- builder --------
 # Debian: Prisma Alpine 바이너리 감지가 3.20+ 에서 불안정해 web 은 Debian 고정.
 # media 의 sharp 는 @img/sharp-* prebuild(optionalDeps)로 설치되므로 별도 빌드 불필요.
-FROM node:22-bookworm-slim AS builder
+FROM node:26-bookworm-slim AS builder
 WORKDIR /repo
 RUN apt-get update && apt-get install -y --no-install-recommends \
     python3 make g++ openssl ca-certificates \
@@ -44,7 +44,7 @@ RUN --mount=type=cache,id=next-build,target=/repo/apps/web/.next/cache \
     pnpm --filter @bebe/web build
 
 # -------- runner --------
-FROM node:22-bookworm-slim AS runner
+FROM node:26-bookworm-slim AS runner
 WORKDIR /repo
 
 # ffmpeg(영상 파이프라인) + libvips42(sharp 시스템 라이브러리) + 운영 유틸.
