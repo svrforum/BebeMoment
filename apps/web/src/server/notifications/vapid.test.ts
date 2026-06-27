@@ -1,8 +1,11 @@
-import { decryptSecret } from '@/lib/crypto'
+import { decryptSecret, encryptSecret } from '@/lib/crypto'
 import { describe, expect, it } from 'vitest'
 import { ensureVapidKeys } from './vapid'
 
 const SECRET = 'test_secret_key_at_least_32_bytes_long____'
+// 진짜 raw VAPID private 모양(32바이트 → base64url 43자). 레거시 평문 마이그레이션은
+// 이런 키-모양일 때만 일어나야 한다(암호문 모양은 회전된 값일 수 있어 손상 위험).
+const LEGACY_PLAINTEXT_KEY = Buffer.alloc(32, 7).toString('base64url')
 
 function mapStore() {
   const store = new Map<string, string>()
@@ -34,14 +37,28 @@ describe('ensureVapidKeys', () => {
     expect(again.privateKey).toBe(first.privateKey)
   })
 
-  it('레거시 평문 private 는 읽을 때 암호화로 마이그레이션(동작 보존)', async () => {
+  it('레거시 평문 private(키-모양) 는 읽을 때 암호화로 마이그레이션(동작 보존)', async () => {
     const { store, get, set } = mapStore()
     store.set('push.vapid_public', 'PUBLICKEY')
-    store.set('push.vapid_private', 'LEGACY_PLAINTEXT_PRIVATE_VALUE')
+    store.set('push.vapid_private', LEGACY_PLAINTEXT_KEY)
     const keys = await ensureVapidKeys({ get, set }, SECRET)
-    expect(keys.privateKey).toBe('LEGACY_PLAINTEXT_PRIVATE_VALUE') // 그대로 반환(동작 보존)
+    expect(keys.privateKey).toBe(LEGACY_PLAINTEXT_KEY) // 그대로 반환(동작 보존)
     const storedPriv = store.get('push.vapid_private') as string
-    expect(storedPriv).not.toBe('LEGACY_PLAINTEXT_PRIVATE_VALUE') // 재암호화됨
-    expect(await decryptSecret(storedPriv, SECRET)).toBe('LEGACY_PLAINTEXT_PRIVATE_VALUE')
+    expect(storedPriv).not.toBe(LEGACY_PLAINTEXT_KEY) // 재암호화됨
+    expect(await decryptSecret(storedPriv, SECRET)).toBe(LEGACY_PLAINTEXT_KEY)
+  })
+
+  it('SECRET_KEY 회전: 다른 키로 암호화된 private 는 재래핑하지 않고 throw(이중래핑 손상 방지)', async () => {
+    const { store, get, set } = mapStore()
+    const OLD_SECRET = 'old_secret_key_at_least_32_bytes_long__AA'
+    const NEW_SECRET = 'new_secret_key_at_least_32_bytes_long__BB'
+    store.set('push.vapid_public', 'PUBLICKEY')
+    const cipherUnderOld = await encryptSecret(LEGACY_PLAINTEXT_KEY, OLD_SECRET)
+    store.set('push.vapid_private', cipherUnderOld)
+    // 구키 암호문을 신키로 읽으면 복호화 실패 — 평문으로 오인해 재암호화하면 손상된다.
+    await expect(ensureVapidKeys({ get, set }, NEW_SECRET)).rejects.toThrow()
+    // 저장값은 원래 암호문 그대로(이중래핑 X) — 구키만 있으면 여전히 복구 가능해야 한다.
+    expect(store.get('push.vapid_private')).toBe(cipherUnderOld)
+    expect(await decryptSecret(cipherUnderOld, OLD_SECRET)).toBe(LEGACY_PLAINTEXT_KEY)
   })
 })
