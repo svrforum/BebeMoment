@@ -1,3 +1,4 @@
+import { ensureTestRoles } from '@bebe/db-public/src/test-db'
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
 
 /**
@@ -18,7 +19,14 @@ export async function setup(): Promise<void> {
     .withUsername('bebe')
     .withPassword('bebe')
     .start()
-  process.env.BEBE_TEST_PG_URL = container.getConnectionUri()
+  const uri = container.getConnectionUri()
+  process.env.BEBE_TEST_PG_URL = uri
+
+  // db-media 의 bebe_roles 마이그레이션은 CREATE ROLE bebe_web/bebe_media(클러스터 전역)를
+  // 한다. 공유 컨테이너에서 여러 테스트 DB 가 동시에 migrate deploy 하면 동시 CREATE ROLE 이
+  // 충돌해 P3018 로 깨진다(병렬 테스트에서 산발적). 컨테이너 시동 직후 한 번 만들어 두면
+  // 마이그레이션의 IF NOT EXISTS 가 항상 skip → 레이스 제거(결정적).
+  await ensureTestRoles(uri)
 }
 
 export async function teardown(): Promise<void> {

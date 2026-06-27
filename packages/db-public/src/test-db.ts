@@ -38,6 +38,31 @@ function buildUrl(baseUrl: string, dbName: string): string {
   return baseUrl.replace(/\/[^/?]+(\?|$)/, `/${dbName}$1`)
 }
 
+/**
+ * 공유 테스트 컨테이너에서 여러 테스트 DB 가 동시에 db-media 의 bebe_roles 마이그레이션을
+ * 돌리면 CREATE ROLE bebe_web/bebe_media(클러스터 전역)가 서로 충돌해 P3018 로 깨진다
+ * (병렬 테스트에서 산발적). 컨테이너 시동 직후 한 번 만들어 두면 마이그레이션의 IF NOT
+ * EXISTS 가 항상 skip → 레이스 제거(결정적). vitest globalSetup 에서 호출.
+ */
+export async function ensureTestRoles(baseUrl: string): Promise<void> {
+  const client = new PgClient({ connectionString: baseUrl })
+  await client.connect()
+  try {
+    await client.query(
+      `DO $$ BEGIN
+         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bebe_web') THEN
+           CREATE ROLE bebe_web LOGIN PASSWORD 'bebe_web_placeholder';
+         END IF;
+         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bebe_media') THEN
+           CREATE ROLE bebe_media LOGIN PASSWORD 'bebe_media_placeholder';
+         END IF;
+       END $$;`,
+    )
+  } finally {
+    await client.end()
+  }
+}
+
 async function createDatabase(baseUrl: string, dbName: string): Promise<void> {
   const client = new PgClient({ connectionString: baseUrl })
   await client.connect()
