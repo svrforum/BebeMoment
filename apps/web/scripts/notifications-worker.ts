@@ -21,6 +21,7 @@ import {
 } from '@/server/notifications/fcm'
 import { runScheduledBackupTick } from '@/server/backup/scheduled'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
+import { shouldAttemptVapidReload } from '@/server/notifications/vapid-reload'
 import { resolveNotificationVisibility } from '@/server/notifications/visibility'
 import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
@@ -339,12 +340,15 @@ async function main(): Promise<void> {
   // 과거엔 그게 워커를 죽여 컨테이너 전체를 재시작 루프에 빠뜨렸다 — web push 만 끄고
   // web/media 는 살린다(명확히 로그. 관리자가 키를 재생성하면 아래 refresh 로 자동 복구).
   let webPushEnabled = false
-  let currentVapidPublic = ''
+  // 가장 최근에 (재)로딩을 시도한 공개키 — 성공/실패 무관하게 기록한다. 같은 키엔
+  // 다시 시도하지 않아(shouldAttemptVapidReload) 복호화 불가 키의 로그 도배를 막는다.
+  let lastAttemptedVapidPublic = ''
   const enableVapid = async (): Promise<void> => {
     const keys = await ensureVapidKeys({ get: settingsGet, set: settingsSet }, secretKey)
+    // setVapidDetails 가 throw 해도 "이 키는 시도했다" 가 남도록 검증 호출 전에 기록.
+    lastAttemptedVapidPublic = keys.publicKey
     webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
     webPushEnabled = true
-    currentVapidPublic = keys.publicKey
   }
   try {
     await enableVapid()
@@ -361,14 +365,13 @@ async function main(): Promise<void> {
   // 만 비교해 바뀌었으면 키를 다시 읽어 setVapidDetails 갱신(=실패했던 web push 자동 복구).
   const refreshVapidIfChanged = async (): Promise<void> => {
     const latest = await settingsGet('push.vapid_public')
-    if (latest && latest !== currentVapidPublic) {
-      try {
-        await enableVapid()
-        console.log('[notifications-worker] VAPID keys reloaded')
-      } catch (e) {
-        webPushEnabled = false
-        console.error('[notifications-worker] VAPID reload failed:', (e as Error).message)
-      }
+    if (!shouldAttemptVapidReload(latest, lastAttemptedVapidPublic)) return
+    try {
+      await enableVapid()
+      console.log('[notifications-worker] VAPID keys reloaded')
+    } catch (e) {
+      webPushEnabled = false
+      console.error('[notifications-worker] VAPID reload failed:', (e as Error).message)
     }
   }
 
