@@ -78,6 +78,7 @@ export function AssetPickerSheet({
               >
                 {hasImage ? (
                   <PictureImage
+                    assetId={a.id}
                     trio={trio}
                     fallbackUrl={fallbackUrl}
                     alt=""

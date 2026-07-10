@@ -240,6 +240,8 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                           className="relative flex aspect-square w-full items-center justify-center"
                         >
                           <PictureImage
+                            assetId={link.assetId}
+                            urlKind="display"
                             trio={trio}
                             fallbackUrl={fallbackUrl}
                             alt=""
@@ -282,6 +284,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                     className="relative block aspect-square"
                   >
                     <PictureImage
+                      assetId={link.assetId}
                       trio={isVid ? null : pickThumbTrio(link.asset?.urls ?? null)}
                       fallbackUrl={
                         isVid

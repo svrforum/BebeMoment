@@ -71,7 +71,10 @@ export type FileServeTokenPayload = {
   v: 1
 }
 
-const FILE_SERVE_TTL_SEC = 10 * 60
+// 서명 URL 이 브라우저에 박힌 채(클라이언트 라우터 캐시·오래 열어둔 앱·bfcache·지연로딩)
+// 만료돼 썸네일이 401 로 깨지던 걸 줄이려 1시간으로 둔다. 페이지는 동적 렌더라 매 요청 새로
+// 발급되고, 잔여 만료는 PictureImage 의 onError 자동 재조회가 복구한다.
+const FILE_SERVE_TTL_SEC = 60 * 60
 
 export type SignFileServeArgs = Omit<FileServeTokenPayload, 'iss' | 'aud' | 'scope' | 'v'>
 

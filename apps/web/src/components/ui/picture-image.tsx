@@ -1,5 +1,6 @@
 'use client'
-import type { DerivativeTrio } from '@bebe/media-client'
+import { pickDisplayTrio, pickDisplayUrl, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
 import { decode } from 'blurhash'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 
@@ -25,6 +26,11 @@ export type PictureImageProps = {
    *  가 마운트될 때 페이드가 재생돼 "깜빡임"으로 보이는 걸 막는다. 끄면 dominantColor·
    *  blurhash 배경이 뒤를 덮은 채 이미지가 즉시 드러난다(페이드 없음). */
   fade?: boolean
+  /** 서명 URL 만료(401)로 이미지가 깨질 때 자가치유용 asset id. 주면 onError 에서
+   *  `/api/assets/urls` 로 신선한 서명 URL 을 한 번 재조회해 교체한다. 없으면 자가치유 안 함. */
+  assetId?: string | undefined
+  /** 재조회 시 다시 고를 티어. 기본 'thumb'(그리드 썸네일). 뷰어/상세는 'display'. */
+  urlKind?: 'thumb' | 'display'
 }
 
 function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null | undefined }) {
@@ -106,8 +112,16 @@ export function PictureImage({
   objectFit = 'cover',
   objectPosition,
   fade = true,
+  assetId,
+  urlKind = 'thumb',
 }: PictureImageProps) {
   const [loaded, setLoaded] = useState(false)
+  // 서명 URL 만료로 로드 실패 시, 신선한 URL 로 한 번 교체(자가치유). null 이면 원본 props 사용.
+  const [override, setOverride] = useState<{
+    trio: DerivativeTrio | null
+    fallbackUrl: string | null
+  } | null>(null)
+  const retriedRef = useRef(false)
 
   // When the image is served from cache it can finish loading before React
   // attaches onLoad, so the load event never fires and the image stays at
@@ -117,8 +131,34 @@ export function PictureImage({
     if (node?.complete && node.naturalWidth > 0) setLoaded(true)
   }, [])
 
+  const onError = useCallback(async () => {
+    if (!assetId || retriedRef.current) return
+    retriedRef.current = true
+    try {
+      const res = await fetch('/api/assets/urls', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ ids: [assetId] }),
+      })
+      if (!res.ok) return
+      const data = (await res.json()) as { urls: Record<string, AssetUrls> }
+      const fresh = data.urls[assetId]
+      if (!fresh) return
+      setLoaded(false)
+      setOverride({
+        trio: urlKind === 'display' ? pickDisplayTrio(fresh) : pickThumbTrio(fresh),
+        fallbackUrl: urlKind === 'display' ? pickDisplayUrl(fresh) : pickThumbUrl(fresh),
+      })
+    } catch {
+      // best-effort — 실패하면 깨진 이미지 그대로(무한 재시도 방지: retriedRef).
+    }
+  }, [assetId, urlKind])
+
+  const effTrio = override ? override.trio : trio
+  const effFallback = override ? override.fallbackUrl : fallbackUrl
+
   // Empty: no image data at all.
-  if (!trio && !fallbackUrl) {
+  if (!effTrio && !effFallback) {
     if (blurhash) {
       return (
         <span
@@ -175,13 +215,15 @@ export function PictureImage({
     transition: blurhash && fade ? 'opacity 240ms ease-out' : undefined,
   }
 
-  if (!trio) {
+  if (!effTrio) {
     return (
       <span className={className} style={wrapperStyle}>
         {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
         <img
+          // URL 이 바뀌면(자가치유 교체) remount 해 브라우저가 새로 로드하도록 key 를 건다.
+          key={effFallback ?? ''}
           ref={imgRef}
-          src={fallbackUrl ?? ''}
+          src={effFallback ?? ''}
           alt={alt}
           width={width}
           height={height}
@@ -189,6 +231,7 @@ export function PictureImage({
           fetchPriority={fetchPriority}
           decoding="async"
           onLoad={onLoad}
+          onError={onError}
           style={imgStyle}
         />
       </span>
@@ -198,12 +241,12 @@ export function PictureImage({
   return (
     <span className={className} style={wrapperStyle}>
       {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
-      <picture>
-        <source srcSet={trio.avif} type="image/avif" />
-        <source srcSet={trio.webp} type="image/webp" />
+      <picture key={effTrio.jpeg}>
+        <source srcSet={effTrio.avif} type="image/avif" />
+        <source srcSet={effTrio.webp} type="image/webp" />
         <img
           ref={imgRef}
-          src={trio.jpeg}
+          src={effTrio.jpeg}
           alt={alt}
           width={width}
           height={height}
@@ -211,6 +254,7 @@ export function PictureImage({
           fetchPriority={fetchPriority}
           decoding="async"
           onLoad={onLoad}
+          onError={onError}
           style={imgStyle}
         />
       </picture>

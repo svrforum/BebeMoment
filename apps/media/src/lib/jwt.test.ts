@@ -100,6 +100,17 @@ describe('file-serve token', () => {
     expect(payload.key).toBe('families/fam/assets/asset/original')
   })
 
+  test('file-serve token is valid for 1 hour', async () => {
+    const { decodeJwt } = await import('jose')
+    const token = await signFileServeToken({
+      familyId: '11111111-1111-1111-1111-111111111111',
+      assetId: '22222222-2222-2222-2222-222222222222',
+      key: 'x',
+    })
+    const { exp, iat } = decodeJwt(token)
+    expect((exp ?? 0) - (iat ?? 0)).toBe(60 * 60)
+  })
+
   test('upload token is rejected by file-serve verify', async () => {
     const uploadToken = await signUploadToken({
       sub: '11111111-1111-1111-1111-111111111111',

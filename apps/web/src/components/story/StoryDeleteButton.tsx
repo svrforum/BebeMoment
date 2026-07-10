@@ -79,6 +79,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
                     >
                       {(trio || fallbackUrl) && (
                         <PictureImage
+                          assetId={p.id}
                           trio={trio}
                           fallbackUrl={fallbackUrl}
                           alt=""

@@ -30,6 +30,7 @@ export async function MemoriesCard({ group }: { group: MemoryGroup }) {
           {thumbs.map((a) => (
             <div key={a.id} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg">
               <PictureImage
+                assetId={a.id}
                 trio={pickThumbTrio(a.urls)}
                 fallbackUrl={pickThumbUrl(a.urls)}
                 alt=""

@@ -86,6 +86,7 @@ export function TrashList({ assets, canPurge }: Props) {
               >
                 {hasImage ? (
                   <PictureImage
+                    assetId={a.id}
                     trio={trio}
                     fallbackUrl={fallbackUrl}
                     alt=""

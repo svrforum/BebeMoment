@@ -48,6 +48,7 @@ export function DayCell({
     >
       {hasThumb && (
         <PictureImage
+          assetId={assets[0]?.id}
           trio={trio}
           fallbackUrl={fallbackUrl}
           alt=""

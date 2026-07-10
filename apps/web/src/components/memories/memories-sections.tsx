@@ -34,6 +34,7 @@ export async function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
                   className="block aspect-square"
                 >
                   <PictureImage
+                    assetId={a.id}
                     trio={pickThumbTrio(a.urls)}
                     fallbackUrl={pickThumbUrl(a.urls)}
                     alt=""

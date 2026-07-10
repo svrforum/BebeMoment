@@ -167,6 +167,7 @@ export function AssetCard({
     <>
       {hasImage ? (
         <PictureImage
+          assetId={id}
           trio={trio}
           fallbackUrl={fallbackUrl}
           alt=""
