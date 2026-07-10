@@ -323,10 +323,15 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
     return p
   }
 
+  // 멀티 인스턴스 앱이 알림 탭 시 출처 가족(서버)으로 전환하도록, 기기 등록 때 저장해둔
+  // 공개 주소(리버스 프록시 도메인)를 FCM server 필드로 실어 보낸다. 미설정이면 sendFcm 이
+  // PUBLIC_URL 로 폴백. (한 인스턴스=한 도메인이라 잡마다 한 번 읽으면 충분.)
+  const publicBase = (await settingsGet('push.public_base')) ?? undefined
+
   return {
     deviceTokensFor: (userIds) => listDeviceTokensForUsers(userIds, prismaPublic),
     sendFcm: async (token, payload) =>
-      sendFcm(token, payload, account.projectId, await accessToken()),
+      sendFcm(token, payload, account.projectId, await accessToken(), publicBase),
     deleteDeviceToken: (input) => deleteDeviceToken(input, prismaPublic),
   }
 }

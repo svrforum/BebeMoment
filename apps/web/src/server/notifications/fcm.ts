@@ -58,12 +58,20 @@ export async function getFcmAccessToken(
 
 export type FcmPayload = { title: string; body: string; url: string }
 
-/** 'ok' | 'expired' (token gone — caller deletes it) | 'error'. */
+/**
+ * 'ok' | 'expired' (token gone — caller deletes it) | 'error'.
+ *
+ * `serverBase` = 이 인스턴스의 앱-접속 공개 주소(리버스 프록시 도메인). 멀티 인스턴스 앱이
+ * 알림을 탭하면 이 값으로 해당 가족 서버를 골라 전환한다. PUBLIC_URL 은 LAN IP 일 수
+ * 있어(프록시 뒤) 앱의 계정 목록과 안 맞으므로, 등록 시 저장해둔 실제 오리진을 넘겨 echo 한다.
+ * 미지정이면 PUBLIC_URL 로 폴백(직접 노출 배포).
+ */
 export async function sendFcm(
   token: string,
   payload: FcmPayload,
   projectId: string,
   accessToken: string,
+  serverBase?: string,
 ): Promise<'ok' | 'expired' | 'error'> {
   const res = await fetch(`https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`, {
     method: 'POST',
@@ -81,7 +89,7 @@ export async function sendFcm(
           title: payload.title,
           body: payload.body,
           url: payload.url,
-          server: process.env.PUBLIC_URL ?? '',
+          server: serverBase || process.env.PUBLIC_URL || '',
         },
         android: { priority: 'HIGH' },
       },

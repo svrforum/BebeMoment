@@ -72,8 +72,10 @@ export async function sendTestNotification(
     const sa = enc ? parseServiceAccount(await decryptSecret(enc, secretKey)) : null
     if (sa) {
       const { token: accessToken } = await getFcmAccessToken(sa)
+      // 멀티 인스턴스 앱이 알림 탭 시 이 가족(서버)으로 전환하도록 공개 주소를 실어 보낸다.
+      const publicBase = (await store.get('push.public_base')) ?? undefined
       for (const t of tokens) {
-        const r = await sendFcm(t.token, TEST_PAYLOAD, sa.projectId, accessToken)
+        const r = await sendFcm(t.token, TEST_PAYLOAD, sa.projectId, accessToken, publicBase)
         if (r === 'ok') {
           fcmSent++
         } else {

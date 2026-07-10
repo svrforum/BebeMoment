@@ -1,6 +1,45 @@
 import { createVerify, generateKeyPairSync } from 'node:crypto'
-import { describe, expect, it } from 'vitest'
-import { buildSignedJwt, parseServiceAccount } from './fcm'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { buildSignedJwt, parseServiceAccount, sendFcm } from './fcm'
+
+describe('sendFcm server field (multi-instance routing)', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
+  async function capture(
+    serverBase: string | undefined,
+    publicUrl: string | undefined,
+  ): Promise<string> {
+    if (publicUrl === undefined) vi.stubEnv('PUBLIC_URL', '')
+    else vi.stubEnv('PUBLIC_URL', publicUrl)
+    let sentBody = ''
+    vi.stubGlobal(
+      'fetch',
+      vi.fn(async (_url: string, init: { body: string }) => {
+        sentBody = init.body
+        return { ok: true, status: 200 } as Response
+      }),
+    )
+    await sendFcm('tok', { title: 't', body: 'b', url: '/detail/1' }, 'proj', 'access', serverBase)
+    return JSON.parse(sentBody).message.data.server
+  }
+
+  it('echoes the explicit serverBase (the app-facing domain) when provided', async () => {
+    expect(await capture('https://fam.example.com', 'http://192.0.2.10:3000')).toBe(
+      'https://fam.example.com',
+    )
+  })
+
+  it('falls back to PUBLIC_URL when no serverBase is given', async () => {
+    expect(await capture(undefined, 'http://192.0.2.10:3000')).toBe('http://192.0.2.10:3000')
+  })
+
+  it('treats an empty serverBase as absent (fallback to PUBLIC_URL)', async () => {
+    expect(await capture('', 'http://192.0.2.10:3000')).toBe('http://192.0.2.10:3000')
+  })
+})
 
 describe('parseServiceAccount', () => {
   it('parses a valid service account', () => {
