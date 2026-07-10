@@ -47,6 +47,8 @@ public class MainActivity extends BridgeActivity {
     // 공유받은 파일들(id→Uri). 웹이 /__bebe_share/<id> 로 fetch 하면 shouldInterceptRequest 가
     // 스트리밍으로 돌려준다 — base64 메모리 폭증 없이 크기 무제한 스테이징 업로드.
     private final java.util.Map<String, Uri> shareFiles = new java.util.concurrent.ConcurrentHashMap<>();
+    // 재연결 화면의 4초 자동 재시도 콜백. 계정 전환 시 취소해야 죽은 서버로 되돌아가지 않는다.
+    private Runnable pendingReconnect = null;
 
     @Override
     public void onCreate(Bundle savedInstanceState) {
@@ -142,6 +144,7 @@ public class MainActivity extends BridgeActivity {
                 // 멀티 인스턴스 — 원격 웹의 "가족 이름" 탭이 /__bebe/switch 로 오면 로컬
                 // 계정 페이지를 띄운다(원격엔 브리지가 없어 직접 못 부르므로 URL 가로채기).
                 if (uri != null && "/__bebe/switch".equals(uri.getPath())) {
+                    cancelPendingReconnect(view); // 죽은 서버 재시도 취소 후 계정 목록으로
                     view.loadUrl("https://localhost/accounts.html");
                     return true;
                 }
@@ -222,26 +225,45 @@ public class MainActivity extends BridgeActivity {
         });
     }
 
+    /** 대기 중인 재연결 재시도 콜백을 취소한다(계정 전환·정상 로드 시). */
+    private void cancelPendingReconnect(WebView view) {
+        if (pendingReconnect != null) {
+            view.removeCallbacks(pendingReconnect);
+            pendingReconnect = null;
+        }
+    }
+
     /** 서버 origin 의 메인 프레임 로드 실패 시 "연결 중" 안내를 띄우고 4초마다 자동 재시도. */
     private void scheduleReconnect(WebView view, String url) {
         final String server = readServerUrl();
         if (server == null || url == null) return;
         final String base = server.replaceAll("/+$", "");
         if (!sameOrigin(url, base)) return; // 서버 origin 만 — 온보딩/외부/유사도메인 제외
+        // 계정이 2개 이상이면 "다른 가족으로 전환" 탈출구를 준다 — 한 인스턴스가 죽어도 앱
+        // 전체가 재연결 화면에 갇히지 않게(죽은 서버만 무한 재시도하던 회귀 수정). 링크는
+        // /__bebe/switch 로, shouldOverrideUrlLoading 이 가로채 로컬 계정 목록을 연다.
+        final boolean multi = readAccountBases().size() > 1;
+        final String switchBtn =
+            multi ? "<a class=b2 href='" + base + "/__bebe/switch'>다른 가족으로 전환</a>" : "";
         final String html =
             "<!doctype html><html><head><meta name=viewport content='width=device-width,initial-scale=1'>"
                 + "<style>html,body{height:100%;margin:0;background:#0b0b0c;color:#e7e7ea;"
                 + "font-family:-apple-system,Roboto,sans-serif}.w{height:100%;display:flex;flex-direction:column;"
-                + "align-items:center;justify-content:center;gap:18px;padding:24px;text-align:center}"
+                + "align-items:center;justify-content:center;gap:14px;padding:24px;text-align:center}"
                 + ".s{width:34px;height:34px;border:3px solid #2a2a2e;border-top-color:#6b8afd;border-radius:50%;"
                 + "animation:r 0.9s linear infinite}@keyframes r{to{transform:rotate(360deg)}}"
                 + "b{display:inline-block;margin-top:8px;padding:11px 22px;background:#6b8afd;color:#fff;"
-                + "border-radius:999px;font-weight:600;text-decoration:none}p{margin:0;color:#9a9aa0;font-size:14px}</style>"
+                + "border-radius:999px;font-weight:600;text-decoration:none}"
+                + "b2{display:inline-block;padding:11px 22px;background:transparent;color:#c7c7cc;"
+                + "border:1px solid #3a3a3e;border-radius:999px;font-weight:600;text-decoration:none}"
+                + "p{margin:0;color:#9a9aa0;font-size:14px}</style>"
                 + "</head><body><div class=w><div class=s></div>"
                 + "<p>서버에 다시 연결하고 있어요…<br>업데이트 중이라면 잠시 후 자동으로 이어져요.</p>"
-                + "<a class=b href='" + base + "'>다시 시도</a></div></body></html>";
+                + "<a class=b href='" + base + "'>다시 시도</a>" + switchBtn + "</div></body></html>";
         view.loadDataWithBaseURL(base, html, "text/html", "UTF-8", null);
-        view.postDelayed(() -> view.loadUrl(url), 4000);
+        cancelPendingReconnect(view);
+        pendingReconnect = () -> view.loadUrl(url);
+        view.postDelayed(pendingReconnect, 4000);
     }
 
     /** 비-http(s) URI 를 네이티브 앱으로. 앱이 없으면 browser_fallback_url / 마켓으로. */
