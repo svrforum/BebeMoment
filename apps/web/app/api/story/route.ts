@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { errorJson } from '@/lib/error-response'
+import { jsonBig } from '@/lib/json-big'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
@@ -36,7 +37,7 @@ export async function GET(req: Request) {
     prismaMedia,
     getMediaClient(),
   )
-  return NextResponse.json(page)
+  return jsonBig(page)
 }
 
 export async function POST(req: Request) {

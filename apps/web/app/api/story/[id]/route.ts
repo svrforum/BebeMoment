@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { errorJson } from '@/lib/error-response'
+import { jsonBig } from '@/lib/json-big'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
@@ -27,7 +28,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ctx.membership?.role ?? 'family',
   )
   if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
-  return NextResponse.json(entry)
+  return jsonBig(entry)
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

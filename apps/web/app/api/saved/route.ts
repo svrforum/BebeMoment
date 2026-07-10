@@ -1,5 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { jsonBig } from '@/lib/json-big'
 import { getMediaClient } from '@/lib/media-client'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { resolveContext } from '@/server/context'
@@ -24,10 +25,6 @@ export async function GET(req: Request) {
     prismaMedia,
     getMediaClient(),
   )
-  // asset.sizeBytes 는 BigInt 라 NextResponse.json(JSON.stringify) 이 직렬화하지 못해
-  // 500 이 났다(북마크에 살아있는 사진이 1장이라도 있으면 재현). BigInt→Number 로 변환.
-  return new NextResponse(
-    JSON.stringify(page, (_k, v) => (typeof v === 'bigint' ? Number(v) : v)),
-    { headers: { 'content-type': 'application/json' } },
-  )
+  // asset.sizeBytes(BigInt)를 담고 있어 jsonBig 로 내보낸다(NextResponse.json 은 500).
+  return jsonBig(page)
 }
