@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { decryptSecret } from '@/lib/crypto'
+import { tryDecryptClientSecret } from '@/server/oidc/client-secret'
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { publicOrigin } from '@/lib/request-origin'
@@ -63,7 +63,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
     return NextResponse.redirect(new URL('/login?error=provider', origin))
   }
 
-  const clientSecret = await decryptSecret(provider.clientSecretEnc, env.SECRET_KEY)
+  // 시크릿이 현재 SECRET_KEY 로 복호화 안 되면(대개 SECRET_KEY 회전 후 재저장 누락) 콜백이
+  // throw 해 500 이 뜨던 것을, 로그인 화면 안내로 바꾼다 — 관리자는 프로바이더 시크릿을 다시 저장.
+  const secret = await tryDecryptClientSecret(provider.clientSecretEnc, env.SECRET_KEY)
+  if (!secret.ok) {
+    console.error('OIDC callback: client secret undecryptable (SECRET_KEY rotated?)', providerId)
+    clearOidcCookies(cookieStore)
+    return NextResponse.redirect(new URL('/login?error=oidc_secret', origin))
+  }
+  const clientSecret = secret.clientSecret
   const redirectUri = `${origin}/api/auth/oidc/${providerId}/callback`
 
   try {
