@@ -103,8 +103,23 @@ export function TimelineComposer({
   // #composer 해시 스크롤 + scroll-margin-top(sticky 헤더 회피)이 맡는다.
   useEffect(() => {
     if (typeof window === 'undefined') return
-    if (window.location.hash !== '#composer') return
-    setExpanded(true)
+    const openIfHash = () => {
+      if (window.location.hash === '#composer') setExpanded(true)
+    }
+    // FAB '스토리 쓰기' 는 이미 /timeline 에 있을 때 커스텀 이벤트로 컴포저를 펼친다.
+    // (해시가 이미 #composer 로 남아 있으면 hashchange 가 안 떠서 hash 만으로는 부족.)
+    const openComposer = () => {
+      setExpanded(true)
+      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }
+    openIfHash()
+    // 다른 라우트에서 /timeline#composer 로 왔을 땐 위 mount 체크가, 그 외 hashchange 도 처리.
+    window.addEventListener('hashchange', openIfHash)
+    window.addEventListener('bebe:open-composer', openComposer)
+    return () => {
+      window.removeEventListener('hashchange', openIfHash)
+      window.removeEventListener('bebe:open-composer', openComposer)
+    }
   }, [])
 
   // 펼쳐지면 textarea 에 포커스 — 레이아웃·키보드가 정착한 뒤 한 번만(setTimeout). focus()

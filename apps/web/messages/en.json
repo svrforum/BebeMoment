@@ -183,7 +183,8 @@
         "inviteRequired": "This instance requires an invite. Please ask your admin for an invite link.",
         "state": "Your sign-in request expired. Please try again.",
         "oidc": "Something went wrong while signing in. Please try again.",
-        "provider": "That sign-in method isn't available."
+        "provider": "That sign-in method isn't available.",
+        "setupRequired": "The first admin must sign up with an ID. You can link social login afterwards in settings."
       }
     },
     "password": {
@@ -323,6 +324,12 @@
   "shell": {
     "switchFamily": "Switch family",
     "uploadFab": "Upload photos · videos",
+    "addFab": "Add",
+    "addTitle": "What would you like to add?",
+    "addStory": "Write a story",
+    "addStoryDesc": "Capture today with words and photos",
+    "addUpload": "Upload photos · videos",
+    "addUploadDesc": "Pick from your gallery and post",
     "unreadPhotos": "{count} new photos",
     "installedAppVersion": " · App {version}",
     "theme": {

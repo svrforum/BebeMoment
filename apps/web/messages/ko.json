@@ -183,7 +183,8 @@
         "inviteRequired": "초대가 필요한 인스턴스예요. 관리자에게 초대 링크를 요청해주세요.",
         "state": "로그인 요청이 만료됐어요. 다시 시도해주세요.",
         "oidc": "로그인 중 문제가 발생했어요. 다시 시도해주세요.",
-        "provider": "사용할 수 없는 로그인 방식이에요."
+        "provider": "사용할 수 없는 로그인 방식이에요.",
+        "setupRequired": "첫 관리자는 아이디로 가입해주세요. 소셜 로그인은 가입 후 설정에서 연결할 수 있어요."
       }
     },
     "password": {
@@ -323,6 +324,12 @@
   "shell": {
     "switchFamily": "가족 전환",
     "uploadFab": "사진 · 영상 올리기",
+    "addFab": "추가",
+    "addTitle": "무엇을 추가할까요?",
+    "addStory": "스토리 쓰기",
+    "addStoryDesc": "글과 사진으로 오늘을 기록해요",
+    "addUpload": "사진 · 영상 올리기",
+    "addUploadDesc": "갤러리에서 골라 바로 올려요",
     "unreadPhotos": "새 사진 {count}개",
     "installedAppVersion": " · 앱 {version}",
     "theme": {
