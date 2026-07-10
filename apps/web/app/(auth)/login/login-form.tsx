@@ -1,6 +1,7 @@
 'use client'
 import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
+import { oidcLoginErrorKey } from '@/lib/oidc-login-error'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -27,13 +28,19 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
   const [showPw, setShowPw] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [submitting, setSubmitting] = useState(false)
+  // OIDC 콜백/시작 라우트가 실패 시 `/login?error=<code>` 로 되돌린다 — 그 코드를 사람이
+  // 읽을 메시지로 보여줘 조용한 실패(빈 로그인 화면)를 없앤다. (읽기 client-side:
+  // searchParams-only 네비게이션 캐시 이슈 회피 — [[next-searchparams-client-cache]].)
+  const [oidcError, setOidcError] = useState<string | null>(null)
   // OIDC(카카오 등) 로그인도 로그인 후 원래 보려던 곳으로 복귀하도록 next 를 실어 보낸다
   // (비번 로그인은 safeNext 가 처리). 마운트 후 URL 의 next 를 읽어 쿼리스트링으로.
   const [nextQuery, setNextQuery] = useState('')
   useEffect(() => {
     const n = safeNext()
     setNextQuery(n !== '/' ? `?next=${encodeURIComponent(n)}` : '')
-  }, [])
+    const key = oidcLoginErrorKey(new URLSearchParams(window.location.search).get('error'))
+    if (key) setOidcError(t(`login.error.${key}`))
+  }, [t])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()
@@ -55,6 +62,11 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
 
   return (
     <div className="space-y-6">
+      {oidcError && (
+        <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+          {oidcError}
+        </p>
+      )}
       {passwordEnabled && (
         <form onSubmit={submit} className="space-y-4">
           <div>
