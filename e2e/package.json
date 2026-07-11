@@ -13,9 +13,9 @@
     "install-browsers": "playwright install chromium"
   },
   "devDependencies": {
-    "@playwright/test": "^1.48.0",
-    "@types/node": "^20.14.0",
+    "@playwright/test": "^1.61.1",
+    "@types/node": "^26.1.1",
     "sharp": "^0.33.5",
-    "typescript": "^5.6.0"
+    "typescript": "^7.0.2"
   }
 }
