@@ -1703,6 +1703,10 @@
       "original": "Upload as-is (largest, slowest)",
       "high": "Shrink only large photos (quality first, default)",
       "standard": "Resize to 2560px for speed (barely noticeable)"
+    },
+    "zoom": "View larger",
+    "viewer": {
+      "close": "Close"
     }
   },
   "memories": {

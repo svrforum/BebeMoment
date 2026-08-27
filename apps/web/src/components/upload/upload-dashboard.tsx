@@ -1,7 +1,7 @@
 'use client'
 import { type OptimizeMode, getOptimizeMode, setOptimizeMode } from '@/lib/image-optimize'
 import { useToast } from '@/lib/toast'
-import { ImagePlus, Images, Pencil, PencilLine, Plus, X } from 'lucide-react'
+import { ImagePlus, Images, Pencil, PencilLine, Plus, X, ZoomIn } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
@@ -12,6 +12,7 @@ import { useUploadSheet } from './upload-sheet'
 import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
 import { type FileRow, useUploadManager } from './upload-manager'
+import { UploadPreviewViewer } from './upload-preview-viewer'
 
 // 편집기(크롭/회전/밝기)는 항상 JPEG 를 렌더하고 EXIF 재주입도 JPEG 원본만 읽는다.
 // PNG/WebP 를 편집하면 JPEG 바이트가 원래 mime/확장자(png·webp)로 저장돼 오라벨되고
@@ -83,6 +84,7 @@ export function UploadDashboard({
   const { close } = useUploadSheet()
   const [dragOver, setDragOver] = useState(false)
   const [editing, setEditing] = useState<{ id: string; dataUrl: string } | null>(null)
+  const [viewing, setViewing] = useState<string | null>(null)
   const [mode, setMode] = useState<OptimizeMode>('high')
   // 업로드 대상: 'photos'(개별 사진으로) | 'story'(한 스토리로 묶기).
   const [dest, setDest] = useState<'photos' | 'story'>('photos')
@@ -194,6 +196,11 @@ export function UploadDashboard({
 
   const staged = files.filter((f) => !f.progress?.uploadStarted)
   const started = files.filter((f) => f.progress?.uploadStarted)
+  // 뷰어는 화면 스트립과 같은 순서로 넘긴다. order 는 제거 직후 한 렌더 동안 죽은 id 를
+  // 들고 있으므로(useOrderedKeys 의 정리는 effect) lookup 으로 걸러낸다.
+  const orderedStaged = order
+    .map((id) => files.find((f) => f.id === id))
+    .filter((f): f is FileRow => Boolean(f))
 
   return (
     <div className="flex flex-col gap-3">
@@ -247,6 +254,14 @@ export function UploadDashboard({
                 return (
                   <div className="relative h-24 w-24">
                     <Thumb file={f} />
+                    <button
+                      type="button"
+                      aria-label={t('zoom')}
+                      onClick={() => setViewing(f.id)}
+                      className="absolute bottom-1 left-1 rounded-full bg-black/55 p-1 text-white"
+                    >
+                      <ZoomIn size={14} />
+                    </button>
                     <button
                       type="button"
                       aria-label={t('remove')}
@@ -409,6 +424,15 @@ export function UploadDashboard({
             )
           })}
         </ul>
+      )}
+
+      {viewing && (
+        <UploadPreviewViewer
+          files={orderedStaged}
+          startId={viewing}
+          onRemove={removeFile}
+          onClose={() => setViewing(null)}
+        />
       )}
 
       {editing && (
