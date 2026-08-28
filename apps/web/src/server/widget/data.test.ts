@@ -15,6 +15,7 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.widgetPhoto.deleteMany()
   await db.prismaPublic.storyAsset.deleteMany()
   await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
@@ -139,36 +140,52 @@ describe('getWidgetData', () => {
     media.setUrlsForAsset(a2.id, fakeUrls())
     const data = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
       source: 'bookmark_random',
-      pinnedAssetId: null,
     })
     expect(data?.photoUrls.length).toBe(2)
   })
 
-  it('bookmark_pinned 은 고정 1장만, 북마크 없으면 전체로 폴백', async () => {
+  it('collection 은 담은 순서대로, 비면 전체 최신으로 폴백', async () => {
     const { user, family } = await setup()
     const a1 = await makeAsset(family.id, user.id, new Date('2026-06-01'))
     const a2 = await makeAsset(family.id, user.id, new Date('2026-06-02'))
-    await db.prismaPublic.assetBookmark.createMany({
-      data: [
-        { assetId: a1.id, userId: user.id, familyId: family.id },
-        { assetId: a2.id, userId: user.id, familyId: family.id },
-      ],
-    })
+    await makeAsset(family.id, user.id, new Date('2026-06-03')) // 안 담음
     const media = new FakeMediaClient()
     media.setUrlsForAsset(a1.id, fakeUrls())
     media.setUrlsForAsset(a2.id, fakeUrls())
-    const pinned = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
-      source: 'bookmark_pinned',
-      pinnedAssetId: a1.id,
+    // 최신(a2)이 아니라 담은 순서(a2 -> a1)가 유지되는지 본다.
+    await db.prismaPublic.widgetPhoto.createMany({
+      data: [
+        { assetId: a2.id, userId: user.id, familyId: family.id, sortOrder: 0 },
+        { assetId: a1.id, userId: user.id, familyId: family.id, sortOrder: 1 },
+      ],
     })
-    expect(pinned?.photoUrls.length).toBe(1)
+    const picked = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
+      source: 'collection',
+    })
+    expect(picked?.photoUrls.length).toBe(2)
+    expect(picked?.photoDates).toEqual(['2026-06-02', '2026-06-01'])
 
-    await db.prismaPublic.assetBookmark.deleteMany()
+    await db.prismaPublic.widgetPhoto.deleteMany()
     const fallback = await getWidgetData(user.id, db.prismaMedia, db.prismaPublic, media, {
-      source: 'bookmark_random',
-      pinnedAssetId: null,
+      source: 'collection',
     })
     expect(fallback?.photoUrls.length).toBe(2)
+  })
+
+  it('아기가 있으면 나이 라벨을 함께 내려준다', async () => {
+    const { user, family } = await setup()
+    await db.prismaPublic.baby.create({
+      data: { familyId: family.id, name: '루키', birthDate: new Date('2026-01-15T00:00:00Z') },
+    })
+    const data = await getWidgetData(
+      user.id,
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(data?.ageText).toBeTruthy()
+    expect(data?.memoryUrls).toEqual([])
+    expect(data?.memoryLabel).toBeNull()
   })
 
   it('비밀 스토리 사진은 family 위젯에서 빠지고 owner 위젯엔 보인다', async () => {

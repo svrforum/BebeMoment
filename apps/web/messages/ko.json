@@ -147,17 +147,19 @@
     "widgetSource": {
       "savedSuccess": "위젯 설정을 저장했어요",
       "saveFailed": "저장하지 못했어요",
-      "pickPinned": "고정할 사진 선택",
-      "noBookmarks": "북마크한 사진이 없어요. 사진을 북마크(저장)하면 여기서 고를 수 있어요.",
-      "pinThisPhoto": "이 사진으로 고정",
       "options": {
         "recentLabel": "전체 최신 사진",
         "recentDesc": "모든 사진 중 무작위로 바뀌어요 (기본)",
         "bookmarkRandomLabel": "북마크 랜덤",
         "bookmarkRandomDesc": "북마크한 사진 중 무작위로 바뀌어요",
-        "bookmarkPinnedLabel": "북마크 고정",
-        "bookmarkPinnedDesc": "고른 북마크 사진 한 장만 보여요"
-      }
+        "collectionLabel": "위젯에 담은 사진",
+        "collectionDesc": "내가 담은 사진들만 돌아가며 보여요"
+      },
+      "collectionTitle": "위젯에 담은 사진",
+      "collectionEmpty": "아직 담은 사진이 없어요. 사진을 열고 ⋯ 메뉴에서 '홈 위젯에 담기'를 눌러보세요.",
+      "collectionHint": "드래그해서 순서를 바꿀 수 있어요. 첫 번째 사진이 대표예요.",
+      "coverBadge": "대표",
+      "removePhoto": "위젯에서 빼기"
     },
     "about": {
       "github": "GitHub",
@@ -481,7 +483,12 @@
       "trashConfirmTitle": "휴지통으로 옮길까요?",
       "trashConfirmDescription": "휴지통에서 다시 복원할 수 있어요.",
       "trashConfirmLabel": "휴지통으로",
-      "trashConfirmingLabel": "옮기는 중…"
+      "trashConfirmingLabel": "옮기는 중…",
+      "widgetAdd": "홈 위젯에 담기",
+      "widgetRemove": "홈 위젯에서 빼기",
+      "widgetAdded": "홈 위젯에 담았어요",
+      "widgetRemoved": "홈 위젯에서 뺐어요",
+      "widgetFailed": "위젯에 담지 못했어요"
     },
     "info": {
       "details": "세부정보",

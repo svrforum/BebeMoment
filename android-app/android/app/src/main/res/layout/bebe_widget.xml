@@ -15,6 +15,7 @@
     <!-- RemoteViews 는 일반 <View> 를 지원하지 않음(허용 목록: ImageView/TextView/…).
          가독성용 하단 그라데이션은 ImageView 로 깐다. -->
     <ImageView
+        android:id="@+id/widget_scrim"
         android:layout_width="match_parent"
         android:layout_height="80dp"
         android:layout_gravity="bottom"
@@ -23,6 +24,7 @@
         android:contentDescription="@null" />
 
     <LinearLayout
+        android:id="@+id/widget_caption"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -49,6 +51,7 @@
             android:layout_height="wrap_content"
             android:textColor="#F0FFFFFF"
             android:textSize="13sp"
+            android:textStyle="bold"
             android:shadowColor="#80000000"
             android:shadowDx="0"
             android:shadowDy="1"

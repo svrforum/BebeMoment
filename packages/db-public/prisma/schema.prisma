@@ -40,6 +40,7 @@ model User {
   createdStories Story[]
   likes                 AssetLike[]
   bookmarks             AssetBookmark[]
+  widgetPhotos          WidgetPhoto[]
   storyBookmarks      StoryBookmark[]
   authoredComments      AssetComment[]
   createdTags           Tag[]            @relation("TagCreatedBy")
@@ -66,11 +67,28 @@ model WidgetToken {
   user                User      @relation(fields: [userId], references: [id], onDelete: Cascade)
   createdAt           DateTime  @default(now()) @map("created_at")
   lastUsedAt          DateTime? @map("last_used_at")
-  // 위젯 사진 소스: 'recent'(전체 최신·기본) | 'bookmark_random' | 'bookmark_pinned'
-  widgetSource        String    @default("recent") @map("widget_source")
-  widgetPinnedAssetId String?   @map("widget_pinned_asset_id") @db.Uuid
+  // 위젯 사진 소스: 'recent'(전체 최신·기본) | 'bookmark_random' | 'collection'
+  widgetSource String @default("recent") @map("widget_source")
 
   @@map("widget_tokens")
+  @@schema("public")
+}
+
+/// 사용자가 홈 위젯에 보여주려고 직접 담은 사진들. 북마크와 목적이 달라 분리한다
+/// (북마크는 "나중에 볼 것", 이건 "위젯에 띄울 것"). asset_id 는 media 스키마라 FK 없음.
+model WidgetPhoto {
+  assetId   String   @map("asset_id") @db.Uuid
+  userId    String   @map("user_id") @db.Uuid
+  familyId  String   @map("family_id") @db.Uuid
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user   User   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  family Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@id([assetId, userId])
+  @@index([familyId, userId, sortOrder])
+  @@map("widget_photos")
   @@schema("public")
 }
 
@@ -189,6 +207,7 @@ model Family {
   stories Story[]
   assetLikes       AssetLike[]
   assetBookmarks   AssetBookmark[]
+  widgetPhotos     WidgetPhoto[]
   storyBookmarks StoryBookmark[]
   assetComments    AssetComment[]
   tags             Tag[]

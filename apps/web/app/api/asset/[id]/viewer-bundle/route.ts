@@ -66,26 +66,30 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     })
     if (!assetRow) return errorJsonKey('notFound', 404)
 
-    const [likers, myLike, myBookmark, commentRows, assetBabyLinks] = await Promise.all([
-      likersForAsset(ctx.family.id, bundle.current.id, prismaPublic),
-      prismaPublic.assetLike.findFirst({
-        where: { assetId: bundle.current.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.assetBookmark.findFirst({
-        where: { assetId: bundle.current.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.assetComment.count({
-        where: {
-          assetId: bundle.current.id,
-          familyId: ctx.family.id,
-          deletedAt: null,
-        },
-      }),
-      prismaMedia.assetBaby.findMany({
-        where: { assetId: bundle.current.id },
-        select: { babyId: true },
-      }),
-    ])
+    const [likers, myLike, myBookmark, myWidgetPhoto, commentRows, assetBabyLinks] =
+      await Promise.all([
+        likersForAsset(ctx.family.id, bundle.current.id, prismaPublic),
+        prismaPublic.assetLike.findFirst({
+          where: { assetId: bundle.current.id, userId: ctx.user.id, familyId: ctx.family.id },
+        }),
+        prismaPublic.assetBookmark.findFirst({
+          where: { assetId: bundle.current.id, userId: ctx.user.id, familyId: ctx.family.id },
+        }),
+        prismaPublic.widgetPhoto.findFirst({
+          where: { assetId: bundle.current.id, userId: ctx.user.id, familyId: ctx.family.id },
+        }),
+        prismaPublic.assetComment.count({
+          where: {
+            assetId: bundle.current.id,
+            familyId: ctx.family.id,
+            deletedAt: null,
+          },
+        }),
+        prismaMedia.assetBaby.findMany({
+          where: { assetId: bundle.current.id },
+          select: { babyId: true },
+        }),
+      ])
 
     const babyIds = assetBabyLinks.map((l) => l.babyId)
     const babyRows = babyIds.length
@@ -102,6 +106,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         likeCount: likers.count,
         likers,
         bookmarked: !!myBookmark,
+        inWidget: !!myWidgetPhoto,
         commentCount: commentRows,
       },
       meta: {

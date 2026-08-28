@@ -60,24 +60,28 @@ export default async function DetailPage({
   })
   if (!asset) notFound()
 
-  const [likers, commentsRaw, myLike, myBookmark, assetBabyLinks, members] = await Promise.all([
-    likersForAsset(ctx.family.id, asset.id, prismaPublic),
-    listComments(ctx.family.id, asset.id, prismaPublic),
-    prismaPublic.assetLike.findFirst({
-      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-    }),
-    prismaPublic.assetBookmark.findFirst({
-      where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-    }),
-    prismaMedia.assetBaby.findMany({
-      where: { assetId: asset.id },
-      select: { babyId: true },
-    }),
-    prismaPublic.membership.findMany({
-      where: { familyId: ctx.family.id, deletedAt: null },
-      include: { user: { select: { id: true, displayName: true } } },
-    }),
-  ])
+  const [likers, commentsRaw, myLike, myBookmark, myWidgetPhoto, assetBabyLinks, members] =
+    await Promise.all([
+      likersForAsset(ctx.family.id, asset.id, prismaPublic),
+      listComments(ctx.family.id, asset.id, prismaPublic),
+      prismaPublic.assetLike.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+      }),
+      prismaPublic.assetBookmark.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+      }),
+      prismaPublic.widgetPhoto.findFirst({
+        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
+      }),
+      prismaMedia.assetBaby.findMany({
+        where: { assetId: asset.id },
+        select: { babyId: true },
+      }),
+      prismaPublic.membership.findMany({
+        where: { familyId: ctx.family.id, deletedAt: null },
+        include: { user: { select: { id: true, displayName: true } } },
+      }),
+    ])
 
   const babyIds = assetBabyLinks.map((link) => link.babyId)
   const babyRows = babyIds.length
@@ -156,6 +160,7 @@ export default async function DetailPage({
       likers={likers}
       initialLiked={!!myLike}
       initialBookmarked={!!myBookmark}
+      initialInWidget={!!myWidgetPhoto}
       initialComments={initialComments}
       initialFilename={asset.originalFilename}
       initialCaption={asset.caption}

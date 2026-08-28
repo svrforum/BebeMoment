@@ -4,4 +4,6 @@
     <string name="title_activity_main">Bebe Moment</string>
     <string name="package_name">im.bebe.app</string>
     <string name="custom_url_scheme">im.bebe.app</string>
+    <string name="widget_single_label">베베 사진</string>
+    <string name="widget_quad_label">베베 사진 4장</string>
 </resources>

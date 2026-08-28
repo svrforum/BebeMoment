@@ -6,6 +6,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.graphics.Bitmap;
 import android.graphics.BitmapFactory;
+import android.util.TypedValue;
 import android.view.View;
 import android.widget.RemoteViews;
 import androidx.annotation.NonNull;
@@ -36,13 +37,20 @@ public class WidgetRefreshWorker extends Worker {
     private static final String PERIODIC_NAME = "bebe-widget-refresh";
     static final String EXTRA_WIDGET_ID = "widgetId";
     private static final int MAX_PHOTOS = 10;
-    private static final int SINGLE_MAX_PX = 420;
-    // 4장 콜라주 한 장의 정사각 캔버스(px). 비트맵 1개라 RemoteViews/바인더 예산 안전
-    // (440²×4 ≈ 0.77MB < 1MB). 각 칸은 절반(220px) 정밀도로 다운샘플 디코드.
-    private static final int QUAD_CANVAS_PX = 440;
-    // 4장 위젯의 표시 모드(위젯별 SharedPrefs). 기본은 큰사진 1장, 토글로 그리드 전환.
-    static final String MODE_SINGLE = "single";
-    static final String MODE_GRID = "grid";
+    private static final int MAX_MEMORY_PHOTOS = 4;
+    // 렌더 비트맵의 긴 변(px). 위젯 종횡비대로 캔버스를 만들되 이 값을 넘지 않게 해
+    // RemoteViews/바인더 예산(≈1MB)을 지킨다: 420²×4 ≈ 0.70MB.
+    private static final int FRAME_MAX_PX = 420;
+    // 위젯은 자유 리사이즈라 극단적 비율이 나올 수 있다 — 캔버스 크기를 묶어둔다.
+    private static final float MIN_ASPECT = 0.4f;
+    private static final float MAX_ASPECT = 2.5f;
+
+    // 위젯별 표시 스타일(SharedPrefs). 모드 버튼이 이 목록을 순환한다.
+    static final String STYLE_PHOTO = "photo";
+    static final String STYLE_GRID = "grid";
+    static final String STYLE_DDAY = "dday";
+    static final String STYLE_MEMORY = "memory";
+    static final String STYLE_MINIMAL = "minimal";
 
     public WidgetRefreshWorker(@NonNull Context ctx, @NonNull WorkerParameters params) {
         super(ctx, params);
@@ -71,7 +79,11 @@ public class WidgetRefreshWorker extends Worker {
         return "w" + id + "_" + suffix;
     }
     private static String photoFile(Context ctx, int id, int i) {
-        return new java.io.File(ctx.getFilesDir(), "w" + id + "_photo_" + i + ".jpg").getAbsolutePath();
+        return photoFile(ctx, id, i, false);
+    }
+    private static String photoFile(Context ctx, int id, int i, boolean memory) {
+        String kind = memory ? "_memory_" : "_photo_";
+        return new java.io.File(ctx.getFilesDir(), "w" + id + kind + i + ".jpg").getAbsolutePath();
     }
 
     @NonNull
@@ -111,8 +123,7 @@ public class WidgetRefreshWorker extends Worker {
             }
         }
         try {
-            if (quad) renderQuad(ctx, sp, mgr, id);
-            else renderSingle(ctx, sp, mgr, id);
+            render(ctx, sp, mgr, id, quad);
         } catch (Throwable ignored) {
         }
     }
@@ -140,6 +151,10 @@ public class WidgetRefreshWorker extends Worker {
         SharedPreferences.Editor ed = sp.edit();
         ed.putString(wk(id, "babyName"), json.optString("babyName", ""));
         ed.putInt(wk(id, "newCount"), json.optInt("newCount", 0));
+        // 나이 라벨·추억은 서버가 만들어 보낸다 — 날짜 계산과 로케일이 앱과 갈라지지 않게.
+        // 구버전 서버는 이 필드가 없다 → 빈 값이면 해당 스타일을 순환에서 건너뛴다.
+        ed.putString(wk(id, "ageText"), json.optString("ageText", ""));
+        ed.putString(wk(id, "memoryLabel"), json.optString("memoryLabel", ""));
 
         // 미디어 URL 은 루트-상대(/media/...)라 네이티브는 절대 URL 로 만들어 받아야 한다.
         JSONArray urls = json.optJSONArray("photoUrls");
@@ -168,7 +183,35 @@ public class WidgetRefreshWorker extends Worker {
             ed.putInt(wk(id, "shuffleIdx"), 0);
             ed.putString(wk(id, "photoDates"), savedDates.toString());
         }
+        // 추억 사진도 미리 받아둔다 — 스타일 전환이 네트워크 없이 즉시 되어야 한다.
+        ed.putInt(wk(id, "memoryCount"), cachePhotos(ctx, id, base, json.optJSONArray("memoryUrls"),
+            MAX_MEMORY_PHOTOS, true));
         ed.apply();
+    }
+
+    /** urls 를 최대 max 장까지 받아 위젯 캐시 파일로 저장하고 저장한 장수를 돌려준다. */
+    private int cachePhotos(Context ctx, int id, String base, JSONArray urls, int max, boolean memory) {
+        int saved = 0;
+        if (urls == null) return 0;
+        for (int i = 0; i < urls.length() && saved < max; i++) {
+            String u = urls.optString(i, null);
+            if (u == null || u.isEmpty()) continue;
+            if (!u.startsWith("http://") && !u.startsWith("https://")) {
+                u = base + (u.startsWith("/") ? u : "/" + u);
+            }
+            try {
+                Bitmap bmp = downloadBitmap(u);
+                if (bmp == null) continue;
+                java.io.File f = new java.io.File(photoFile(ctx, id, saved, memory));
+                try (java.io.FileOutputStream fos = new java.io.FileOutputStream(f)) {
+                    bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
+                }
+                saved++;
+            } catch (Exception ignored) {
+                // 한 장 실패가 나머지를 막지 않게 — 받은 만큼만 캐시한다.
+            }
+        }
+        return saved;
     }
 
     private Bitmap downloadBitmap(String photoUrl) throws Exception {
@@ -190,7 +233,7 @@ public class WidgetRefreshWorker extends Worker {
             bounds.inJustDecodeBounds = true;
             BitmapFactory.decodeByteArray(data, 0, data.length, bounds);
             BitmapFactory.Options opts = new BitmapFactory.Options();
-            opts.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, SINGLE_MAX_PX);
+            opts.inSampleSize = sampleSize(bounds.outWidth, bounds.outHeight, FRAME_MAX_PX);
             return BitmapFactory.decodeByteArray(data, 0, data.length, opts);
         } finally {
             conn.disconnect();
@@ -210,13 +253,20 @@ public class WidgetRefreshWorker extends Worker {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
         SharedPreferences.Editor ed = sp.edit();
         final String[] suffixes = {
-            "server", "token", "babyName", "newCount", "photoCount", "shuffleIdx", "photoDates", "mode"
+            "server", "token", "babyName", "newCount", "photoCount", "shuffleIdx", "photoDates",
+            "mode", "style", "ageText", "memoryLabel", "memoryCount"
         };
         for (int id : ids) {
             for (String s : suffixes) ed.remove(wk(id, s));
             for (int i = 0; i < MAX_PHOTOS; i++) {
                 try {
-                    new java.io.File(photoFile(ctx, id, i)).delete();
+                    new java.io.File(photoFile(ctx, id, i, false)).delete();
+                } catch (Exception ignored) {
+                }
+            }
+            for (int i = 0; i < MAX_MEMORY_PHOTOS; i++) {
+                try {
+                    new java.io.File(photoFile(ctx, id, i, true)).delete();
                 } catch (Exception ignored) {
                 }
             }
@@ -224,17 +274,17 @@ public class WidgetRefreshWorker extends Worker {
         ed.apply();
     }
 
-    /** 새로고침 버튼 — 큰사진(단일/4장-단일모드)은 무작위 1장, 4장-그리드모드는 다음 4장 묶음. */
+    /** 새로고침 버튼 — 큰사진은 무작위 1장, 그리드는 다음 4장 묶음. */
     static void shuffle(Context ctx, int id) {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         boolean quad = isQuad(ctx, mgr, id);
-        boolean grid = quad && MODE_GRID.equals(sp.getString(wk(id, "mode"), MODE_SINGLE));
-        int count = sp.getInt(wk(id, "photoCount"), 0);
+        String style = styleOf(sp, id, quad);
+        int count = photoCountFor(sp, id, style);
         if (count > 1) {
             int cur = sp.getInt(wk(id, "shuffleIdx"), 0);
             int next;
-            if (grid) {
+            if (STYLE_GRID.equals(style)) {
                 // 다음 4장 윈도로 회전(사진이 4장 이하면 사실상 그대로라 표시 변화 없음).
                 next = (cur + 4) % count;
             } else {
@@ -244,21 +294,61 @@ public class WidgetRefreshWorker extends Worker {
             sp.edit().putInt(wk(id, "shuffleIdx"), next).apply();
         }
         try {
-            if (quad) renderQuad(ctx, sp, mgr, id);
-            else renderSingle(ctx, sp, mgr, id);
+            render(ctx, sp, mgr, id, quad);
         } catch (Throwable ignored) {
         }
     }
 
-    /** 모드 토글 버튼 — 그 4장 위젯만 그리드↔큰사진 1장으로 전환. */
+    /** 스타일 버튼 — 그 위젯만 다음 스타일로. 네트워크 없이 캐시에서 즉시 다시 그린다. */
     static void toggleMode(Context ctx, int id) {
         SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
-        String cur = sp.getString(wk(id, "mode"), MODE_SINGLE);
-        sp.edit().putString(wk(id, "mode"), MODE_GRID.equals(cur) ? MODE_SINGLE : MODE_GRID).apply();
+        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
+        boolean quad = isQuad(ctx, mgr, id);
+        String[] all = stylesFor(sp, id, quad);
+        String cur = styleOf(sp, id, quad);
+        int at = 0;
+        for (int i = 0; i < all.length; i++) if (all[i].equals(cur)) at = i;
+        // 스타일이 바뀌면 사진 풀도 바뀔 수 있다(추억↔일반) — 인덱스를 처음으로.
+        sp.edit().putString(wk(id, "style"), all[(at + 1) % all.length]).putInt(wk(id, "shuffleIdx"), 0).apply();
         try {
-            renderQuad(ctx, sp, AppWidgetManager.getInstance(ctx), id);
+            render(ctx, sp, mgr, id, quad);
         } catch (Throwable ignored) {
         }
+    }
+
+    /** 위젯 크기가 바뀌면 액자 비율이 달라진다 — 캐시에서 다시 그린다(네트워크 없음). */
+    static void reRender(Context ctx, int id) {
+        SharedPreferences sp = ctx.getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
+        try {
+            render(ctx, sp, mgr, id, isQuad(ctx, mgr, id));
+        } catch (Throwable ignored) {
+        }
+    }
+
+    /** 이 위젯에서 고를 수 있는 스타일 순서. 4장 콜라주는 3×3 위젯에서만, 추억은 사진이 있을 때만. */
+    private static String[] stylesFor(SharedPreferences sp, int id, boolean quad) {
+        java.util.ArrayList<String> out = new java.util.ArrayList<>();
+        out.add(STYLE_PHOTO);
+        if (quad) out.add(STYLE_GRID);
+        if (!sp.getString(wk(id, "ageText"), "").isEmpty()) out.add(STYLE_DDAY);
+        if (sp.getInt(wk(id, "memoryCount"), 0) > 0) out.add(STYLE_MEMORY);
+        out.add(STYLE_MINIMAL);
+        return out.toArray(new String[0]);
+    }
+
+    /** 저장된 스타일. 구버전 'mode' 키(single/grid)를 이어받고, 지금 고를 수 없는 스타일이면 기본으로. */
+    private static String styleOf(SharedPreferences sp, int id, boolean quad) {
+        String s = sp.getString(wk(id, "style"), null);
+        if (s == null) s = "grid".equals(sp.getString(wk(id, "mode"), null)) ? STYLE_GRID : STYLE_PHOTO;
+        for (String allowed : stylesFor(sp, id, quad)) if (allowed.equals(s)) return s;
+        return STYLE_PHOTO;
+    }
+
+    private static int photoCountFor(SharedPreferences sp, int id, String style) {
+        return STYLE_MEMORY.equals(style)
+            ? sp.getInt(wk(id, "memoryCount"), 0)
+            : sp.getInt(wk(id, "photoCount"), 0);
     }
 
     private static boolean isQuad(Context ctx, AppWidgetManager mgr, int id) {
@@ -268,114 +358,151 @@ public class WidgetRefreshWorker extends Worker {
         return false;
     }
 
-    private static void renderSingle(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
-        String babyName = sp.getString(wk(id, "babyName"), "");
-        int photoCount = sp.getInt(wk(id, "photoCount"), 0);
-        int newCount = sp.getInt(wk(id, "newCount"), 0);
+    /**
+     * 위젯 1개 렌더. 스타일(사진/콜라주/D+/추억/미니멀)에 따라 표시 요소만 달라지고,
+     * 사진은 항상 위젯의 실제 종횡비로 만든 액자에 담는다.
+     *
+     * ⚠️ 액자를 비트맵에 굽는 이유: 레이아웃의 ImageView 는 scaleType="centerCrop" 인데
+     * RemoteViews 로는 scaleType 을 런타임에 바꿀 수 없다(enum setter 없음). 비트맵을
+     * 뷰와 같은 비율로 만들어 두면 centerCrop 이 아무것도 잘라내지 않는다.
+     */
+    private static void render(
+            Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id, boolean quad) {
+        final String style = styleOf(sp, id, quad);
+        final boolean memory = STYLE_MEMORY.equals(style);
+        final boolean grid = STYLE_GRID.equals(style);
+        final boolean minimal = STYLE_MINIMAL.equals(style);
+        final boolean dday = STYLE_DDAY.equals(style);
+
+        final int count = photoCountFor(sp, id, style);
         int idx = sp.getInt(wk(id, "shuffleIdx"), 0);
-        if (photoCount > 0) idx = Math.max(0, Math.min(idx, photoCount - 1));
-        String photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx);
+        if (count > 0) idx = ((idx % count) + count) % count;
+        final float aspect = widgetAspect(mgr, id);
 
         RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
-        rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
-        rv.setViewVisibility(R.id.widget_age, View.GONE);
-        if (photoDate != null && !photoDate.isEmpty()) {
-            rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
-            rv.setTextViewText(R.id.widget_date, photoDate);
-        } else {
-            rv.setViewVisibility(R.id.widget_date, View.GONE);
-        }
-        if (photoCount > 0) {
-            Bitmap b = rounded(BitmapFactory.decodeFile(photoFile(ctx, id, idx)), 40f, SINGLE_MAX_PX);
+
+        if (count > 0) {
+            Bitmap b;
+            if (grid) {
+                int[] cells = new int[4];
+                for (int k = 0; k < 4; k++) cells[k] = (idx + k) % count; // 사진 적으면 순환
+                b = composeQuad(ctx, id, cells, aspect, memory);
+            } else {
+                b = framed(decodeFileSampled(photoFile(ctx, id, idx, memory), FRAME_MAX_PX), aspect);
+            }
             if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
         }
-        applyBadge(rv, newCount);
-        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx, id, sp.getString(wk(id, "server"), null)));
-        if (photoCount > 1) {
-            rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
-            rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
-        } else {
+
+        // ⚠️ 보이기/숨기기를 **양방향 모두** 써야 한다. 레이아웃 id 가 같으면 호스트가
+        // 기존 뷰를 재사용하고 새 RemoteViews 에 담긴 액션만 재생한다(reapply) — 한쪽에서만
+        // GONE 하면 다음 스타일에서 XML 기본값으로 돌아오지 않고 영영 숨은 채로 남는다.
+        rv.setViewVisibility(R.id.widget_scrim, minimal ? View.GONE : View.VISIBLE);
+        rv.setViewVisibility(R.id.widget_caption, minimal ? View.GONE : View.VISIBLE);
+
+        if (minimal) {
+            // 사진만 — 글자·뱃지를 모두 걷어낸다.
+            rv.setViewVisibility(R.id.widget_date, View.GONE);
+            rv.setViewVisibility(R.id.widget_badge, View.GONE);
             rv.setViewVisibility(R.id.widget_refresh, View.GONE);
+        } else {
+            rv.setTextViewText(R.id.widget_name, sp.getString(wk(id, "babyName"), ""));
+            if (dday) {
+                // D+ 카드 — 나이가 주인공. 날짜는 빼서 시선을 하나로 모은다.
+                rv.setViewVisibility(R.id.widget_age, View.VISIBLE);
+                rv.setTextViewText(R.id.widget_age, sp.getString(wk(id, "ageText"), ""));
+                rv.setTextViewTextSize(R.id.widget_age, TypedValue.COMPLEX_UNIT_SP, 24f);
+                rv.setViewVisibility(R.id.widget_date, View.GONE);
+            } else {
+                rv.setViewVisibility(R.id.widget_age, View.GONE);
+                // 추억 스타일은 촬영일 대신 "1년 전 오늘" 라벨을 같은 자리에 쓴다.
+                String top = memory
+                    ? sp.getString(wk(id, "memoryLabel"), "")
+                    : photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx);
+                if (top != null && !top.isEmpty()) {
+                    rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
+                    rv.setTextViewText(R.id.widget_date, top);
+                } else {
+                    rv.setViewVisibility(R.id.widget_date, View.GONE);
+                }
+            }
+            applyBadge(rv, sp.getInt(wk(id, "newCount"), 0));
+            if (count > 1) {
+                rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
+                rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
+            } else {
+                rv.setViewVisibility(R.id.widget_refresh, View.GONE);
+            }
         }
+
+        // 스타일 버튼은 미니멀에서도 남긴다 — 없애면 미니멀에서 빠져나올 길이 사라진다.
+        // 대신 배경 원과 아이콘을 흐리게 해 사진을 방해하지 않는다.
+        String[] all = stylesFor(sp, id, quad);
+        rv.setViewVisibility(R.id.widget_mode, all.length > 1 ? View.VISIBLE : View.GONE);
+        int at = 0;
+        for (int i = 0; i < all.length; i++) if (all[i].equals(style)) at = i;
+        String next = all[(at + 1) % all.length];
+        rv.setImageViewResource(R.id.widget_mode,
+            STYLE_GRID.equals(next) ? R.drawable.widget_mode_grid : R.drawable.widget_mode_single);
+        // 같은 reapply 이유로 두 속성 모두 매번 명시한다 — 미니멀에서 나온 뒤에도 버튼이
+        // 흐린 유령으로 남아, 정작 스타일을 되돌릴 유일한 컨트롤이 안 보이게 됐다.
+        rv.setInt(R.id.widget_mode, "setBackgroundResource", minimal ? 0 : R.drawable.widget_icon_bg);
+        rv.setInt(R.id.widget_mode, "setImageAlpha", minimal ? 90 : 255);
+        rv.setOnClickPendingIntent(R.id.widget_mode, BebeWidgetProvider.modeIntent(ctx, id));
+
+        rv.setOnClickPendingIntent(R.id.widget_root,
+            BebeWidgetProvider.tapIntent(ctx, id, sp.getString(wk(id, "server"), null)));
         mgr.updateAppWidget(id, rv);
     }
 
     /**
-     * 4장(3×3) 위젯 — 단일 위젯과 동일한 레이아웃(bebe_widget)·단일-비트맵 구조. 모드(위젯별)
-     * 에 따라 큰사진 1장(기본) 또는 4장 2×2 콜라주를 widget_photo 한 장으로 그린다. 그리드는
-     * 4장을 콜라주 비트맵 "한 장"으로 합성하므로 RemoteViews 에 비트맵이 1개만 실려 (과거
-     * 그리드의) 비트맵 예산 초과 문제가 없다. 사진이 4장 미만이면 순환해 칸을 채운다.
-     * 우하단 모드 토글 버튼으로 그리드↔큰사진을 전환한다.
+     * 위젯이 실제로 차지한 폭/높이 비(w/h). 런처 셀은 보통 세로로 길고 사용자가 자유롭게
+     * 리사이즈하므로 고정값으로 가정할 수 없다. 값을 못 읽으면 정사각으로 둔다.
      */
-    private static void renderQuad(Context ctx, SharedPreferences sp, AppWidgetManager mgr, int id) {
-        String babyName = sp.getString(wk(id, "babyName"), "");
-        int photoCount = sp.getInt(wk(id, "photoCount"), 0);
-        int newCount = sp.getInt(wk(id, "newCount"), 0);
-        int offset = sp.getInt(wk(id, "shuffleIdx"), 0);
-        if (photoCount > 0) offset = ((offset % photoCount) + photoCount) % photoCount;
-        boolean grid = MODE_GRID.equals(sp.getString(wk(id, "mode"), MODE_SINGLE));
-
-        RemoteViews rv = new RemoteViews(ctx.getPackageName(), R.layout.bebe_widget);
-        rv.setTextViewText(R.id.widget_name, babyName == null ? "" : babyName);
-        rv.setViewVisibility(R.id.widget_age, View.GONE);
-
-        String photoDate = "";
-        if (photoCount > 0) {
-            if (grid) {
-                int[] idx = new int[4];
-                for (int k = 0; k < 4; k++) idx[k] = (offset + k) % photoCount; // 사진 적으면 순환
-                Bitmap collage = composeQuad(ctx, id, idx, QUAD_CANVAS_PX);
-                if (collage != null) rv.setImageViewBitmap(R.id.widget_photo, collage);
-                photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), idx[0]);
-            } else {
-                Bitmap b = rounded(
-                    BitmapFactory.decodeFile(photoFile(ctx, id, offset)), 40f, SINGLE_MAX_PX);
-                if (b != null) rv.setImageViewBitmap(R.id.widget_photo, b);
-                photoDate = photoDateLabel(sp.getString(wk(id, "photoDates"), ""), offset);
+    private static float widgetAspect(AppWidgetManager mgr, int id) {
+        try {
+            android.os.Bundle o = mgr.getAppWidgetOptions(id);
+            if (o != null) {
+                // 세로 방향 기준: 폭은 MIN_WIDTH, 높이는 MAX_HEIGHT 가 실제 크기에 가깝다.
+                int w = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MIN_WIDTH, 0);
+                int h = o.getInt(AppWidgetManager.OPTION_APPWIDGET_MAX_HEIGHT, 0);
+                if (w > 0 && h > 0) {
+                    return Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, (float) w / h));
+                }
             }
+        } catch (Throwable ignored) {
         }
-        if (photoDate != null && !photoDate.isEmpty()) {
-            rv.setViewVisibility(R.id.widget_date, View.VISIBLE);
-            rv.setTextViewText(R.id.widget_date, photoDate);
-        } else {
-            rv.setViewVisibility(R.id.widget_date, View.GONE);
-        }
-
-        applyBadge(rv, newCount);
-        rv.setOnClickPendingIntent(R.id.widget_root, BebeWidgetProvider.tapIntent(ctx, id, sp.getString(wk(id, "server"), null)));
-        if (photoCount > 1) {
-            rv.setViewVisibility(R.id.widget_refresh, View.VISIBLE);
-            rv.setOnClickPendingIntent(R.id.widget_refresh, BebeWidgetProvider.shuffleIntent(ctx, id));
-        } else {
-            rv.setViewVisibility(R.id.widget_refresh, View.GONE);
-        }
-        // 모드 토글 — 현재가 grid 면 '큰사진' 아이콘(전환 대상)을, 아니면 '그리드' 아이콘을 보인다.
-        rv.setViewVisibility(R.id.widget_mode, View.VISIBLE);
-        rv.setImageViewResource(
-            R.id.widget_mode, grid ? R.drawable.widget_mode_single : R.drawable.widget_mode_grid);
-        rv.setOnClickPendingIntent(R.id.widget_mode, BebeWidgetProvider.modeIntent(ctx, id));
-        mgr.updateAppWidget(id, rv);
+        return 1f;
     }
 
-    /** 4장을 2×2 로 합성한 정사각 비트맵 1장. 각 칸은 centerCrop, 바깥 둥근모서리는 OS 가 처리. */
-    private static Bitmap composeQuad(Context ctx, int id, int[] photoIdx, int canvasPx) {
-        Bitmap out = Bitmap.createBitmap(canvasPx, canvasPx, Bitmap.Config.ARGB_8888);
+    /**
+     * 4장을 2×2 로 합성한 비트맵 1장. 캔버스를 **위젯 종횡비**로 만드는 게 핵심 — 정사각으로
+     * 만들면 세로로 긴 위젯에서 ImageView 가 다시 centerCrop 해 좌우가 통째로 잘렸다(이중 크롭).
+     * 칸 자체는 centerCrop 을 유지한다: 칸이 작아 크롭이 덜 거슬리고, 네 칸 모두 레터박스를
+     * 두면 여백이 격자처럼 남아 산만하다.
+     */
+    private static Bitmap composeQuad(Context ctx, int id, int[] photoIdx, float aspect, boolean memory) {
+        final int cw = canvasW(aspect), ch = canvasH(aspect);
+        Bitmap out = Bitmap.createBitmap(cw, ch, Bitmap.Config.ARGB_8888);
         android.graphics.Canvas c = new android.graphics.Canvas(out);
         // widget_bg 블루와 같은 톤으로 채워, 디코드 실패 등으로 빈 칸이 생겨도 위화감 없게.
         c.drawColor(0xFF7BA0F7);
         android.graphics.Paint p = new android.graphics.Paint(
             android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG);
-        int half = canvasPx / 2;
+        final int halfW = cw / 2, halfH = ch / 2;
         boolean any = false;
         for (int q = 0; q < 4; q++) {
             if (photoIdx[q] < 0) continue;
-            Bitmap src = decodeFileSampled(photoFile(ctx, id, photoIdx[q]), half);
+            Bitmap src = decodeFileSampled(photoFile(ctx, id, photoIdx[q], memory), Math.max(halfW, halfH));
             if (src == null) continue;
-            drawCenterCrop(c, src, p, (q % 2) * half, (q / 2) * half, half, half);
+            // 홀수 픽셀에서 가운데 틈이 생기지 않게 오른쪽·아래 칸은 남은 만큼 채운다.
+            int l = (q % 2) * halfW, top = (q / 2) * halfH;
+            int w = (q % 2 == 0) ? halfW : cw - halfW;
+            int h = (q / 2 == 0) ? halfH : ch - halfH;
+            drawCenterCrop(c, src, p, l, top, w, h);
             src.recycle();
             any = true;
         }
-        return any ? out : null;
+        return any ? roundCorners(out, 40f) : null;
     }
 
     /** src 를 dst 사각형에 centerCrop(꽉 채움) 으로 그린다. */
@@ -404,15 +531,68 @@ public class WidgetRefreshWorker extends Worker {
         return BitmapFactory.decodeFile(path, opts);
     }
 
-    /** 비트맵 모서리를 둥글게 + RemoteViews 예산에 맞춰 maxPx 로 다운스케일. */
-    private static Bitmap rounded(Bitmap src, float radius, int maxPx) {
+    private static int canvasW(float aspect) {
+        return aspect >= 1f ? FRAME_MAX_PX : Math.max(1, Math.round(FRAME_MAX_PX * aspect));
+    }
+
+    private static int canvasH(float aspect) {
+        return aspect >= 1f ? Math.max(1, Math.round(FRAME_MAX_PX / aspect)) : FRAME_MAX_PX;
+    }
+
+    /**
+     * 사진을 위젯 종횡비의 액자에 담는다. 사진은 잘리지 않고 전체가 보이며(fitCenter),
+     * 남는 여백은 같은 사진을 크게 키워 흐린 배경으로 채운다 — 가로 사진을 세로 위젯에
+     * 넣어도 좌우가 날아가지 않는다.
+     */
+    private static Bitmap framed(Bitmap src, float aspect) {
         if (src == null) return null;
-        Bitmap b = src;
-        if (src.getWidth() > maxPx || src.getHeight() > maxPx) {
-            float s = Math.min((float) maxPx / src.getWidth(), (float) maxPx / src.getHeight());
-            b = Bitmap.createScaledBitmap(
-                src, Math.max(1, Math.round(src.getWidth() * s)), Math.max(1, Math.round(src.getHeight() * s)), true);
+        final int cw = canvasW(aspect), ch = canvasH(aspect);
+        Bitmap out = Bitmap.createBitmap(cw, ch, Bitmap.Config.ARGB_8888);
+        android.graphics.Canvas c = new android.graphics.Canvas(out);
+        android.graphics.Paint p = new android.graphics.Paint(
+            android.graphics.Paint.ANTI_ALIAS_FLAG | android.graphics.Paint.FILTER_BITMAP_FLAG);
+
+        Bitmap bg = blurred(src, cw, ch);
+        if (bg != null) {
+            c.drawBitmap(bg, null, new android.graphics.Rect(0, 0, cw, ch), p);
+            bg.recycle();
+            // 흐린 배경이 전경만큼 밝으면 사진 경계가 뭉개진다 — 살짝 눌러 준다.
+            c.drawColor(0x40000000);
+        } else {
+            c.drawColor(0xFF7BA0F7);
         }
+
+        float s = Math.min((float) cw / src.getWidth(), (float) ch / src.getHeight());
+        int dw = Math.max(1, Math.round(src.getWidth() * s));
+        int dh = Math.max(1, Math.round(src.getHeight() * s));
+        int dl = (cw - dw) / 2, dt = (ch - dh) / 2;
+        c.drawBitmap(src, null, new android.graphics.Rect(dl, dt, dl + dw, dt + dh), p);
+        return roundCorners(out, 40f);
+    }
+
+    /**
+     * 다운스케일 후 필터 업스케일로 낸 블러. RenderScript 는 API 31 에서 폐기됐고
+     * RenderEffect 는 31+ 인데 minSdk 가 22 라, 의존성 없이 전 기기에서 도는 이 방법을 쓴다.
+     */
+    private static Bitmap blurred(Bitmap src, int w, int h) {
+        try {
+            int sw = Math.max(1, w / 24), sh = Math.max(1, h / 24);
+            Bitmap small = Bitmap.createBitmap(sw, sh, Bitmap.Config.ARGB_8888);
+            android.graphics.Canvas c = new android.graphics.Canvas(small);
+            android.graphics.Paint p =
+                new android.graphics.Paint(android.graphics.Paint.FILTER_BITMAP_FLAG);
+            drawCenterCrop(c, src, p, 0, 0, sw, sh);
+            Bitmap big = Bitmap.createScaledBitmap(small, w, h, true);
+            small.recycle();
+            return big;
+        } catch (Throwable t) {
+            return null;
+        }
+    }
+
+    /** 비트맵 모서리를 둥글게. */
+    private static Bitmap roundCorners(Bitmap b, float radius) {
+        if (b == null) return null;
         Bitmap out = Bitmap.createBitmap(b.getWidth(), b.getHeight(), Bitmap.Config.ARGB_8888);
         android.graphics.Canvas canvas = new android.graphics.Canvas(out);
         android.graphics.Paint paint = new android.graphics.Paint(android.graphics.Paint.ANTI_ALIAS_FLAG);
@@ -420,6 +600,7 @@ public class WidgetRefreshWorker extends Worker {
             b, android.graphics.Shader.TileMode.CLAMP, android.graphics.Shader.TileMode.CLAMP));
         android.graphics.RectF rect = new android.graphics.RectF(0, 0, b.getWidth(), b.getHeight());
         canvas.drawRoundRect(rect, radius, radius, paint);
+        b.recycle();
         return out;
     }
 

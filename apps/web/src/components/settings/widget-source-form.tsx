@@ -1,60 +1,65 @@
 'use client'
-import { saveWidgetConfig } from '@/(app)/settings/widget/actions'
+import {
+  removeWidgetPhoto,
+  saveWidgetConfig,
+  saveWidgetPhotoOrder,
+} from '@/(app)/settings/widget/actions'
+import { PictureImage } from '@/components/ui/picture-image'
+import { ReorderRow } from '@/components/upload/reorder-row'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
-import { PictureImage } from '@/components/ui/picture-image'
-import { Check } from 'lucide-react'
+import { Check, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
 
-type Bookmark = { id: string; thumb: string }
+type WidgetPhoto = { id: string; thumb: string }
 
 const OPTIONS = [
   { value: 'recent', labelKey: 'recentLabel', descKey: 'recentDesc' },
   { value: 'bookmark_random', labelKey: 'bookmarkRandomLabel', descKey: 'bookmarkRandomDesc' },
-  { value: 'bookmark_pinned', labelKey: 'bookmarkPinnedLabel', descKey: 'bookmarkPinnedDesc' },
+  { value: 'collection', labelKey: 'collectionLabel', descKey: 'collectionDesc' },
 ] as const
 
 export function WidgetSourceForm({
   initialSource,
-  initialPinned,
-  bookmarks,
+  photos,
 }: {
   initialSource: string
-  initialPinned: string | null
-  bookmarks: Bookmark[]
+  photos: WidgetPhoto[]
 }) {
   const [source, setSource] = useState(initialSource)
-  const [pinned, setPinned] = useState<string | null>(initialPinned)
+  const [items, setItems] = useState(photos)
   const [pending, startTransition] = useTransition()
   const toast = useToast()
   const t = useTranslations('settings.widgetSource')
 
-  const save = (nextSource: string, nextPinned: string | null) => {
-    startTransition(async () => {
-      const res = await saveWidgetConfig({ source: nextSource, pinnedAssetId: nextPinned })
-      toast(
-        res.ok
-          ? { title: t('savedSuccess'), variant: 'success' }
-          : { title: t('saveFailed'), variant: 'danger' },
-      )
-    })
-  }
+  const notify = (ok: boolean) =>
+    toast(
+      ok
+        ? { title: t('savedSuccess'), variant: 'success' }
+        : { title: t('saveFailed'), variant: 'danger' },
+    )
 
   const pickSource = (v: string) => {
     setSource(v)
-    if (v !== 'bookmark_pinned') {
-      setPinned(null)
-      save(v, null)
-    } else {
-      // 고정으로 바꾸면 기존 선택(있으면) 유지하며 저장 — 없으면 아래에서 사진을 고른다.
-      save(v, pinned)
-    }
+    startTransition(async () => {
+      notify((await saveWidgetConfig({ source: v })).ok)
+    })
   }
 
-  const pickPhoto = (id: string) => {
-    setPinned(id)
-    save('bookmark_pinned', id)
+  const reorder = (ids: string[]) => {
+    const byId = new Map(items.map((p) => [p.id, p]))
+    setItems(ids.map((id) => byId.get(id)).filter((p): p is WidgetPhoto => Boolean(p)))
+    startTransition(async () => {
+      await saveWidgetPhotoOrder(ids)
+    })
+  }
+
+  const remove = (id: string) => {
+    setItems((prev) => prev.filter((p) => p.id !== id))
+    startTransition(async () => {
+      notify((await removeWidgetPhoto(id)).ok)
+    })
   }
 
   return (
@@ -94,48 +99,48 @@ export function WidgetSourceForm({
         })}
       </div>
 
-      {source === 'bookmark_pinned' && (
+      {source === 'collection' && (
         <div className="space-y-2">
-          <p className="px-1 text-[13px] font-semibold text-base-500">{t('pickPinned')}</p>
-          {bookmarks.length === 0 ? (
+          <p className="px-1 text-[13px] font-semibold text-base-500">{t('collectionTitle')}</p>
+          {items.length === 0 ? (
             <p className="rounded-2xl border border-base-200/70 bg-base-0 px-4 py-6 text-center text-[13px] text-base-400 dark:border-base-800/70 dark:bg-base-900">
-              {t('noBookmarks')}
+              {t('collectionEmpty')}
             </p>
           ) : (
-            <div className="grid grid-cols-4 gap-2 sm:grid-cols-5">
-              {bookmarks.map((b) => {
-                const sel = pinned === b.id
-                return (
-                  <button
-                    key={b.id}
-                    type="button"
-                    onClick={() => pickPhoto(b.id)}
-                    disabled={pending}
-                    aria-label={t('pinThisPhoto')}
-                    className={cn(
-                      'relative aspect-square overflow-hidden rounded-xl transition active:scale-95',
-                      sel ? 'ring-[3px] ring-point-500' : 'ring-1 ring-base-200/60',
-                    )}
-                  >
-                    <PictureImage
-                      trio={null}
-                      fallbackUrl={b.thumb}
-                      alt=""
-                      aspectRatio={1}
-                      dominantColor={null}
-                      blurhash={null}
-                      className="h-full w-full"
-                      loading="lazy"
-                    />
-                    {sel && (
-                      <span className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-point-500 shadow">
-                        <Check size={12} strokeWidth={3.5} className="text-white" />
-                      </span>
-                    )}
-                  </button>
-                )
-              })}
-            </div>
+            <>
+              <ReorderRow
+                keys={items.map((p) => p.id)}
+                onReorder={reorder}
+                coverLabel={t('coverBadge')}
+                renderItem={(id) => {
+                  const p = items.find((x) => x.id === id)
+                  if (!p) return null
+                  return (
+                    <div className="relative h-24 w-24 overflow-hidden rounded-xl">
+                      <PictureImage
+                        trio={null}
+                        fallbackUrl={p.thumb}
+                        alt=""
+                        aspectRatio={1}
+                        dominantColor={null}
+                        blurhash={null}
+                        className="h-full w-full"
+                        loading="lazy"
+                      />
+                      <button
+                        type="button"
+                        aria-label={t('removePhoto')}
+                        onClick={() => remove(p.id)}
+                        className="absolute top-1 right-1 rounded-full bg-black/55 p-1 text-white"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                  )
+                }}
+              />
+              <p className="px-1 text-[11px] text-base-400">{t('collectionHint')}</p>
+            </>
           )}
         </div>
       )}

@@ -72,6 +72,19 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         }
     }
 
+    /**
+     * 위젯을 리사이즈하면 액자 비율이 달라진다 — 다시 그리지 않으면 이전 비트맵이 새 크기에
+     * 맞춰 잘린다. 캐시에서 렌더만 하므로 네트워크를 타지 않는다.
+     */
+    @Override
+    public void onAppWidgetOptionsChanged(
+            Context ctx, AppWidgetManager mgr, int id, android.os.Bundle newOptions) {
+        try {
+            WidgetRefreshWorker.reRender(ctx, id);
+        } catch (Throwable ignored) {
+        }
+    }
+
     @Override
     public void onDeleted(Context ctx, int[] ids) {
         try {

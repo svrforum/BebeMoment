@@ -83,6 +83,7 @@
 
         <receiver
             android:name=".BebeWidgetProvider"
+            android:label="@string/widget_single_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -94,6 +95,7 @@
 
         <receiver
             android:name=".BebeQuadWidgetProvider"
+            android:label="@string/widget_quad_label"
             android:exported="false">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />

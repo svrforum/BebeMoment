@@ -147,17 +147,19 @@
     "widgetSource": {
       "savedSuccess": "Widget settings saved",
       "saveFailed": "Couldn't save",
-      "pickPinned": "Choose a photo to pin",
-      "noBookmarks": "No bookmarked photos yet. Bookmark (save) a photo to choose it here.",
-      "pinThisPhoto": "Pin this photo",
       "options": {
         "recentLabel": "All recent photos",
         "recentDesc": "Rotates randomly through all your photos (default)",
         "bookmarkRandomLabel": "Bookmarks, random",
         "bookmarkRandomDesc": "Rotates randomly through your bookmarked photos",
-        "bookmarkPinnedLabel": "Bookmarks, pinned",
-        "bookmarkPinnedDesc": "Shows just one bookmarked photo you choose"
-      }
+        "collectionLabel": "Widget picks",
+        "collectionDesc": "Rotates through only the photos you added"
+      },
+      "collectionTitle": "Photos in your widget",
+      "collectionEmpty": "Nothing added yet. Open a photo and choose \"Add to home widget\" from the ⋯ menu.",
+      "collectionHint": "Drag to reorder. The first photo leads.",
+      "coverBadge": "First",
+      "removePhoto": "Remove from widget"
     },
     "about": {
       "github": "GitHub",
@@ -481,7 +483,12 @@
       "trashConfirmTitle": "Move to trash?",
       "trashConfirmDescription": "You can restore it from the trash.",
       "trashConfirmLabel": "Move to trash",
-      "trashConfirmingLabel": "Moving…"
+      "trashConfirmingLabel": "Moving…",
+      "widgetAdd": "Add to home widget",
+      "widgetRemove": "Remove from home widget",
+      "widgetAdded": "Added to your home widget",
+      "widgetRemoved": "Removed from your home widget",
+      "widgetFailed": "Couldn't update the widget"
     },
     "info": {
       "details": "Details",

@@ -47,6 +47,7 @@ export function ViewerShell({
   likers,
   initialLiked,
   initialBookmarked,
+  initialInWidget,
   initialComments,
   initialFilename,
   initialCaption,
@@ -65,6 +66,7 @@ export function ViewerShell({
   likers: { count: number; users: User[] }
   initialLiked: boolean
   initialBookmarked: boolean
+  initialInWidget: boolean
   initialComments: CommentWithAuthor[]
   initialFilename: string
   initialCaption: string | null
@@ -89,6 +91,7 @@ export function ViewerShell({
     setSiblings(initialSiblings)
     setLiked(initialLiked)
     setBookmarked(initialBookmarked)
+    setInWidget(initialInWidget)
     setLikersState(likers)
     setCount(likers.count)
     setCommentCount(initialComments.filter((c) => !c.deletedAt).length)
@@ -106,6 +109,7 @@ export function ViewerShell({
   const [liked, setLiked] = useState(initialLiked)
   const [count, setCount] = useState(likers.count)
   const [bookmarked, setBookmarked] = useState(initialBookmarked)
+  const [inWidget, setInWidget] = useState(initialInWidget)
   const [likersState, setLikersState] = useState<{ count: number; users: User[] }>(likers)
   const [commentCount, setCommentCount] = useState(
     () => initialComments.filter((c) => !c.deletedAt).length,
@@ -165,6 +169,7 @@ export function ViewerShell({
             likeCount: number
             likers: { count: number; users: User[] }
             bookmarked: boolean
+            inWidget: boolean
             commentCount: number
           }
           meta?: {
@@ -208,6 +213,7 @@ export function ViewerShell({
           setLiked(next.social.liked)
           setCount(next.social.likeCount)
           setBookmarked(next.social.bookmarked)
+          setInWidget(next.social.inWidget)
           setCommentCount(next.social.commentCount)
           setLikersState(next.social.likers)
         }
@@ -309,6 +315,7 @@ export function ViewerShell({
           assetId={currentSlim.id}
           visible={chromeVisible}
           showDownload={canAlbum}
+          inWidget={inWidget}
           onInfo={() => {
             setSheetDetailsOpen(true)
             setSheetOpen(true)
