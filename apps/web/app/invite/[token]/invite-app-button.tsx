@@ -4,7 +4,7 @@ import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 // 앱 미설치 시 보낼 설치 안내(릴리스 페이지). intent 의 browser_fallback_url 로.
-const INSTALL_URL = 'https://github.com/svrforum/bebe-moment/releases/latest'
+const INSTALL_URL = 'https://github.com/svrforum/BebeMoment/releases/latest'
 
 /**
  * 안드로이드 브라우저에서 초대 링크를 열면 "앱에서 이어하기" 를 띄운다. 누르면 bebe://invite

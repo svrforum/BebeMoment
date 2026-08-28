@@ -45,7 +45,8 @@
       "family": "가족",
       "notifications": "알림",
       "display": "화면",
-      "admin": "관리자"
+      "admin": "관리자",
+      "app": "앱"
     },
     "roles": {
       "owner": "관리자",
@@ -164,6 +165,17 @@
     "about": {
       "github": "GitHub",
       "sponsor": "커피 한 잔 후원하기"
+    },
+    "app": {
+      "title": "안드로이드 앱",
+      "installed": "설치된 버전 {version}",
+      "webHint": "홈 위젯과 알림을 쓰려면 앱을 설치하세요",
+      "checkUpdate": "업데이트 확인",
+      "checking": "확인 중…",
+      "upToDate": "최신 버전이에요",
+      "checkFailed": "확인하지 못했어요",
+      "updateTo": "{version} 받기",
+      "download": "{version} 내려받기"
     }
   },
   "auth": {

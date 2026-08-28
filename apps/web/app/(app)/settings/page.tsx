@@ -1,3 +1,4 @@
+import { AppDownloadRow } from '@/components/settings/app-download-row'
 import { InstalledAppVersion } from '@/components/shell/installed-app-version'
 import { DisplayNameEditor } from '@/components/settings/display-name-editor'
 import { LanguageSwitcher } from '@/components/settings/language-switcher'
@@ -158,6 +159,11 @@ export default async function SettingsPage() {
           />
         </section>
 
+        <section className="space-y-2">
+          <SectionTitle>{t('sections.app')}</SectionTitle>
+          <AppDownloadRow />
+        </section>
+
         {/* 관리자 */}
         {isAdmin && (
           <section className="space-y-2">
@@ -188,7 +194,7 @@ export default async function SettingsPage() {
 
         <div className="flex items-center justify-center gap-2 pt-2">
           <a
-            href="https://github.com/svrforum/bebe-moment"
+            href="https://github.com/svrforum/BebeMoment"
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 rounded-full border border-base-200 px-3.5 py-2 text-[13px] font-medium text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:border-base-800 dark:text-base-300 dark:hover:bg-base-800"
