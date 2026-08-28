@@ -24,8 +24,9 @@ build/
 *.log
 logs/
 
-# Runtime data (docker volumes if dev setup)
-data/
+# Runtime data (docker volumes if dev setup) — 루트 앵커. 앵커 없이 두면 경로 어디든
+# data/ 디렉터리를 삼켜 apps/web/app/api/widget/data/route.ts 가 릴리스에서 통째로 빠졌다.
+/data/
 pg/
 redis/
 .dev/
