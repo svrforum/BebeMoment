@@ -153,6 +153,13 @@ public class MainActivity extends BridgeActivity {
                     view.loadUrl("https://localhost/accounts.html");
                     return true;
                 }
+                // ⚠️ 앱 업데이트 APK 는 **여기서** 잡아야 한다. GitHub 릴리스 URL 은 302 로
+                // CDN(release-assets.githubusercontent.com)에 넘기고, DownloadListener 는
+                // 리다이렉트가 끝난 CDN URL 을 받는다 — 거기서 우리 주소를 검사하면 영영 안 맞는다.
+                if (uri != null && isOwnApkUrl(uri.toString())) {
+                    enqueueApkUpdate(uri.toString(), apkFilenameFromUrl(uri));
+                    return true;
+                }
                 final String scheme = uri != null ? uri.getScheme() : null;
                 if (scheme != null) {
                     final String s = scheme.toLowerCase();
@@ -374,10 +381,6 @@ public class MainActivity extends BridgeActivity {
     ) {
         try {
             final String filename = resolveDownloadFilename(url, contentDisposition, mimeType);
-            if (isOwnApkUrl(url) && filename.toLowerCase().endsWith(".apk")) {
-                enqueueApkUpdate(url, filename);
-                return;
-            }
             final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
             // 세션 쿠키는 우리 서버(same-origin) 다운로드에만 실어 보낸다 — 페이지가 임의
             // 외부 URL 로 다운로드를 띄워 세션 쿠키를 새 호스트로 유출하는 걸 막는다.
@@ -410,16 +413,21 @@ public class MainActivity extends BridgeActivity {
 
     // ── 앱 내 업데이트 (받은 뒤 설치 화면까지) ─────────────────────────────
     // ⚠️ 페이지가 준 URL 을 그대로 설치하면 위험하다 — 우리 릴리스 자산 경로로 시작하는
-    // URL 만 자동 설치하고, 그 외에는 평범한 다운로드로 흘려보낸다.
+    // URL 만 이 경로를 타고, 받은 파일의 패키지명까지 확인한 뒤에야 설치 화면을 연다.
     private static final String APK_URL_PREFIX =
         "https://github.com/svrforum/BebeMoment/releases/download/";
     private static final String APK_MIME = "application/vnd.android.package-archive";
-    private long apkDownloadId = -1;
-    private String apkFilename = null;
+    private static final String PREF_APK_DOWNLOAD_ID = "apkDownloadId";
     private BroadcastReceiver apkDownloadReceiver = null;
+    private boolean resumed = false;
 
-    private static boolean isOwnApkUrl(String url) {
-        return url != null && url.startsWith(APK_URL_PREFIX);
+    static boolean isOwnApkUrl(String url) {
+        return url != null && url.startsWith(APK_URL_PREFIX) && url.toLowerCase().endsWith(".apk");
+    }
+
+    private static String apkFilenameFromUrl(Uri uri) {
+        final String last = uri.getLastPathSegment();
+        return last != null && last.toLowerCase().endsWith(".apk") ? last : "update.apk";
     }
 
     private void enqueueApkUpdate(String url, String filename) {
@@ -439,15 +447,27 @@ public class MainActivity extends BridgeActivity {
             Toast.makeText(this, "다운로드를 시작할 수 없어요", Toast.LENGTH_SHORT).show();
             return;
         }
-        final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
-        req.setMimeType(APK_MIME);
-        req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
-        // 앱 전용 외부 폴더 — 저장소 권한이 필요 없고 FileProvider 로 설치 화면에 넘길 수 있다.
-        req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, filename);
-        apkFilename = filename;
-        apkDownloadId = dm.enqueue(req);
-        registerApkReceiver();
-        Toast.makeText(this, "업데이트를 받고 있어요", Toast.LENGTH_SHORT).show();
+        try {
+            // 같은 이름이 남아 있으면 DownloadManager 가 "<이름>-1.apk" 로 비켜 쓴다. 지난 시도의
+            // 조각이 남아 계속 그걸 설치하려 드는 걸 막으려고 먼저 치운다.
+            final File stale = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), filename);
+            if (stale.exists()) stale.delete();
+
+            final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+            req.setMimeType(APK_MIME);
+            req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+            // 앱 전용 외부 폴더 — 저장소 권한이 필요 없고 FileProvider 로 설치 화면에 넘길 수 있다.
+            req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, filename);
+            final long id = dm.enqueue(req);
+            // 다운로드가 끝나기 전에 프로세스가 죽어도 이어갈 수 있게 남긴다 — 액티비티 필드로만
+            // 들고 있으면 화면 회전·메모리 회수에 설치가 통째로 사라진다.
+            getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE)
+                .edit().putLong(PREF_APK_DOWNLOAD_ID, id).apply();
+            registerApkReceiver();
+            Toast.makeText(this, "업데이트를 받고 있어요", Toast.LENGTH_SHORT).show();
+        } catch (Exception e) {
+            Toast.makeText(this, "다운로드 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
+        }
     }
 
     private void registerApkReceiver() {
@@ -455,9 +475,7 @@ public class MainActivity extends BridgeActivity {
         apkDownloadReceiver = new BroadcastReceiver() {
             @Override
             public void onReceive(Context ctx, Intent intent) {
-                final long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
-                if (id != apkDownloadId || apkFilename == null) return;
-                launchApkInstaller(apkFilename);
+                maybeInstallDownloadedApk();
             }
         };
         final IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
@@ -469,11 +487,57 @@ public class MainActivity extends BridgeActivity {
         }
     }
 
-    private void launchApkInstaller(String filename) {
+    /**
+     * 받아둔 업데이트가 있으면 설치 화면을 연다. 브로드캐스트 수신 시점과 onResume 양쪽에서
+     * 부른다 — 다운로드 중 앱을 벗어나 있으면 그때 설치를 띄울 수 없기 때문(아래 참조).
+     */
+    private void maybeInstallDownloadedApk() {
+        // ⚠️ 화면에 없을 때 startActivity 는 안드로이드 10+ 가 조용히 막는다(예외도 안 난다).
+        // 그래서 포그라운드일 때만 열고, 아니면 다음 onResume 까지 미룬다.
+        if (!resumed) return;
+        final SharedPreferences sp = getSharedPreferences(BebeWidgetPlugin.PREFS, Context.MODE_PRIVATE);
+        final long id = sp.getLong(PREF_APK_DOWNLOAD_ID, -1);
+        if (id < 0) return;
+        final DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        if (dm == null) return;
+
+        String localUri = null;
+        int status = -1;
+        try (Cursor c = dm.query(new DownloadManager.Query().setFilterById(id))) {
+            if (c != null && c.moveToFirst()) {
+                status = c.getInt(c.getColumnIndexOrThrow(DownloadManager.COLUMN_STATUS));
+                localUri = c.getString(c.getColumnIndexOrThrow(DownloadManager.COLUMN_LOCAL_URI));
+            }
+        } catch (Exception ignored) {
+        }
+        if (status == DownloadManager.STATUS_PENDING || status == DownloadManager.STATUS_RUNNING
+            || status == DownloadManager.STATUS_PAUSED) {
+            return; // 아직 받는 중 — 다음 신호를 기다린다.
+        }
+        sp.edit().remove(PREF_APK_DOWNLOAD_ID).apply();
+        if (status != DownloadManager.STATUS_SUCCESSFUL || localUri == null) {
+            // 완료 브로드캐스트는 실패해도 온다 — 확인 없이 설치를 띄우면 깨진 파일을 연다.
+            Toast.makeText(this, "업데이트를 받지 못했어요. 다시 시도해주세요", Toast.LENGTH_LONG).show();
+            return;
+        }
+        launchApkInstaller(localUri);
+    }
+
+    private void launchApkInstaller(String localUri) {
         try {
-            final File apk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), filename);
-            if (!apk.exists() || apk.length() == 0) {
+            // ⚠️ 요청한 파일명으로 경로를 되만들면 안 된다 — 같은 이름이 있으면
+            // DownloadManager 가 "<이름>-1.apk" 로 비켜 쓴다. 실제 기록된 경로를 쓴다.
+            final String path = Uri.parse(localUri).getPath();
+            final File apk = path != null ? new File(path) : null;
+            if (apk == null || !apk.exists() || apk.length() == 0) {
                 Toast.makeText(this, "받은 파일을 찾지 못했어요", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // 받은 바이트가 정말 우리 앱인지 확인한다 — URL 검사만 믿지 않는다.
+            final android.content.pm.PackageInfo info =
+                getPackageManager().getPackageArchiveInfo(apk.getAbsolutePath(), 0);
+            if (info == null || !getPackageName().equals(info.packageName)) {
+                Toast.makeText(this, "업데이트 파일이 올바르지 않아요", Toast.LENGTH_LONG).show();
                 return;
             }
             // 7.0+ 는 file:// 을 다른 앱에 넘기면 FileUriExposedException — content:// 로 준다.
@@ -500,7 +564,6 @@ public class MainActivity extends BridgeActivity {
         super.onDestroy();
     }
 
-    // 패턴: RFC 5987 의 filename*=UTF-8''<pct-encoded> 와 평문 filename="..." 둘 다 잡는다.
     private static final Pattern CD_FILENAME_STAR =
         Pattern.compile("filename\\*\\s*=\\s*[^']*''([^;\\r\\n]+)", Pattern.CASE_INSENSITIVE);
     private static final Pattern CD_FILENAME =
@@ -554,6 +617,14 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onResume() {
         super.onResume();
+        resumed = true;
+        // 다운로드가 백그라운드에서 끝났으면 그때는 설치 화면을 띄울 수 없었다(안드로이드 10+
+        // 가 막는다) — 돌아온 지금 이어서 연다. 프로세스가 죽었다 살아나도 SharedPrefs 에
+        // 남긴 다운로드 id 로 찾아낸다.
+        try {
+            maybeInstallDownloadedApk();
+        } catch (Throwable ignored) {
+        }
         // 위젯 토큰을 네이티브에서 직접 발급받는다. 원격 서버 페이지에는 Capacitor
         // 브리지(window.Capacitor)가 주입되지 않아 웹→네이티브 플러그인 호출이 안 되므로,
         // WebView 세션 쿠키(CookieManager — 다운로드에서 검증된 방식)로 POST /api/widget/token
@@ -724,6 +795,7 @@ public class MainActivity extends BridgeActivity {
     @Override
     public void onStop() {
         super.onStop();
+        resumed = false;
         // WebView 세션 쿠키를 디스크에 즉시 영구화 — 백그라운드/종료 직후 프로세스가 죽어도
         // 세션이 살아남는다. 안 하면 로그인 후 앱을 끄면 쿠키가 디스크에 안 남아 재로그인.
         try {
