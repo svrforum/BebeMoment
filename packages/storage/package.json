@@ -17,9 +17,9 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
-    "testcontainers": "^11.14.0",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
+    "@types/node": "^26.3.0",
+    "testcontainers": "^12.1.0",
+    "typescript": "^7.0.2",
+    "vitest": "^4.1.11"
   }
 }
