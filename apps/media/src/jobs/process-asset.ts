@@ -62,7 +62,7 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       exifResult = await parseExif(originalBuf)
     }
 
-    const derived = deriveTakenAt({
+    let derived = deriveTakenAt({
       ...(exifResult.takenAt !== undefined ? { exifDateTimeOriginal: exifResult.takenAt } : {}),
       filename: asset.originalFilename,
       // init 이 클라 File.lastModified 를 filemtime 으로 심어둠 — EXIF·파일명 둘 다 없을 때
@@ -117,6 +117,9 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       dominantColor = r.dominantColor
     } else if (asset.kind === 'video') {
       const r = await processVideo({ originalKey, assetId: asset.id }, storage)
+      // 영상은 EXIF 가 없어 위 deriveTakenAt 이 파일명·파일수정시각까지 떨어진다. 컨테이너가
+      // 촬영시각을 갖고 있으면 그게 사진의 EXIF 와 동급이므로 여기서 다시 확정한다.
+      if (r.createdAt) derived = { value: r.createdAt, source: 'exif' }
       derivatives = r.derivatives as unknown as Record<string, unknown>
       width = r.width
       height = r.height

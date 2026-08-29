@@ -9,6 +9,7 @@ import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
 import { decodeSharp } from '@/lib/sharp'
 import { type Trio, generateTrios } from './derivative-trios'
+import { videoCreatedAt } from './video-created-at'
 import { orientedDimensions, parseDurationMs } from './video-meta'
 
 export type ProcessVideoInput = {
@@ -17,6 +18,8 @@ export type ProcessVideoInput = {
 }
 
 export type ProcessVideoResult = {
+  /** 컨테이너 메타데이터의 촬영시각(벽시계-as-UTC). 없으면 undefined — 폴백에 맡긴다. */
+  createdAt: Date | undefined
   durationMs: number
   width: number | undefined
   height: number | undefined
@@ -56,6 +59,11 @@ export async function processVideo(
     })
 
     const videoStream = metadata.streams.find((s) => s.codec_type === 'video')
+    // 컨테이너가 기록한 촬영시각. 영상엔 EXIF 가 없어 이게 유일한 진짜 출처다.
+    const createdAt = videoCreatedAt(
+      metadata.format.tags as Record<string, unknown> | undefined,
+      process.env.TZ || 'UTC',
+    )
     const durationMs = parseDurationMs(metadata.format.duration)
     const { width, height } = orientedDimensions(videoStream)
 
@@ -149,6 +157,7 @@ export async function processVideo(
       width && height && width > 0 && height > 0 ? Number((width / height).toFixed(4)) : null
 
     return {
+      createdAt,
       durationMs,
       width,
       height,
