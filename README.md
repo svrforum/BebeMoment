@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-3b82f6"></a>
-  <a href="https://github.com/svrforum/bebe-moment/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/svrforum/bebe-moment?color=3b82f6"></a>
+  <a href="https://github.com/svrforum/BebeMoment/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/svrforum/BebeMoment?color=3b82f6"></a>
   <img alt="Platform" src="https://img.shields.io/badge/deploy-Docker%20%C2%B7%20Synology-3b82f6">
   <img alt="Android" src="https://img.shields.io/badge/app-PWA%20%C2%B7%20Android-3b82f6">
 </p>
@@ -57,7 +57,7 @@
 ## 📱 어디서나
 
 - **웹 / PWA** — 브라우저로 접속, "홈 화면에 추가"로 설치형 앱처럼. 웹푸시 알림 지원
-- **안드로이드 앱** — Capacitor 기반, **FCM 푸시** + **홈 위젯**(가족 사진 슬라이드). [Releases](https://github.com/svrforum/bebe-moment/releases) 에서 APK 배포
+- **안드로이드 앱** — Capacitor 기반, **FCM 푸시** + **홈 위젯**(가족 사진 슬라이드). [Releases](https://github.com/svrforum/BebeMoment/releases) 에서 APK 배포
 
 ## 🚀 시작하기 (셀프호스팅)
 
@@ -103,8 +103,8 @@ Bebe Moment 는 **광고도 구독료도 없는** 개인 오픈소스 프로젝�
   <a href="https://buymeacoffee.com/svrforum"><img alt="Buy Me A Coffee" src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=svrforum&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff"></a>
 </p>
 
-- ⭐ **[저장소에 Star](https://github.com/svrforum/bebe-moment)** 를 눌러 주시면 더 많은 분께 닿습니다
-- 🐛 버그 제보·기능 제안은 [Issues](https://github.com/svrforum/bebe-moment/issues) 로
+- ⭐ **[저장소에 Star](https://github.com/svrforum/BebeMoment)** 를 눌러 주시면 더 많은 분께 닿습니다
+- 🐛 버그 제보·기능 제안은 [Issues](https://github.com/svrforum/BebeMoment/issues) 로
 - 앱 안에서도 **설정 → GitHub · 후원하기** 로 바로 연결됩니다
 
 ## 👩‍💻 개발

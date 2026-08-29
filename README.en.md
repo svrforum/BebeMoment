@@ -12,7 +12,7 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-3b82f6"></a>
-  <a href="https://github.com/svrforum/bebe-moment/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/svrforum/bebe-moment?color=3b82f6"></a>
+  <a href="https://github.com/svrforum/BebeMoment/releases"><img alt="Latest release" src="https://img.shields.io/github/v/release/svrforum/BebeMoment?color=3b82f6"></a>
   <img alt="Platform" src="https://img.shields.io/badge/deploy-Docker%20%C2%B7%20Synology-3b82f6">
   <img alt="Android" src="https://img.shields.io/badge/app-PWA%20%C2%B7%20Android-3b82f6">
 </p>
@@ -57,7 +57,7 @@
 ## 📱 Everywhere
 
 - **Web / PWA** — open in a browser, "Add to Home Screen" for an installed-app feel, with web push notifications
-- **Android app** — Capacitor-based, with **FCM push** + a **home-screen widget** (family photo slideshow). APKs on [Releases](https://github.com/svrforum/bebe-moment/releases)
+- **Android app** — Capacitor-based, with **FCM push** + a **home-screen widget** (family photo slideshow). APKs on [Releases](https://github.com/svrforum/BebeMoment/releases)
 
 ## 🚀 Getting started (self-hosting)
 
@@ -99,8 +99,8 @@ Bebe Moment is an **ad-free, subscription-free** personal open-source project. I
   <a href="https://buymeacoffee.com/svrforum"><img alt="Buy Me A Coffee" src="https://img.buymeacoffee.com/button-api/?text=Buy%20me%20a%20coffee&emoji=%E2%98%95&slug=svrforum&button_colour=FFDD00&font_colour=000000&font_family=Inter&outline_colour=000000&coffee_colour=ffffff"></a>
 </p>
 
-- ⭐ **[Star the repo](https://github.com/svrforum/bebe-moment)** to help others discover it
-- 🐛 Bug reports & feature ideas → [Issues](https://github.com/svrforum/bebe-moment/issues)
+- ⭐ **[Star the repo](https://github.com/svrforum/BebeMoment)** to help others discover it
+- 🐛 Bug reports & feature ideas → [Issues](https://github.com/svrforum/BebeMoment/issues)
 - The app links straight to these from **Settings → GitHub · Buy me a coffee**
 
 ## 👩‍💻 Development

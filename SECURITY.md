@@ -7,7 +7,7 @@ seriously. Thank you for helping keep self-hosters safe.
 
 **Please do not open a public issue for security problems.**
 
-Report privately via GitHub's **["Report a vulnerability"](https://github.com/svrforum/bebe-moment/security/advisories/new)**
+Report privately via GitHub's **["Report a vulnerability"](https://github.com/svrforum/BebeMoment/security/advisories/new)**
 (Security → Advisories → Report a vulnerability). If that is unavailable, open a
 minimal public issue that says only "security report — please open a private
 channel" with no details, and we will follow up.

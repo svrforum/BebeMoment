@@ -61,7 +61,7 @@ async function runTrashPurge(): Promise<void> {
   const days = await getSetting('retention.trash_days', z.number().finite(), 30, prismaPublic)
   if (days <= 0) return
   const cutoff = new Date(Date.now() - days * 24 * 3600 * 1000)
-  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  const families = await allFamilyIds()
   const media = getMediaClient()
   for (const fam of families) {
     const expired = await prismaMedia.asset.findMany({
@@ -139,10 +139,19 @@ async function resolveNotifContext(job: NotificationJob): Promise<NotifContext> 
  * enqueue. enqueue 된 잡은 같은 워커가 일반 알림처럼 처리(카테고리 'memory' 게이트
  * 통과 시 발송). 마지막 발송일은 settings 에 기록해 중복·throttle 관리.
  */
+/**
+ * 전 가족을 훑는 스캔용 가족 목록. Family 는 tenant 스코프 모델이라 필터 없는 findMany 는
+ * 확장이 막는다(dev throw · prod 경고) — §8 이 정한 대로 전역 조회만 $queryRaw 로 우회한다.
+ * (같은 이유로 isRegistrationOpen 도 raw 를 쓴다.)
+ */
+async function allFamilyIds(): Promise<{ id: string }[]> {
+  return prismaPublic.$queryRaw<{ id: string }[]>`SELECT id FROM families`
+}
+
 async function runMemoriesScan(): Promise<void> {
   const today = new Date()
   const todayStr = today.toISOString().slice(0, 10)
-  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  const families = await allFamilyIds()
   for (const fam of families) {
     // 카운트는 family-가시 기준(전체 멤버 대상 발송이라 숨김 콘텐츠 수 노출 방지).
     // 개수만 필요하므로 media URL 을 안 받는 경량 변형 사용(매일 스캔이 media 미호출).
@@ -218,7 +227,7 @@ async function runDigestScan(): Promise<void> {
   if (!isDigestSlot(settings, hour, slotKey, lastSlot)) return
   await settingsSet('push.digest.last_slot', slotKey)
 
-  const families = await prismaPublic.family.findMany({ select: { id: true } })
+  const families = await allFamilyIds()
   for (const fam of families) {
     const since = await settingsGet(`push.digest.since.${fam.id}`)
     const sinceDate = since ? new Date(since) : new Date(now.getTime() - 24 * 3600 * 1000)

@@ -80,7 +80,7 @@ export async function updateAlbum(
 
   try {
     const updated = await prismaPublic.album.update({
-      where: { id: album.id },
+      where: { id: album.id, familyId: input.familyId },
       data: {
         ...(input.name !== undefined ? { name: input.name.trim() } : {}),
         ...(input.description !== undefined ? { description: input.description } : {}),

@@ -48,7 +48,7 @@ export async function updateComment(
   const mentionedUserIds = parseMentions(input.body, members)
 
   const updated = await prisma.assetComment.update({
-    where: { id: input.id },
+    where: { id: input.id, familyId: input.familyId },
     data: {
       body: input.body,
       mentionedUserIds,

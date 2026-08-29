@@ -35,7 +35,7 @@ export async function softDeleteComment(
   }
 
   await prisma.assetComment.update({
-    where: { id: input.id },
+    where: { id: input.id, familyId: input.familyId },
     data: { deletedAt: new Date() },
   })
 

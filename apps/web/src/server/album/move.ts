@@ -114,7 +114,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
 
       // Update self first so caller sees the moved row in results[0].
       const root = await tx.album.update({
-        where: { id: album.id },
+        where: { id: album.id, familyId: input.familyId },
         data: {
           parentId: input.newParentId,
           path: newPath,
@@ -127,7 +127,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       for (const node of subtree) {
         if (node.id === album.id) continue
         await tx.album.update({
-          where: { id: node.id },
+          where: { id: node.id, familyId: input.familyId },
           data: {
             path: rewritePathPrefix(node.path, album.path, newPath),
             depth: node.depth + depthDelta,

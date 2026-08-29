@@ -11,8 +11,8 @@
 mkdir -p /opt/stacks/bebe-moment && cd /opt/stacks/bebe-moment
 
 # 2. compose + env 다운로드
-curl -fLO https://raw.githubusercontent.com/svrforum/bebe-moment/main/compose/docker-compose.yml
-curl -fL https://raw.githubusercontent.com/svrforum/bebe-moment/main/compose/.env.example -o .env
+curl -fLO https://raw.githubusercontent.com/svrforum/BebeMoment/main/compose/docker-compose.yml
+curl -fL https://raw.githubusercontent.com/svrforum/BebeMoment/main/compose/.env.example -o .env
 
 # 3. .env 편집 — 시크릿은 모두 직접 생성한다 (예시/자리표시자 값은 프로덕션에서
 #    부팅이 거부된다). 각각 서로 다른 새 랜덤값으로:  openssl rand -hex 32

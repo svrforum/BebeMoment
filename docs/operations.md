@@ -7,7 +7,7 @@ the container is typically named `bebe-app` — substitute accordingly.
 
 ## Upgrading
 
-1. Check the [Releases](https://github.com/svrforum/bebe-moment/releases) for the
+1. Check the [Releases](https://github.com/svrforum/BebeMoment/releases) for the
    latest version and any breaking notes.
 2. Pull and restart:
    ```bash
@@ -113,6 +113,33 @@ Look for `P3009` (migration failed) or connection errors.
 
 - Keep schema changes additive; back up before major upgrades.
 - Migrations are hand-written SQL (cross-schema FKs) — test them locally first.
+
+## Maintenance scripts
+
+One-off repairs that ship with the image. Run them inside the app container.
+
+### Rebuild video capture dates
+
+Videos uploaded before v0.0.80 carry the wrong date. They have no EXIF, so the
+capture time fell through to the file's modified time — which the Android file
+picker sets to the moment of upload, making "shot on" equal "uploaded on".
+Newer uploads read the time out of the container metadata; this repairs the old ones.
+
+```bash
+# preview first — prints what it would change, writes nothing
+docker exec -w /repo bebe-app pnpm --filter @bebe/media exec tsx \
+  src/scripts/backfill-video-taken-at.ts --dry-run
+
+# apply
+docker exec -w /repo bebe-app pnpm --filter @bebe/media exec tsx \
+  src/scripts/backfill-video-taken-at.ts
+```
+
+It reads each video's original and rewrites `taken_at` only when the file carries a
+real capture time. Videos without that metadata, and any date you corrected by hand
+(`taken_at_source = 'manual'`), are left alone. Set `TZ` correctly on the container —
+MP4 stores UTC, and the script converts to the instance's local wall clock, so a wrong
+`TZ` shifts every date by the offset.
 
 ## TLS / reverse proxy
 
