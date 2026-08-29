@@ -60,7 +60,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         id: meta
         with:
           # 이미지 이름은 리포 캐싱(BebeMoment)과 분리해 **소문자 하이픈 경로로 고정**한다.
@@ -101,7 +101,7 @@ jobs:
           registry: ghcr.io
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-      - uses: docker/metadata-action@v5
+      - uses: docker/metadata-action@v6
         id: meta
         with:
           # app 과 동일 — 소문자 하이픈 경로로 고정(compose/README 정합).
