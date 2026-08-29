@@ -6,6 +6,19 @@ on:
 permissions:
   contents: write
   packages: write
+# 이미지 이름은 리포 캐싱(BebeMoment)과 분리해 **소문자 하이픈 경로로 고정**한다.
+# github.repository 를 그대로 쓰면 ghcr.io/svrforum/bebemoment/app(하이픈X)로 푸시돼,
+# compose 기본값·README 가 가리키는 ghcr.io/svrforum/bebe-moment/app 와 어긋나 기본
+# 설치자가 stale 이미지를 받는다(2026-06 회귀).
+env:
+  APP_IMAGE: ghcr.io/${{ github.repository_owner }}/bebe-moment/app
+  ML_IMAGE: ghcr.io/${{ github.repository_owner }}/bebe-moment/ml
+  # ci-test 는 workflow_dispatch 로 파이프라인 자체를 시험할 때만 붙는 버리는 태그다
+  # — 설치자가 쓰는 latest/vX 를 건드리지 않고 전 구간을 검증하려고 둔다.
+  RELEASE_TAGS: |
+    type=ref,event=tag
+    type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+    type=raw,value=ci-test,enable=${{ github.event_name == 'workflow_dispatch' }}
 jobs:
   verify:
     runs-on: ubuntu-latest
@@ -46,9 +59,14 @@ jobs:
       - run: pnpm check:lines
       - run: pnpm -r --filter '!@bebe/e2e' test
 
+  # verify 와 **동시에** 출발한다 — 이미지 빌드가 테스트를 기다리느라 릴리즈 전체가
+  # 순차로 늘어지던 것을 없앤다. 대신 여기서는 태그를 붙이지 않고 다이제스트로만 올린다:
+  # 태그 없는 매니페스트는 `latest`/`vX` 로 받을 수 없으므로, 검증에 실패한 이미지가
+  # 설치자에게 노출될 일이 없다. 태그는 verify 통과 후 publish 잡이 붙인다.
   build:
-    needs: [verify]
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
       # ARM64 (Synology DSM ARM NAS) 는 현재 타깃 아님 — QEMU 에뮬레이션 비용
@@ -63,15 +81,9 @@ jobs:
       - uses: docker/metadata-action@v6
         id: meta
         with:
-          # 이미지 이름은 리포 캐싱(BebeMoment)과 분리해 **소문자 하이픈 경로로 고정**한다.
-          # github.repository 를 그대로 쓰면 ghcr.io/svrforum/bebemoment/app(하이픈X)로
-          # 푸시돼, compose 기본값·README 가 가리키는 ghcr.io/svrforum/bebe-moment/app 와
-          # 어긋나 기본 설치자가 stale 이미지를 받는다(2026-06 회귀).
-          images: ghcr.io/${{ github.repository_owner }}/bebe-moment/app
-          tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          images: ${{ env.APP_IMAGE }}
       - uses: docker/build-push-action@v7
+        id: build
         with:
           context: .
           file: docker/app.Dockerfile
@@ -79,8 +91,7 @@ jobs:
           # 베이스 이미지를 매 빌드 새로 pull — node/debian apt 레이어가 캐시에 영구
           # 고정돼 OS CVE 패치가 릴리즈마다 안 들어가던 문제 완화.
           pull: true
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=image,name=${{ env.APP_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           build-args: |
             APP_VERSION=${{ github.ref_name }}
@@ -91,8 +102,9 @@ jobs:
 
   # 얼굴 인식 ML 사이드카(옵트인). app 과 별개 이미지로 발행 — faces 켠 인스턴스만 pull.
   ml:
-    needs: [verify]
     runs-on: ubuntu-latest
+    outputs:
+      digest: ${{ steps.build.outputs.digest }}
     steps:
       - uses: actions/checkout@v4
       - uses: docker/setup-buildx-action@v3
@@ -104,19 +116,15 @@ jobs:
       - uses: docker/metadata-action@v6
         id: meta
         with:
-          # app 과 동일 — 소문자 하이픈 경로로 고정(compose/README 정합).
-          images: ghcr.io/${{ github.repository_owner }}/bebe-moment/ml
-          tags: |
-            type=ref,event=tag
-            type=raw,value=latest,enable=${{ startsWith(github.ref, 'refs/tags/v') }}
+          images: ${{ env.ML_IMAGE }}
       - uses: docker/build-push-action@v7
+        id: build
         with:
           context: apps/ml
           file: apps/ml/Dockerfile
           platforms: linux/amd64
           pull: true
-          push: true
-          tags: ${{ steps.meta.outputs.tags }}
+          outputs: type=image,name=${{ env.ML_IMAGE }},push-by-digest=true,name-canonical=true,push=true
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=ml
           cache-to: type=gha,scope=ml,mode=max
@@ -130,8 +138,48 @@ jobs:
   # android-v* 채널(versionCode 다른 산식)과 충돌 — CI APK 설치자가 android-v* 로 업데이트할
   # 때 다운그레이드 거부로 막다른 길이 됐다. 채널을 android-v* 하나로 단일화했다.
 
+  # 여기가 실제 게이트다 — verify 가 통과해야 비로소 태그가 붙어 설치자에게 보인다.
+  publish:
+    needs: [verify, build, ml]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - uses: docker/metadata-action@v6
+        id: app
+        with:
+          images: ${{ env.APP_IMAGE }}
+          tags: ${{ env.RELEASE_TAGS }}
+      - uses: docker/metadata-action@v6
+        id: mlmeta
+        with:
+          images: ${{ env.ML_IMAGE }}
+          tags: ${{ env.RELEASE_TAGS }}
+      - name: tag app image
+        env:
+          META: ${{ steps.app.outputs.json }}
+          IMAGE: ${{ env.APP_IMAGE }}
+          DIGEST: ${{ needs.build.outputs.digest }}
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$META") "$IMAGE@$DIGEST"
+      - name: tag ml image
+        env:
+          META: ${{ steps.mlmeta.outputs.json }}
+          IMAGE: ${{ env.ML_IMAGE }}
+          DIGEST: ${{ needs.ml.outputs.digest }}
+        run: |
+          docker buildx imagetools create \
+            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$META") "$IMAGE@$DIGEST"
+
   release:
-    needs: [build, ml]
+    needs: [publish]
+    # workflow_dispatch 로 파이프라인만 시험할 때는 깃헙 릴리즈를 만들지 않는다
+    # (ref_name 이 브랜치명이라 'main' 이라는 릴리즈가 생겨버린다).
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
     steps:
       - uses: softprops/action-gh-release@v2
