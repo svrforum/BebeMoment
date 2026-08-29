@@ -60,7 +60,7 @@
       "push": "Push notifications",
       "pushSub": "Register device · test · choose alerts",
       "widget": "Home widget",
-      "widgetSub": "Widget photo · all random / bookmark pinned · random",
+      "widgetSub": "Choose widget picks, recent, or bookmarks",
       "instanceAdmin": "Instance settings",
       "instanceAdminSub": "Auth · features · theme · SMTP · storage",
       "trash": "Trash"

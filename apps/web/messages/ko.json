@@ -60,7 +60,7 @@
       "push": "푸시 알림",
       "pushSub": "기기 등록 · 테스트 · 받을 알림 설정",
       "widget": "홈 위젯",
-      "widgetSub": "위젯 사진 · 전체 랜덤 / 북마크 고정 · 랜덤",
+      "widgetSub": "위젯에 담은 사진 · 최신 · 북마크 중 선택",
       "instanceAdmin": "인스턴스 관리",
       "instanceAdminSub": "인증·기능·테마·SMTP·스토리지",
       "trash": "휴지통"
