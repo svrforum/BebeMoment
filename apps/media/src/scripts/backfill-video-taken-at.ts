@@ -5,7 +5,10 @@
  * 저장됐다. 앞으로 올리는 영상은 process-asset 이 바로잡지만, 기존 것들은 이 스크립트로
  * 한 번 훑어야 한다.
  *
- *   docker exec bebe-app node --import tsx /repo/apps/media/src/scripts/backfill-video-taken-at.ts [--dry-run]
+ *   docker exec -w /repo bebe-app pnpm --filter @bebe/media exec tsx \
+ *     src/scripts/backfill-video-taken-at.ts [--dry-run]
+ *
+ * (tsx 는 apps/media 의 의존성이라 루트에서 node --import tsx 로는 안 잡힌다 — run-app.sh 와 같은 방식.)
  *
  * 사용자가 직접 고친 촬영일(source=manual)은 건드리지 않는다.
  */
@@ -39,16 +42,29 @@ async function main(): Promise<void> {
   const dryRun = process.argv.includes('--dry-run')
   const storage = getStorage()
 
-  const videos = await prisma.asset.findMany({
-    where: {
-      kind: 'video',
-      status: 'ready',
-      deletedAt: null,
-      takenAtSource: { not: 'manual' },
-    },
-    select: { id: true, familyId: true, originalKey: true, takenAt: true, originalFilename: true },
-    orderBy: { uploadedAt: 'asc' },
-  })
+  // 가족 전체를 훑는 유지보수 스캔이라 tenant 미들웨어(Asset 은 family 스코프)에 막힌다.
+  // 리포 관례대로 전역 조회만 $queryRaw 로 우회하고, 쓰기는 familyId 를 포함해 스코프를 지킨다.
+  const videos = await prisma.$queryRaw<
+    {
+      id: string
+      familyId: string
+      originalKey: string
+      takenAt: Date
+      originalFilename: string
+    }[]
+  >`
+    SELECT id,
+           family_id         AS "familyId",
+           original_key      AS "originalKey",
+           taken_at          AS "takenAt",
+           original_filename AS "originalFilename"
+    FROM media.assets
+    WHERE kind = 'video'
+      AND status = 'ready'
+      AND deleted_at IS NULL
+      AND taken_at_source <> 'manual'
+    ORDER BY uploaded_at ASC
+  `
 
   let fixed = 0
   let unchanged = 0
