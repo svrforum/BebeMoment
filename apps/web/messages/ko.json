@@ -358,7 +358,9 @@
       "body": "앱 {version} 으로 업데이트할 수 있어요",
       "action": "업데이트",
       "dismiss": "닫기"
-    }
+    },
+    "addFiles": "파일에서 선택",
+    "addFilesDesc": "갤러리에 안 뜨는 카메라 파일까지"
   },
   "timeline": {
     "composer": {
@@ -382,7 +384,8 @@
       "submitting": "올리는 중…",
       "needPhoto": "사진을 최소 1장 추가해주세요",
       "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
-      "submitFailed": "글 등록 실패"
+      "submitFailed": "글 등록 실패",
+      "attachFiles": "파일에서 선택"
     },
     "sort": {
       "ariaLabel": "타임라인 정렬",
@@ -683,7 +686,8 @@
       "visibilityFamily": "전체 공개",
       "visibilityGuardians": "보호자만",
       "visibilityFamilyDesc": "가족 모두가 볼 수 있어요",
-      "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요"
+      "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요",
+      "attachFiles": "파일에서 선택"
     },
     "delete": {
       "trigger": "삭제",

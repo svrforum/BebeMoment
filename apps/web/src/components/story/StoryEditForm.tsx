@@ -7,7 +7,16 @@ import { useOrderedKeys } from '@/components/upload/use-ordered-keys'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
-import { ChevronDown, Globe, ImagePlus, Loader2, Pencil, ShieldCheck, X } from 'lucide-react'
+import {
+  ChevronDown,
+  FolderOpen,
+  Globe,
+  ImagePlus,
+  Loader2,
+  Pencil,
+  ShieldCheck,
+  X,
+} from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
@@ -72,6 +81,7 @@ export function StoryEditForm({
   const [submitting, setSubmitting] = useState(false)
   const [editing, setEditing] = useState<{ fileId: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const anyFileInputRef = useRef<HTMLInputElement>(null)
 
   const photoCount = kept.length + attachments.length
 
@@ -356,10 +366,26 @@ export function StoryEditForm({
                 <ImagePlus size={18} strokeWidth={2} />
                 <span>{t('edit.addPhoto')}</span>
               </button>
+              <button
+                type="button"
+                onClick={() => anyFileInputRef.current?.click()}
+                aria-label={t('edit.attachFiles')}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
+              >
+                <FolderOpen size={18} strokeWidth={2} />
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*"
+                multiple
+                onChange={onPick}
+                className="hidden"
+              />
+              {/* accept 를 비워 문서 선택기를 연다 — 갤러리가 색인 못 한 카메라 파일용. */}
+              <input
+                ref={anyFileInputRef}
+                type="file"
                 multiple
                 onChange={onPick}
                 className="hidden"

@@ -6,6 +6,7 @@ import { useUploadManager } from '@/components/upload/upload-manager'
 import { useToast } from '@/lib/toast'
 import {
   ChevronDown,
+  FolderOpen,
   Globe,
   ImagePlus,
   Loader2,
@@ -95,6 +96,7 @@ export function TimelineComposer({
   const [visMenuOpen, setVisMenuOpen] = useState(false)
   const [editing, setEditing] = useState<{ fileId: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const anyFileInputRef = useRef<HTMLInputElement>(null)
   const textareaRef = useRef<HTMLTextAreaElement>(null)
   const containerRef = useRef<HTMLDivElement>(null)
 
@@ -473,10 +475,26 @@ export function TimelineComposer({
               >
                 <ImagePlus size={18} strokeWidth={2} />
               </button>
+              <button
+                type="button"
+                onClick={() => anyFileInputRef.current?.click()}
+                aria-label={t('composer.attachFiles')}
+                className="flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-point-500 dark:hover:bg-base-800"
+              >
+                <FolderOpen size={18} strokeWidth={2} />
+              </button>
               <input
                 ref={fileInputRef}
                 type="file"
                 accept="image/*,video/*"
+                multiple
+                onChange={onPick}
+                className="hidden"
+              />
+              {/* accept 를 비워 문서 선택기를 연다 — 갤러리가 색인 못 한 카메라 파일용. */}
+              <input
+                ref={anyFileInputRef}
+                type="file"
                 multiple
                 onChange={onPick}
                 className="hidden"

@@ -7,7 +7,7 @@ import { UploadSheetProvider, useUploadSheet } from '@/components/upload/upload-
 import { FamilySSEProvider } from '@/lib/sse'
 import { ToastEmitterProvider } from '@/lib/toast'
 import type { Capability } from '@bebe/core'
-import { ImagePlus, PencilLine, Plus } from 'lucide-react'
+import { FolderOpen, ImagePlus, PencilLine, Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ChangeEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
@@ -31,6 +31,7 @@ function FabTrigger({
   const pathname = usePathname()
   const router = useRouter()
   const inputRef = useRef<HTMLInputElement>(null)
+  const anyInputRef = useRef<HTMLInputElement>(null)
   const [chooserOpen, setChooserOpen] = useState(false)
 
   // 모바일: + 누르면 OS 갤러리 바로 열기(중간 "파일 선택" 시트 생략) → 고르면
@@ -52,12 +53,21 @@ function FabTrigger({
     }
   }, [pathname, router])
 
-  // 둘 다 가능하면 선택 시트, 하나만 가능하면 그 액션을 바로 실행.
+  // OS 사진 선택기는 갤러리가 색인한 것만 보여준다 — 카메라가 남긴 파일(A6700 XAVC 등)은
+  // 목록에 아예 없어서 고를 방법이 없었다. accept 를 비운 입력은 문서 선택기를 열어
+  // 그런 파일까지 닿게 한다.
+  const onUploadFiles = useCallback(() => {
+    anyInputRef.current?.click()
+  }, [])
+
+  // 업로드가 가능하면 항상 선택 시트를 띄운다 — 예전처럼 곧장 사진 선택기를 열면
+  // "파일에서 선택" 이 어디에도 보이지 않아 존재를 알 수 없다.
   const onPress = useCallback(() => {
-    if (canUpload && canCreateStory) setChooserOpen(true)
-    else if (canUpload) onUpload()
-    else goStory()
-  }, [canUpload, canCreateStory, onUpload, goStory])
+    if (!canUpload) return goStory()
+    // 데스크탑 단독 업로드는 시트(드래그앤드롭)에 두 진입점이 다 있어 한 단계 생략.
+    if (isDesktop && !canCreateStory) return open()
+    setChooserOpen(true)
+  }, [canUpload, canCreateStory, goStory, isDesktop, open])
 
   const onPick = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -121,18 +131,21 @@ function FabTrigger({
         onChange={onPick}
         className="hidden"
       />
-      {both && (
+      <input ref={anyInputRef} type="file" multiple onChange={onPick} className="hidden" />
+      {canUpload && (
         <Sheet open={chooserOpen} onOpenChange={setChooserOpen} title={t('addTitle')}>
           <div className="flex flex-col gap-2 px-4 pb-4">
-            <ChooserRow
-              icon={<PencilLine size={20} strokeWidth={2} />}
-              title={t('addStory')}
-              desc={t('addStoryDesc')}
-              onClick={() => {
-                setChooserOpen(false)
-                goStory()
-              }}
-            />
+            {canCreateStory && (
+              <ChooserRow
+                icon={<PencilLine size={20} strokeWidth={2} />}
+                title={t('addStory')}
+                desc={t('addStoryDesc')}
+                onClick={() => {
+                  setChooserOpen(false)
+                  goStory()
+                }}
+              />
+            )}
             <ChooserRow
               icon={<ImagePlus size={20} strokeWidth={2} />}
               title={t('addUpload')}
@@ -140,6 +153,15 @@ function FabTrigger({
               onClick={() => {
                 setChooserOpen(false)
                 onUpload()
+              }}
+            />
+            <ChooserRow
+              icon={<FolderOpen size={20} strokeWidth={2} />}
+              title={t('addFiles')}
+              desc={t('addFilesDesc')}
+              onClick={() => {
+                setChooserOpen(false)
+                onUploadFiles()
               }}
             />
           </div>

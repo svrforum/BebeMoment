@@ -358,7 +358,9 @@
       "body": "Update to app {version}",
       "action": "Update",
       "dismiss": "Close"
-    }
+    },
+    "addFiles": "Pick from files",
+    "addFilesDesc": "Camera files the gallery does not list"
   },
   "timeline": {
     "composer": {
@@ -382,7 +384,8 @@
       "submitting": "Posting…",
       "needPhoto": "Please add at least one photo",
       "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
-      "submitFailed": "Couldn't post"
+      "submitFailed": "Couldn't post",
+      "attachFiles": "Pick from files"
     },
     "sort": {
       "ariaLabel": "Timeline sort",
@@ -683,7 +686,8 @@
       "visibilityFamily": "Everyone",
       "visibilityGuardians": "Guardians only",
       "visibilityFamilyDesc": "Visible to the whole family",
-      "visibilityGuardiansDesc": "Only owner / guardian roles can see this"
+      "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
+      "attachFiles": "Pick from files"
     },
     "delete": {
       "trigger": "Delete",
