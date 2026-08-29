@@ -1,11 +1,10 @@
 // 안드로이드 APK 는 GitHub 릴리스(android-v* 태그)로만 배포된다. 배너·설정의 업데이트
 // 확인·웹의 다운로드 버튼이 모두 여기를 통해 같은 릴리스를 본다.
-const REPO = 'svrforum/BebeMoment'
 const CACHE_KEY = 'bebe.appLatest'
 
 export type AppRelease = { version: string; url: string }
 
-type GithubRelease = {
+export type GithubRelease = {
   tag_name: string
   html_url: string
   prerelease: boolean
@@ -55,8 +54,12 @@ export function pickAndroidRelease(releases: GithubRelease[]): AppRelease | null
 }
 
 /**
- * 최신 안드로이드 릴리스. 세션 캐시를 쓰되 `force` 면 새로 조회한다 — "업데이트 확인"
- * 버튼은 방금 나온 버전을 잡아야 해서 캐시를 믿으면 안 된다.
+ * 최신 안드로이드 릴리스.
+ *
+ * ⚠️ api.github.com 을 브라우저에서 직접 부르지 않는다 — CSP 의 `connect-src 'self'` 가
+ * 막아 업데이트 안내가 조용히 죽는다. 같은 오리진의 /api/app/latest-release 를 거친다.
+ * 세션 캐시를 쓰되 `force` 면 서버 캐시까지 건너뛴다("업데이트 확인" 버튼은 방금 나온
+ * 버전을 잡아야 해서 캐시를 믿으면 안 된다).
  */
 export async function fetchLatestAndroidRelease(
   opts: { force?: boolean } = {},
@@ -69,19 +72,15 @@ export async function fetchLatestAndroidRelease(
       // 프라이빗 모드 등 — 캐시 없이 진행한다.
     }
   }
-  // per_page=100(API 최대) — web(v*) 릴리스가 잦아 30개만 보면 그 사이에 묻힌 최신
-  // android-v* 를 놓쳐 업데이트 안내가 조용히 끊긴다.
-  const res = await fetch(`https://api.github.com/repos/${REPO}/releases?per_page=100`, {
-    headers: { Accept: 'application/vnd.github+json' },
-  })
+  const res = await fetch(`/api/app/latest-release${opts.force ? '?fresh=1' : ''}`)
   if (!res.ok) return null
-  const data = pickAndroidRelease((await res.json()) as GithubRelease[])
-  if (data) {
+  const { release } = (await res.json()) as { release: AppRelease | null }
+  if (release) {
     try {
-      sessionStorage.setItem(CACHE_KEY, JSON.stringify(data))
+      sessionStorage.setItem(CACHE_KEY, JSON.stringify(release))
     } catch {
       // 저장 실패는 무시 — 조회 결과 자체는 유효하다.
     }
   }
-  return data
+  return release
 }
