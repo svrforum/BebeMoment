@@ -1,7 +1,9 @@
 'use client'
 import { isOptimizeEnabled, optimizeImage } from '@/lib/image-optimize'
 import { useFamilySSE } from '@/lib/sse'
+import { isChunkLoadError, reloadForStaleChunk } from '@/lib/chunk-recovery'
 import { useToast } from '@/lib/toast'
+import { mimeForFile } from '@bebe/core'
 import { useTranslations } from 'next-intl'
 import type { UppyFile } from '@uppy/core'
 import {
@@ -131,7 +133,9 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       const u = new UppyCtor({
         restrictions: {
           maxFileSize: MAX_FILE_SIZE,
-          allowedFileTypes: ['image/*', 'video/*'],
+          // 우리가 mimeForFile 로 보정·검증한 뒤에만 addFile 하므로 여기서 또 거르면
+          // 보정 전 원본 MIME(octet-stream)으로 판단해 정당한 파일을 막는다.
+          allowedFileTypes: null,
         },
         autoProceed: false,
         // Uppy 기본 영문 제한 메시지를 한국어로(중복 파일·크기·형식).
@@ -335,6 +339,12 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       try {
         u = await initUppy()
       } catch (e) {
+        // 배포 직후엔 옛 청크 주소가 사라져 이 지연 로드가 실패한다 — 사용자가 알 수 없는
+        // 원인이라 안내 대신 한 번 새로고침해 복구한다(쿨다운은 chunk-recovery 가 관리).
+        if (isChunkLoadError(e)) {
+          reloadForStaleChunk()
+          return []
+        }
         toast({
           title: '업로더 초기화 실패',
           description: (e as Error).message,
@@ -345,7 +355,14 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       const ids: string[] = []
       for (const f of arr) {
         try {
-          const id = u.addFile({ name: f.name, type: f.type, data: f })
+          // 문서 선택기로 고른 파일은 MIME 이 octet-stream/빈 값으로 온다(삼성 갤러리가
+          // 색인 못 하는 카메라 파일이 그렇다) — 확장자로 메우고, 미디어가 아니면 거른다.
+          const mime = mimeForFile(f.name, f.type)
+          if (!mime) {
+            toast({ title: t('mediaOnly', { name: f.name }), variant: 'danger' })
+            continue
+          }
+          const id = u.addFile({ name: f.name, type: mime, data: f })
           if (typeof id === 'string') ids.push(id)
         } catch (e) {
           toast({
@@ -357,7 +374,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       }
       return ids
     },
-    [initUppy, toast],
+    [initUppy, toast, t],
   )
 
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])

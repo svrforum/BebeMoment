@@ -1726,7 +1726,9 @@
     "zoom": "View larger",
     "viewer": {
       "close": "Close"
-    }
+    },
+    "pickFromFiles": "Pick from files (not in the gallery)",
+    "mediaOnly": "{name} — only photos and videos can be uploaded"
   },
   "memories": {
     "title": "Memories",

@@ -91,6 +91,7 @@ export function UploadDashboard({
   const [storyBody, setStoryBody] = useState('')
   const [submittingStory, setSubmittingStory] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
+  const anyFileInputRef = useRef<HTMLInputElement>(null)
   // 스토리 제출의 async 폴링이 신선한 assetId 를 읽도록 최신 files 를 ref 로.
   const filesRef = useRef(files)
   filesRef.current = files
@@ -213,6 +214,9 @@ export function UploadDashboard({
         onChange={onPick}
         className="hidden"
       />
+      {/* accept 를 비워 문서 선택기를 연다 — 갤러리가 색인하지 못하는 카메라 파일
+          (A6700 XAVC 등)은 사진 선택기에 아예 안 나타나서 고를 수가 없다. */}
+      <input ref={anyFileInputRef} type="file" multiple onChange={onPick} className="hidden" />
       {files.length === 0 && (
         <div
           onDragOver={(e) => {
@@ -235,6 +239,13 @@ export function UploadDashboard({
             className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-95 dark:bg-base-50 dark:text-base-900"
           >
             {t('selectFile')}
+          </button>
+          <button
+            type="button"
+            onClick={() => anyFileInputRef.current?.click()}
+            className="mt-2 block w-full text-xs font-medium text-base-500 underline-offset-2 hover:underline"
+          >
+            {t('pickFromFiles')}
           </button>
           <p className="mt-2 text-xs text-base-500">{t('maxSize')}</p>
         </div>
@@ -295,9 +306,20 @@ export function UploadDashboard({
               <span className="text-[11px] font-medium">{t('more')}</span>
             </button>
           </div>
-          {staged.length > 1 && (
-            <p className="-mt-1 text-[11px] text-base-400">{t('reorderHint')}</p>
-          )}
+          <div className="-mt-1 flex items-center justify-between gap-2">
+            {staged.length > 1 ? (
+              <p className="text-[11px] text-base-400">{t('reorderHint')}</p>
+            ) : (
+              <span />
+            )}
+            <button
+              type="button"
+              onClick={() => anyFileInputRef.current?.click()}
+              className="shrink-0 text-[11px] font-medium text-base-500 underline-offset-2 hover:underline"
+            >
+              {t('pickFromFiles')}
+            </button>
+          </div>
           {canCreateStory && (
             <div className="grid grid-cols-2 gap-1 rounded-2xl bg-base-100 p-1 dark:bg-base-800">
               <button

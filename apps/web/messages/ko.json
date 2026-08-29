@@ -1726,7 +1726,9 @@
     "zoom": "크게 보기",
     "viewer": {
       "close": "닫기"
-    }
+    },
+    "pickFromFiles": "파일에서 선택 (갤러리에 안 보이는 파일)",
+    "mediaOnly": "{name} — 사진·영상 파일만 올릴 수 있어요"
   },
   "memories": {
     "title": "추억",

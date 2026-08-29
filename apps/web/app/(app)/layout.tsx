@@ -1,4 +1,5 @@
 import { AppUpdateBanner } from '@/components/shell/app-update-banner'
+import { ChunkRecovery } from '@/components/shell/chunk-recovery'
 import { BottomNav } from '@/components/shell/bottom-nav'
 import { SideNav } from '@/components/shell/side-nav'
 import { WidgetRegistrar } from '@/components/widget/widget-registrar'
@@ -90,6 +91,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           showBookmark={showBookmark}
         />
         <WidgetRegistrar />
+        <ChunkRecovery />
         <AppUpdateBanner />
       </AppShellClient>
     </FeaturesProvider>
