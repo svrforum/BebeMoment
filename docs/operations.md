@@ -35,8 +35,12 @@ host/Synology shared folder), with optional offsite copy to S3 and retention.
 Restore from a bundle via the CLI (run a one-off container against the same DB):
 
 ```bash
-docker compose run --rm app pnpm --filter @bebe/web exec tsx scripts/restore.ts <backup-id>
+docker compose run --rm --entrypoint bebe-restore app <backup-id>
 ```
+
+Run it with the app stopped — it overwrites the database and `/data` with the
+backup's contents. The entrypoint drops to `PUID`/`PGID` so restored files keep
+the ownership the app expects.
 
 The restore verifies bundle integrity first and (for in-app restores) snapshots
 the current DB before overwriting.

@@ -2,11 +2,11 @@ import { ViewerShell } from '@/components/detail/viewer-shell'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
+import { loadViewerDetail } from '@/server/asset/viewer-detail'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
 import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
-import { likersForAsset } from '@/server/like/list-for-asset'
 import { getSetting } from '@/server/settings/get'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
@@ -53,46 +53,30 @@ export default async function DetailPage({
   )
   if (!bundle) notFound()
 
-  // For metadata / babies we still need the full asset row — fetch directly.
-  // `id` may be the publicNo (page URL); bundle.current.id is the resolved UUID.
-  const asset = await prismaMedia.asset.findFirst({
-    where: { id: bundle.current.id, familyId: ctx.family.id, deletedAt: null },
-  })
-  if (!asset) notFound()
+  // 자산 행 + 내 반응 상태 + 아기는 스와이프 API 와 같은 서비스로 조립한다.
+  // `id` 는 publicNo 일 수 있고, bundle.current.id 가 해석된 UUID 다.
+  const detail = await loadViewerDetail(
+    { assetId: bundle.current.id, familyId: ctx.family.id, userId: ctx.user.id },
+    prismaPublic,
+    prismaMedia,
+  )
+  if (!detail) notFound()
+  const asset = detail.asset
 
-  const [likers, commentsRaw, myLike, myBookmark, myWidgetPhoto, assetBabyLinks, members] =
-    await Promise.all([
-      likersForAsset(ctx.family.id, asset.id, prismaPublic),
-      listComments(ctx.family.id, asset.id, prismaPublic),
-      prismaPublic.assetLike.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.assetBookmark.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaPublic.widgetPhoto.findFirst({
-        where: { assetId: asset.id, userId: ctx.user.id, familyId: ctx.family.id },
-      }),
-      prismaMedia.assetBaby.findMany({
-        where: { assetId: asset.id },
-        select: { babyId: true },
-      }),
-      prismaPublic.membership.findMany({
-        where: { familyId: ctx.family.id, deletedAt: null },
-        include: { user: { select: { id: true, displayName: true } } },
-      }),
-    ])
+  const [commentsRaw, members] = await Promise.all([
+    listComments(ctx.family.id, asset.id, prismaPublic),
+    prismaPublic.membership.findMany({
+      where: { familyId: ctx.family.id, deletedAt: null },
+      include: { user: { select: { id: true, displayName: true } } },
+    }),
+  ])
 
-  const babyIds = assetBabyLinks.map((link) => link.babyId)
-  const babyRows = babyIds.length
-    ? await prismaPublic.baby.findMany({
-        where: { id: { in: babyIds }, familyId: ctx.family.id },
-        select: { id: true, name: true },
-      })
-    : []
-
+  const likers = detail.likers
+  const myLike = detail.liked
+  const myBookmark = detail.bookmarked
+  const myWidgetPhoto = detail.inWidget
   const familyMembers = members.map((m) => ({ id: m.user.id, displayName: m.user.displayName }))
-  const babies = babyRows.map((b) => ({ id: b.id, name: b.name }))
+  const babies = detail.babies
 
   // Use effective capabilities (built by resolveContext via family-capabilities
   // settings). `asset.delete.own` is a grantable family capability, so static
