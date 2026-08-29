@@ -7,7 +7,7 @@ import { getSetting } from '@/server/settings/get'
 import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
 import { z } from 'zod'
 
-const QUERY = z.object({ q: z.enum(['original', 'hd', 'sd']).default('original') })
+const QUERY = z.object({ q: z.enum(['auto', 'original', 'hd', 'sd']).default('auto') })
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
@@ -34,7 +34,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // 압축 옵션이 꺼져 있으면 hd/sd 요청을 원본으로 폴백한다 — UI 가 숨겨져 있어도
   // URL 을 직접 친 경우에 대비한 서버측 최종 방어.
   let quality = q
-  if (q !== 'original') {
+  if (q === 'hd' || q === 'sd') {
     const enabled = await getSetting('download.compress.enabled', z.boolean(), true, prismaPublic)
     if (!enabled) quality = 'original'
   }

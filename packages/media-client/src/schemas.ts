@@ -121,7 +121,7 @@ export type UpdateAssetMetadataResponse = z.infer<typeof updateAssetMetadataResp
 export const mintDownloadRequest = z.object({
   familyId: z.string().uuid(),
   assetId: z.string().uuid(),
-  quality: z.enum(['original', 'hd', 'sd']),
+  quality: z.enum(['auto', 'original', 'hd', 'sd']),
 })
 export type MintDownloadRequest = z.infer<typeof mintDownloadRequest>
 

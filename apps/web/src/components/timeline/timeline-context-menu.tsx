@@ -108,7 +108,7 @@ export function TimelineContextMenu({
         icon={<Download size={16} strokeWidth={2.2} />}
         onClick={() => {
           const a = document.createElement('a')
-          a.href = `/api/asset/${assetId}/download?q=original`
+          a.href = `/api/asset/${assetId}/download?q=auto`
           a.download = ''
           document.body.appendChild(a)
           a.click()

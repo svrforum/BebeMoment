@@ -120,8 +120,9 @@ export type DownloadTokenPayload = {
   assetId: string
   originalKey: string
   hdImageKey?: string
+  videoCompatKey?: string
   kind: 'image' | 'video'
-  quality: 'original' | 'hd' | 'sd'
+  quality: 'original' | 'compat' | 'hd' | 'sd'
   filename: string
   mimeType: string
 }
@@ -140,6 +141,7 @@ export async function signDownloadToken(args: SignDownloadArgs): Promise<string>
     assetId: args.assetId,
     originalKey: args.originalKey,
     ...(args.hdImageKey !== undefined ? { hdImageKey: args.hdImageKey } : {}),
+    ...(args.videoCompatKey !== undefined ? { videoCompatKey: args.videoCompatKey } : {}),
     kind: args.kind,
     quality: args.quality,
     filename: args.filename,

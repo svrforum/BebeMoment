@@ -68,7 +68,7 @@ export function ViewerActionBar({
         </button>
       ) : (
         <a
-          href={`/api/asset/${assetId}/download?q=original`}
+          href={`/api/asset/${assetId}/download?q=auto`}
           download
           aria-label={t('actions.downloadOriginal')}
           onClick={() => toast({ title: t('actions.savingPhoto') })}

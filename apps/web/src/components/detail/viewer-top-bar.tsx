@@ -89,7 +89,7 @@ export function ViewerTopBar({
       <div className="flex items-center gap-1">
         {showDownload && (
           <a
-            href={`/api/asset/${assetId}/download?q=original`}
+            href={`/api/asset/${assetId}/download?q=auto`}
             download
             aria-label={t('actions.download')}
             onClick={() => toast({ title: t('actions.savingPhoto') })}

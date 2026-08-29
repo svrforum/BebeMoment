@@ -28,7 +28,7 @@ export function BulkDownloadButton({
     try {
       for (const id of assetIds) {
         const a = document.createElement('a')
-        a.href = `/api/asset/${id}/download?q=original`
+        a.href = `/api/asset/${id}/download?q=auto`
         a.download = ''
         document.body.appendChild(a)
         a.click()

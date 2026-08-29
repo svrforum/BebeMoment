@@ -18,7 +18,7 @@ function replaceExt(filename: string, newExt: string): string {
 function deriveFilename(
   original: string,
   kind: 'image' | 'video',
-  quality: 'original' | 'hd' | 'sd',
+  quality: 'original' | 'compat' | 'hd' | 'sd',
 ): { filename: string; mimeType: string } {
   if (quality === 'original') {
     return { filename: original, mimeType: '' }
@@ -47,20 +47,37 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
     }
 
     const kind: 'image' | 'video' = asset.kind === 'video' ? 'video' : 'image'
+    const derivatives = parseDerivativesV2(asset.derivatives)
+
+    // auto = "폰에서 열리는 파일을 달라". 원본 코덱이 폰에서 재생되면 원본 바이트를
+    // 그대로 주고(화질 유지), 아니면 워커가 이미 만들어 둔 호환본으로 보낸다. 판정
+    // 이전에 처리된 자산은 originalPlayable 이 없는데, 그때는 지금까지처럼 원본을 준다
+    // — 멀쩡한 자산을 조용히 1080p 로 떨구지 않기 위해서다(백필로 판정을 채운다).
+    let effective: 'original' | 'compat' | 'hd' | 'sd' = quality === 'auto' ? 'original' : quality
+    let videoCompatKey: string | undefined
+    if (
+      quality === 'auto' &&
+      kind === 'video' &&
+      derivatives?.originalPlayable === false &&
+      derivatives.videoCompat
+    ) {
+      effective = 'compat'
+      videoCompatKey = derivatives.videoCompat
+    }
+
     const { filename: derivedName, mimeType: derivedMime } = deriveFilename(
       asset.originalFilename,
       kind,
-      quality,
+      effective,
     )
-    const filename = quality === 'original' ? asset.originalFilename : derivedName
-    const mimeType = quality === 'original' ? asset.mimeType : derivedMime
+    const filename = effective === 'original' ? asset.originalFilename : derivedName
+    const mimeType = effective === 'original' ? asset.mimeType : derivedMime
 
     // 이미지 + HD 면 사전 생성된 display1080.jpeg 가 있는지 확인. 있으면
     // 그 키를 토큰에 박아 두고, 다운로드 라우트는 라이브 리사이즈 없이
     // 그대로 스트리밍한다.
     let hdImageKey: string | undefined
-    if (kind === 'image' && quality === 'hd') {
-      const derivatives = parseDerivativesV2(asset.derivatives)
+    if (kind === 'image' && effective === 'hd') {
       hdImageKey = derivatives?.display1080?.jpeg
     }
 
@@ -69,8 +86,9 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
       assetId,
       originalKey: asset.originalKey,
       ...(hdImageKey !== undefined ? { hdImageKey } : {}),
+      ...(videoCompatKey !== undefined ? { videoCompatKey } : {}),
       kind,
-      quality,
+      quality: effective,
       filename,
       mimeType,
     })

@@ -97,6 +97,29 @@ async function serveHdImageDerivative(
   return reply.status(200).send(stream)
 }
 
+async function serveVideoCompat(
+  reply: FastifyReply,
+  payload: DownloadTokenPayload,
+  videoCompatKey: string,
+): Promise<FastifyReply> {
+  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const storage = getStorage()
+  if (env.STORAGE_MODE === 's3') {
+    const url = await storage.publicUrl(videoCompatKey, { expiresIn: 600 })
+    reply.redirect(url, 302)
+    return reply
+  }
+  // 파생물이 사라졌으면(정리·부분 복구) 실시간 변환으로 떨어뜨린다 — 저장이 실패하는
+  // 것보다 느리게라도 되는 편이 낫다.
+  if (!(await storage.exists(videoCompatKey))) {
+    return await serveLiveTranscodedVideo(reply, payload)
+  }
+  const stream = await storage.read(videoCompatKey)
+  reply.header('content-type', 'video/mp4')
+  reply.header('content-length', String(await storage.size(videoCompatKey)))
+  return reply.status(200).send(stream)
+}
+
 async function serveLiveResizedImage(
   reply: FastifyReply,
   payload: DownloadTokenPayload,
@@ -229,7 +252,9 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
     if (
       !keyBelongsToAsset(payload.originalKey, payload.familyId, payload.assetId) ||
       (payload.hdImageKey !== undefined &&
-        !keyBelongsToAsset(payload.hdImageKey, payload.familyId, payload.assetId))
+        !keyBelongsToAsset(payload.hdImageKey, payload.familyId, payload.assetId)) ||
+      (payload.videoCompatKey !== undefined &&
+        !keyBelongsToAsset(payload.videoCompatKey, payload.familyId, payload.assetId))
     ) {
       throw new MediaHttpError({
         code: 'UNAUTHORIZED',
@@ -243,6 +268,11 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
 
     if (payload.quality === 'original') {
       return await serveOriginal(reply, payload)
+    }
+
+    if (payload.quality === 'compat') {
+      if (!payload.videoCompatKey) return await serveLiveTranscodedVideo(reply, payload)
+      return await serveVideoCompat(reply, payload, payload.videoCompatKey)
     }
 
     if (payload.kind === 'image') {

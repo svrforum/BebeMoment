@@ -8,6 +8,7 @@ import { rgbToHex } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
 import { decodeSharp } from '@/lib/sharp'
+import { isBroadlyPlayableVideo } from '@/domain/video-compat'
 import { type Trio, generateTrios } from './derivative-trios'
 import { videoCreatedAt } from './video-created-at'
 import { orientedDimensions, parseDurationMs } from './video-meta'
@@ -33,6 +34,7 @@ export type ProcessVideoResult = {
     display1080: Trio
     videoPoster: string
     videoCompat: string
+    originalPlayable: boolean
   }
 }
 
@@ -171,6 +173,7 @@ export async function processVideo(
         display1080: trios.display1080,
         videoPoster: posterKey,
         videoCompat: previewKey,
+        originalPlayable: isBroadlyPlayableVideo(videoStream?.codec_name, videoStream?.pix_fmt),
       },
     }
   } finally {

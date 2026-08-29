@@ -13,6 +13,8 @@ export const derivativesV2Schema = z.object({
   display1080: trio.optional(),
   videoPoster: z.string().min(1).optional(),
   videoCompat: z.string().min(1).optional(),
+  // 원본을 그대로 저장해도 폰에서 재생되는지(§video-compat). 없으면 = 판정 전 자산.
+  originalPlayable: z.boolean().optional(),
 })
 
 export type DerivativesV2 = z.infer<typeof derivativesV2Schema>
