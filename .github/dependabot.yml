@@ -10,10 +10,20 @@ updates:
       # batch low-risk dev/tooling bumps into one PR to cut noise
       dev-dependencies:
         dependency-type: development
+      # The three AWS packages share one version range and one type surface.
+      # Bumping the presigner alone put two SDK trees in the lockfile and broke
+      # typecheck — getSignedUrl saw two incompatible Client classes (PR #9).
+      aws-sdk:
+        patterns:
+          - "@aws-sdk/*"
     ignore:
       # pinned intentionally (see pnpm-workspace overrides / single React copy)
       - dependency-name: react
       - dependency-name: react-dom
+      # Types must not run ahead of the runtime: we ship Node 22 LTS, and types
+      # for a newer Node let a missing API typecheck and then fail in production.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: github-actions
@@ -26,7 +36,22 @@ updates:
     directory: /docker
     schedule:
       interval: weekly
+    ignore:
+      # LTS only. Dependabot cannot tell an LTS line from an odd-numbered one and
+      # proposed Node 25, which was already end-of-life (PR #14). Major moves are
+      # a deliberate call — 22 -> 24, or 26 once it reaches LTS.
+      - dependency-name: node
+        update-types: ["version-update:semver-major"]
   - package-ecosystem: docker
     directory: /apps/ml
     schedule:
       interval: weekly
+    ignore:
+      # The ML image pins numpy 1.26.4, which publishes no wheel past cp312, and
+      # insightface builds from source against numpy headers. Moving Python means
+      # migrating numpy 1.x -> 2.x first, so it cannot ride in on a bump (PR #15).
+      # Worse, nothing builds this image until a tag is pushed, so a bad bump
+      # surfaces mid-release.
+      - dependency-name: python
+        update-types:
+          ["version-update:semver-major", "version-update:semver-minor"]

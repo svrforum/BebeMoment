@@ -3,9 +3,6 @@ import { Smartphone } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
-// 앱 미설치 시 보낼 설치 안내(릴리스 페이지). intent 의 browser_fallback_url 로.
-const INSTALL_URL = 'https://github.com/svrforum/BebeMoment/releases/latest'
-
 /**
  * 안드로이드 브라우저에서 초대 링크를 열면 "앱에서 이어하기" 를 띄운다. 누르면 bebe://invite
  * 딥링크로 앱을 열어 (1) 서버주소 자동설정 + (2) 초대 화면으로 이동. 앱이 없으면 intent 의
@@ -20,10 +17,13 @@ export function InviteAppButton({ token }: { token: string }) {
     const ua = navigator.userAgent || ''
     if (!/Android/i.test(ua) || /bebeApp/.test(ua)) return
     const server = window.location.origin
+    // 앱이 없으면 우리 서버가 최신 APK 로 바로 보낸다. GitHub 의 /releases/latest 는 태그 종류를
+    // 안 가려 훨씬 잦은 서버 릴리스를 가리키기 일쑤였다 — APK 가 없는 페이지로 보내는 셈이었다.
+    const install = `${server}/download`
     const intent =
       `intent://invite?server=${encodeURIComponent(server)}&token=${encodeURIComponent(token)}` +
       '#Intent;scheme=bebe;package=im.bebe.app;' +
-      `S.browser_fallback_url=${encodeURIComponent(INSTALL_URL)};end`
+      `S.browser_fallback_url=${encodeURIComponent(install)};end`
     setHref(intent)
   }, [token])
 
