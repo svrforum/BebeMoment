@@ -96,7 +96,8 @@ export function ShareSheet({
   const toast = useToast()
   const t = useTranslations('social')
   const locale = useLocale()
-  const [ttl, setTtl] = useState<Ttl>('permanent')
+  // 기본은 1일 — 공유 링크는 로그인 없이 열리므로, 명시적으로 늘리지 않는 한 짧게 만료시킨다.
+  const [ttl, setTtl] = useState<Ttl>('1d')
   const [links, setLinks] = useState<Link[]>([])
   const [loading, setLoading] = useState(false)
   const [creating, setCreating] = useState(false)
