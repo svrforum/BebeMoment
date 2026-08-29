@@ -48,11 +48,12 @@ function createBody(t: SheetTarget): Record<string, unknown> {
 }
 
 type Ttl = 'permanent' | '1d' | '7d' | '30d'
+// 짧은 것부터 — 기본(1일)이 맨 앞이고, 영구는 명시적으로 고르게 맨 뒤에 둔다.
 const ttlOptions = (t: Translate): { value: Ttl; label: string }[] => [
-  { value: 'permanent', label: t('share.ttlPermanent') },
   { value: '1d', label: t('share.ttl1d') },
   { value: '7d', label: t('share.ttl7d') },
   { value: '30d', label: t('share.ttl30d') },
+  { value: 'permanent', label: t('share.ttlPermanent') },
 ]
 
 type Link = {
