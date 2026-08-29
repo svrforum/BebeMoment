@@ -109,6 +109,9 @@
     <!-- Permissions -->
 
     <uses-permission android:name="android.permission.INTERNET" />
+    <!-- 앱 내 업데이트: 받은 APK 의 설치 화면을 띄우기 위해 필요(8.0+). 사용자가
+         "이 출처의 앱 설치 허용"을 한 번 켜야 실제로 진행된다. -->
+    <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <!--
       DownloadManager 가 Android 9 이하에서 외부 저장소 Downloads 폴더에 파일을

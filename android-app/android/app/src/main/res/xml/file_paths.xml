@@ -2,4 +2,7 @@
 <paths xmlns:android="http://schemas.android.com/apk/res/android">
     <external-path name="my_images" path="." />
     <cache-path name="my_cache_images" path="." />
+    <!-- 앱 업데이트 APK. 앱 전용 외부 폴더라 저장소 권한이 필요 없고,
+         설치 화면에 넘길 content:// URI 를 만들 수 있다. -->
+    <external-files-path name="apk_updates" path="Download/" />
 </paths>

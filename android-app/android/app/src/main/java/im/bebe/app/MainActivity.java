@@ -4,13 +4,16 @@ import android.Manifest;
 import android.app.AlertDialog;
 import android.app.DownloadManager;
 import android.content.ActivityNotFoundException;
+import android.content.BroadcastReceiver;
 import android.content.Context;
+import android.content.IntentFilter;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.provider.Settings;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Environment;
@@ -27,6 +30,7 @@ import android.widget.Toast;
 import androidx.activity.OnBackPressedCallback;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsControllerCompat;
 import com.getcapacitor.BridgeActivity;
@@ -34,6 +38,7 @@ import com.getcapacitor.BridgeWebViewClient;
 import com.google.firebase.FirebaseApp;
 import com.google.firebase.FirebaseOptions;
 import com.google.firebase.messaging.FirebaseMessaging;
+import java.io.File;
 import java.net.URLDecoder;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -369,6 +374,10 @@ public class MainActivity extends BridgeActivity {
     ) {
         try {
             final String filename = resolveDownloadFilename(url, contentDisposition, mimeType);
+            if (isOwnApkUrl(url) && filename.toLowerCase().endsWith(".apk")) {
+                enqueueApkUpdate(url, filename);
+                return;
+            }
             final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
             // 세션 쿠키는 우리 서버(same-origin) 다운로드에만 실어 보낸다 — 페이지가 임의
             // 외부 URL 로 다운로드를 띄워 세션 쿠키를 새 호스트로 유출하는 걸 막는다.
@@ -397,6 +406,98 @@ public class MainActivity extends BridgeActivity {
         } catch (Exception e) {
             Toast.makeText(MainActivity.this, "다운로드 실패: " + e.getMessage(), Toast.LENGTH_LONG).show();
         }
+    }
+
+    // ── 앱 내 업데이트 (받은 뒤 설치 화면까지) ─────────────────────────────
+    // ⚠️ 페이지가 준 URL 을 그대로 설치하면 위험하다 — 우리 릴리스 자산 경로로 시작하는
+    // URL 만 자동 설치하고, 그 외에는 평범한 다운로드로 흘려보낸다.
+    private static final String APK_URL_PREFIX =
+        "https://github.com/svrforum/BebeMoment/releases/download/";
+    private static final String APK_MIME = "application/vnd.android.package-archive";
+    private long apkDownloadId = -1;
+    private String apkFilename = null;
+    private BroadcastReceiver apkDownloadReceiver = null;
+
+    private static boolean isOwnApkUrl(String url) {
+        return url != null && url.startsWith(APK_URL_PREFIX);
+    }
+
+    private void enqueueApkUpdate(String url, String filename) {
+        // 8.0+ 는 앱별로 "이 출처의 앱 설치 허용"이 켜져 있어야 설치 화면이 뜬다. OS 정책이라
+        // 우회할 수 없으므로 설정으로 안내하고, 켠 뒤 다시 누르면 그대로 진행된다.
+        if (Build.VERSION.SDK_INT >= 26 && !getPackageManager().canRequestPackageInstalls()) {
+            Toast.makeText(this, "업데이트를 설치하려면 이 앱의 설치 권한을 켜주세요", Toast.LENGTH_LONG).show();
+            try {
+                startActivity(new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES)
+                    .setData(Uri.parse("package:" + getPackageName())));
+            } catch (Exception ignored) {
+            }
+            return;
+        }
+        final DownloadManager dm = (DownloadManager) getSystemService(Context.DOWNLOAD_SERVICE);
+        if (dm == null) {
+            Toast.makeText(this, "다운로드를 시작할 수 없어요", Toast.LENGTH_SHORT).show();
+            return;
+        }
+        final DownloadManager.Request req = new DownloadManager.Request(Uri.parse(url));
+        req.setMimeType(APK_MIME);
+        req.setNotificationVisibility(DownloadManager.Request.VISIBILITY_VISIBLE_NOTIFY_COMPLETED);
+        // 앱 전용 외부 폴더 — 저장소 권한이 필요 없고 FileProvider 로 설치 화면에 넘길 수 있다.
+        req.setDestinationInExternalFilesDir(this, Environment.DIRECTORY_DOWNLOADS, filename);
+        apkFilename = filename;
+        apkDownloadId = dm.enqueue(req);
+        registerApkReceiver();
+        Toast.makeText(this, "업데이트를 받고 있어요", Toast.LENGTH_SHORT).show();
+    }
+
+    private void registerApkReceiver() {
+        if (apkDownloadReceiver != null) return;
+        apkDownloadReceiver = new BroadcastReceiver() {
+            @Override
+            public void onReceive(Context ctx, Intent intent) {
+                final long id = intent.getLongExtra(DownloadManager.EXTRA_DOWNLOAD_ID, -1);
+                if (id != apkDownloadId || apkFilename == null) return;
+                launchApkInstaller(apkFilename);
+            }
+        };
+        final IntentFilter filter = new IntentFilter(DownloadManager.ACTION_DOWNLOAD_COMPLETE);
+        // 13+ 는 export 여부를 명시해야 한다. 시스템 브로드캐스트라 EXPORTED.
+        if (Build.VERSION.SDK_INT >= 33) {
+            registerReceiver(apkDownloadReceiver, filter, Context.RECEIVER_EXPORTED);
+        } else {
+            registerReceiver(apkDownloadReceiver, filter);
+        }
+    }
+
+    private void launchApkInstaller(String filename) {
+        try {
+            final File apk = new File(getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), filename);
+            if (!apk.exists() || apk.length() == 0) {
+                Toast.makeText(this, "받은 파일을 찾지 못했어요", Toast.LENGTH_LONG).show();
+                return;
+            }
+            // 7.0+ 는 file:// 을 다른 앱에 넘기면 FileUriExposedException — content:// 로 준다.
+            final Uri uri = FileProvider.getUriForFile(
+                this, getPackageName() + ".fileprovider", apk);
+            startActivity(new Intent(Intent.ACTION_VIEW)
+                .setDataAndType(uri, APK_MIME)
+                .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION | Intent.FLAG_ACTIVITY_NEW_TASK));
+        } catch (Exception e) {
+            // 조용히 죽지 않는다 — 파일은 받아졌으니 알림에서 직접 설치할 수 있다고 알린다.
+            Toast.makeText(this, "설치 화면을 열지 못했어요. 알림에서 열어주세요", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    @Override
+    public void onDestroy() {
+        if (apkDownloadReceiver != null) {
+            try {
+                unregisterReceiver(apkDownloadReceiver);
+            } catch (Exception ignored) {
+            }
+            apkDownloadReceiver = null;
+        }
+        super.onDestroy();
     }
 
     // 패턴: RFC 5987 의 filename*=UTF-8''<pct-encoded> 와 평문 filename="..." 둘 다 잡는다.
