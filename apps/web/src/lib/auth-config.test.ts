@@ -113,6 +113,8 @@ describe('Better Auth email/password', () => {
       headers: new Headers({ cookie: cookiePair }),
     })
     expect(session?.session.userId).toBe(user.id)
-    expect((session?.session as { currentFamilyId?: string }).currentFamilyId).toBe(family.id)
+    expect((session?.session as { currentFamilyId?: string } | undefined)?.currentFamilyId).toBe(
+      family.id,
+    )
   })
 })

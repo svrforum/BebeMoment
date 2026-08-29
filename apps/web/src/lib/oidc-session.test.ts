@@ -67,6 +67,8 @@ describe('OIDC session minting', () => {
     })
 
     expect(result?.session.userId).toBe(user.id)
-    expect((result?.session as { currentFamilyId?: string }).currentFamilyId).toBe(family.id)
+    expect((result?.session as { currentFamilyId?: string } | undefined)?.currentFamilyId).toBe(
+      family.id,
+    )
   })
 })
