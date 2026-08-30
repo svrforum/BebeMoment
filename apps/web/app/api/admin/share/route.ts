@@ -1,6 +1,6 @@
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { requireAdmin } from '@/lib/require-admin'
 import { resolveContext } from '@/server/context'
 import { listAllShareLinks, revokeAllShareLinks, revokeShareLink } from '@/server/share/manage'
@@ -15,7 +15,7 @@ async function adminFamilyId(): Promise<{ error: NextResponse } | { familyId: st
     { userId: ctx.user.id, currentFamilyId: session?.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!resolved.family) return { error: NextResponse.json({ error: 'No family' }, { status: 400 }) }
+  if (!resolved.family) return { error: await errorJsonKey('noFamily', 400) }
   return { familyId: resolved.family.id }
 }
 

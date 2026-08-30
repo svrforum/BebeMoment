@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { createComment } from '@/server/comment/create'
 import { listComments } from '@/server/comment/list'
@@ -11,12 +11,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family) return await errorJsonKey('noFamily', 400)
   const { id } = await params
   // 비밀 스토리(guardians) 사진은 family 역할에게 숨긴다 — 댓글 목록도 마찬가지(생성·
   // 다운로드 경로와 대칭). id 를 직접 쳐도 404 로 막는 defense-in-depth.
@@ -24,7 +24,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     ctx.membership?.role === 'family' &&
     (await isAssetHiddenFromViewer('family', id, prismaPublic, ctx.family.id))
   ) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return await errorJsonKey('notFound', 404)
   }
   const items = await listComments(ctx.family.id, id, prismaPublic)
   return NextResponse.json({ items })
@@ -32,14 +32,14 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('comments', prismaPublic)))
-    return NextResponse.json({ error: '댓글 기능이 꺼져 있어요' }, { status: 403 })
+    return await errorJsonKey('featureOff.comments', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return await errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     const body = await req.json()

@@ -1683,7 +1683,15 @@
     },
     "admin": {
       "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"
-    }
+    },
+    "featureOff": {
+      "comments": "댓글 기능이 꺼져 있어요",
+      "story": "스토리 기능이 꺼져 있어요",
+      "faces": "얼굴 인식이 꺼져 있어요",
+      "bookmarks": "저장함 기능이 꺼져 있어요",
+      "likes": "좋아요 기능이 꺼져 있어요"
+    },
+    "protectedSetting": "보호된 설정 키예요"
   },
   "upload": {
     "addAtLeastOne": "사진을 최소 1장 추가해주세요",

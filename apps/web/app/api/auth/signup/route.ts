@@ -1,5 +1,5 @@
 import { prismaPublic } from '@/lib/db-init'
-import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { errorJson, errorJsonKey, errorJsonText } from '@/lib/error-response'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { readJsonLimited } from '@/lib/read-json-limited'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
@@ -74,10 +74,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ userId: user.id })
   } catch (e) {
     if (e instanceof ZodError) {
-      return NextResponse.json(
-        { error: e.issues[0]?.message ?? '입력값이 올바르지 않아요' },
-        { status: 400 },
-      )
+      return await errorJsonText(e.issues[0]?.message ?? '입력값이 올바르지 않아요', 400)
     }
     return errorJson(e)
   }

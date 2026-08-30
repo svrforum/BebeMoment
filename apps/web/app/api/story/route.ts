@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { jsonBig } from '@/lib/json-big'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { logger } from '@/lib/logger'
@@ -12,12 +12,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family) return await errorJsonKey('noFamily', 400)
   const url = new URL(req.url)
   const babyId = url.searchParams.get('babyId') ?? undefined
   const cursor = url.searchParams.get('cursor') ?? undefined
@@ -43,14 +43,14 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('diary', prismaPublic)))
-    return NextResponse.json({ error: '스토리 기능이 꺼져 있어요' }, { status: 403 })
+    return await errorJsonKey('featureOff.story', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return await errorJsonKey('noFamily', 400)
   const body = await req.json().catch(() => null)
   // 사진 몇 장짜리 스토리가 언제 성공·실패했는지 남긴다 — 클라이언트 진단 보고
   // (/api/diagnostics/upload)와 짝지어야 어디서 끊겼는지 한 줄로 읽힌다.

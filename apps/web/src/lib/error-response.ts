@@ -45,3 +45,12 @@ export async function errorJsonKey(key: string, status: number): Promise<NextRes
   await logError(status, key)
   return NextResponse.json({ error: t.has(key) ? t(key) : key }, { status })
 }
+
+/**
+ * 카탈로그 키가 아니라 **그때그때 만들어지는 문구**를 그대로 돌려줄 때(zod 이슈 메시지 등).
+ * 직접 `NextResponse.json({error})` 을 쓰면 그 경로만 로그에서 사라지므로 이걸 쓴다.
+ */
+export async function errorJsonText(message: string, status: number): Promise<NextResponse> {
+  await logError(status, message)
+  return NextResponse.json({ error: message }, { status })
+}

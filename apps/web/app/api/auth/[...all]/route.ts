@@ -1,7 +1,8 @@
+import { errorJsonKey } from '@/lib/error-response'
 import { isBlockedBetterAuthPath } from '@/lib/auth-blocked-paths'
 import { auth } from '@/lib/auth-config'
 import { toNextJsHandler } from 'better-auth/next-js'
-import { NextResponse } from 'next/server'
+import type { NextResponse } from 'next/server'
 
 // Better Auth's own endpoints (get-session, sign-out, …). Next.js routes the
 // explicit /api/auth/{login,logout,signup,oidc/*} files before this catch-all,
@@ -13,17 +14,17 @@ import { NextResponse } from 'next/server'
 // here and bypass all of that, so we 404 them before delegating.
 const handler = toNextJsHandler(auth)
 
-function blockedResponse(req: Request): NextResponse | null {
+async function blockedResponse(req: Request): Promise<NextResponse | null> {
   if (isBlockedBetterAuthPath(new URL(req.url).pathname)) {
-    return NextResponse.json({ error: 'Not found' }, { status: 404 })
+    return await errorJsonKey('notFound', 404)
   }
   return null
 }
 
 export async function GET(req: Request): Promise<Response> {
-  return blockedResponse(req) ?? handler.GET(req)
+  return (await blockedResponse(req)) ?? handler.GET(req)
 }
 
 export async function POST(req: Request): Promise<Response> {
-  return blockedResponse(req) ?? handler.POST(req)
+  return (await blockedResponse(req)) ?? handler.POST(req)
 }

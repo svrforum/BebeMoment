@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { mergePeople } from '@/server/people/list'
@@ -13,16 +13,15 @@ const bodySchema = z.object({ targetId: z.string().uuid() })
 // 이름 변경과 같은 가족 공유 메타데이터 변경이라 person.rename 능력으로 게이트.
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('faces', prismaPublic)))
-    return NextResponse.json({ error: '얼굴 인식이 꺼져 있어요' }, { status: 403 })
+    return await errorJsonKey('featureOff.faces', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
-  if (!ctx.capabilities.includes('person.rename'))
-    return NextResponse.json({ error: '권한이 없어요' }, { status: 403 })
+  if (!ctx.family) return await errorJsonKey('noFamily', 400)
+  if (!ctx.capabilities.includes('person.rename')) return await errorJsonKey('forbidden', 403)
   try {
     const { id } = await params
     const { targetId } = bodySchema.parse(await req.json())

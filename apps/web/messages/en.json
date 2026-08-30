@@ -1683,7 +1683,15 @@
     },
     "admin": {
       "familyPermInvalid": "Only grantable permissions can be set in permissions.family"
-    }
+    },
+    "featureOff": {
+      "comments": "Comments are turned off",
+      "story": "Stories are turned off",
+      "faces": "Face recognition is turned off",
+      "bookmarks": "Saved is turned off",
+      "likes": "Likes are turned off"
+    },
+    "protectedSetting": "That setting key is protected"
   },
   "upload": {
     "addAtLeastOne": "Add at least one photo",

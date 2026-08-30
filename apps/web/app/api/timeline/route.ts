@@ -1,3 +1,4 @@
+import { errorJsonKey } from '@/lib/error-response'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -15,13 +16,12 @@ export const dynamic = 'force-dynamic'
  */
 export async function GET(req: Request) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.membership)
-    return NextResponse.json({ error: 'No current family' }, { status: 400 })
+  if (!ctx.family || !ctx.membership) return await errorJsonKey('noFamily', 400)
 
   const url = new URL(req.url)
   const cursor = url.searchParams.get('cursor') ?? undefined

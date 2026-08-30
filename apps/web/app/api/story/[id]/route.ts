@@ -1,5 +1,5 @@
 import { getAuth } from '@/lib/auth'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { jsonBig } from '@/lib/json-big'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -12,12 +12,12 @@ import { NextResponse } from 'next/server'
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family) return await errorJsonKey('noFamily', 400)
   const { id } = await params
   const entry = await getStoryEntry(
     id,
@@ -27,20 +27,20 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
     getMediaClient(),
     ctx.membership?.role ?? 'family',
   )
-  if (!entry) return NextResponse.json({ error: 'Not found' }, { status: 404 })
+  if (!entry) return await errorJsonKey('notFound', 404)
   return jsonBig(entry)
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('diary', prismaPublic)))
-    return NextResponse.json({ error: '스토리 기능이 꺼져 있어요' }, { status: 403 })
+    return await errorJsonKey('featureOff.story', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return await errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     const patch = await req.json()
@@ -57,14 +57,14 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
 export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
-  if (!session) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!session) return await errorJsonKey('unauthorized', 401)
   if (!(await isFeatureEnabled('diary', prismaPublic)))
-    return NextResponse.json({ error: '스토리 기능이 꺼져 있어요' }, { status: 403 })
+    return await errorJsonKey('featureOff.story', 403)
   const ctx = await resolveContext(
     { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
     prismaPublic,
   )
-  if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  if (!ctx.family || !ctx.user) return await errorJsonKey('noFamily', 400)
   try {
     const { id } = await params
     await softDeleteStoryEntry({ id, familyId: ctx.family.id, byUserId: ctx.user.id }, prismaPublic)

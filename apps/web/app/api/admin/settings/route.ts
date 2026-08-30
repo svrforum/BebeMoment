@@ -4,7 +4,7 @@ import { getFeatureFlags } from '@/server/settings/features'
 import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
 
@@ -32,7 +32,7 @@ export async function POST(req: Request) {
   try {
     const body = BodySchema.parse(await req.json())
     if (isProtectedSettingKey(body.key)) {
-      return NextResponse.json({ error: 'protected setting key' }, { status: 403 })
+      return await errorJsonKey('protectedSetting', 403)
     }
     await setSetting(body.key, body.value, ctx.user.id, prismaPublic)
     return NextResponse.json({ ok: true })
