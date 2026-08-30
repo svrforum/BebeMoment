@@ -19,6 +19,8 @@
       "!**/data",
       "!**/pg",
       "!**/redis",
+      // 백업 번들·매니페스트가 쌓이는 런타임 디렉터리 (data/pg/redis 와 같은 부류)
+      "!**/backups",
       "!**/apps/web/public/sw.js",
       "!**/apps/web/public/sw.js.map",
       "!**/apps/web/public/workbox-*.js",

@@ -1,4 +1,4 @@
-import { execFile } from 'node:child_process'
+import { execFile, spawn } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
@@ -70,7 +70,62 @@ async function verifyChainIntegrity(
 // 허용한다. 현재는 항상 이 둘이지만, 호출부가 동적이 되더라도 인젝션을 원천 차단.
 const ALLOWED_ROLES = new Set(['bebe_web', 'bebe_media'])
 
-async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
+/**
+ * 롤을 새로 만들어도 되는지 판단한다(순수 — 정책만).
+ *
+ * 롤 이름은 SQL 식별자라 파라미터화가 안 되므로 allowlist 로만 허용하고, 비거나 추측
+ * 가능한 기본 비밀번호('bebe')로 만들면 약한 자격증명이 영구 고착되므로 거부한다.
+ */
+export function assertRoleCreatable(name: string, password: string): void {
+  if (!ALLOWED_ROLES.has(name)) throw new ServiceError(500, `허용되지 않은 롤 이름: ${name}`)
+  if (!password || password === 'bebe') {
+    throw new ServiceError(
+      500,
+      `${name} 롤을 만들려면 BEBE_WEB_DB_PASSWORD/BEBE_MEDIA_DB_PASSWORD 를 설정해야 해요`,
+    )
+  }
+}
+
+/**
+ * psql 변수(:'var')를 쓰는 스크립트를 실행한다.
+ *
+ * ⚠️ `-c` 로는 안 된다 — psql 은 그 문자열을 서버로 그대로 보내므로 :'var' 가 치환되지
+ * 않고 서버가 문법 오류를 낸다. 변수 치환은 파일·stdin 으로 읽은 SQL 에서만 일어난다.
+ * (이걸 몰라서 새 기기 복구의 롤 생성이 통째로 깨져 있었다.)
+ *
+ * ON_ERROR_STOP 도 필수다 — `-f` 는 문장이 실패해도 기본값이 종료코드 0 이라, 없으면
+ * 실패한 CREATE ROLE 이 성공으로 보인다.
+ *
+ * 실패해도 argv 는 에러에 담지 않는다 — 비밀번호가 로그·설정에 섞여 들어간다.
+ */
+export function psqlScript(
+  url: string,
+  vars: Record<string, string>,
+  sql: string,
+): Promise<string> {
+  const args = [url, '-v', 'ON_ERROR_STOP=1']
+  for (const [k, v] of Object.entries(vars)) args.push('-v', `${k}=${v}`)
+  args.push('-f', '-')
+  return new Promise((resolve, reject) => {
+    const proc = spawn('psql', args, { stdio: ['pipe', 'pipe', 'pipe'] })
+    let out = ''
+    let err = ''
+    proc.stdout.on('data', (c: Buffer) => {
+      out += c.toString()
+    })
+    proc.stderr.on('data', (c: Buffer) => {
+      err += c.toString()
+    })
+    proc.on('error', (e) => reject(new Error(`psql 실행 실패: ${e.message}`)))
+    proc.on('close', (code) => {
+      if (code === 0) resolve(out)
+      else reject(new Error(err.trim() || `psql 종료코드 ${code}`))
+    })
+    proc.stdin.end(sql)
+  })
+}
+
+export async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
   if (!ALLOWED_ROLES.has(name)) throw new ServiceError(500, `허용되지 않은 롤 이름: ${name}`)
   const { stdout } = await runFile('psql', [
     ownerUrl,
@@ -78,22 +133,9 @@ async function ensureRole(ownerUrl: string, name: string, password: string): Pro
     `SELECT 1 FROM pg_roles WHERE rolname='${name}'`,
   ])
   if (stdout.trim() === '1') return
-  // 새로 만들 때만 — 비거나 추측 가능한 기본 비밀번호('bebe')로 롤을 만들면 약한 자격증명이
-  // 영구 고착된다. 운영자가 부팅 때와 같은 강한 비밀번호를 주도록 강제(조용한 폴백 금지).
-  if (!password || password === 'bebe') {
-    throw new ServiceError(
-      500,
-      `${name} 롤을 만들려면 BEBE_WEB_DB_PASSWORD/BEBE_MEDIA_DB_PASSWORD 를 설정해야 해요`,
-    )
-  }
+  assertRoleCreatable(name, password)
   // :'pw' 는 psql 이 안전하게 인용/이스케이프(인젝션 없음).
-  await runFile('psql', [
-    ownerUrl,
-    '-v',
-    `pw=${password}`,
-    '-c',
-    `CREATE ROLE ${name} LOGIN PASSWORD :'pw'`,
-  ])
+  await psqlScript(ownerUrl, { pw: password }, `CREATE ROLE ${name} LOGIN PASSWORD :'pw';`)
 }
 
 /**
