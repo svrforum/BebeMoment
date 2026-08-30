@@ -385,7 +385,9 @@
       "needPhoto": "Please add at least one photo",
       "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
       "submitFailed": "Couldn't post",
-      "attachFiles": "Pick from files"
+      "attachFiles": "Pick from files",
+      "rolledBack": "Couldn't post the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
+      "rolledBackPartly": "Couldn't post the story — {count} photo(s) could not be undone. ({error})"
     },
     "sort": {
       "ariaLabel": "Timeline sort",
@@ -687,7 +689,9 @@
       "visibilityGuardians": "Guardians only",
       "visibilityFamilyDesc": "Visible to the whole family",
       "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
-      "attachFiles": "Pick from files"
+      "attachFiles": "Pick from files",
+      "rolledBack": "Couldn't save — the {count} newly uploaded photo(s) were moved to the trash. ({error})",
+      "rolledBackPartly": "Couldn't save — {count} photo(s) could not be undone. ({error})"
     },
     "delete": {
       "trigger": "Delete",
@@ -1741,7 +1745,9 @@
       "close": "Close"
     },
     "pickFromFiles": "Pick from files (not in the gallery)",
-    "mediaOnly": "{name} — only photos and videos can be uploaded"
+    "mediaOnly": "{name} — only photos and videos can be uploaded",
+    "storyRolledBack": "Couldn't create the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
+    "storyRolledBackPartly": "Couldn't create the story — {count} photo(s) could not be undone. Check the trash. ({error})"
   },
   "memories": {
     "title": "Memories",

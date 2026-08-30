@@ -53,6 +53,8 @@ export type UploadManager = {
    *  닫거나 취소할 때 호출 — 잔존 staged 파일이 다음 선택에서 Uppy 의 noDuplicates
    *  로 막히는 것을 막는다. 진행 중(started) 업로드는 건드리지 않는다(백그라운드 보존). */
   clearStaged: () => void
+  /** 진행 중·대기 중인 업로드를 모두 중단. 스토리 제출 실패 롤백과 함께 쓴다. */
+  abortUploads: () => Promise<void>
   markAssetDone: (assetId: string) => void
   /** opts.notify=false 면 이 배치 사진들의 개별 'asset.uploaded' 푸시를 생략한다
    *  (스토리 첨부 — 스토리 푸시 하나로 갈음). 기본 true. */
@@ -379,6 +381,15 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])
 
+  /**
+   * 진행 중·대기 중인 업로드를 전부 세운다. 스토리 제출이 실패해 이미 올라간 사진을
+   * 되돌릴 때 함께 부른다 — 안 세우면 아직 init 안 한 파일들이 뒤늦게 새 자산을 만들어
+   * 되돌린 자리에 다시 나타난다.
+   */
+  const abortUploads = useCallback(async () => {
+    ;(await initUppy())?.cancelAll()
+  }, [initUppy])
+
   const clearStaged = useCallback(() => {
     if (!uppy) return
     for (const f of uppy.getFiles() as unknown as FileRow[]) {
@@ -437,6 +448,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       addFiles,
       removeFile,
       clearStaged,
+      abortUploads,
       markAssetDone,
       startStagedUploads,
       replaceFileData,
@@ -453,6 +465,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
     addFiles,
     removeFile,
     clearStaged,
+    abortUploads,
     markAssetDone,
     startStagedUploads,
     replaceFileData,

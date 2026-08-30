@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { collectAssetIds } from './collect-asset-ids'
+import { rollbackAssets } from './rollback-assets'
 import { ReorderRow } from './reorder-row'
 import { useOrderedKeys } from './use-ordered-keys'
 import { useUploadSheet } from './upload-sheet'
@@ -77,6 +78,7 @@ export function UploadDashboard({
     startStagedUploads,
     replaceFileData,
     pauseAutoDismiss,
+    abortUploads,
   } = useUploadManager()
   const router = useRouter()
   const toast = useToast()
@@ -125,12 +127,7 @@ export function UploadDashboard({
       // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
       startStagedUploads({ notify: false })
       const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
-      if (assetIds.length !== fileIds.length) {
-        // 타임아웃 — startStagedUploads 로 시작된 업로드는 계속 진행돼 타임라인에
-        // 저장된다(사진은 유실되지 않음). "재시도"로 오안내하지 않는다: 이미 시작된
-        // 파일은 재제출에서 제외되므로 재시도해도 다시 안 올라간다(§6 정직한 안내).
-        throw new Error(t('uploadNotFinished'))
-      }
+      if (assetIds.length !== fileIds.length) throw new Error(t('uploadNotFinished'))
 
       const today = new Date().toISOString().slice(0, 10)
       const res = await fetch('/api/story', {
@@ -153,7 +150,23 @@ export function UploadDashboard({
       close()
       router.push(`/story/${id}`)
     } catch (e) {
-      toast({ title: (e as Error).message, variant: 'danger' })
+      // 스토리가 없으면 사진도 없어야 한다 — 그러지 않으면 쓴 적 없는 스토리의 사진들이
+      // 타임라인에 흩어져 남고, 사용자가 손으로 하나씩 지워야 했다. 이미 assetId 를 받은
+      // 것(=서버에 만들어진 것)만 되돌린다. 되돌림도 실패하면 숨기지 않고 알린다.
+      await abortUploads()
+      const created = orderRef.current
+        .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
+        .filter((id): id is string => typeof id === 'string')
+      const undone = created.length > 0 ? await rollbackAssets(created) : null
+      const base = (e as Error).message
+      toast({
+        title: undone?.failed.length
+          ? t('storyRolledBackPartly', { count: undone.failed.length, error: base })
+          : undone && undone.removed > 0
+            ? t('storyRolledBack', { count: undone.removed, error: base })
+            : base,
+        variant: 'danger',
+      })
     } finally {
       setSubmittingStory(false)
       pauseAutoDismiss(false)
@@ -167,6 +180,7 @@ export function UploadDashboard({
     router,
     toast,
     pauseAutoDismiss,
+    abortUploads,
     t,
   ])
 

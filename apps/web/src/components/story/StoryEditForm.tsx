@@ -1,5 +1,6 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
@@ -65,8 +66,15 @@ export function StoryEditForm({
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('story')
-  const { files, addFiles, removeFile, clearStaged, startStagedUploads, replaceFileData } =
-    useUploadManager()
+  const {
+    files,
+    addFiles,
+    removeFile,
+    clearStaged,
+    startStagedUploads,
+    replaceFileData,
+    abortUploads,
+  } = useUploadManager()
   const filesRef = useRef(files)
   filesRef.current = files
 
@@ -231,7 +239,23 @@ export function StoryEditForm({
       router.push(`/story/${saved.publicNo ?? entryId}`)
       router.refresh()
     } catch (e) {
-      toast({ title: (e as Error).message, variant: 'danger' })
+      // 저장이 실패하면 이번에 새로 올린 사진도 되돌린다 — 스토리엔 안 붙고 타임라인에만
+      // 개별로 남는 사진이 생기는 걸 막는다(기존 사진은 건드리지 않는다).
+      await abortUploads()
+      const created = orderRef.current
+        .filter((k) => k.startsWith('n:'))
+        .map((k) => filesRef.current.find((f) => f.id === k.slice(2))?.meta?.assetId)
+        .filter((id): id is string => typeof id === 'string')
+      const undone = created.length > 0 ? await rollbackAssets(created) : null
+      const base = (e as Error).message
+      toast({
+        title: undone?.failed.length
+          ? t('edit.rolledBackPartly', { count: undone.failed.length, error: base })
+          : undone && undone.removed > 0
+            ? t('edit.rolledBack', { count: undone.removed, error: base })
+            : base,
+        variant: 'danger',
+      })
       setSubmitting(false)
     }
   }, [
@@ -242,6 +266,7 @@ export function StoryEditForm({
     visibility,
     submitting,
     startStagedUploads,
+    abortUploads,
     router,
     toast,
     t,

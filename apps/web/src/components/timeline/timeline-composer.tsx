@@ -1,5 +1,6 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
@@ -79,8 +80,15 @@ export function TimelineComposer({
   const tu = useTranslations('upload')
   const router = useRouter()
   const toast = useToast()
-  const { files, addFiles, removeFile, clearStaged, startStagedUploads, replaceFileData } =
-    useUploadManager()
+  const {
+    files,
+    addFiles,
+    removeFile,
+    clearStaged,
+    startStagedUploads,
+    replaceFileData,
+    abortUploads,
+  } = useUploadManager()
   // 최신 매니저 files 를 ref 로 — submit 의 async 대기 루프가 닫힌(stale)
   // attachments 대신 실시간 assetId 를 읽을 수 있게.
   const filesRef = useRef(files)
@@ -303,7 +311,22 @@ export function TimelineComposer({
       reset()
       router.refresh()
     } catch (e) {
-      toast({ title: (e as Error).message, variant: 'danger' })
+      // 스토리가 없으면 사진도 없어야 한다 — 실패한 제출의 사진이 타임라인에 개별로
+      // 남으면 사용자가 손으로 지워야 한다(upload-dashboard 와 같은 규칙).
+      await abortUploads()
+      const created = attachments
+        .map((a) => filesRef.current.find((f) => f.id === a.fileId)?.meta?.assetId)
+        .filter((id): id is string => typeof id === 'string')
+      const undone = created.length > 0 ? await rollbackAssets(created) : null
+      const base = (e as Error).message
+      toast({
+        title: undone?.failed.length
+          ? t('composer.rolledBackPartly', { count: undone.failed.length, error: base })
+          : undone && undone.removed > 0
+            ? t('composer.rolledBack', { count: undone.removed, error: base })
+            : base,
+        variant: 'danger',
+      })
     } finally {
       setSubmitting(false)
     }
@@ -317,6 +340,7 @@ export function TimelineComposer({
     toast,
     submitting,
     startStagedUploads,
+    abortUploads,
     t,
   ])
 
