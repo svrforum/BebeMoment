@@ -1024,7 +1024,15 @@
       "howToTitle": "복구 방법",
       "howToWeb": "<b>웹에서 복구</b>: 위 목록의 ↺ 버튼 → 백업 id 입력 → 복구. 끝나면 앱이 자동 재시작돼요(같은 인스턴스 롤백용).",
       "howToDisaster": "<b>완전/재해 복구</b>(새 기기·다른 SECRET_KEY): 백업 파일을 백업 폴더에 둔 뒤 서버에서:",
-      "backupIdPlaceholder": "백업-id"
+      "backupIdPlaceholder": "백업-id",
+      "remoteRestoreTitle": "원격에서 가져오기",
+      "remoteRestoreDesc": "디스크가 날아갔을 때 원격 백업을 이 서버로 되받습니다. 증분을 고르면 베이스 전체 백업까지 체인 전부를 함께 받습니다. 가져온 뒤 복구는 앱을 멈추고 bebe-restore 로 진행하세요.",
+      "loadRemoteList": "원격 백업 목록 불러오기",
+      "loading": "불러오는 중…",
+      "remoteEmpty": "원격에 백업이 없어요",
+      "pull": "가져오기",
+      "pulling": "가져오는 중…",
+      "pulledChain": "가져왔어요: {chain}"
     },
     "auth": {
       "title": "인증 설정",
@@ -1657,7 +1665,8 @@
       "bundleMissing": "번들 파일이 없어요",
       "hasDependents": "이 백업에 의존하는 증분 백업이 있어 삭제할 수 없어요",
       "confirmMismatch": "확인 문자열이 백업 id 와 일치하지 않아요",
-      "remoteMissingCreds": "버킷·키를 모두 입력하세요"
+      "remoteMissingCreds": "버킷·키를 모두 입력하세요",
+      "remoteNotConfigured": "원격 백업이 설정되지 않았어요 — 설정에서 버킷·키를 먼저 넣으세요"
     },
     "admin": {
       "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"

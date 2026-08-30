@@ -5,6 +5,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { ServiceError } from '@/server/error'
 import { findBackup } from './list'
+import { resolveChainFrom } from './chain'
 import { type BackupManifest, bundleName } from './manifest'
 
 const runFile = promisify(execFile)
@@ -25,21 +26,18 @@ export function isFatalPgRestoreError(stderr: string): boolean {
 
 /** target 부터 부모(parentId)를 따라 full 베이스까지 거슬러 올라간 체인(베이스→target 순). */
 async function resolveChain(dir: string, targetId: string): Promise<BackupManifest[]> {
-  const chain: BackupManifest[] = []
-  let id: string | null = targetId
+  // 디스크에서 필요한 매니페스트만 따라 읽고, 순서·베이스 판정은 원격과 같은 규칙을 쓴다.
+  const loaded: BackupManifest[] = []
   const seen = new Set<string>()
-  while (id) {
-    if (seen.has(id)) throw new ServiceError(500, `백업 체인 순환: ${id}`)
+  let id: string | null = targetId
+  while (id && !seen.has(id)) {
     seen.add(id)
     const m = await findBackup(dir, id)
-    if (!m) throw new ServiceError(500, `백업을 찾을 수 없어요: ${id}`)
-    chain.unshift(m)
+    if (!m) break
+    loaded.push(m)
     id = m.parentId
   }
-  if (chain[0]?.type !== 'full') {
-    throw new ServiceError(400, 'backup.chainBaseNotFull')
-  }
-  return chain
+  return resolveChainFrom(loaded, targetId)
 }
 
 async function decompress(bundlePath: string, outTar: string): Promise<void> {

@@ -76,6 +76,8 @@ export default function BackupAdminPage() {
     lastError: null as string | null,
   })
   const [remoteStatus, setRemoteStatus] = useState<string | null>(null)
+  const [remoteList, setRemoteList] = useState<Backup[] | null>(null)
+  const [remoteBusy, setRemoteBusy] = useState<string | null>(null)
   const [busy, setBusy] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
 
@@ -143,6 +145,46 @@ export default function BackupAdminPage() {
     const d = await res.json().catch(() => ({}))
     setRemoteStatus(res.ok ? t('backup.saved') : t('backup.failedWith', { error: d.error ?? '' }))
     if (res.ok) await load()
+  }
+
+  // 원격 버킷의 백업 목록. 로컬 목록과 달리 네트워크를 타므로 눌렀을 때만 읽는다.
+  async function loadRemoteList() {
+    setRemoteBusy('list')
+    setRemoteStatus(null)
+    try {
+      const res = await fetch('/api/admin/backups/remote/restore')
+      const d = await res.json()
+      if (!res.ok) {
+        setRemoteStatus(t('backup.failedWith', { error: d.error ?? '' }))
+        return
+      }
+      setRemoteList(d.backups as Backup[])
+    } finally {
+      setRemoteBusy(null)
+    }
+  }
+
+  // 체인(베이스 full → 대상) 전체를 로컬로 가져온다. 복구 자체는 앱이 멈춘 상태에서
+  // CLI 로 해야 하므로 여기서는 가져오기까지만 한다.
+  async function pullFromRemote(id: string) {
+    setRemoteBusy(id)
+    setRemoteStatus(null)
+    try {
+      const res = await fetch('/api/admin/backups/remote/restore', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id }),
+      })
+      const d = await res.json()
+      setRemoteStatus(
+        res.ok
+          ? t('backup.pulledChain', { chain: (d.chain as string[]).join(' → ') })
+          : t('backup.failedWith', { error: d.error ?? '' }),
+      )
+      if (res.ok) await load()
+    } finally {
+      setRemoteBusy(null)
+    }
   }
 
   async function testRemote() {
@@ -508,6 +550,51 @@ export default function BackupAdminPage() {
             )}
           </CardBody>
         </Card>
+
+        {/* 원격에서 가져오기 — 디스크가 날아갔을 때 되돌리는 경로 */}
+        {remote.enabled && remote.secretConfigured && (
+          <Card>
+            <CardBody className="space-y-3">
+              <div className="font-medium">{t('backup.remoteRestoreTitle')}</div>
+              <p className="text-sm text-base-500">{t('backup.remoteRestoreDesc')}</p>
+              <Button
+                variant="ghost"
+                disabled={remoteBusy !== null}
+                onClick={() => void loadRemoteList()}
+              >
+                {remoteBusy === 'list' ? t('backup.loading') : t('backup.loadRemoteList')}
+              </Button>
+              {remoteList !== null &&
+                (remoteList.length === 0 ? (
+                  <p className="text-sm text-base-500">{t('backup.remoteEmpty')}</p>
+                ) : (
+                  <div className="space-y-2">
+                    {remoteList.map((b) => (
+                      <div
+                        key={b.id}
+                        className="flex items-center justify-between gap-3 rounded-xl border border-base-200 px-3 py-2 dark:border-base-700"
+                      >
+                        <div className="min-w-0">
+                          <div className="truncate text-sm">{b.id}</div>
+                          <div className="text-[12px] text-base-500">
+                            {b.type} · {new Date(b.createdAt).toLocaleString(locale)} ·{' '}
+                            {fmtBytes(b.dataBytes)}
+                          </div>
+                        </div>
+                        <Button
+                          variant="ghost"
+                          disabled={remoteBusy !== null}
+                          onClick={() => void pullFromRemote(b.id)}
+                        >
+                          {remoteBusy === b.id ? t('backup.pulling') : t('backup.pull')}
+                        </Button>
+                      </div>
+                    ))}
+                  </div>
+                ))}
+            </CardBody>
+          </Card>
+        )}
 
         {/* 백업 목록 */}
         <Card>

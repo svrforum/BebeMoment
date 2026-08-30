@@ -1024,7 +1024,15 @@
       "howToTitle": "How to restore",
       "howToWeb": "<b>Restore from the web</b>: use the ↺ button in the list above → enter the backup id → restore. When done, the app restarts automatically (for same-instance rollback).",
       "howToDisaster": "<b>Full / disaster recovery</b> (new device or different SECRET_KEY): place the backup file in the backup folder, then on the server run:",
-      "backupIdPlaceholder": "backup-id"
+      "backupIdPlaceholder": "backup-id",
+      "remoteRestoreTitle": "Pull from remote",
+      "remoteRestoreDesc": "Bring a remote backup back to this server after a disk loss. Choosing an incremental also pulls its whole chain down to the full base. Once pulled, stop the app and restore with bebe-restore.",
+      "loadRemoteList": "Load remote backups",
+      "loading": "Loading…",
+      "remoteEmpty": "No backups in the bucket",
+      "pull": "Pull",
+      "pulling": "Pulling…",
+      "pulledChain": "Pulled: {chain}"
     },
     "auth": {
       "title": "Auth settings",
@@ -1657,7 +1665,8 @@
       "bundleMissing": "Bundle file is missing",
       "hasDependents": "Can't delete: incremental backups depend on this one",
       "confirmMismatch": "The confirmation text doesn't match the backup id",
-      "remoteMissingCreds": "Please enter both bucket and keys"
+      "remoteMissingCreds": "Please enter both bucket and keys",
+      "remoteNotConfigured": "Remote backup is not configured — set the bucket and keys in settings first"
     },
     "admin": {
       "familyPermInvalid": "Only grantable permissions can be set in permissions.family"
