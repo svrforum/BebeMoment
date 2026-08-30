@@ -148,3 +148,44 @@ describe('HttpMediaClient', () => {
     expect(h.version).toBe('0.1.0')
   })
 })
+
+describe('본문 없는 요청의 content-type', () => {
+  function spyClient() {
+    const fetchSpy = vi.fn(
+      async (_url: string, _init?: RequestInit) => new Response('', { status: 200 }),
+    )
+    return {
+      fetchSpy,
+      client: new HttpMediaClient({
+        baseUrl: 'https://media.test',
+        serviceToken: 'service-secret',
+        fetch: fetchSpy,
+      }),
+    }
+  }
+
+  // 휴지통 영구삭제가 통째로 500 이던 원인: 본문 없는 POST 에 application/json 을 붙이면
+  // Fastify 가 FST_ERR_CTP_EMPTY_JSON_BODY 로 거절한다.
+  test('purgeAsset 은 본문이 없으니 content-type 을 붙이지 않는다', async () => {
+    const { client, fetchSpy } = spyClient()
+    await client.purgeAsset(
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+    )
+    const init = fetchSpy.mock.calls[0]?.[1] as RequestInit
+    const headers = (init?.headers ?? {}) as Record<string, string>
+    expect(init?.body).toBeUndefined()
+    expect(headers['content-type']).toBeUndefined()
+    expect(headers.authorization).toBe('Bearer service-secret')
+  })
+
+  test('본문이 있으면 그대로 content-type 을 붙인다', async () => {
+    const { client, fetchSpy } = spyClient()
+    await client.retryAsset(
+      '11111111-1111-1111-1111-111111111111',
+      '22222222-2222-2222-2222-222222222222',
+    )
+    const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>
+    expect(headers['content-type']).toBe('application/json')
+  })
+})

@@ -1532,7 +1532,15 @@
       "deletedOn": "삭제됨 {date}",
       "restore": "복원",
       "purge": "영구 삭제",
-      "close": "닫기"
+      "close": "닫기",
+      "selectAll": "전체 선택",
+      "clearSelection": "선택 해제",
+      "select": "선택",
+      "purgeSelected": "선택 {count}장 영구삭제",
+      "purging": "삭제 중…",
+      "purgeManyConfirm": "{count}장을 영구히 삭제할까요? 되돌릴 수 없어요.",
+      "purgeManyDone": "{count}장을 영구히 삭제했어요",
+      "purgeManyPartly": "{purged}장을 삭제했어요 — {failed}장은 삭제하지 못했어요"
     },
     "saved": {
       "title": "북마크",

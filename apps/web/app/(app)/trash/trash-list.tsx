@@ -26,6 +26,73 @@ export function TrashList({ assets, canPurge }: Props) {
   const toast = useToast()
   const [preview, setPreview] = useState<Asset | null>(null)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [bulkBusy, setBulkBusy] = useState(false)
+
+  const allSelected = assets.length > 0 && selected.size === assets.length
+
+  function toggle(id: string) {
+    setSelected((prev) => {
+      const next = new Set(prev)
+      if (next.has(id)) next.delete(id)
+      else next.add(id)
+      return next
+    })
+  }
+
+  function toggleAll() {
+    setSelected((prev) =>
+      prev.size === assets.length ? new Set() : new Set(assets.map((a) => a.id)),
+    )
+  }
+
+  // 되돌릴 수 없으니 몇 장인지 분명히 말하고 확인받는다.
+  async function purgeSelected() {
+    const ids = assets.filter((a) => selected.has(a.id)).map((a) => a.id)
+    if (ids.length === 0) return
+    if (!window.confirm(t('trash.purgeManyConfirm', { count: ids.length }))) return
+    setBulkBusy(true)
+    try {
+      // 200장씩 나눠 보낸다 — 한 번에 다 보내면 파일 삭제가 길어져 요청이 끊기고,
+      // 어디까지 지워졌는지 알 수 없게 된다.
+      let purged = 0
+      const failed: string[] = []
+      for (let i = 0; i < ids.length; i += 200) {
+        const chunk = ids.slice(i, i + 200)
+        const res = await fetch('/api/trash/purge', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ assetIds: chunk }),
+        })
+        if (!res.ok) {
+          const body = (await res.json().catch(() => null)) as { error?: string } | null
+          toast({
+            title: t('trash.purgeFailed'),
+            description: body?.error ?? `HTTP ${res.status}`,
+            variant: 'danger',
+          })
+          break
+        }
+        const d = (await res.json()) as {
+          purged: number
+          failed: { assetId: string }[]
+        }
+        purged += d.purged
+        failed.push(...d.failed.map((f) => f.assetId))
+      }
+      // 실패한 것을 숨기지 않는다 — "지웠어요"라고만 하고 남아 있으면 다음에 또 헤맨다.
+      toast({
+        title: failed.length
+          ? t('trash.purgeManyPartly', { purged, failed: failed.length })
+          : t('trash.purgeManyDone', { count: purged }),
+        variant: failed.length ? 'danger' : 'success',
+      })
+      setSelected(new Set())
+      router.refresh()
+    } finally {
+      setBulkBusy(false)
+    }
+  }
 
   async function restore(id: string) {
     const res = await fetch(`/api/asset/${id}/restore`, { method: 'POST' })
@@ -71,6 +138,27 @@ export function TrashList({ assets, canPurge }: Props) {
 
   return (
     <div className="mx-auto max-w-3xl px-5 py-4 space-y-2">
+      {canPurge && (
+        <div className="flex items-center justify-between gap-3 rounded-2xl border border-base-200 px-4 py-2.5 dark:border-base-800">
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={allSelected}
+              onChange={toggleAll}
+              className="h-4 w-4 accent-point-500"
+            />
+            <span>{allSelected ? t('trash.clearSelection') : t('trash.selectAll')}</span>
+          </label>
+          <Button
+            variant="danger"
+            size="sm"
+            disabled={selected.size === 0 || bulkBusy}
+            onClick={() => void purgeSelected()}
+          >
+            {bulkBusy ? t('trash.purging') : t('trash.purgeSelected', { count: selected.size })}
+          </Button>
+        </div>
+      )}
       {assets.map((a) => {
         const trio = pickThumbTrio(a.urls)
         const fallbackUrl = pickThumbUrl(a.urls)
@@ -78,6 +166,15 @@ export function TrashList({ assets, canPurge }: Props) {
         return (
           <Card key={a.id}>
             <CardBody className="flex items-center gap-3">
+              {canPurge && (
+                <input
+                  type="checkbox"
+                  checked={selected.has(a.id)}
+                  onChange={() => toggle(a.id)}
+                  aria-label={t('trash.select')}
+                  className="h-4 w-4 shrink-0 accent-point-500"
+                />
+              )}
               <button
                 type="button"
                 onClick={() => setPreview(a)}

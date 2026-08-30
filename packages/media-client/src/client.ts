@@ -83,7 +83,10 @@ export class HttpMediaClient implements MediaClient {
       ...init,
       headers: {
         authorization: `Bearer ${this.serviceToken}`,
-        'content-type': 'application/json',
+        // 본문이 있을 때만 붙인다 — 본문 없는 POST 에 application/json 을 선언하면
+        // Fastify 가 FST_ERR_CTP_EMPTY_JSON_BODY 로 거절한다(휴지통 영구삭제가 통째로
+        // 500 이던 원인. DELETE 는 본문을 기대하지 않아 드러나지 않았다).
+        ...(init.body !== undefined ? { 'content-type': 'application/json' } : {}),
         ...(init.headers as Record<string, string> | undefined),
       },
     })

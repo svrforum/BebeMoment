@@ -1532,7 +1532,15 @@
       "deletedOn": "Deleted {date}",
       "restore": "Restore",
       "purge": "Delete forever",
-      "close": "Close"
+      "close": "Close",
+      "selectAll": "Select all",
+      "clearSelection": "Clear selection",
+      "select": "Select",
+      "purgeSelected": "Delete {count} forever",
+      "purging": "Deleting…",
+      "purgeManyConfirm": "Delete {count} photo(s) forever? This cannot be undone.",
+      "purgeManyDone": "Deleted {count} photo(s) forever",
+      "purgeManyPartly": "Deleted {purged} — {failed} could not be deleted"
     },
     "saved": {
       "title": "Bookmarks",
