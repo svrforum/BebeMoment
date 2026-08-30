@@ -69,3 +69,21 @@ describe('toLogFields', () => {
     expect(out).not.toHaveProperty('assetIds')
   })
 })
+
+describe('보고 가능한 흐름·단계', () => {
+  // 스키마와 클라이언트가 어긋나면 보고가 400 으로 조용히 버려진다 — 정작 문제를 쫓을 때
+  // 로그가 비어 있게 된다. 포매터가 줄을 합치며 실제로 한 번 어긋났다.
+  it('업로드 매니저의 파일 단위 실패도 받는다', () => {
+    for (const step of ['tus', 'restriction', 'init'] as const) {
+      const r = uploadReportSchema.safeParse({ flow: 'upload-manager', step, message: 'x' })
+      expect(r.success, step).toBe(true)
+    }
+  })
+
+  it('세 스토리 흐름 모두 받는다', () => {
+    for (const flow of ['upload-sheet', 'timeline-composer', 'story-edit'] as const) {
+      const r = uploadReportSchema.safeParse({ flow, step: 'story-post', message: 'x' })
+      expect(r.success, flow).toBe(true)
+    }
+  })
+})

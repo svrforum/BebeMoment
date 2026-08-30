@@ -17,6 +17,23 @@ import {
   useState,
 } from 'react'
 import { startUpload } from './actions'
+import { reportUploadFailure } from './report-failure'
+
+/** init 실패는 업로드가 아예 시작되지 않는다는 뜻이라 반드시 서버 로그에 남긴다. */
+async function startUploadReporting(
+  args: Parameters<typeof startUpload>[0],
+): Promise<Awaited<ReturnType<typeof startUpload>>> {
+  try {
+    return await startUpload(args)
+  } catch (e) {
+    void reportUploadFailure({
+      flow: 'upload-manager',
+      step: 'init',
+      message: (e as Error).message,
+    })
+    throw e
+  }
+}
 
 export type UppyFileMeta = { uploadToken?: string; assetId?: string }
 export type UppyBody = { xhr: XMLHttpRequest }
@@ -223,7 +240,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
               typeof lm === 'number' && lm > 946684800000 && lm <= Date.now() + 86400000
                 ? new Date(lm).toISOString()
                 : undefined
-            const init = await startUpload({
+            const init = await startUploadReporting({
               mime: file.type ?? 'application/octet-stream',
               sizeBytes: file.size ?? 0,
               originalName: file.name ?? `upload-${id}`,
@@ -251,12 +268,24 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           description: error.message,
           variant: 'danger',
         })
+        // 파일 하나가 못 올라가는 건 토스트로만 알려주고 끝나 서버엔 흔적이 없었다.
+        void reportUploadFailure({
+          flow: 'upload-manager',
+          step: 'tus',
+          message: error.message,
+          ...(file?.meta?.assetId ? { assetIds: [file.meta.assetId] } : {}),
+        })
       }
       const onRestrictionFailed = (_file: FileRow | undefined, error: Error) => {
         toast({
           title: '업로드 제한',
           description: error.message,
           variant: 'danger',
+        })
+        void reportUploadFailure({
+          flow: 'upload-manager',
+          step: 'restriction',
+          message: error.message,
         })
       }
       // biome-ignore lint/suspicious/noExplicitAny: Uppy's event signature differs across module reload boundaries

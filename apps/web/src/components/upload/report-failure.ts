@@ -1,5 +1,13 @@
-type Flow = 'upload-sheet' | 'timeline-composer' | 'story-edit'
-type Step = 'collect-asset-ids' | 'story-post' | 'story-patch' | 'rollback' | 'init' | 'unknown'
+type Flow = 'upload-sheet' | 'timeline-composer' | 'story-edit' | 'upload-manager'
+type Step =
+  | 'collect-asset-ids'
+  | 'story-post'
+  | 'story-patch'
+  | 'rollback'
+  | 'init'
+  | 'tus'
+  | 'restriction'
+  | 'unknown'
 
 /**
  * 업로드·스토리 제출 실패를 서버 로그로 넘긴다(진단 전용).

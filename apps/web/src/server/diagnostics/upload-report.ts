@@ -12,9 +12,18 @@ import { z } from 'zod'
  */
 export const uploadReportSchema = z.object({
   /** 어느 화면에서 났는지 */
-  flow: z.enum(['upload-sheet', 'timeline-composer', 'story-edit']),
+  flow: z.enum(['upload-sheet', 'timeline-composer', 'story-edit', 'upload-manager']),
   /** 어디까지 갔는지 */
-  step: z.enum(['collect-asset-ids', 'story-post', 'story-patch', 'rollback', 'init', 'unknown']),
+  step: z.enum([
+    'collect-asset-ids',
+    'story-post',
+    'story-patch',
+    'rollback',
+    'init',
+    'tus',
+    'restriction',
+    'unknown',
+  ]),
   message: z.string().max(500),
   counts: z
     .object({
