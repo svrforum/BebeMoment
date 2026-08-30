@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { errorJson } from '@/lib/error-response'
 import { jsonBig } from '@/lib/json-big'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { logger } from '@/lib/logger'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { createStoryEntry } from '@/server/story/create'
@@ -50,15 +51,23 @@ export async function POST(req: Request) {
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) return NextResponse.json({ error: 'No family' }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  // 사진 몇 장짜리 스토리가 언제 성공·실패했는지 남긴다 — 클라이언트 진단 보고
+  // (/api/diagnostics/upload)와 짝지어야 어디서 끊겼는지 한 줄로 읽힌다.
+  const assetCount = Array.isArray((body as { assetIds?: unknown[] } | null)?.assetIds)
+    ? ((body as { assetIds: unknown[] }).assetIds.length as number)
+    : 0
+  const base = { userId: ctx.user.id, familyId: ctx.family.id, assetCount }
   try {
-    const body = await req.json()
     const entry = await createStoryEntry(
       { ...body, familyId: ctx.family.id, byUserId: ctx.user.id },
       prismaPublic,
       prismaMedia,
     )
+    logger.info({ ...base, storyId: entry.id }, 'story created')
     return NextResponse.json({ id: entry.id })
   } catch (e) {
+    logger.warn({ ...base, err: (e as Error).message.slice(0, 300) }, 'story create failed')
     return errorJson(e)
   }
 }

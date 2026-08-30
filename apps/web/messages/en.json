@@ -387,7 +387,8 @@
       "submitFailed": "Couldn't post",
       "attachFiles": "Pick from files",
       "rolledBack": "Couldn't post the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
-      "rolledBackPartly": "Couldn't post the story — {count} photo(s) could not be undone. ({error})"
+      "rolledBackPartly": "Couldn't post the story — {count} photo(s) could not be undone. ({error})",
+      "reattach": "Please add the photos again — {count} were cleared and cannot be re-sent. ({error})"
     },
     "sort": {
       "ariaLabel": "Timeline sort",

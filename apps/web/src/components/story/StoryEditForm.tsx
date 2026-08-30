@@ -1,6 +1,7 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { createdAssetIds } from '@/components/upload/created-asset-ids'
+import { reportUploadFailure } from '@/components/upload/report-failure'
 import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
@@ -74,6 +75,7 @@ export function StoryEditForm({
     startStagedUploads,
     replaceFileData,
     abortUploads,
+    pauseAutoDismiss,
   } = useUploadManager()
   const filesRef = useRef(files)
   filesRef.current = files
@@ -206,6 +208,8 @@ export function StoryEditForm({
     }
     if (submitting) return
     setSubmitting(true)
+    // 컴포저와 같은 이유로 자동정리를 멈춘다(빠른 사진이 제출 전에 정리되는 것 방지).
+    pauseAutoDismiss(true)
     try {
       // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
       if (attachments.length > 0) startStagedUploads({ notify: false })
@@ -243,6 +247,18 @@ export function StoryEditForm({
       await abortUploads()
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
+      void reportUploadFailure({
+        flow: 'story-edit',
+        step: base === t('edit.uploadNotReady') ? 'collect-asset-ids' : 'story-patch',
+        message: base,
+        counts: {
+          staged: attachments.length,
+          created: created.length,
+          rolledBack: undone?.removed ?? 0,
+          rollbackFailed: undone?.failed.length ?? 0,
+        },
+        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
+      })
       toast({
         title: undone?.failed.length
           ? t('edit.rolledBackPartly', { count: undone.failed.length, error: base })
@@ -252,6 +268,10 @@ export function StoryEditForm({
         variant: 'danger',
       })
       setSubmitting(false)
+    } finally {
+      // 성공하면 이동해 버리므로 여기서 반드시 푼다 — 안 풀면 자동정리가 영영 멈춘 채로
+      // 남아 다음 업로드의 완료 카드가 사라지지 않는다.
+      pauseAutoDismiss(false)
     }
   }, [
     body,
@@ -262,6 +282,7 @@ export function StoryEditForm({
     submitting,
     startStagedUploads,
     abortUploads,
+    pauseAutoDismiss,
     router,
     toast,
     t,

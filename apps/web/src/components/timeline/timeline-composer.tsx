@@ -1,6 +1,8 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { createdAssetIds } from '@/components/upload/created-asset-ids'
+import { reportUploadFailure } from '@/components/upload/report-failure'
+import { partitionStaleAttachments } from '@/components/upload/stale-attachments'
 import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
@@ -89,6 +91,7 @@ export function TimelineComposer({
     startStagedUploads,
     replaceFileData,
     abortUploads,
+    pauseAutoDismiss,
   } = useUploadManager()
   // 최신 매니저 files 를 ref 로 — submit 의 async 대기 루프가 닫힌(stale)
   // attachments 대신 실시간 assetId 를 읽을 수 있게.
@@ -281,6 +284,10 @@ export function TimelineComposer({
     }
     if (submitting) return
     setSubmitting(true)
+    // 제출이 끝날 때까지 자동정리를 멈춘다. 사진이 빨리 처리되면 assetId 를 모으기도 전에
+    // uppy.cancelAll() 이 돌아 파일 목록이 비고, 그러면 "업로드 준비가 끝나지 않았어요"만
+    // 반복된다 — 게다가 attachments 는 죽은 fileId 를 붙들고 있어 다시 눌러도 안 된다.
+    pauseAutoDismiss(true)
     try {
       // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다. notify:false 로 올려
       // 개별 '사진 추가' 푸시를 막는다 — 스토리 생성이 보내는 푸시 하나로 갈음(중복 방지).
@@ -321,17 +328,37 @@ export function TimelineComposer({
       )
       await abortUploads()
       const undone = created.length > 0 ? await rollbackAssets(created) : null
+      // 매니저가 이미 치운 첨부는 다시 눌러도 시작할 게 없다 — 목록에서 빼서 막다른 길을
+      // 만들지 않는다(사용자는 다시 담으면 된다).
+      const { live, staleCount } = partitionStaleAttachments(filesRef.current, attachments)
+      if (staleCount > 0) setAttachments(live)
       const base = (e as Error).message
+      void reportUploadFailure({
+        flow: 'timeline-composer',
+        step: base === t('composer.uploadNotReady') ? 'collect-asset-ids' : 'story-post',
+        message: base,
+        counts: {
+          staged: attachments.length,
+          created: created.length,
+          rolledBack: undone?.removed ?? 0,
+          rollbackFailed: undone?.failed.length ?? 0,
+          stale: staleCount,
+        },
+        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
+      })
       toast({
         title: undone?.failed.length
           ? t('composer.rolledBackPartly', { count: undone.failed.length, error: base })
           : undone && undone.removed > 0
             ? t('composer.rolledBack', { count: undone.removed, error: base })
-            : base,
+            : staleCount > 0
+              ? t('composer.reattach', { count: staleCount, error: base })
+              : base,
         variant: 'danger',
       })
     } finally {
       setSubmitting(false)
+      pauseAutoDismiss(false)
     }
   }, [
     body,
@@ -344,6 +371,7 @@ export function TimelineComposer({
     submitting,
     startStagedUploads,
     abortUploads,
+    pauseAutoDismiss,
     t,
   ])
 

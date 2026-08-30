@@ -387,7 +387,8 @@
       "submitFailed": "글 등록 실패",
       "attachFiles": "파일에서 선택",
       "rolledBack": "스토리를 올리지 못했어요 — 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
-      "rolledBackPartly": "스토리를 올리지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})"
+      "rolledBackPartly": "스토리를 올리지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",
+      "reattach": "사진을 다시 담아주세요 — {count}장이 정리돼 다시 올릴 수 없어요. ({error})"
     },
     "sort": {
       "ariaLabel": "타임라인 정렬",

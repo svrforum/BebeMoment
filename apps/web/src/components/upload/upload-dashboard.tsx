@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { collectAssetIds } from './collect-asset-ids'
 import { createdAssetIds } from './created-asset-ids'
+import { reportUploadFailure } from './report-failure'
 import { rollbackAssets } from './rollback-assets'
 import { ReorderRow } from './reorder-row'
 import { useOrderedKeys } from './use-ordered-keys'
@@ -121,10 +122,12 @@ export function UploadDashboard({
     // 제출이 끝날 때까지 자동정리(cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다
     // (빠른 사진은 POST 전에 ready 처리돼 파일이 정리될 수 있어 실패 후 재시도가 깨졌다).
     pauseAutoDismiss(true)
+    // 드래그로 만든 수동 순서로 제출(현재 스테이징된 것만). 1번 = 대표(썸네일).
+    // ⚠️ try 밖에서 붙잡는다 — order 는 "아직 업로드 안 한 파일" 목록이라 업로드를
+    // 시작하는 순간 비워진다. catch 에서 읽으면 되돌릴 대상이 언제나 0건이 된다.
+    const stagedSet = new Set(stagedFiles.map((f) => f.id))
+    const fileIds = orderRef.current.filter((id) => stagedSet.has(id))
     try {
-      // 드래그로 만든 수동 순서로 제출(현재 스테이징된 것만). 1번 = 대표(썸네일).
-      const stagedSet = new Set(stagedFiles.map((f) => f.id))
-      const fileIds = orderRef.current.filter((id) => stagedSet.has(id))
       // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
       startStagedUploads({ notify: false })
       const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
@@ -156,10 +159,22 @@ export function UploadDashboard({
       // 것(=서버에 만들어진 것)만 되돌린다. 되돌림도 실패하면 숨기지 않고 알린다.
       // 스냅샷이 먼저다 — abortUploads 가 uppy 파일 목록을 비우므로 순서가 바뀌면
       // 되돌릴 대상이 언제나 0건이 된다.
-      const created = createdAssetIds(filesRef.current, orderRef.current)
+      const created = createdAssetIds(filesRef.current, fileIds)
       await abortUploads()
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
+      void reportUploadFailure({
+        flow: 'upload-sheet',
+        step: base === t('uploadNotFinished') ? 'collect-asset-ids' : 'story-post',
+        message: base,
+        counts: {
+          staged: fileIds.length,
+          created: created.length,
+          rolledBack: undone?.removed ?? 0,
+          rollbackFailed: undone?.failed.length ?? 0,
+        },
+        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
+      })
       toast({
         title: undone?.failed.length
           ? t('storyRolledBackPartly', { count: undone.failed.length, error: base })
