@@ -613,7 +613,7 @@
     "download": {
       "save": "Save",
       "saveAll": "Save all photos",
-      "saving": "Saving… ({count})"
+      "savingProgress": "Saving… ({done}/{total})"
     }
   },
   "story": {

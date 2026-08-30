@@ -613,7 +613,7 @@
     "download": {
       "save": "저장",
       "saveAll": "사진 전체 저장",
-      "saving": "저장 중… ({count})"
+      "savingProgress": "저장 중… ({done}/{total})"
     }
   },
   "story": {
