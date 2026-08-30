@@ -1,5 +1,6 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { createdAssetIds } from '@/components/upload/created-asset-ids'
 import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
@@ -23,7 +24,6 @@ import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useRef, useState } from 'react'
 
 const EDITABLE = new Set(['image/jpeg', 'image/png', 'image/webp'])
-const MAX_PHOTOS = 10
 
 function blobToDataUrl(blob: Blob): Promise<string> {
   return new Promise((resolve, reject) => {
@@ -137,17 +137,11 @@ export function StoryEditForm({
       if (!list) return
       const picked = Array.from(list)
       e.target.value = ''
-      const room = MAX_PHOTOS - photoCount
-      if (room <= 0) {
-        toast({ title: t('edit.maxPhotos', { max: MAX_PHOTOS }), variant: 'danger' })
-        return
-      }
-      const limited = picked.slice(0, room)
-      const ids = await addFiles(limited)
+      const ids = await addFiles(picked)
       const fresh: NewAttachment[] = []
       for (let i = 0; i < ids.length; i++) {
         const fileId = ids[i]
-        const file = limited[i]
+        const file = picked[i]
         if (!fileId || !file) continue
         const isMedia = file.type.startsWith('image/') || file.type.startsWith('video/')
         fresh.push({
@@ -159,7 +153,7 @@ export function StoryEditForm({
       }
       if (fresh.length > 0) setAttachments((prev) => [...prev, ...fresh])
     },
-    [addFiles, photoCount, toast, t],
+    [addFiles],
   )
 
   const removeAttachment = useCallback(
@@ -241,11 +235,12 @@ export function StoryEditForm({
     } catch (e) {
       // 저장이 실패하면 이번에 새로 올린 사진도 되돌린다 — 스토리엔 안 붙고 타임라인에만
       // 개별로 남는 사진이 생기는 걸 막는다(기존 사진은 건드리지 않는다).
+      // 스냅샷이 먼저 — abortUploads 가 파일 목록을 비운다.
+      const created = createdAssetIds(
+        filesRef.current,
+        orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2)),
+      )
       await abortUploads()
-      const created = orderRef.current
-        .filter((k) => k.startsWith('n:'))
-        .map((k) => filesRef.current.find((f) => f.id === k.slice(2))?.meta?.assetId)
-        .filter((id): id is string => typeof id === 'string')
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
       toast({
@@ -384,7 +379,7 @@ export function StoryEditForm({
               <button
                 type="button"
                 onClick={() => fileInputRef.current?.click()}
-                disabled={submitting || photoCount >= MAX_PHOTOS}
+                disabled={submitting}
                 aria-label={t('edit.addPhoto')}
                 className="flex h-9 items-center gap-1.5 rounded-full px-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-100 hover:text-point-500 disabled:opacity-40 dark:text-base-300 dark:hover:bg-base-800"
               >

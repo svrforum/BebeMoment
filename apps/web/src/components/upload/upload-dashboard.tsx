@@ -6,6 +6,7 @@ import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
 import { collectAssetIds } from './collect-asset-ids'
+import { createdAssetIds } from './created-asset-ids'
 import { rollbackAssets } from './rollback-assets'
 import { ReorderRow } from './reorder-row'
 import { useOrderedKeys } from './use-ordered-keys'
@@ -153,10 +154,10 @@ export function UploadDashboard({
       // 스토리가 없으면 사진도 없어야 한다 — 그러지 않으면 쓴 적 없는 스토리의 사진들이
       // 타임라인에 흩어져 남고, 사용자가 손으로 하나씩 지워야 했다. 이미 assetId 를 받은
       // 것(=서버에 만들어진 것)만 되돌린다. 되돌림도 실패하면 숨기지 않고 알린다.
+      // 스냅샷이 먼저다 — abortUploads 가 uppy 파일 목록을 비우므로 순서가 바뀌면
+      // 되돌릴 대상이 언제나 0건이 된다.
+      const created = createdAssetIds(filesRef.current, orderRef.current)
       await abortUploads()
-      const created = orderRef.current
-        .map((fid) => filesRef.current.find((f) => f.id === fid)?.meta?.assetId)
-        .filter((id): id is string => typeof id === 'string')
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
       toast({

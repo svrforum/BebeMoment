@@ -1,5 +1,6 @@
 'use client'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
+import { createdAssetIds } from '@/components/upload/created-asset-ids'
 import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
@@ -313,10 +314,12 @@ export function TimelineComposer({
     } catch (e) {
       // 스토리가 없으면 사진도 없어야 한다 — 실패한 제출의 사진이 타임라인에 개별로
       // 남으면 사용자가 손으로 지워야 한다(upload-dashboard 와 같은 규칙).
+      // 스냅샷이 먼저 — abortUploads 가 파일 목록을 비운다.
+      const created = createdAssetIds(
+        filesRef.current,
+        attachments.map((a) => a.fileId),
+      )
       await abortUploads()
-      const created = attachments
-        .map((a) => filesRef.current.find((f) => f.id === a.fileId)?.meta?.assetId)
-        .filter((id): id is string => typeof id === 'string')
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
       toast({

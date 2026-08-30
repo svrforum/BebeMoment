@@ -21,7 +21,11 @@ const Input = z.object({
     mood: z.enum(MOODS).nullable().optional(),
     visibility: z.enum(['family', 'guardians']).optional(),
     // 사진 필수 — 편집에서 assetIds 를 줄 땐 최소 1장(전부 비워 0장 되는 것 방지).
-    assetIds: z.array(z.string().uuid()).min(1, '사진을 최소 1장 추가해주세요').max(10).optional(),
+    assetIds: z
+      .array(z.string().uuid())
+      .min(1, '사진을 최소 1장 추가해주세요')
+
+      .optional(),
   }),
 })
 
