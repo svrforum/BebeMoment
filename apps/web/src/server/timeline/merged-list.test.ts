@@ -310,3 +310,41 @@ describe('listTimeline', () => {
     expect(p2.nextCursor).toBeNull()
   })
 })
+
+describe('listTimeline — 실패한 자산', () => {
+  // 실패한 업로드는 삭제일자가 없어 휴지통에도 없다. 그리드가 ready 만 가져오면 앱
+  // 어디에서도 보이지 않고, 카드에 있는 재시도·삭제 버튼에 닿을 방법이 없다.
+  it('실패한 자산도 실어야 재시도·삭제 UI 에 닿는다', async () => {
+    const { user, family } = await setup()
+    const failed = await makeAsset(family.id, user.id, new Date('2026-04-10'), 'f1')
+    await db.prismaMedia.asset.update({
+      where: { id: failed.id, familyId: family.id },
+      data: { status: 'failed', processingError: '처리 실패' },
+    })
+    const { items } = await listTimeline(
+      family.id,
+      { limit: 10 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(items.map((i) => i.kind)).toContain('asset')
+  })
+
+  it('처리 중(processing)은 아직 싣지 않는다 — 반쯤 만들어진 타일이 뜬다', async () => {
+    const { user, family } = await setup()
+    const a = await makeAsset(family.id, user.id, new Date('2026-04-11'), 'p1')
+    await db.prismaMedia.asset.update({
+      where: { id: a.id, familyId: family.id },
+      data: { status: 'processing' },
+    })
+    const { items } = await listTimeline(
+      family.id,
+      { limit: 10 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(items).toHaveLength(0)
+  })
+})

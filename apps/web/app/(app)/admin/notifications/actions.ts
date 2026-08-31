@@ -11,6 +11,7 @@ import { NOTIFICATION_CATEGORIES } from '@bebe/core'
 import { getTranslations } from 'next-intl/server'
 import { NextResponse } from 'next/server'
 import webpush from 'web-push'
+import { hourInQuietWindow } from '@/server/notifications/quiet-window'
 import { z } from 'zod'
 
 async function adminUserId(): Promise<string> {
@@ -34,11 +35,6 @@ export async function setPushCategory(category: string, enabled: boolean): Promi
     throw new Error(t('notifications.errUnknownCategory'))
   }
   await setSetting(`push.categories.${category}.enabled`, String(enabled), userId, prismaPublic)
-}
-
-/** 조용한 시간은 자정을 넘길 수 있다(23시~7시) — 그 경우 시작 이상이거나 끝 미만이면 안. */
-function hourInQuietWindow(hour: number, start: number, end: number): boolean {
-  return start <= end ? hour >= start && hour < end : hour >= start || hour < end
 }
 
 const DeliverySchema = z
