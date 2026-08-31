@@ -1037,7 +1037,10 @@
       "remoteEmpty": "원격에 백업이 없어요",
       "pull": "가져오기",
       "pulling": "가져오는 중…",
-      "pulledChain": "가져왔어요: {chain}"
+      "pulledChain": "가져왔어요: {chain}",
+      "remoteMissingFields": "버킷과 액세스 키를 입력하세요 — 비워두면 백업이 원격으로 안 올라갑니다",
+      "remoteUnusable": "⚠️ 원격 백업이 켜져 있지만 쓸 수 없는 상태예요 — 백업이 이 서버에만 쌓입니다. {error}",
+      "s3NoMedia": "⚠️ 이 백업에는 사진이 없어요 (S3 스토리지 모드 — DB 만 담겼습니다)"
     },
     "auth": {
       "title": "인증 설정",
@@ -1242,6 +1245,14 @@
         "help": "같은 사람으로 묶는 기준(코사인 거리). 낮을수록 엄격해서 따로 나뉘고, 높을수록 관대해서 잘 합쳐져요. 기본 {default}. 다음 업로드부터 적용돼요.",
         "strict": "엄격(따로)",
         "loose": "관대(합침)"
+      },
+      "faceMl": {
+        "title": "얼굴 인식 서버 연결",
+        "help": "얼굴 인식은 별도 ml 컨테이너가 있어야 동작해요(compose 의 faces 프로필). 없으면 기능은 켜져 있어도 사진에서 얼굴을 영영 못 찾습니다.",
+        "check": "연결 확인",
+        "checking": "확인 중…",
+        "ok": "연결됨 ({url})",
+        "unreachable": "⚠️ 닿지 않아요 ({url}) — ml 컨테이너를 띄우거나 FACE_ML_URL 을 확인하세요"
       }
     },
     "system": {
@@ -1651,7 +1662,8 @@
       "permissionDenied": "권한이 없어요",
       "editDenied": "이 사진을 편집할 권한이 없어요",
       "retryDenied": "재처리 권한이 없어요",
-      "mediaFetchFailed": "미디어를 가져오지 못했어요"
+      "mediaFetchFailed": "미디어를 가져오지 못했어요",
+      "filenameInvalid": "파일명에 / \\ 나 제어문자는 쓸 수 없어요"
     },
     "share": {
       "storyNotFound": "스토리를 찾을 수 없어요",
@@ -1679,7 +1691,11 @@
       "hasDependents": "이 백업에 의존하는 증분 백업이 있어 삭제할 수 없어요",
       "confirmMismatch": "확인 문자열이 백업 id 와 일치하지 않아요",
       "remoteMissingCreds": "버킷·키를 모두 입력하세요",
-      "remoteNotConfigured": "원격 백업이 설정되지 않았어요 — 설정에서 버킷·키를 먼저 넣으세요"
+      "remoteNotConfigured": "원격 백업이 설정되지 않았어요 — 설정에서 버킷·키를 먼저 넣으세요",
+      "remoteIncomplete": "원격 백업 설정이 불완전해요 — 버킷·액세스 키·시크릿을 모두 입력하세요",
+      "remoteSecretUndecryptable": "원격 백업 시크릿을 복호화할 수 없어요 — SECRET_KEY 가 바뀌었다면 시크릿을 다시 입력하세요",
+      "secretKeyMissing": "SECRET_KEY 가 설정되지 않았어요",
+      "insufficientSpace": "디스크 여유가 부족해 백업을 만들 수 없어요 — 공간을 확보한 뒤 다시 시도하세요"
     },
     "admin": {
       "familyPermInvalid": "permissions.family 에는 부여 가능한 권한만 설정할 수 있어요"
@@ -1691,7 +1707,10 @@
       "bookmarks": "저장함 기능이 꺼져 있어요",
       "likes": "좋아요 기능이 꺼져 있어요"
     },
-    "protectedSetting": "보호된 설정 키예요"
+    "protectedSetting": "보호된 설정 키예요",
+    "story": {
+      "visibilityGuardianOnly": "비밀 스토리 설정은 보호자만 바꿀 수 있어요"
+    }
   },
   "upload": {
     "addAtLeastOne": "사진을 최소 1장 추가해주세요",

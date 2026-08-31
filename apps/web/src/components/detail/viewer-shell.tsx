@@ -40,7 +40,7 @@ export function ViewerShell({
   initialSiblings,
   currentUserId,
   canDeleteAny,
-  canDelete,
+  canDelete: canDeleteInitial,
   canAlbum,
   familyMembers,
   meta,
@@ -99,6 +99,7 @@ export function ViewerShell({
     setFilenameState(initialFilename)
     setCaptionState(initialCaption)
     setStoryCtxState(initialStoryCtx ?? null)
+    setCanDelete(canDeleteInitial)
   }, [initialCurrent.id])
 
   // 크롬(상단바·액션바)은 항상 표시 — 사진 탭으로 전체화면(크롬 숨김)되던 동작 제거(사용자 요청).
@@ -118,6 +119,8 @@ export function ViewerShell({
   const [filenameState, setFilenameState] = useState<string>(initialFilename)
   const [captionState, setCaptionState] = useState<string | null>(initialCaption)
   const [storyCtxState, setStoryCtxState] = useState<StoryViewerCtx | null>(initialStoryCtx ?? null)
+  // 스와이프하면 자산이 바뀌므로 삭제 권한도 다시 받아야 한다(내가 올린 사진이 아닐 수 있다).
+  const [canDelete, setCanDelete] = useState(canDeleteInitial)
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false)
   const router = useRouter()
   const toast = useToast()
@@ -189,6 +192,7 @@ export function ViewerShell({
           filename?: string
           caption?: string | null
           storyCtx?: StoryViewerCtx | null
+          canDelete?: boolean
         }
         // 사용자가 그 사이에 또 swipe 했으면 (assetId !== lastNavRef.current) 덮어쓰지 않는다.
         if (lastNavRef.current !== assetId) return
@@ -209,6 +213,7 @@ export function ViewerShell({
           prev: next.prev,
           next: next.next,
         })
+        if (typeof next.canDelete === 'boolean') setCanDelete(next.canDelete)
         if (next.social) {
           setLiked(next.social.liked)
           setCount(next.social.likeCount)

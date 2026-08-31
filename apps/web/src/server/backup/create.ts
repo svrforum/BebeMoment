@@ -1,9 +1,11 @@
 import { execFile } from 'node:child_process'
 import { promises as fs } from 'node:fs'
 import os from 'node:os'
+import { statfs } from 'node:fs/promises'
 import path from 'node:path'
 import { promisify } from 'node:util'
 import { latestBackup } from './list'
+import { ServiceError } from '@/server/error'
 import {
   type BackupManifest,
   type BackupType,
@@ -74,6 +76,52 @@ async function scanDataFiles(
   return { files, bytes }
 }
 
+/**
+ * 임시 tar 를 담을 여유가 있는지 확인한다(업로드의 statfs 사전 확인과 같은 방식).
+ * statfs 미지원 환경에서는 확인을 건너뛴다 — 없다고 백업을 막지는 않는다.
+ */
+async function assertRoomForBundle(dataDir: string): Promise<void> {
+  try {
+    const [dataSize, tmp] = await Promise.all([dirSize(dataDir), statfs(os.tmpdir())])
+    const free = BigInt(tmp.bavail) * BigInt(tmp.bsize)
+    // 비압축 tar + 여유 512MB.
+    const needed = dataSize + 512n * 1024n * 1024n
+    if (free < needed) {
+      throw new ServiceError(507, `backup.insufficientSpace`)
+    }
+  } catch (e) {
+    if (e instanceof ServiceError) throw e
+    // statfs 실패는 무시(가용성 우선).
+  }
+}
+
+/** 백업 대상 디렉터리의 총 바이트(tus-tmp 제외 — 번들에 안 들어간다). */
+async function dirSize(dir: string): Promise<bigint> {
+  let total = 0n
+  const walk = async (d: string): Promise<void> => {
+    let entries: { name: string; isDirectory(): boolean }[]
+    try {
+      entries = await fs.readdir(d, { withFileTypes: true })
+    } catch {
+      return
+    }
+    for (const e of entries) {
+      if (e.name === 'tus-tmp') continue
+      const full = path.join(d, e.name)
+      if (e.isDirectory()) await walk(full)
+      else {
+        try {
+          total += BigInt((await fs.stat(full)).size)
+        } catch {
+          // 스캔 중 사라진 파일은 무시.
+        }
+      }
+    }
+  }
+  await walk(dir)
+  return total
+}
+
 export async function createBackup(
   args: CreateBackupArgs,
 ): Promise<{ manifest: BackupManifest; bundlePath: string; bundleBytes: number }> {
@@ -87,6 +135,13 @@ export async function createBackup(
   }
 
   const id = makeBackupId(type, args.now)
+  // 임시 tar 는 압축 전 원본 크기 그대로 쌓인다 — 컨테이너 쓰기 레이어가 꽉 차면 백업이
+  // 실패할 뿐 아니라 앱 전체가 디스크 부족에 빠진다. 업로드가 하는 것과 같은 사전 확인.
+  // ⚠️ 백업은 STORAGE_PATH 를 파일시스템으로 직접 읽는다(@bebe/storage 어댑터 미사용).
+  // s3 모드면 /data 가 비어 있어 사진이 한 장도 안 담긴다 — DB 만 든 번들이 만들어지고
+  // 화면은 "사진+영상"이라고 말한다. 조용히 두지 않고 매니페스트에 남긴다(§10).
+  const storageMode = process.env.STORAGE_MODE ?? 'local'
+  await assertRoomForBundle(args.dataDir)
   const work = await fs.mkdtemp(path.join(os.tmpdir(), 'bebe-backup-'))
   const bundlePath = path.join(args.backupDir, bundleName(id))
 
@@ -113,6 +168,7 @@ export async function createBackup(
       createdAt: args.now.toISOString(),
       type,
       parentId: parent?.id ?? null,
+      storageMode,
       schemaMigrations: args.schemaMigrations,
       includesSecret: args.includeSecret && Boolean(args.secretKey),
       includesDerivatives: includeDerivatives,

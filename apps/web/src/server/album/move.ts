@@ -1,4 +1,5 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { isAlbumSecretForViewer } from './secret-visibility'
 import { resolveCan } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -53,6 +54,18 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
           resolveCan(membership.role, 'album.update.own', familyCaps)) ||
         resolveCan(membership.role, 'album.update.any', familyCaps)
       if (!allowed) throw new ForbiddenError('album.moveDenied')
+
+      // 앨범 쓰기 중 유일하게 비밀 가시성을 안 보던 곳이었다 — family 역할이 비밀 조상
+      // 아래 숨어 있던 앨범을 루트로 옮겨 자기와 다른 family 멤버에게 되드러낼 수 있었다.
+      // 읽기 경로와 같은 'not found' 로 거부한다(존재 비노출, §21).
+      if (
+        await isAlbumSecretForViewer(
+          { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+          tx as unknown as typeof prismaPublic,
+        )
+      ) {
+        throw new NotFoundError('album.notFound')
+      }
 
       if (input.newParentId === album.id) throw new ConflictError('album.selfParent')
       if (input.newParentId === album.parentId) return album

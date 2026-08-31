@@ -98,7 +98,7 @@ export type SetBabyTagsRequest = z.infer<typeof setBabyTagsRequest>
 // Editable fields on the asset detail page. Storage object is NOT
 // renamed when filename changes — it stays display-only.
 // biome-ignore lint/suspicious/noControlCharactersInRegex: control chars are deliberately rejected in filenames
-const FILENAME_RE = /^[^\x00-\x1f/\\]+$/
+export const FILENAME_RE = /^[^\x00-\x1f/\\]+$/
 export const updateAssetMetadataRequest = z.object({
   familyId: z.string().uuid(),
   editedByUserId: z.string().uuid(),

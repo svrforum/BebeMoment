@@ -21,6 +21,23 @@ export default function FeaturesAdminPage() {
   const [flags, setFlags] = useState<FeatureFlags>(DEFAULT_FEATURE_FLAGS)
   const [clusterDistance, setClusterDistance] = useState<number>(DEFAULT_FACE_CLUSTER_DISTANCE)
   const [saving, setSaving] = useState(false)
+  const [ml, setMl] = useState<{ url: string; reachable: boolean } | null>(null)
+  const [mlBusy, setMlBusy] = useState(false)
+
+  // 얼굴 인식은 켜기만 하면 되는데 ml 컨테이너는 compose 프로필 뒤에 있어 기본으로 없다.
+  // 없으면 잡이 조용히 실패만 반복하므로, 여기서 실제로 닿는지 눌러 확인할 수 있게 한다.
+  async function checkMl() {
+    setMlBusy(true)
+    try {
+      const res = await fetch('/api/admin/faces/health')
+      const d = (await res.json()) as { url: string; reachable: boolean }
+      setMl({ url: d.url, reachable: Boolean(d.reachable) })
+    } catch {
+      setMl({ url: '', reachable: false })
+    } finally {
+      setMlBusy(false)
+    }
+  }
   const [status, setStatus] = useState<string | null>(null)
 
   useEffect(() => {
@@ -84,6 +101,28 @@ export default function FeaturesAdminPage() {
             ))}
           </CardBody>
         </Card>
+        {flags.faces && (
+          <Card>
+            <CardBody className="space-y-2">
+              <div className="font-medium">{t('features.faceMl.title')}</div>
+              <p className="text-xs text-base-500">{t('features.faceMl.help')}</p>
+              <div className="flex items-center gap-2">
+                <Button variant="ghost" size="sm" onClick={() => void checkMl()} disabled={mlBusy}>
+                  {mlBusy ? t('features.faceMl.checking') : t('features.faceMl.check')}
+                </Button>
+                {ml && (
+                  <span
+                    className={`text-[12px] font-medium ${ml.reachable ? 'text-base-500' : 'text-danger'}`}
+                  >
+                    {ml.reachable
+                      ? t('features.faceMl.ok', { url: ml.url })
+                      : t('features.faceMl.unreachable', { url: ml.url })}
+                  </span>
+                )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
         {flags.faces && (
           <Card>
             <CardBody className="space-y-3">

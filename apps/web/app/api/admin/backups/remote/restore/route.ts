@@ -11,7 +11,14 @@ export const runtime = 'nodejs'
 export const dynamic = 'force-dynamic'
 
 async function requireRemote() {
-  const cfg = await loadRemoteConfig(prismaPublic, process.env.SECRET_KEY ?? '')
+  // 켜져 있는데 못 쓰는 상태면 loadRemoteConfig 가 이유를 담아 던진다 — 그대로 응답에 실어
+  // "설정 안 됨"과 구분되게 한다.
+  let cfg: Awaited<ReturnType<typeof loadRemoteConfig>>
+  try {
+    cfg = await loadRemoteConfig(prismaPublic, process.env.SECRET_KEY ?? '')
+  } catch (e) {
+    return errorJson(e)
+  }
   if (!cfg) return errorJsonKey('backup.remoteNotConfigured', 400)
   return cfg
 }

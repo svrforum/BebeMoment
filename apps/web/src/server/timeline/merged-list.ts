@@ -83,7 +83,10 @@ export async function listTimeline(
   const assetRows = await prismaMedia.asset.findMany({
     where: {
       familyId,
-      status: 'ready',
+      // 실패한 자산도 싣는다. asset-card 에 재시도·삭제 UI 가 있는데 그리드가 ready 만
+      // 가져와서 닿을 수가 없었다 — 실패한 사진은 휴지통에도 없어(deletedAt=null) 앱
+      // 어디에서도 보이지 않고, 용량만 계속 차지했다.
+      status: { in: ['ready', 'failed'] },
       deletedAt: null,
       duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
       ...(hidden.length ? { id: { notIn: hidden } } : {}),

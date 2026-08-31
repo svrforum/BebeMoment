@@ -1037,7 +1037,10 @@
       "remoteEmpty": "No backups in the bucket",
       "pull": "Pull",
       "pulling": "Pulling…",
-      "pulledChain": "Pulled: {chain}"
+      "pulledChain": "Pulled: {chain}",
+      "remoteMissingFields": "Enter the bucket and access key — leaving them empty means nothing is mirrored",
+      "remoteUnusable": "⚠️ Remote backup is on but unusable — backups stay on this server only. {error}",
+      "s3NoMedia": "⚠️ This backup contains no photos (S3 storage mode — database only)"
     },
     "auth": {
       "title": "Auth settings",
@@ -1242,6 +1245,14 @@
         "help": "The threshold for grouping the same person (cosine distance). Lower is stricter and splits people apart; higher is looser and merges more. Default {default}. Applies from the next upload.",
         "strict": "Strict (split)",
         "loose": "Loose (merge)"
+      },
+      "faceMl": {
+        "title": "Face recognition server",
+        "help": "Face recognition needs the separate ml container (compose profile 'faces'). Without it the feature stays on but no face is ever found.",
+        "check": "Check connection",
+        "checking": "Checking…",
+        "ok": "Connected ({url})",
+        "unreachable": "⚠️ Unreachable ({url}) — start the ml container or check FACE_ML_URL"
       }
     },
     "system": {
@@ -1651,7 +1662,8 @@
       "permissionDenied": "You don't have permission",
       "editDenied": "You don't have permission to edit this photo",
       "retryDenied": "You don't have permission to reprocess",
-      "mediaFetchFailed": "Couldn't load media"
+      "mediaFetchFailed": "Couldn't load media",
+      "filenameInvalid": "Filenames cannot contain / \\ or control characters"
     },
     "share": {
       "storyNotFound": "Story not found",
@@ -1679,7 +1691,11 @@
       "hasDependents": "Can't delete: incremental backups depend on this one",
       "confirmMismatch": "The confirmation text doesn't match the backup id",
       "remoteMissingCreds": "Please enter both bucket and keys",
-      "remoteNotConfigured": "Remote backup is not configured — set the bucket and keys in settings first"
+      "remoteNotConfigured": "Remote backup is not configured — set the bucket and keys in settings first",
+      "remoteIncomplete": "Remote backup is incomplete — fill in bucket, access key and secret",
+      "remoteSecretUndecryptable": "Can't decrypt the remote backup secret — if SECRET_KEY changed, re-enter it",
+      "secretKeyMissing": "SECRET_KEY is not set",
+      "insufficientSpace": "Not enough free disk space to build the backup — free some space and retry"
     },
     "admin": {
       "familyPermInvalid": "Only grantable permissions can be set in permissions.family"
@@ -1691,7 +1707,10 @@
       "bookmarks": "Saved is turned off",
       "likes": "Likes are turned off"
     },
-    "protectedSetting": "That setting key is protected"
+    "protectedSetting": "That setting key is protected",
+    "story": {
+      "visibilityGuardianOnly": "Only guardians can change story visibility"
+    }
   },
   "upload": {
     "addAtLeastOne": "Add at least one photo",

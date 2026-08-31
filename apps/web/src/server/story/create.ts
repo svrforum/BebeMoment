@@ -2,6 +2,7 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { assertCanSetStoryVisibility } from './visibility-guard'
 import { z } from 'zod'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
@@ -41,6 +42,7 @@ export async function createStoryEntry(
   ) {
     throw new Error('No permission')
   }
+  assertCanSetStoryVisibility(membership.role, input.visibility)
 
   if (input.babyId) {
     const baby = await prismaPublic.baby.findFirst({

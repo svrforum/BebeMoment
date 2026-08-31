@@ -54,3 +54,18 @@ export function isValidPresetKey(key: string): boolean {
 export function getPreset(key: string): MilestonePreset | undefined {
   return byKey.get(key)
 }
+
+/**
+ * 라벨에 검색어가 든 프리셋 키들.
+ *
+ * 프리셋 기록은 `preset_key` 만 저장하고 라벨("첫 웃음")은 여기에만 있다. 그래서 검색이
+ * DB 컬럼(customLabel·note)만 뒤지면 사용자가 화면에서 본 이름으로는 절대 못 찾았다.
+ */
+export function presetKeysMatching(query: string): string[] {
+  const q = query.trim().toLowerCase()
+  if (!q) return []
+  // 프리셋에는 한국어 라벨만 있다(§6.5 — core 는 아직 i18n 밖). 키도 함께 본다.
+  return MILESTONE_PRESETS.filter(
+    (p) => p.labelKo.toLowerCase().includes(q) || p.key.toLowerCase().includes(q),
+  ).map((p) => p.key)
+}

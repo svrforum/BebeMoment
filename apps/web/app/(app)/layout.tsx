@@ -12,6 +12,7 @@ import { headers } from 'next/headers'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
 import { AppShellClient } from './shell-client'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 
 // `force-dynamic` removed from the layout — it was forcing every page in
 // the (app) segment to re-render fully on each request. Auth + per-family
@@ -48,6 +49,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   // lastSeenAt) intentionally yields 0 — we don't badge "everything is
   // new" on the very first session.
   const lastSeen = ctx.membership?.lastSeenAt ?? null
+  // 비밀 스토리 사진은 이 뷰어에게 보이지 않으므로 세지 않는다 — 예전엔 세어서, 배지가
+  // 떠 있는데 타임라인엔 새 사진이 없고 열어보면 배지만 사라지는 상태가 됐다.
+  // (위젯의 같은 숫자는 이미 이 필터를 거친다 — widget/data.ts)
+  const hiddenForBadge = lastSeen
+    ? await hiddenAssetIdsForViewer(ctx.membership?.role ?? 'family', prismaPublic, ctx.family.id)
+    : []
   const unreadTimeline = lastSeen
     ? await prismaMedia.asset.count({
         where: {
@@ -56,6 +63,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           status: 'ready',
           duplicateOf: null, // 중복 별칭은 미열람 카운트에서 제외
           createdAt: { gt: lastSeen },
+          ...(hiddenForBadge.length ? { id: { notIn: hiddenForBadge } } : {}),
         },
       })
     : 0

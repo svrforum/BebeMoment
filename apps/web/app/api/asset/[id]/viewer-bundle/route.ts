@@ -97,9 +97,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       filename: assetRow.originalFilename,
       caption: assetRow.caption,
       storyCtx,
-      canDelete: {
-        uploadedByUserId: assetRow.uploadedByUserId,
-      },
+      // 권한 판단은 서버가 한다 — 예전엔 uploadedByUserId 만 보내고 클라이언트가 판단하려
+      // 했는데, 클라이언트엔 capability 도 뷰어 userId 도 없어 결국 처음 값을 그대로 쓰고
+      // 스와이프해도 갱신되지 않았다(남의 사진에서 삭제 버튼이 남거나 반대로 사라졌다).
+      canDelete:
+        ctx.capabilities.includes('asset.delete.any') ||
+        (assetRow.uploadedByUserId === ctx.user.id &&
+          ctx.capabilities.includes('asset.delete.own')),
     })
   } catch (e) {
     return errorJson(e)

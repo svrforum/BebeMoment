@@ -2,6 +2,7 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { assertCanSetStoryVisibility } from './visibility-guard'
 import { z } from 'zod'
 
 const MOODS = ['happy', 'grateful', 'tired', 'sad', 'proud', 'calm'] as const
@@ -50,6 +51,7 @@ export async function updateStoryEntry(
   if (!resolveCan(membership.role, isOwn ? 'record.edit.own' : 'record.edit.any', familyCaps)) {
     throw new Error('No permission to edit this entry')
   }
+  assertCanSetStoryVisibility(membership.role, input.patch.visibility)
   if (input.patch.babyId) {
     const baby = await prismaPublic.baby.findFirst({
       where: { id: input.patch.babyId, familyId: input.familyId, deletedAt: null },

@@ -2,6 +2,7 @@ import { createReadStream, createWriteStream, promises as fs } from 'node:fs'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
 import { decryptSecret } from '@/lib/crypto'
+import { ServiceError } from '@/server/error'
 import { getSetting } from '@/server/settings/get'
 import {
   DeleteObjectCommand,
@@ -59,16 +60,24 @@ export async function loadRemoteConfig(
   secretKey: string,
 ): Promise<RemoteConfig | null> {
   const enabled = await getSetting('backup.remote.enabled', z.boolean(), false, prisma)
+  // 꺼져 있는 것만 null 이다. 켜져 있는데 못 쓰는 상태는 **던진다** — 예전엔 둘을 똑같이
+  // null 로 돌려줘서, runBackup 의 `if (cfg)` 가 조용히 건너뛰고 catch 도 안 타 last_error 가
+  // 비었다. 그러면 매일 백업이 "성공"으로 찍히고 관리자 화면은 원격이 켜져 있다고 안심시키는데
+  // 실제로는 로컬에만 쌓인다(§2#6 조용한 실패 금지).
   if (!enabled) return null
   const bucket = await getSetting('backup.remote.bucket', z.string(), '', prisma)
   const accessKeyId = await getSetting('backup.remote.access_key', z.string(), '', prisma)
   const enc = await getSetting('backup.remote.secret_key', z.string(), '', prisma)
-  if (!bucket || !accessKeyId || !enc || !secretKey) return null
+  if (!bucket || !accessKeyId || !enc) {
+    throw new ServiceError(400, 'backup.remoteIncomplete')
+  }
+  if (!secretKey) throw new ServiceError(500, 'backup.secretKeyMissing')
   let secretAccessKey: string
   try {
     secretAccessKey = await decryptSecret(enc, secretKey)
   } catch {
-    return null
+    // SECRET_KEY 가 바뀌면 AES-GCM 인증이 깨진다 — 저장된 키를 다시 넣어야 한다.
+    throw new ServiceError(500, 'backup.remoteSecretUndecryptable')
   }
   return {
     endpoint: await getSetting('backup.remote.endpoint', z.string(), '', prisma),

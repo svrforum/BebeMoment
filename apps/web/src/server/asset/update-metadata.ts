@@ -5,12 +5,15 @@ import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import { z } from 'zod'
 import { ForbiddenError, NotFoundError } from '../error'
+import { FILENAME_RE } from '@bebe/media-client'
 
 const Input = z.object({
   assetId: z.string().uuid(),
   familyId: z.string().uuid(),
   byUserId: z.string().uuid(),
-  filename: z.string().min(1).max(255).optional(),
+  // 규칙을 복제하지 않고 media 의 것을 그대로 쓴다 — 여기서 통과시키면 media 가 거절해
+  // 사용자에겐 번역 안 된 '[VALIDATION_ERROR]' 가 그대로 보였다.
+  filename: z.string().min(1).max(255).regex(FILENAME_RE, 'asset.filenameInvalid').optional(),
   caption: z.string().max(500).nullable().optional(),
   takenAt: z.string().datetime().optional(),
 })

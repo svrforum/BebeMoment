@@ -36,14 +36,32 @@ export async function setPushCategory(category: string, enabled: boolean): Promi
   await setSetting(`push.categories.${category}.enabled`, String(enabled), userId, prismaPublic)
 }
 
-const DeliverySchema = z.object({
-  mode: z.enum(['immediate', 'digest']),
-  interval: z.enum(['hourly', 'every3h', 'daily']),
-  dailyHour: z.number().int().min(0).max(23),
-  quietEnabled: z.boolean(),
-  quietStart: z.number().int().min(0).max(23),
-  quietEnd: z.number().int().min(0).max(23),
-})
+/** 조용한 시간은 자정을 넘길 수 있다(23시~7시) — 그 경우 시작 이상이거나 끝 미만이면 안. */
+function hourInQuietWindow(hour: number, start: number, end: number): boolean {
+  return start <= end ? hour >= start && hour < end : hour >= start || hour < end
+}
+
+const DeliverySchema = z
+  .object({
+    mode: z.enum(['immediate', 'digest']),
+    interval: z.enum(['hourly', 'every3h', 'daily']),
+    dailyHour: z.number().int().min(0).max(23),
+    quietEnabled: z.boolean(),
+    quietStart: z.number().int().min(0).max(23),
+    quietEnd: z.number().int().min(0).max(23),
+  })
+  // 다이제스트 발송 시각이 조용한 시간 안에 있으면 스캔이 매번 그 슬롯을 건너뛰어 푸시가
+  // 영구히 안 나간다(digest.ts 의 isDigestSlot 이 quiet 검사를 먼저 한다). 저장 시점에 막는다.
+  .refine(
+    (v) =>
+      !(
+        v.mode === 'digest' &&
+        v.interval === 'daily' &&
+        v.quietEnabled &&
+        hourInQuietWindow(v.dailyHour, v.quietStart, v.quietEnd)
+      ),
+    { message: 'digestHourInQuietHours', path: ['dailyHour'] },
+  )
 
 export async function setDeliverySettings(input: z.infer<typeof DeliverySchema>): Promise<void> {
   const userId = await adminUserId()

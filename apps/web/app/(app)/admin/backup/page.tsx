@@ -14,6 +14,7 @@ type Backup = {
   parentId: string | null
   includesSecret: boolean
   dataFileCount: number
+  storageMode?: string
   dataBytes: number
   bundleBytes: number
 }
@@ -73,6 +74,8 @@ export default function BackupAdminPage() {
     accessKey: '',
     secretKey: '',
     secretConfigured: false,
+    usable: false,
+    configError: null as string | null,
     lastError: null as string | null,
   })
   const [remoteStatus, setRemoteStatus] = useState<string | null>(null)
@@ -98,6 +101,8 @@ export default function BackupAdminPage() {
         prefix: rm.prefix ?? '',
         accessKey: rm.accessKey ?? '',
         secretConfigured: Boolean(rm.secretConfigured),
+        usable: Boolean(rm.usable),
+        configError: rm.configError ?? null,
         lastError: rm.lastError ?? null,
         secretKey: '',
       }))
@@ -126,6 +131,11 @@ export default function BackupAdminPage() {
   }
 
   async function saveRemote(extra: Record<string, unknown> = {}) {
+    // 켠 채로 필수값을 비워 저장하면 백업은 "성공"으로 찍히는데 아무것도 안 올라간다.
+    if (remote.enabled && (!remote.bucket.trim() || !remote.accessKey.trim())) {
+      setRemoteStatus(t('backup.remoteMissingFields'))
+      return
+    }
     setRemoteStatus(t('backup.saving'))
     const body = {
       enabled: remote.enabled,
@@ -538,6 +548,19 @@ export default function BackupAdminPage() {
                   </Button>
                 </div>
                 {remoteStatus && <p className="text-sm text-base-500">{remoteStatus}</p>}
+                {remote.configError && (
+                  <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">
+                    {t('backup.remoteUnusable', { error: remote.configError })}
+                  </p>
+                )}
+                {remote.enabled &&
+                  remote.secretConfigured &&
+                  !remote.usable &&
+                  !remote.configError && (
+                    <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">
+                      {t('backup.remoteUnusable', { error: '' })}
+                    </p>
+                  )}
                 {remote.lastError && (
                   <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
                     {t('backup.lastRemoteError', { error: remote.lastError })}
@@ -627,6 +650,11 @@ export default function BackupAdminPage() {
                           count: String(b.dataFileCount),
                         })}
                       </div>
+                      {b.storageMode === 's3' && (
+                        <div className="mt-1 text-[11px] font-medium text-danger">
+                          {t('backup.s3NoMedia')}
+                        </div>
+                      )}
                     </div>
                     <button
                       type="button"

@@ -1,4 +1,4 @@
-import type { Role } from '@bebe/core'
+import { type Role, getPreset, presetKeysMatching } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { isAlbumSecretForViewer } from '@/server/album/secret-visibility'
@@ -64,6 +64,7 @@ export async function searchAll(
   if (q.length === 0) return EMPTY(q)
   const { familyId, viewerRole } = input
   const like = { contains: q, mode: 'insensitive' as const }
+  const presetKeys = presetKeysMatching(q)
   const familyOnly = viewerRole === 'family'
 
   const [storyRows, milestoneRows, albumRows, babyRows, personRows] = await Promise.all([
@@ -82,9 +83,22 @@ export async function searchAll(
       where: {
         familyId,
         deletedAt: null,
-        OR: [{ customLabel: like }, { note: like }],
+        // 프리셋 기록은 라벨을 DB 에 저장하지 않는다(preset_key 만) — 사용자가 화면에서 본
+        // 이름("첫 웃음")으로 찾으려면 core 의 라벨을 키로 옮겨 함께 조회해야 한다.
+        OR: [
+          { customLabel: like },
+          { note: like },
+          ...(presetKeys.length ? [{ presetKey: { in: presetKeys } }] : []),
+        ],
       },
-      select: { id: true, customLabel: true, note: true, achievedAt: true, babyId: true },
+      select: {
+        id: true,
+        customLabel: true,
+        presetKey: true,
+        note: true,
+        achievedAt: true,
+        babyId: true,
+      },
       orderBy: { achievedAt: 'desc' },
       take: PER,
     }),
@@ -136,7 +150,8 @@ export async function searchAll(
   }))
   const milestones = milestoneRows.map((m) => ({
     id: m.id,
-    label: m.customLabel ?? '',
+    // 다른 화면과 같은 방식으로 라벨을 푼다 — 예전엔 프리셋 기록이 빈 제목으로 나왔다.
+    label: m.customLabel ?? (m.presetKey ? (getPreset(m.presetKey)?.labelKo ?? '') : ''),
     note: m.note,
     achievedAt: m.achievedAt,
     babyId: m.babyId,

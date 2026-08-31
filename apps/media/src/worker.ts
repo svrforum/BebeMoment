@@ -4,7 +4,7 @@ import { type Job, Worker } from 'bullmq'
 import { faceDetect } from './jobs/face-detect'
 import { processAsset } from './jobs/process-asset'
 import { reapStaleTusTmp } from './jobs/reap-stale-tus'
-import { reapStaleUploads } from './jobs/reap-stale-uploads'
+import { reapStaleUploads, reapStuckProcessing } from './jobs/reap-stale-uploads'
 import type { ProcessAssetJob } from './jobs/types'
 import { logger } from './lib/logger'
 import { prisma } from './lib/prisma'
@@ -105,9 +105,21 @@ export async function startWorker(): Promise<() => Promise<void>> {
   // 빨리 정리되지만, 느린 망의 대용량 영상이 아직 업로드 중인데도 죽일 수 있으니 주의.
   const staleHours = Number(process.env.MEDIA_STALE_UPLOAD_HOURS ?? '6')
   const staleMs = (Number.isFinite(staleHours) && staleHours > 0 ? staleHours : 6) * 60 * 60 * 1000
+  // 처리 중 갇힌 것도 같이 본다 — 기준은 더 길게(큰 영상 트랜스코딩이 정상적으로 오래 걸린다).
+  const processingStaleHours = Number(process.env.MEDIA_STALE_PROCESSING_HOURS ?? '12')
+  const processingStaleMs =
+    (Number.isFinite(processingStaleHours) && processingStaleHours > 0
+      ? processingStaleHours
+      : 12) *
+    60 *
+    60 *
+    1000
   const reap = (): void => {
     void reapStaleUploads(prisma, logger, staleMs).catch((e) =>
       logger.error({ err: (e as Error).message }, 'reapStaleUploads failed'),
+    )
+    void reapStuckProcessing(prisma, logger, processingStaleMs).catch((e) =>
+      logger.error({ err: (e as Error).message }, 'reapStuckProcessing failed'),
     )
     void reapStaleTusTmp(storagePath, staleMs)
       .then((n) => {
