@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: pgvector/pgvector:pg17
+    environment:
+      POSTGRES_DB: bebe
+      POSTGRES_USER: bebe
+      POSTGRES_PASSWORD: bebe
+    # 호스트 포트·볼륨 모두 dev/운영과 다르다. e2e 는 시작할 때 DB 를 통째로 비우므로,
+    # 같은 컨테이너를 공유하면 실제 가족 사진이 지워진다 — 이 리포에서 "dev DB" 라 부르는
+    # 것이 셀프호스팅 인스턴스에서는 그대로 프로덕션인 경우가 있다.
+    ports:
+      - '55432:5432'
+    tmpfs:
+      # 디스크에 남기지 않는다 — 끝나면 사라지는 게 맞고, 실수로 재사용될 여지도 없앤다.
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U bebe']
+      interval: 3s
+
+  redis:
+    image: valkey/valkey:9-alpine
+    ports:
+      - '56379:6379'

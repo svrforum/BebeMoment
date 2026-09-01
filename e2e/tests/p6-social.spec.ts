@@ -1,25 +1,27 @@
 import { expect, test } from '@playwright/test'
+import { completeOnboarding, resetDatabase, signUpAsOwner, useKorean } from './support/flows'
 
 test.describe('P6 social smoke', () => {
+  // 인스턴스당 가족 1개 — 스펙마다 깨끗한 DB 에서 시작해야 가입이 열린다.
+  test.beforeEach(async () => {
+    await resetDatabase()
+  })
+
   test('like + comment + bookmark + detail view', async ({ page }) => {
     const uniq = Date.now()
-    const email = `p6-${uniq}@test.local`
 
-    await page.goto('/signup')
-    await page.locator('input#displayName').fill('P6 User')
-    await page.locator('input#email').fill(email)
-    await page.locator('input#password').fill('password123')
-    await Promise.all([
-      page.waitForURL(/\/onboarding$/, { timeout: 15_000 }),
-      page.getByRole('button', { name: /가입하기/ }).click(),
-    ])
-    await page.locator('input#familyName').fill(`P6 Family ${uniq}`)
-    await page.locator('input#babyName').fill('P6 Baby')
-    await page.locator('input#birthDate').fill('2026-01-01')
-    await Promise.all([
-      page.waitForURL(/\/timeline$/, { timeout: 15_000 }),
-      page.getByRole('button', { name: /시작하기/ }).click(),
-    ])
+    await page.goto('/')
+    await useKorean(page)
+    await signUpAsOwner(page, {
+      username: `p6u${uniq}`.slice(0, 24),
+      password: 'password123',
+      displayName: 'P6 User',
+    })
+    await completeOnboarding(page, {
+      familyName: `P6 Family ${uniq}`,
+      babyName: 'P6 Baby',
+      birthDate: '2026-01-01',
+    })
 
     // Upload a JPEG
     const sharp = (await import('sharp')).default

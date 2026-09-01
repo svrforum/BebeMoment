@@ -1,27 +1,27 @@
 import { expect, test } from '@playwright/test'
+import { completeOnboarding, resetDatabase, signUpAsOwner, useKorean } from './support/flows'
 
 test.describe('P5 records smoke', () => {
+  // 인스턴스당 가족 1개 — 스펙마다 깨끗한 DB 에서 시작해야 가입이 열린다.
+  test.beforeEach(async () => {
+    await resetDatabase()
+  })
+
   test('growth record → milestone → journal → timeline integration', async ({ page }) => {
     const uniq = Date.now()
-    const email = `p5-${uniq}@test.local`
-    const password = 'password123'
 
-    // 1. Signup + onboarding
-    await page.goto('/signup')
-    await page.locator('input#displayName').fill('P5 User')
-    await page.locator('input#email').fill(email)
-    await page.locator('input#password').fill(password)
-    await Promise.all([
-      page.waitForURL(/\/onboarding$/, { timeout: 15_000 }),
-      page.getByRole('button', { name: /가입하기/ }).click(),
-    ])
-    await page.locator('input#familyName').fill(`P5 Family ${uniq}`)
-    await page.locator('input#babyName').fill('P5 Baby')
-    await page.locator('input#birthDate').fill('2026-01-01')
-    await Promise.all([
-      page.waitForURL(/\/timeline$/, { timeout: 15_000 }),
-      page.getByRole('button', { name: /시작하기/ }).click(),
-    ])
+    await page.goto('/')
+    await useKorean(page)
+    await signUpAsOwner(page, {
+      username: `p5u${uniq}`.slice(0, 24),
+      password: 'password123',
+      displayName: 'P5 User',
+    })
+    await completeOnboarding(page, {
+      familyName: `P5 Family ${uniq}`,
+      babyName: 'P5 Baby',
+      birthDate: '2026-01-01',
+    })
 
     // 2. Discover babyId via /journal/new — baby <option> carries the uuid
     await page.goto('/journal/new')
