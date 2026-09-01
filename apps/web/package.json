@@ -50,7 +50,7 @@
     "react-dom": "^19.2.6",
     "react-image-crop": "^11.0.10",
     "react-markdown": "^10.1.0",
-    "react-zoom-pan-pinch": "^4.0.3",
+    "react-zoom-pan-pinch": "^4.0.4",
     "recharts": "^3.8.1",
     "rehype-sanitize": "^6.0.0",
     "serwist": "^9.5.7",
