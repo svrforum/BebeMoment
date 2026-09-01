@@ -47,3 +47,33 @@ jobs:
       - run: pnpm --filter @bebe/web build
         env:
           NEXT_TELEMETRY_DISABLED: '1'
+
+  # e2e 는 자기 스택(docker-compose.e2e.yml — 다른 포트·tmpfs)을 띄우고 시작할 때 DB 를
+  # 비운다. 운영 DB 를 가리키면 스크립트가 스스로 멈춘다. verify 와 나란히 돌려 총 시간을
+  # 늘리지 않는다.
+  e2e:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v6
+        with: { version: 11.5.0 }
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @bebe/db-public exec prisma generate
+      - run: pnpm --filter @bebe/db-media  exec prisma generate
+      - run: pnpm --filter @bebe/e2e exec playwright install --with-deps chromium
+      - run: bash e2e/scripts/run-smoke.sh
+        env:
+          SECRET_KEY: ci-secret-key-32-bytes-minimum-ok-padding
+          MEDIA_SERVICE_TOKEN: ci-media-service-token-32-bytes-min-ok
+          MEDIA_JWT_SECRET: ci-media-jwt-secret-32-bytes-minimum-ok
+          NEXT_TELEMETRY_DISABLED: '1'
+      - uses: actions/upload-artifact@v4
+        if: failure()
+        with:
+          name: e2e-artifacts
+          path: e2e/test-results
+          retention-days: 7

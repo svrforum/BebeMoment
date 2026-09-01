@@ -5,7 +5,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "test": "echo 'e2e smoke: run ./scripts/run-smoke.sh (requires web+worker+infra)'",
+    "test": "echo 'e2e: bash e2e/scripts/run-smoke.sh (\uc804\uc6a9 \uc2a4\ud0dd\uc744 \ub744\uc6b0\uace0 DB \ub97c \ube44\uc6c1\ub2c8\ub2e4)'",
     "test:run": "playwright test",
     "test:ui": "playwright test --ui",
     "test:headed": "playwright test --headed",

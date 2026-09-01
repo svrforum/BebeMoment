@@ -26,6 +26,21 @@ export DATABASE_URL="postgres://bebe:bebe@localhost:55432/bebe"
 export DATABASE_URL_WEB="$DATABASE_URL"
 export DATABASE_URL_MEDIA="$DATABASE_URL"
 export REDIS_URL="redis://localhost:56379"
+# media 도 전용 포트 — 3001 은 이전 실행의 잔여 프로세스가 잡고 있는 일이 잦았고,
+# 그러면 업로드가 등록만 되고 tus 전송이 끝나지 않아 원인 없이 실패했다.
+export MEDIA_PORT=3101
+export MEDIA_INTERNAL_URL="http://127.0.0.1:3101"
+# media 프로세스도 PUBLIC_URL 을 봐야 한다 — tus/파일 URL 을 이걸로 만든다. 예전엔 web
+# 서브셸에만 넣어서 media 가 기본값(localhost:3001)으로 URL 을 만들었고, 브라우저가 아무것도
+# 없는 포트로 업로드를 보내 "등록만 되고 끝나지 않는" 실패가 됐다(§17#28 과 같은 함정).
+export PUBLIC_URL="http://localhost:$PORT"
+# ⚠️ .env 에 남아 있는 stale 한 MEDIA_PUBLIC_BASE_URL(…:3001, Caddy 시절 값)을 반드시 지운다.
+# 두면 tus URL 이 외부 오리진(192.168.x.x:3001)이 되고 CSP connect-src 'self' 가 막아
+# 업로드가 등록만 되고 끝나지 않는다 — 화면엔 아무 말도 안 나온다(§17#28·§17#31).
+# unset 으로는 부족하다 — Next 가 apps/web/.env(루트 .env 심링크)를 스스로 읽어 되살린다.
+# 프로세스 env 가 .env 보다 우선하므로 빈 값으로 덮어쓴다(빈 값이면 PUBLIC_URL 로 폴백).
+export MEDIA_PUBLIC_BASE_URL=""
+export NEXT_PUBLIC_MEDIA_BASE_URL=""
 COMPOSE_FILE_E2E="docker-compose.e2e.yml"
 COMPOSE_PROJECT="bebe-e2e"
 
@@ -41,9 +56,13 @@ fi
 cleanup() {
   echo "== cleanup =="
   "${DC[@]:-docker compose}" -p "${COMPOSE_PROJECT:-bebe-e2e}" -f "${COMPOSE_FILE_E2E:-docker-compose.e2e.yml}" down -v >/dev/null 2>&1 || true
-  [[ -n "${WEB_PID:-}" ]] && kill "$WEB_PID" 2>/dev/null || true
-  [[ -n "${MEDIA_PID:-}" ]] && kill "$MEDIA_PID" 2>/dev/null || true
-  # Kill any descendant next/tsx processes we might have left.
+  # pnpm --filter 는 자식 체인을 만들어 부모만 죽이면 실제 서버가 살아남는다. 그러면 다음
+  # 실행이 포트를 못 잡고, 업로드가 "등록만 되고 끝나지 않는" 유령 실패가 된다.
+  # setsid 로 각자 프로세스 그룹을 줬으니 그룹째 죽인다.
+  for gpid in "${WEB_PID:-}" "${MEDIA_PID:-}"; do
+    [[ -n "$gpid" ]] || continue
+    kill -- "-$gpid" 2>/dev/null || kill "$gpid" 2>/dev/null || true
+  done
   pkill -P $$ 2>/dev/null || true
   wait 2>/dev/null || true
 }
@@ -113,15 +132,13 @@ fi
 # 4. Start web (custom port)
 # The @bebe/web `dev` script hard-codes `-p 3000`, so invoke next directly with the target port.
 echo "== starting web on :$PORT =="
-(
-  cd "$ROOT/apps/web"
-  PORT=$PORT PUBLIC_URL="http://localhost:$PORT" exec pnpm exec next dev -p "$PORT"
-) > "$ROOT/.dev/web.log" 2>&1 &
+setsid bash -c "cd '$ROOT/apps/web' && PORT=$PORT PUBLIC_URL='http://localhost:$PORT' exec pnpm exec next dev -p $PORT" \
+  > "$ROOT/.dev/web.log" 2>&1 &
 WEB_PID=$!
 
 # 5. Start media (tus + BullMQ worker + SSE)
 echo "== starting media =="
-pnpm --filter @bebe/media dev > "$ROOT/.dev/media.log" 2>&1 &
+setsid pnpm --filter @bebe/media dev > "$ROOT/.dev/media.log" 2>&1 &
 MEDIA_PID=$!
 
 # 6. Wait for web health

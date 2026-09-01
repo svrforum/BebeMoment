@@ -1,5 +1,6 @@
 import { expect, test } from '@playwright/test'
 import { completeOnboarding, resetDatabase, signUpAsOwner, useKorean } from './support/flows'
+import { uploadOnePhoto, waitForTimelineThumb } from './support/upload'
 
 test.describe('P6 social smoke', () => {
   // 인스턴스당 가족 1개 — 스펙마다 깨끗한 DB 에서 시작해야 가입이 열린다.
@@ -7,7 +8,7 @@ test.describe('P6 social smoke', () => {
     await resetDatabase()
   })
 
-  test('like + comment + bookmark + detail view', async ({ page }) => {
+  test('like + comment + bookmark + detail view', async ({ page }, testInfo) => {
     const uniq = Date.now()
 
     await page.goto('/')
@@ -23,39 +24,9 @@ test.describe('P6 social smoke', () => {
       birthDate: '2026-01-01',
     })
 
-    // Upload a JPEG
-    const sharp = (await import('sharp')).default
-    const jpeg = await sharp({
-      create: { width: 400, height: 300, channels: 3, background: { r: 100, g: 150, b: 200 } },
-    })
-      .jpeg()
-      .toBuffer()
+    await uploadOnePhoto(page, testInfo, `p6-${uniq}.jpg`)
+    expect(await waitForTimelineThumb(page)).toBeTruthy()
 
-    const fab = page.locator('button[aria-label="업로드"]').first()
-    await fab.click()
-    await expect(page.getByText(/사진 · 영상 올리기/)).toBeVisible({ timeout: 5000 })
-    await page.evaluate(
-      async ({ bytes, name }) => {
-        type UppyHandle = {
-          addFile: (f: { name: string; type: string; data: Blob }) => unknown
-          upload: () => Promise<unknown>
-        }
-        const uppy = (window as unknown as { __uppy?: UppyHandle }).__uppy
-        if (!uppy) throw new Error('uppy missing')
-        uppy.addFile({ name, type: 'image/jpeg', data: new Blob([new Uint8Array(bytes)]) })
-        await uppy.upload()
-      },
-      { bytes: Array.from(jpeg), name: `p6-${uniq}.jpg` },
-    )
-    await page.keyboard.press('Escape')
-
-    // Poll for thumbnail
-    await page.goto('/timeline')
-    for (let i = 0; i < 10; i++) {
-      await page.reload()
-      if ((await page.locator('main a[href^="/detail/"]').count()) >= 1) break
-      await page.waitForTimeout(2000)
-    }
     const detailLink = page.locator('main a[href^="/detail/"]').first()
     const href = await detailLink.getAttribute('href')
     expect(href).toMatch(/^\/detail\/[0-9a-f-]+$/)
@@ -78,13 +49,13 @@ test.describe('P6 social smoke', () => {
     await expect(page.getByText('테스트 댓글')).toBeVisible({ timeout: 3000 })
 
     // Bookmark + /saved
-    const bookmarkBtn = page.getByRole('button', { name: '저장함에 추가' }).first()
+    const bookmarkBtn = page.getByRole('button', { name: '북마크에 추가' }).first()
     const bookmarkResp = page.waitForResponse(
       (r) => r.url().includes('/bookmark') && r.request().method() === 'POST' && r.ok(),
     )
     await bookmarkBtn.click()
     await bookmarkResp
-    await expect(page.getByRole('button', { name: '저장 취소' })).toBeVisible({ timeout: 3000 })
+    await expect(page.getByRole('button', { name: '북마크 취소' })).toBeVisible({ timeout: 3000 })
     await page.goto('/saved')
     await expect(page.locator('main a[href^="/detail/"]')).toHaveCount(1)
 
