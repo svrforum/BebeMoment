@@ -1783,7 +1783,17 @@
     "pickFromFiles": "Pick from files (not in the gallery)",
     "mediaOnly": "{name} — only photos and videos can be uploaded",
     "storyRolledBack": "Couldn't create the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
-    "storyRolledBackPartly": "Couldn't create the story — {count} photo(s) could not be undone. Check the trash. ({error})"
+    "storyRolledBackPartly": "Couldn't create the story — {count} photo(s) could not be undone. Check the trash. ({error})",
+    "moveMode": {
+      "hint": "Drag, or use “Move” to reorder. The first one is the cover.",
+      "start": "Move",
+      "done": "Done",
+      "pickSource": "Tap the photo you want to move.",
+      "pickTarget": "Scroll and tap where it should go.",
+      "pick": "Pick this photo to move",
+      "cancelPick": "Unpick",
+      "cancel": "Cancel"
+    }
   },
   "memories": {
     "title": "Memories",

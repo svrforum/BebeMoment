@@ -39,6 +39,12 @@ export PUBLIC_URL="http://localhost:$PORT"
 # 업로드가 등록만 되고 끝나지 않는다 — 화면엔 아무 말도 안 나온다(§17#28·§17#31).
 # unset 으로는 부족하다 — Next 가 apps/web/.env(루트 .env 심링크)를 스스로 읽어 되살린다.
 # 프로세스 env 가 .env 보다 우선하므로 빈 값으로 덮어쓴다(빈 값이면 PUBLIC_URL 로 폴백).
+# 스토리지도 e2e 전용 경로로 — CI 엔 .env 가 없어 STORAGE_PATH 가 기본값 /data 가 되는데
+# 러너엔 그 경로가 없어 tus 가 파일을 못 쓰고, 업로드가 "등록만 되고 끝나지 않는" 실패가 된다.
+export STORAGE_PATH="$ROOT/.dev/e2e-data"
+export BACKUP_DIR="$ROOT/.dev/e2e-backups"
+rm -rf "$STORAGE_PATH" "$BACKUP_DIR"
+mkdir -p "$STORAGE_PATH" "$BACKUP_DIR"
 export MEDIA_PUBLIC_BASE_URL=""
 export NEXT_PUBLIC_MEDIA_BASE_URL=""
 COMPOSE_FILE_E2E="docker-compose.e2e.yml"

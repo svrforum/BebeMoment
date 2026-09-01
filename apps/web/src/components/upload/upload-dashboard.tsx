@@ -336,12 +336,7 @@ export function UploadDashboard({
               <span className="text-[11px] font-medium">{t('more')}</span>
             </button>
           </div>
-          <div className="-mt-1 flex items-center justify-between gap-2">
-            {staged.length > 1 ? (
-              <p className="text-[11px] text-base-400">{t('reorderHint')}</p>
-            ) : (
-              <span />
-            )}
+          <div className="-mt-1 flex items-center justify-end gap-2">
             <button
               type="button"
               onClick={() => anyFileInputRef.current?.click()}

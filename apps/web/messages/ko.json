@@ -1783,7 +1783,17 @@
     "pickFromFiles": "파일에서 선택 (갤러리에 안 보이는 파일)",
     "mediaOnly": "{name} — 사진·영상 파일만 올릴 수 있어요",
     "storyRolledBack": "스토리를 만들지 못했어요 — 올라간 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
-    "storyRolledBackPartly": "스토리를 만들지 못했어요 — 사진 {count}장은 되돌리지 못했어요. 휴지통에서 확인해 주세요. ({error})"
+    "storyRolledBackPartly": "스토리를 만들지 못했어요 — 사진 {count}장은 되돌리지 못했어요. 휴지통에서 확인해 주세요. ({error})",
+    "moveMode": {
+      "hint": "드래그하거나 “순서 이동”으로 자리를 바꿀 수 있어요. 첫 번째가 대표예요.",
+      "start": "순서 이동",
+      "done": "완료",
+      "pickSource": "옮길 사진을 탭하세요.",
+      "pickTarget": "스크롤해서 놓을 자리를 탭하세요.",
+      "pick": "옮길 사진으로 선택",
+      "cancelPick": "선택 해제",
+      "cancel": "선택 취소"
+    }
   },
   "memories": {
     "title": "추억",
