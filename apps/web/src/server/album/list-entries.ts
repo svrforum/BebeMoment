@@ -41,7 +41,7 @@ export async function listAlbumEntries(
       // guardians-only entries hidden from the `family` role
       ...(args.viewerRole === 'family' ? { visibility: 'family' } : {}),
     },
-    include: { assets: true },
+    include: { assets: { orderBy: { order: 'asc' } } },
   })
 
   // family 에게는 비밀 스토리에도 속한 사진을 하이드레이션에서 제외(Rule A 일관).

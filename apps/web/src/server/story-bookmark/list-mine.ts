@@ -67,7 +67,7 @@ export async function listMyStoryBookmarks(
           // family-role viewers cannot see guardians-only entries
           ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
         },
-        include: { assets: true, baby: true },
+        include: { assets: { orderBy: { order: 'asc' } }, baby: true },
       })
     : []
   const byId = new Map(entries.map((e) => [e.id, e]))

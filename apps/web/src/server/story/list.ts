@@ -73,7 +73,7 @@ export async function listStoryEntries(
           }
         : {}),
     },
-    include: { assets: true },
+    include: { assets: { orderBy: { order: 'asc' } } },
     orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
     take: limit + 1,
   })

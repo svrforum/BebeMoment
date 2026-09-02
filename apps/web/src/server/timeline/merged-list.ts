@@ -4,6 +4,7 @@ import type { MediaClient } from '@bebe/media-client'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { AssetWithUrls } from '../asset/types'
 import { decodeCursor, encodeCursor } from '../cursor'
+import { applyStoryOrder } from './story-order'
 
 export type TimelineItem =
   | { kind: 'asset'; ts: Date; id: string; asset: AssetWithUrls }
@@ -125,7 +126,7 @@ export async function listTimeline(
           // guardian see everything.
           ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
         },
-        include: { assets: true },
+        include: { assets: { orderBy: { order: 'asc' } } },
       })
     : []
 
@@ -201,6 +202,14 @@ export async function listTimeline(
     return b.id.localeCompare(a.id)
   })
 
+  // 스토리에 담은 사진은 사용자가 정한 순서로 — 하루 안 정렬(최신 먼저)이 그 순서를
+  // 정확히 뒤집어 보여주고 있었다. 스토리에 안 속한 사진은 그대로 둔다.
+  const storyOf = new Map<string, { storyId: string; order: number }>()
+  for (const e of joinedEntries) {
+    for (const ea of e.assets) storyOf.set(ea.assetId, { storyId: e.id, order: ea.order })
+  }
+  const ordered = applyStoryOrder(items, storyOf)
+
   // 페이지네이션은 자산만으로 — 스토리는 그 사진을 따라 같이 실린 파생물이라 커서에
   // 영향 주지 않는다(같은 스토리가 사진이 걸친 여러 페이지에 각각 등장).
   const lastAsset = pageAssets[pageAssets.length - 1]
@@ -209,5 +218,5 @@ export async function listTimeline(
       ? encodeCursor({ ts: tsOf(lastAsset).toISOString(), id: lastAsset.id, kind: 'asset', sort })
       : null
 
-  return { items, nextCursor }
+  return { items: ordered, nextCursor }
 }

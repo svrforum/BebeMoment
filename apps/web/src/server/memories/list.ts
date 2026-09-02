@@ -69,7 +69,7 @@ async function collectMemoryData(
           familyId,
           ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
         },
-        include: { assets: true },
+        include: { assets: { orderBy: { order: 'asc' } } },
       })
     : []
 
