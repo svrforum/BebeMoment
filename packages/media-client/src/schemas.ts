@@ -164,3 +164,9 @@ export const healthResponse = z.object({
   ready: z.boolean(),
 })
 export type HealthResponse = z.infer<typeof healthResponse>
+
+export const unrecoverableResponse = z.object({
+  v: z.literal(1),
+  assetIds: z.array(z.string().uuid()),
+})
+export type UnrecoverableResponse = z.infer<typeof unrecoverableResponse>

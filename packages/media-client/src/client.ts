@@ -15,6 +15,7 @@ import {
   healthResponse,
   initAssetResponse,
   mintDownloadResponse,
+  unrecoverableResponse,
   updateAssetMetadataResponse,
 } from './schemas'
 
@@ -41,6 +42,7 @@ export interface MediaClient {
   ): Promise<UpdateAssetMetadataResponse>
   deleteAsset(assetId: string, familyId: string): Promise<void>
   purgeAsset(assetId: string, familyId: string): Promise<void>
+  unrecoverableAssetIds(familyId: string): Promise<string[]>
   retryAsset(assetId: string, familyId: string): Promise<void>
   mintDownloadUrl(input: MintDownloadRequest): Promise<string>
   health(): Promise<HealthResponse>
@@ -175,6 +177,14 @@ export class HttpMediaClient implements MediaClient {
       `/media/v1/assets/${assetId}:purge?familyId=${familyId}`,
       { method: 'POST' },
       () => undefined,
+    )
+  }
+
+  async unrecoverableAssetIds(familyId: string): Promise<string[]> {
+    return this.request(
+      `/media/v1/assets/unrecoverable?familyId=${familyId}`,
+      { method: 'GET' },
+      (b) => unrecoverableResponse.parse(b).assetIds,
     )
   }
 

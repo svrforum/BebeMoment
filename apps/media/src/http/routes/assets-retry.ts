@@ -7,6 +7,8 @@ import type { FastifyPluginAsync } from 'fastify'
 import { z } from 'zod'
 import { MediaHttpError } from '../middleware/error-handler'
 import { assertServiceToken } from '../middleware/service-token'
+import { retryFailureReason } from '@/domain/retryable'
+import { getStorage } from '@/lib/storage'
 
 const UUID_RE = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
 const paramsSchema = z.object({ id: z.string().uuid() })
@@ -28,7 +30,7 @@ export const assetsRetryRoute: FastifyPluginAsync = async (app) => {
 
     const asset = await prisma.asset.findFirst({
       where: { id, familyId, deletedAt: null },
-      select: { id: true, status: true },
+      select: { id: true, status: true, originalKey: true },
     })
     if (!asset) {
       throw new MediaHttpError({
@@ -43,6 +45,18 @@ export const assetsRetryRoute: FastifyPluginAsync = async (app) => {
         code: 'ASSET_NOT_FAILED',
         status: 400,
         message: '실패한 자산만 다시 시도할 수 있어요',
+        retriable: false,
+      })
+    }
+
+    // 원본이 없으면 재처리는 매번 같은 ENOENT 로 끝난다(업로드가 중간에 끊겼고, 방치된
+    // tus 임시 파일은 이미 정리된 경우). 화면엔 그냥 '실패'로 보여 사용자가 계속 누르게
+    // 되므로, 여기서 구분해 "다시 올려주세요"라고 말한다.
+    if (retryFailureReason({ originalExists: await getStorage().exists(asset.originalKey) })) {
+      throw new MediaHttpError({
+        code: 'ORIGINAL_MISSING',
+        status: 409,
+        message: '원본이 없어 다시 시도할 수 없어요 — 사진을 다시 올려주세요',
         retriable: false,
       })
     }

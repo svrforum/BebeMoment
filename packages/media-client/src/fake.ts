@@ -130,6 +130,10 @@ export class FakeMediaClient implements MediaClient {
     this.calls.purgeAsset.push({ assetId, familyId })
   }
 
+  async unrecoverableAssetIds(_familyId: string): Promise<string[]> {
+    return []
+  }
+
   async retryAsset(assetId: string, familyId: string): Promise<void> {
     this.maybeThrow()
     this.calls.retryAsset.push({ assetId, familyId })

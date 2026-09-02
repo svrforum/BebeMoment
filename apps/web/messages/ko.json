@@ -1399,6 +1399,17 @@
         "date": "날짜",
         "selection": "여러 장"
       }
+    },
+    "unrecoverable": {
+      "title": "되살릴 수 없는 사진 정리",
+      "help": "업로드가 중간에 끊겨 원본 파일이 없는 항목이에요. 다시 시도해도 같은 실패가 반복되니, 필요하면 다시 올려주세요. 정리하면 휴지통으로 갑니다(완전 삭제 아님).",
+      "scan": "확인하기",
+      "found": "{count}건",
+      "clean": "휴지통으로 보내기",
+      "confirm": "{count}건을 휴지통으로 보낼까요?",
+      "done": "{count}건을 휴지통으로 보냈어요",
+      "donePartly": "{removed}건을 정리했어요 — {failed}건은 실패했어요",
+      "failed": "정리하지 못했어요"
     }
   },
   "onboarding": {

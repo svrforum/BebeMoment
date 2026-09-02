@@ -1399,6 +1399,17 @@
         "date": "Date",
         "selection": "Multiple"
       }
+    },
+    "unrecoverable": {
+      "title": "Clear unrecoverable photos",
+      "help": "Uploads that were cut short and have no original file. Retrying always fails the same way — re-upload them if you still want them. Clearing moves them to the trash, not permanent deletion.",
+      "scan": "Check",
+      "found": "{count} item(s)",
+      "clean": "Move to trash",
+      "confirm": "Move {count} item(s) to the trash?",
+      "done": "Moved {count} item(s) to the trash",
+      "donePartly": "Cleared {removed} — {failed} failed",
+      "failed": "Couldn't clear them"
     }
   },
   "onboarding": {

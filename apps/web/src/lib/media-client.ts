@@ -174,6 +174,10 @@ class CachingMediaClient implements MediaClient {
     return this.inner.retryAsset(assetId, familyId)
   }
 
+  unrecoverableAssetIds(familyId: string): Promise<string[]> {
+    return this.inner.unrecoverableAssetIds(familyId)
+  }
+
   mintDownloadUrl(input: MintDownloadRequest): Promise<string> {
     return this.inner.mintDownloadUrl(input)
   }

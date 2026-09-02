@@ -1,3 +1,4 @@
+import { UnrecoverableCleanup } from '@/components/admin/unrecoverable-cleanup'
 import { AppHeader } from '@/components/shell/app-header'
 import { Card, CardBody } from '@/components/ui/card'
 import { parseEnv } from '@bebe/config'
@@ -18,6 +19,7 @@ export default async function StorageSettingsPage() {
     <>
       <AppHeader title={t('storage.title')} subtitle={t('storage.subtitle')} />
       <div className="mx-auto max-w-3xl px-5 py-4 space-y-3">
+        <UnrecoverableCleanup />
         <Card>
           <CardBody>
             <h2 className="font-semibold mb-2">{t('storage.mode')}</h2>

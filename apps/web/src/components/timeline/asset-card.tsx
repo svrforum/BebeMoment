@@ -95,7 +95,16 @@ export function AssetCard({
     setBusy(true)
     try {
       const res = await fetch(`/api/asset/${id}/retry`, { method: 'POST' })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        // 원본이 없으면 몇 번을 눌러도 같은 결과다 — 서버가 준 이유를 그대로 보여준다.
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        toast({
+          title: body?.error ?? t('card.retryFailed'),
+          variant: 'danger',
+        })
+        setBusy(false)
+        return
+      }
       toast({ title: t('card.retrying'), variant: 'success' })
       router.refresh()
     } catch {
