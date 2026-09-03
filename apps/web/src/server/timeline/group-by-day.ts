@@ -66,8 +66,11 @@ export function babyDaysDiff(birthDate: Date, at: Date): number {
 }
 
 export function groupAssetsByDay(assets: DayAssetLike[], birthDate: Date | null): DayGroup[] {
-  // 최신 일자 먼저. 같은 날 안에서는 ts desc 로 안정 정렬해 그리드 순서 보장.
-  const sorted = [...assets].sort((a, b) => b.ts.getTime() - a.ts.getTime())
+  // 최신 일자 먼저. **하루 안에서는 받은 순서를 그대로 둔다** — 호출부(merged-list)가
+  // 스토리에 담은 순서를 이미 반영해 넘기는데, 여기서 ts desc 로 다시 정렬하면 그게 통째로
+  // 되돌아가 스토리 사진이 또 역순으로 보인다. JS sort 는 안정적이라 일자 키로만 정렬하면
+  // 같은 날 안의 순서는 보존된다.
+  const sorted = [...assets].sort((a, b) => utcDayKey(b.ts).localeCompare(utcDayKey(a.ts)))
 
   const groups: DayGroup[] = []
   let current: DayGroup | null = null
