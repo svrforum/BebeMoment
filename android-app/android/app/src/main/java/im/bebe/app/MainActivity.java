@@ -163,6 +163,13 @@ public class MainActivity extends BridgeActivity {
                 final String scheme = uri != null ? uri.getScheme() : null;
                 if (scheme != null) {
                     final String s = scheme.toLowerCase();
+                    // 웹의 '공유' 버튼 — 앱 안에서는 Web Share API 도 클립보드 API 도 없어
+                    // 링크 복사밖에 못 했다. 여기서 안드로이드 공유 시트를 열어 카카오톡 등으로
+                    // 바로 보낸다. launchExternal 보다 먼저 잡아야 한다 — bebe:// 는 우리
+                    // 딥링크 스킴이라 그냥 두면 ACTION_VIEW 로 자기 자신을 다시 연다.
+                    if (s.equals("bebe") && "share".equals(uri.getHost())) {
+                        return openShareChooser(uri);
+                    }
                     if (!s.equals("http") && !s.equals("https")) {
                         return launchExternal(uri);
                     }
@@ -279,6 +286,29 @@ public class MainActivity extends BridgeActivity {
     }
 
     /** 비-http(s) URI 를 네이티브 앱으로. 앱이 없으면 browser_fallback_url / 마켓으로. */
+    /**
+     * bebe://share?url=…&title=… → 안드로이드 공유 시트(ACTION_SEND).
+     *
+     * 카카오톡·메시지 등 텍스트를 받는 앱이 목록에 뜬다. 링크만 보내도 되지만 제목을 함께
+     * 넣으면 받는 쪽에서 무엇인지 알아보기 쉽다. url 이 없으면 아무것도 하지 않는다(대신
+     * true 를 돌려줘 WebView 가 알 수 없는 스킴을 로드하려 들지 않게 한다).
+     */
+    private boolean openShareChooser(Uri uri) {
+        final String url = uri.getQueryParameter("url");
+        if (url == null || url.isEmpty()) return true;
+        final String title = uri.getQueryParameter("title");
+        final Intent send = new Intent(Intent.ACTION_SEND);
+        send.setType("text/plain");
+        send.putExtra(Intent.EXTRA_TEXT, title == null || title.isEmpty() ? url : title + "\n" + url);
+        if (title != null && !title.isEmpty()) send.putExtra(Intent.EXTRA_SUBJECT, title);
+        try {
+            startActivity(Intent.createChooser(send, title));
+        } catch (ActivityNotFoundException e) {
+            Toast.makeText(MainActivity.this, "공유할 수 있는 앱이 없어요", Toast.LENGTH_SHORT).show();
+        }
+        return true;
+    }
+
     private boolean launchExternal(Uri uri) {
         final String scheme = uri.getScheme().toLowerCase();
         try {
