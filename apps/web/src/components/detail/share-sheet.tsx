@@ -1,6 +1,7 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
 import { shareOrCopy } from '@/lib/share-link'
+import { shareTitle } from '@/lib/share-title'
 import { useToast } from '@/lib/toast'
 import { Link2, Loader2, Share2, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -85,11 +86,12 @@ const copyFor = (
 
 export function ShareSheet({
   target,
-  title = '베베 모먼트',
+  title: givenTitle,
   open,
   onOpenChange,
 }: {
   target: SheetTarget
+  /** 스토리·앨범 제목. 없거나 다른 대상이면 shareTitle 이 대상별 문구를 만든다. */
   title?: string | undefined
   open: boolean
   onOpenChange: (open: boolean) => void
@@ -97,6 +99,7 @@ export function ShareSheet({
   const toast = useToast()
   const t = useTranslations('social')
   const locale = useLocale()
+  const title = shareTitle(target, t, locale, givenTitle)
   // 기본은 1일 — 공유 링크는 로그인 없이 열리므로, 명시적으로 늘리지 않는 한 짧게 만료시킨다.
   const [ttl, setTtl] = useState<Ttl>('1d')
   const [links, setLinks] = useState<Link[]>([])

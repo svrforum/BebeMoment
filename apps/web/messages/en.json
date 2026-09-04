@@ -611,6 +611,13 @@
           "sheetTitle": "Create share link for this day",
           "intro": "Anyone with the link can view this day's photos and stories, including ones added to this day later. Only family can save the originals."
         }
+      },
+      "text": {
+        "date": "{date}, our day 🍼",
+        "asset": "A photo 📷",
+        "selection": "{n} photos 📷",
+        "story": "A family story",
+        "album": "Album"
       }
     },
     "download": {

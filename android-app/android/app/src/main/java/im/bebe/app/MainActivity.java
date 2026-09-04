@@ -299,10 +299,11 @@ public class MainActivity extends BridgeActivity {
         final String title = uri.getQueryParameter("title");
         final Intent send = new Intent(Intent.ACTION_SEND);
         send.setType("text/plain");
+        // 제목은 본문에 한 번만. EXTRA_SUBJECT 까지 채우면 받는 앱(카카오톡)이 "제목 - 제목"
+        // 으로 이어 붙여 보여줬다.
         send.putExtra(Intent.EXTRA_TEXT, title == null || title.isEmpty() ? url : title + "\n" + url);
-        if (title != null && !title.isEmpty()) send.putExtra(Intent.EXTRA_SUBJECT, title);
         try {
-            startActivity(Intent.createChooser(send, title));
+            startActivity(Intent.createChooser(send, null));
         } catch (ActivityNotFoundException e) {
             Toast.makeText(MainActivity.this, "공유할 수 있는 앱이 없어요", Toast.LENGTH_SHORT).show();
         }
