@@ -1,4 +1,5 @@
 'use client'
+import { DateShareButton } from '@/components/detail/date-share-button'
 import { StoryCard, type StoryCardData } from '@/components/story/story-card'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown } from 'lucide-react'
@@ -58,6 +59,8 @@ type Props = {
   assets: AssetRow[]
   /** 이 날짜의 스토리(있으면 사진 그리드 위에 글 카드로). */
   stories?: StoryCardData[]
+  /** 'YYYY-MM-DD'. 주면 헤더에 '이 날 공유' 버튼이 붙는다. */
+  dateKey?: string | null
   index?: number
   selectionMode?: boolean
   selected?: Set<string>
@@ -74,6 +77,7 @@ export function BucketSection({
   dDay = null,
   assets,
   stories,
+  dateKey = null,
   index = 0,
   selectionMode = false,
   selected,
@@ -115,9 +119,12 @@ export function BucketSection({
           )}
         </div>
         {assets.length > 0 && (
-          <span className="text-[12px] font-medium tabular-nums text-base-400 shrink-0">
-            {t('bucket.photoCount', { count: assets.length })}
-          </span>
+          <div className="flex shrink-0 items-center gap-1">
+            <span className="text-[12px] font-medium tabular-nums text-base-400">
+              {t('bucket.photoCount', { count: assets.length })}
+            </span>
+            {dateKey && !selectionMode && <DateShareButton date={dateKey} size="sm" />}
+          </div>
         )}
       </header>
       {stories && stories.length > 0 && <StoryStrip stories={stories} />}

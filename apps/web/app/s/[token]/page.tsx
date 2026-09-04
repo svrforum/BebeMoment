@@ -2,7 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
-import { getDateAssetIds } from '@/server/share/date-assets'
+import { type DayStoryPreview, buildDayPreview } from '@/server/share/day-preview'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
 import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/public-story'
@@ -10,6 +10,7 @@ import { pickShareBaseUrl } from '@/lib/share-base-url'
 import { clientIp, rateLimit } from '@/server/auth/rate-limit'
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
+import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
 import type { Metadata } from 'next'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
@@ -36,7 +37,12 @@ async function requestBaseUrl(): Promise<string> {
   })
 }
 
-type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
+type PhotoSet = {
+  preview: PhotoSetPreview
+  ids: string[]
+  meta: string
+  stories: DayStoryPreview[]
+}
 type Loaded =
   | { status: 'ok'; kind: 'story'; preview: PublicStoryPreview }
   | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
@@ -76,30 +82,36 @@ async function load(token: string, base: string): Promise<Loaded> {
     return preview ? { status: 'ok', kind: 'album', preview } : { status: 'notfound' }
   }
 
-  // asset(1장)·selection(N장)·date(그 날) — 전부 "사진 집합" 한 뷰로.
+  // asset(1장)·selection(N장)·date(그 날) — 전부 "사진 집합" 한 뷰로. 날짜는 그 날 스토리 카드가 위에 얹힌다.
   const t = await getTranslations('share')
-  const locale = await getLocale()
-  let ids: string[]
-  let meta: string
-  if (r.target.kind === 'asset') {
-    ids = [r.target.assetId]
-    meta = t('photoset.metaFamilyPhoto')
-  } else if (r.target.kind === 'selection') {
-    ids = r.target.assetIds
-    meta = t('photoset.metaCount', { n: ids.length })
-  } else {
-    // 날짜 공유는 발급 시점에 존재하던 사진만 — 이후 같은 날 업로드는 자동 포함하지 않는다.
-    ids = await getDateAssetIds(r.target.date, r.familyId, prismaMedia, r.createdAt)
-    const monthDay = new Intl.DateTimeFormat(locale, {
-      month: 'long',
-      day: 'numeric',
-      timeZone: 'UTC',
-    })
-    meta = t('photoset.metaDateCount', {
-      date: monthDay.format(new Date(`${r.target.date}T00:00:00.000Z`)),
-      n: ids.length,
-    })
+  if (r.target.kind === 'date') {
+    const day = await buildDayPreview(
+      r.target.date,
+      r.familyId,
+      base,
+      prismaPublic,
+      prismaMedia,
+      media,
+    )
+    if (!day || day.photos.total === 0) return { status: 'notfound' }
+    return {
+      status: 'ok',
+      kind: 'photoset',
+      familyId: r.familyId,
+      set: {
+        preview: day.photos,
+        ids: day.photos.ids,
+        meta: await dayMeta(r.target.date, r.familyId, day.photos.total, day.stories.length),
+        stories: day.stories,
+      },
+    }
   }
+
+  const ids = r.target.kind === 'asset' ? [r.target.assetId] : r.target.assetIds
+  const meta =
+    r.target.kind === 'asset'
+      ? t('photoset.metaFamilyPhoto')
+      : t('photoset.metaCount', { n: ids.length })
   const preview = await buildPhotoSetPreview(
     ids,
     r.familyId,
@@ -113,8 +125,38 @@ async function load(token: string, base: string): Promise<Loaded> {
     status: 'ok',
     kind: 'photoset',
     familyId: r.familyId,
-    set: { preview, ids: preview.ids, meta },
+    set: { preview, ids: preview.ids, meta, stories: [] },
   }
+}
+
+// "9월 4일 · D+120 · 사진 12장 · 이야기 2개" — 타임라인 날짜 헤더와 같은 정보.
+async function dayMeta(
+  date: string,
+  familyId: string,
+  photoCount: number,
+  storyCount: number,
+): Promise<string> {
+  const t = await getTranslations('share')
+  const locale = await getLocale()
+  const at = new Date(`${date}T00:00:00.000Z`)
+  const monthDay = new Intl.DateTimeFormat(locale, {
+    month: 'long',
+    day: 'numeric',
+    timeZone: 'UTC',
+  })
+  const baby = await prismaPublic.baby.findFirst({
+    where: { familyId, deletedAt: null },
+    orderBy: { birthDate: 'asc' },
+    select: { birthDate: true },
+  })
+  return [
+    monthDay.format(at),
+    baby ? formatDDay(babyDaysDiff(baby.birthDate, at)) : null,
+    t('photoset.metaCount', { n: photoCount }),
+    storyCount > 0 ? t('photoset.storyCount', { n: storyCount }) : null,
+  ]
+    .filter((s): s is string => Boolean(s))
+    .join(' · ')
 }
 
 export async function generateMetadata({
@@ -137,7 +179,7 @@ export async function generateMetadata({
       ? r.preview.body.replace(/\s+/g, ' ').trim().slice(0, 160) || familyName
       : r.kind === 'album'
         ? r.preview.name
-        : familyName
+        : r.set.meta
   const images = imageUrl ? [imageUrl] : []
   return {
     title: familyName,
@@ -195,6 +237,7 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
       canDownload={canDownload}
       downloadIds={r.set.ids}
       loginHref={loginHref}
+      stories={r.set.stories}
     />
   )
 }

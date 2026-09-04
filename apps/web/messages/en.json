@@ -609,7 +609,7 @@
         },
         "date": {
           "sheetTitle": "Create share link for this day",
-          "intro": "Anyone with the link can view this day's photos. Only family can save the originals."
+          "intro": "Anyone with the link can view this day's photos and stories, including ones added to this day later. Only family can save the originals."
         }
       }
     },
@@ -1471,11 +1471,11 @@
     "photoset": {
       "metaFamilyPhoto": "A photo from our family",
       "metaCount": "{n} photos",
-      "metaDateCount": "{date} · {n} photos",
       "morePhotos": "{n} more photos",
       "savePhotos": "Save {n} photos",
       "loginToSave": "Log in to save photos",
-      "familyOnlyDownload": "Only family can save the original photos"
+      "familyOnlyDownload": "Only family can save the original photos",
+      "storyCount": "{n} stories"
     },
     "gone": {
       "expiredTitle": "This share link has expired",

@@ -377,6 +377,7 @@ export function TimelineGrid({
               dDay={g.dDay ?? null}
               assets={g.assets}
               stories={g.stories ?? []}
+              dateKey={g.dateKey}
               index={i}
               selectionMode={selectionMode}
               selected={selected}

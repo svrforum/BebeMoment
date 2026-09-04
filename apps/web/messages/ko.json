@@ -609,7 +609,7 @@
         },
         "date": {
           "sheetTitle": "이 날 공유 링크 만들기",
-          "intro": "링크를 아는 사람은 이 날의 사진을 볼 수 있어요. 원본 저장은 가족만 할 수 있어요."
+          "intro": "링크를 아는 사람은 이 날의 사진과 이야기를 볼 수 있어요. 나중에 이 날에 올린 것도 함께 보여요. 원본 저장은 가족만 할 수 있어요."
         }
       }
     },
@@ -1471,11 +1471,11 @@
     "photoset": {
       "metaFamilyPhoto": "우리 가족의 사진",
       "metaCount": "사진 {n}장",
-      "metaDateCount": "{date} · 사진 {n}장",
       "morePhotos": "사진 {n}장이 더 있어요",
       "savePhotos": "사진 {n}장 저장",
       "loginToSave": "로그인하고 사진 저장하기",
-      "familyOnlyDownload": "원본 사진 저장은 가족만 할 수 있어요"
+      "familyOnlyDownload": "원본 사진 저장은 가족만 할 수 있어요",
+      "storyCount": "이야기 {n}개"
     },
     "gone": {
       "expiredTitle": "만료된 공유 링크예요",
