@@ -109,11 +109,17 @@ export type DayStoryPreview = {
   title: string | null
   body: string
   coverUrl: string | null
+  /** 링크를 연 사람에게 보이는 그 스토리의 사진 수(대표 1장 + 잠긴 나머지). */
+  totalPhotos: number
 }
 
 export type DayPreview = {
   stories: DayStoryPreview[]
   photos: PhotoSetPreview
+  /** 그 날 사진 중 위 스토리 어디에도 안 담긴 것의 수 — 잠긴 타일로만 보여준다. */
+  loosePhotos: number
+  /** 스토리가 하나도 없을 때 대표로 쓸 첫 사진. */
+  looseCoverUrl: string | null
 }
 
 /**
@@ -157,6 +163,10 @@ export async function buildDayPreview(
       urlsById = {}
     }
   }
+  const inStory = new Set(shown.flatMap((s) => s.assetIds))
+  const looseIds = photos.ids.filter((id) => !inStory.has(id))
+  const firstLoose = looseIds[0]
+  const looseIndex = firstLoose ? photos.ids.indexOf(firstLoose) : -1
   return {
     photos,
     stories: shown.map((s) => {
@@ -167,7 +177,10 @@ export async function buildDayPreview(
         title: s.title,
         body: s.body,
         coverUrl: toAbsolute(u?.display1080?.jpeg ?? u?.videoPoster ?? null, baseUrl),
+        totalPhotos: s.assetIds.length,
       }
     }),
+    loosePhotos: looseIds.length,
+    looseCoverUrl: looseIndex >= 0 ? (photos.items[looseIndex]?.displayUrl ?? null) : null,
   }
 }

@@ -2,7 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
-import { type DayStoryPreview, buildDayPreview } from '@/server/share/day-preview'
+import { type DayPreview, buildDayPreview } from '@/server/share/day-preview'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
 import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/public-story'
@@ -15,6 +15,7 @@ import type { Metadata } from 'next'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { AlbumShareView } from './album-view'
+import { DayShareView } from './day-view'
 import { PhotoSetShareView } from './photo-set-view'
 import { GoneCard } from './share-frame'
 import { StoryShareView } from './story-view'
@@ -37,14 +38,10 @@ async function requestBaseUrl(): Promise<string> {
   })
 }
 
-type PhotoSet = {
-  preview: PhotoSetPreview
-  ids: string[]
-  meta: string
-  stories: DayStoryPreview[]
-}
+type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
 type Loaded =
   | { status: 'ok'; kind: 'story'; preview: PublicStoryPreview }
+  | { status: 'ok'; kind: 'day'; preview: DayPreview; date: string; meta: string }
   | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
   | { status: 'expired' | 'revoked' | 'notfound' }
@@ -82,8 +79,8 @@ async function load(token: string, base: string): Promise<Loaded> {
     return preview ? { status: 'ok', kind: 'album', preview } : { status: 'notfound' }
   }
 
-  // asset(1장)·selection(N장)·date(그 날) — 전부 "사진 집합" 한 뷰로. 날짜는 그 날 스토리 카드가 위에 얹힌다.
   const t = await getTranslations('share')
+  // date(그 날) — 스토리 공유와 같은 미리보기 틀(대표사진·글·잠긴 나머지)을 스토리마다 반복.
   if (r.target.kind === 'date') {
     const day = await buildDayPreview(
       r.target.date,
@@ -96,16 +93,14 @@ async function load(token: string, base: string): Promise<Loaded> {
     if (!day || day.photos.total === 0) return { status: 'notfound' }
     return {
       status: 'ok',
-      kind: 'photoset',
-      familyId: r.familyId,
-      set: {
-        preview: day.photos,
-        ids: day.photos.ids,
-        meta: await dayMeta(r.target.date, r.familyId, day.photos.total, day.stories.length),
-        stories: day.stories,
-      },
+      kind: 'day',
+      preview: day,
+      date: r.target.date,
+      meta: await dayMeta(r.target.date, r.familyId, day.photos.total, day.stories.length),
     }
   }
+
+  // asset(1장)·selection(N장) — "사진 집합" 한 뷰로.
 
   const ids = r.target.kind === 'asset' ? [r.target.assetId] : r.target.assetIds
   const meta =
@@ -125,7 +120,7 @@ async function load(token: string, base: string): Promise<Loaded> {
     status: 'ok',
     kind: 'photoset',
     familyId: r.familyId,
-    set: { preview, ids: preview.ids, meta, stories: [] },
+    set: { preview, ids: preview.ids, meta },
   }
 }
 
@@ -169,17 +164,29 @@ export async function generateMetadata({
   const r = await load(token, base)
   if (r.status !== 'ok') return {}
 
-  const familyName = r.kind === 'photoset' ? r.set.preview.familyName : r.preview.familyName
+  const familyName =
+    r.kind === 'photoset'
+      ? r.set.preview.familyName
+      : r.kind === 'day'
+        ? r.preview.photos.familyName
+        : r.preview.familyName
   const imageUrl =
     r.kind === 'story' || r.kind === 'album'
       ? r.preview.imageUrl
-      : (r.set.preview.items[0]?.displayUrl ?? null)
+      : r.kind === 'day'
+        ? (r.preview.stories[0]?.coverUrl ??
+          r.preview.looseCoverUrl ??
+          r.preview.photos.items[0]?.displayUrl ??
+          null)
+        : (r.set.preview.items[0]?.displayUrl ?? null)
   const desc =
     r.kind === 'story'
       ? r.preview.body.replace(/\s+/g, ' ').trim().slice(0, 160) || familyName
       : r.kind === 'album'
         ? r.preview.name
-        : r.set.meta
+        : r.kind === 'day'
+          ? r.meta
+          : r.set.meta
   const images = imageUrl ? [imageUrl] : []
   return {
     title: familyName,
@@ -227,6 +234,8 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
 
   if (r.kind === 'story') return <StoryShareView p={r.preview} base={base} />
   if (r.kind === 'album') return <AlbumShareView p={r.preview} base={base} />
+  if (r.kind === 'day')
+    return <DayShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
 
   const canDownload = (await viewerFamilyId()) === r.familyId
   const loginHref = `${base}/login?next=${encodeURIComponent(`/s/${token}`)}`
@@ -237,7 +246,6 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
       canDownload={canDownload}
       downloadIds={r.set.ids}
       loginHref={loginHref}
-      stories={r.set.stories}
     />
   )
 }

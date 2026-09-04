@@ -175,8 +175,11 @@ describe('buildDayPreview', () => {
         title: 'T',
         body: 'B',
         coverUrl: 'https://h/media/v1/files/a2.jpg',
+        totalPhotos: 2,
       },
     ])
+    expect(out?.loosePhotos).toBe(0)
+    expect(out?.looseCoverUrl).toBeNull()
   })
 
   it('a story whose photos are all hidden does not appear', async () => {
@@ -196,5 +199,39 @@ describe('buildDayPreview', () => {
     )
     expect(out?.photos.ids).toEqual([a2])
     expect(out?.stories).toEqual([])
+    expect(out?.loosePhotos).toBe(1)
+  })
+
+  it('counts photos outside any story separately and offers the first as cover', async () => {
+    const { user, family } = await setup()
+    const a1 = await makeReadyAsset(family.id, user.id, `${DAY}T09:00:00.000Z`)
+    const a2 = await makeReadyAsset(family.id, user.id, `${DAY}T10:00:00.000Z`)
+    const a3 = await makeReadyAsset(family.id, user.id, `${DAY}T11:00:00.000Z`)
+    await story(family.id, user.id, [a1])
+    const media = new FakeMediaClient()
+    media.setUrlsForAsset(a2, {
+      blurhash: null,
+      dominantColor: null,
+      aspectRatio: null,
+      thumb256: null,
+      thumb512: null,
+      display1080: { avif: '/m/a2.avif', webp: '/m/a2.webp', jpeg: '/m/a2.jpg' },
+      original: null,
+      videoPoster: null,
+      videoCompat: null,
+      expiresAt: new Date(Date.now() + 600_000).toISOString(),
+    })
+    const out = await buildDayPreview(
+      DAY,
+      family.id,
+      'https://h',
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(out?.stories.map((s) => s.totalPhotos)).toEqual([1])
+    expect(out?.loosePhotos).toBe(2)
+    expect(out?.looseCoverUrl).toBe('https://h/m/a2.jpg')
+    void a3
   })
 })
