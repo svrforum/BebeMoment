@@ -81,8 +81,14 @@ export default async function TimelinePage({
 
   // items → 날짜 버킷 그룹. SSR·무한스크롤 load-more 가 같은 변환을 공유(build-groups).
   // 날짜필터 모드는 스토리를 StoryStrip 으로 따로 보여주므로 버킷엔 안 얹는다.
-  const mainGroups = buildTimelineGroups({ items, birthDate, sortMode })
-  const dateGroups = buildTimelineGroups({ items, birthDate, sortMode, includeStories: false })
+  const mainGroups = buildTimelineGroups({ items, birthDate, sortMode, t: tAge })
+  const dateGroups = buildTimelineGroups({
+    items,
+    birthDate,
+    sortMode,
+    includeStories: false,
+    t: tAge,
+  })
 
   // 멀티셀렉트 바 게이팅: 삭제 권한 / 앨범에 추가(앨범 권한 + 일반가족 앨범숨김 아님).
   const isManager = viewerRole === 'owner' || viewerRole === 'guardian'

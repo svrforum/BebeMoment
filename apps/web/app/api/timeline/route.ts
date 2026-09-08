@@ -1,3 +1,4 @@
+import { getTranslations } from 'next-intl/server'
 import { errorJsonKey } from '@/lib/error-response'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
@@ -54,6 +55,7 @@ export async function GET(req: Request) {
     birthDate: baby?.birthDate ?? null,
     sortMode,
     includeStories: !date,
+    t: await getTranslations('age'),
   })
   return NextResponse.json({ groups, nextCursor })
 }

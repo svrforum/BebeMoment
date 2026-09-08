@@ -1,5 +1,6 @@
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
 import { type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
+import type { LabelT } from '@/i18n/labels'
 import { formatDDay, groupAssetsByDay } from './group-by-day'
 import type { TimelineItem, TimelineSort } from './merged-list'
 
@@ -35,6 +36,8 @@ export function buildTimelineGroups(args: {
   birthDate: Date | null
   sortMode: TimelineSort
   includeStories?: boolean
+  /** `age` 네임스페이스 번역기. 생략하면 인스턴스 기본 로케일로 찍힌다. */
+  t?: LabelT
 }): TimelineBucketGroup[] {
   const { items, birthDate, sortMode } = args
   const includeStories = args.includeStories ?? true
@@ -56,6 +59,7 @@ export function buildTimelineGroups(args: {
       }
     }),
     birthDate,
+    args.t,
   ).map((g) => ({
     dateKey: g.dateKey,
     label: g.dateLabel,
