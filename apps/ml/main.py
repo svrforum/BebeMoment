@@ -33,7 +33,15 @@ def get_model():
             if _model is None:
                 from insightface.app import FaceAnalysis
 
-                m = FaceAnalysis(name=PACK, root=ROOT, providers=["CPUExecutionProvider"])
+                # 우리가 쓰는 건 bbox·det_score·normed_embedding 뿐이다. 기본값은
+                # 랜드마크 2종(1k3d68 은 혼자 143MB)과 성별/나이까지 올려 얼굴마다
+                # 돌린다 — 결과에 안 쓰이면서 세션(=스레드풀)만 5개가 된다.
+                m = FaceAnalysis(
+                    name=PACK,
+                    root=ROOT,
+                    allowed_modules=["detection", "recognition"],
+                    providers=["CPUExecutionProvider"],
+                )
                 m.prepare(ctx_id=-1, det_size=(DET_SIZE, DET_SIZE), det_thresh=DET_THRESH)
                 _model = m
     return _model
