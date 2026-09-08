@@ -3,7 +3,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest'
 const { ctor } = vi.hoisted(() => ({ ctor: vi.fn() }))
 vi.mock('ioredis', () => ({ default: ctor }))
 
-import { createRedisConnection } from './redis'
+import { createRedisConnection, createRedisSubscriber } from './redis'
 
 afterEach(() => {
   ctor.mockReset()
@@ -26,5 +26,19 @@ describe('createRedisConnection', () => {
     delete process.env.REDIS_URL
     createRedisConnection()
     expect(ctor).toHaveBeenCalledWith('redis://localhost:6379', { maxRetriesPerRequest: null })
+  })
+})
+
+describe('createRedisSubscriber', () => {
+  it('명령용 연결과 같은 옵션을 쓴다 — 옵션이 두 군데서 갈리지 않게', () => {
+    createRedisConnection('redis://x:6379')
+    createRedisSubscriber('redis://x:6379')
+    expect(ctor.mock.calls[1]).toEqual(ctor.mock.calls[0])
+  })
+
+  it('호출할 때마다 새 인스턴스를 만든다(구독자는 연결을 공유하지 않는다)', () => {
+    createRedisSubscriber('redis://x:6379')
+    createRedisSubscriber('redis://x:6379')
+    expect(ctor).toHaveBeenCalledTimes(2)
   })
 })

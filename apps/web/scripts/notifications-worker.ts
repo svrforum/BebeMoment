@@ -39,7 +39,12 @@ import {
 } from '@bebe/core'
 import type { NotifContext } from '@/server/notifications/worker'
 import { decideStoryPush } from '@/server/notifications/story-readiness'
-import { createRedisConnection, enqueueFaceDetect, getNotificationQueue } from '@bebe/queue'
+import {
+  createRedisConnection,
+  enqueueFaceDetect,
+  getNotificationQueue,
+  syncJobSchedulers,
+} from '@bebe/queue'
 import { type Job, Queue, Worker } from 'bullmq'
 import webpush from 'web-push'
 import { z } from 'zod'
@@ -568,31 +573,28 @@ async function main(): Promise<void> {
     console.error(`[maintenance-worker] job ${job?.name} failed:`, err)
   })
 
-  // 반복 작업은 jobId 고정 → 멱등(재기동해도 하나만). 유지보수 잡이 알림 큐에 있던 시절의
-  // 반복 등록은 Redis 에 남아 있으므로 걷어낸다 — 안 그러면 알림 워커가 모르는 잡을 계속 받는다.
-  const notificationQueue = new Queue(NOTIFICATIONS_QUEUE, { connection })
-  const legacyRepeatables = new Set([
-    MEMORIES_SCAN_JOB,
-    DIGEST_SCAN_JOB,
-    TRASH_PURGE_JOB,
-    BACKUP_TICK_JOB,
-  ])
-  for (const r of await notificationQueue.getRepeatableJobs()) {
-    if (legacyRepeatables.has(r.name)) await notificationQueue.removeRepeatableByKey(r.key)
-  }
-
+  // 반복 작업은 스케줄러 id 고정 → 멱등(재기동해도 하나만). 크론은 컨테이너 로컬시각
+  // 기준이라 TZ=Asia/Seoul 이 걸려 있어야 의도한 시각에 돈다(§16).
   const maintenanceQueue = new Queue(MAINTENANCE_QUEUE, { connection })
-  const repeat = (name: string, pattern: string) =>
-    maintenanceQueue.add(name, {}, { repeat: { pattern }, jobId: name, removeOnComplete: true })
-  // 매일 09:00(서버 로컬) 추억 스캔.
-  await repeat(MEMORIES_SCAN_JOB, '0 9 * * *')
-  // 매시간 정각 다이제스트 스캔(슬롯/야간 판단은 핸들러가).
-  await repeat(DIGEST_SCAN_JOB, '0 * * * *')
-  // 매일 03:30 휴지통 비우기, 03:45 유휴 위젯 토큰 정리.
-  await repeat(TRASH_PURGE_JOB, '30 3 * * *')
-  await repeat(WIDGET_TOKEN_PURGE_JOB, '45 3 * * *')
-  // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
-  await repeat(BACKUP_TICK_JOB, '5 * * * *')
+  const synced = await syncJobSchedulers(maintenanceQueue, [
+    // 매일 09:00 추억 스캔.
+    { id: MEMORIES_SCAN_JOB, pattern: '0 9 * * *', opts: { removeOnComplete: true } },
+    // 매시간 정각 다이제스트 스캔(슬롯/야간 판단은 핸들러가).
+    { id: DIGEST_SCAN_JOB, pattern: '0 * * * *', opts: { removeOnComplete: true } },
+    // 매일 03:30 휴지통 비우기, 03:45 유휴 위젯 토큰 정리.
+    { id: TRASH_PURGE_JOB, pattern: '30 3 * * *', opts: { removeOnComplete: true } },
+    { id: WIDGET_TOKEN_PURGE_JOB, pattern: '45 3 * * *', opts: { removeOnComplete: true } },
+    // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
+    { id: BACKUP_TICK_JOB, pattern: '5 * * * *', opts: { removeOnComplete: true } },
+  ])
+  // 유지보수 잡이 알림 큐에 있던 시절의 반복 등록은 Redis 에 남아 있다 — 알림 큐에는
+  // 반복 잡이 하나도 없어야 하므로 통째로 걷어낸다(안 그러면 알림 워커가 모르는 잡을 받는다).
+  const notificationQueue = new Queue(NOTIFICATIONS_QUEUE, { connection })
+  const notificationSync = await syncJobSchedulers(notificationQueue, [])
+  const removed = [...synced.removed, ...notificationSync.removed]
+  if (removed.length > 0) {
+    console.log(`[notifications-worker] removed stale repeat entries: ${removed.join(', ')}`)
+  }
 
   // SIGTERM/SIGINT: 새 잡을 받지 않고 진행 중인 잡(백업은 분 단위)이 끝나길 상한까지 기다린다.
   // 예전엔 핸들러가 없어 docker stop 이 SIGKILL 로 끝냈고 잡이 반쯤 남았다.
