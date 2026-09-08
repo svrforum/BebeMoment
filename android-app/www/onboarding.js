@@ -3,6 +3,7 @@
 ;(function () {
   var KEY = 'serverUrl'
   var app = document.getElementById('app')
+  var t = window.bebeI18n.t
 
   function prefs() {
     return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences
@@ -93,16 +94,16 @@
     })
     var connectBtn = el('button', {
       style: PRIMARY_BTN,
-      textContent: '연결',
+      textContent: t('onboarding.connect'),
       onclick: function () {
         submit(input.value)
       },
     })
     app.append(
-      el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 6px', textContent: '서버 연결' }),
+      el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 6px', textContent: t('onboarding.title') }),
       el('p', {
         style: 'color:#71717a;margin:0 0 24px;font-size:15px',
-        textContent: '가족 서버 주소를 입력하세요',
+        textContent: t('onboarding.subtitle'),
       }),
     )
     if (error) {
@@ -113,7 +114,7 @@
       app.append(
         el('button', {
           style: GHOST_BTN,
-          textContent: '그래도 연결',
+          textContent: t('onboarding.connectAnyway'),
           onclick: function () {
             navigateTo(forceUrl)
           },
@@ -128,13 +129,13 @@
     app.append(
       el('p', {
         style: 'color:#71717a;font-size:15px;text-align:center;margin-top:40px',
-        textContent: label || '연결 중…',
+        textContent: label || t('onboarding.connecting'),
       }),
     )
   }
 
   function navigateTo(url) {
-    renderConnecting('연결 중…')
+    renderConnecting(t('onboarding.connecting'))
     setServerUrl(url).then(function () {
       window.location.href = url
     })
@@ -142,11 +143,11 @@
 
   function submit(raw) {
     var url = normalize(raw)
-    if (!url) return renderForm('주소를 입력해주세요.', raw)
-    renderConnecting('서버 확인 중…')
+    if (!url) return renderForm(t('onboarding.needUrl'), raw)
+    renderConnecting(t('onboarding.checking'))
     reachable(url).then(function (ok) {
       if (ok) return navigateTo(url)
-      renderForm('서버 확인에 실패했어요. 주소가 맞다면 "그래도 연결"을 눌러보세요.', raw, url)
+      renderForm(t('onboarding.checkFailed'), raw, url)
     })
   }
 
@@ -157,7 +158,7 @@
   }
 
   function boot() {
-    renderConnecting('불러오는 중…')
+    renderConnecting(t('onboarding.loading'))
     // 로그인 화면의 "서버 변경" 링크(https://localhost/?reset=1)로 들어오면 저장된
     // 서버주소를 지우고 입력 폼을 띄운다(이전 값 프리필).
     var sp = new URLSearchParams(window.location.search)
@@ -173,7 +174,7 @@
       if (!saved) return renderForm()
       reachable(saved).then(function (ok) {
         if (ok) navigateTo(saved)
-        else renderForm('이전 서버 확인에 실패했어요.', saved, saved)
+        else renderForm(t('onboarding.prevCheckFailed'), saved, saved)
       })
     })
   }
