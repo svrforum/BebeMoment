@@ -6,6 +6,7 @@ import {
 } from '@/(app)/settings/widget/actions'
 import { PictureImage } from '@/components/ui/picture-image'
 import { ReorderRow } from '@/components/upload/reorder-row'
+import { type ActionResult, actionErrorText } from '@/lib/action-result'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { Check, X } from 'lucide-react'
@@ -32,18 +33,19 @@ export function WidgetSourceForm({
   const [pending, startTransition] = useTransition()
   const toast = useToast()
   const t = useTranslations('settings.widgetSource')
+  const tRoot = useTranslations()
 
-  const notify = (ok: boolean) =>
+  const notify = (r: ActionResult) =>
     toast(
-      ok
+      r.ok
         ? { title: t('savedSuccess'), variant: 'success' }
-        : { title: t('saveFailed'), variant: 'danger' },
+        : { title: t('saveFailed'), description: actionErrorText(tRoot, r), variant: 'danger' },
     )
 
   const pickSource = (v: string) => {
     setSource(v)
     startTransition(async () => {
-      notify((await saveWidgetConfig({ source: v })).ok)
+      notify(await saveWidgetConfig({ source: v }))
     })
   }
 
@@ -51,14 +53,15 @@ export function WidgetSourceForm({
     const byId = new Map(items.map((p) => [p.id, p]))
     setItems(ids.map((id) => byId.get(id)).filter((p): p is WidgetPhoto => Boolean(p)))
     startTransition(async () => {
-      await saveWidgetPhotoOrder(ids)
+      const r = await saveWidgetPhotoOrder(ids)
+      if (!r.ok) notify(r)
     })
   }
 
   const remove = (id: string) => {
     setItems((prev) => prev.filter((p) => p.id !== id))
     startTransition(async () => {
-      notify((await removeWidgetPhoto(id)).ok)
+      notify(await removeWidgetPhoto(id))
     })
   }
 

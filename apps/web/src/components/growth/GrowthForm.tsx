@@ -1,8 +1,9 @@
 'use client'
-import { useState } from 'react'
+import { useActionState, useState } from 'react'
 import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { type FormActionState, actionErrorText } from '@/lib/action-result'
 import { formatLastValue } from '@/lib/growth-format'
 
 type Defaults = {
@@ -26,12 +27,14 @@ export function GrowthForm({
   submitLabel,
   lastRecord,
 }: {
-  action: (fd: FormData) => void
+  action: (prev: FormActionState, fd: FormData) => Promise<FormActionState>
   defaults?: Defaults
   submitLabel?: string
   lastRecord?: LastRecord | null
 }) {
   const t = useTranslations('misc')
+  const tRoot = useTranslations()
+  const [failure, formAction] = useActionState(action, null)
   const d = defaults ?? {}
   const label = submitLabel ?? t('growth.save')
   const today = new Date().toISOString().slice(0, 10)
@@ -54,7 +57,12 @@ export function GrowthForm({
     : null
 
   return (
-    <form action={action} className="space-y-4">
+    <form action={formAction} className="space-y-4">
+      {failure && (
+        <p className="text-sm text-danger" role="alert">
+          {actionErrorText(tRoot, failure)}
+        </p>
+      )}
       <div>
         <Label htmlFor="measuredAt">{t('growth.measuredAt')}</Label>
         <Input

@@ -5,9 +5,9 @@ depends on third-party components with their own licenses:
 
 ## Bundled assets
 
-- **Pretendard** (font) — © 2021 Kil Hyung-jin, SIL Open Font License 1.1.
-  Bundled at `apps/web/public/fonts/PretendardVariable.woff2`; full license at
-  [`apps/web/public/fonts/OFL.txt`](apps/web/public/fonts/OFL.txt).
+- **Pretendard** v1.3.9 (font) — © 2021 Kil Hyung-jin, SIL Open Font License 1.1.
+  Bundled as the official dynamic subsets at `apps/web/public/fonts/pretendard/`; full
+  license at [`apps/web/public/fonts/OFL.txt`](apps/web/public/fonts/OFL.txt).
 
 ## Optional, downloaded at runtime
 

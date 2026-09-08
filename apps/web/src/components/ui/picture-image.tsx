@@ -1,5 +1,12 @@
 'use client'
-import { pickDisplayTrio, pickDisplayUrl, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import {
+  type ThumbSrcSet,
+  pickDisplayTrio,
+  pickDisplayUrl,
+  pickThumbSrcSet,
+  pickThumbTrio,
+  pickThumbUrl,
+} from '@/lib/asset-url'
 import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
 import { decode } from 'blurhash'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
@@ -7,6 +14,10 @@ import { type CSSProperties, useCallback, useEffect, useRef, useState } from 're
 export type PictureImageProps = {
   trio: DerivativeTrio | null
   fallbackUrl: string | null
+  /** 그리드용 다중 해상도 후보(`pickThumbSrcSet`). 주면 `sizes` 와 함께 srcset 으로 나가
+   *  브라우저가 256/512 중 화면 밀도에 맞는 쪽을 고른다. 없으면 trio 단일 후보. */
+  srcSet?: ThumbSrcSet | null
+  sizes?: string
   alt: string
   width?: number
   height?: number
@@ -99,6 +110,8 @@ function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null 
 export function PictureImage({
   trio,
   fallbackUrl,
+  srcSet = null,
+  sizes,
   alt,
   width,
   height,
@@ -120,8 +133,10 @@ export function PictureImage({
   const [override, setOverride] = useState<{
     trio: DerivativeTrio | null
     fallbackUrl: string | null
+    srcSet: ThumbSrcSet | null
   } | null>(null)
   const retriedRef = useRef(false)
+  const wantsSrcSet = srcSet !== null
 
   // When the image is served from cache it can finish loading before React
   // attaches onLoad, so the load event never fires and the image stays at
@@ -148,14 +163,16 @@ export function PictureImage({
       setOverride({
         trio: urlKind === 'display' ? pickDisplayTrio(fresh) : pickThumbTrio(fresh),
         fallbackUrl: urlKind === 'display' ? pickDisplayUrl(fresh) : pickThumbUrl(fresh),
+        srcSet: wantsSrcSet && urlKind === 'thumb' ? pickThumbSrcSet(fresh) : null,
       })
     } catch {
       // best-effort — 실패하면 깨진 이미지 그대로(무한 재시도 방지: retriedRef).
     }
-  }, [assetId, urlKind])
+  }, [assetId, urlKind, wantsSrcSet])
 
   const effTrio = override ? override.trio : trio
   const effFallback = override ? override.fallbackUrl : fallbackUrl
+  const effSrcSet = override ? override.srcSet : srcSet
 
   // Empty: no image data at all.
   if (!effTrio && !effFallback) {
@@ -242,11 +259,13 @@ export function PictureImage({
     <span className={className} style={wrapperStyle}>
       {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
       <picture key={effTrio.jpeg}>
-        <source srcSet={effTrio.avif} type="image/avif" />
-        <source srcSet={effTrio.webp} type="image/webp" />
+        <source srcSet={effSrcSet?.avif ?? effTrio.avif} sizes={sizes} type="image/avif" />
+        <source srcSet={effSrcSet?.webp ?? effTrio.webp} sizes={sizes} type="image/webp" />
         <img
           ref={imgRef}
           src={effTrio.jpeg}
+          srcSet={effSrcSet?.jpeg}
+          sizes={sizes}
           alt={alt}
           width={width}
           height={height}

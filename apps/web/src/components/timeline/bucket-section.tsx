@@ -144,6 +144,8 @@ export function BucketSection({
               durationMs={a.durationMs ?? null}
               sort={sort}
               viewerCtx={viewerCtx}
+              // 첫 버킷의 접힘 노출분(2줄)만 — 첫 화면에 실제로 보이는 카드들이다.
+              priority={index === 0 && i < COLLAPSED_COUNT}
               selectionMode={selectionMode}
               selected={selected?.has(a.id) ?? false}
               {...(onLongPress ? { onLongPress } : {})}

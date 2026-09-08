@@ -1,9 +1,11 @@
 'use server'
+import { actionErrorText } from '@/lib/action-result'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import { withActionLog } from '@/lib/with-action-log'
+import { isRegistrationOpen } from '@/server/auth/registration'
 import { createBaby } from '@/server/baby/create'
 import { createFamily } from '@/server/family/create'
-import { isRegistrationOpen } from '@/server/auth/registration'
 import { getTranslations } from 'next-intl/server'
 import { redirect } from 'next/navigation'
 import { z } from 'zod'
@@ -15,7 +17,6 @@ export async function completeOnboarding(
   formData: FormData,
 ): Promise<OnboardingState> {
   const t = await getTranslations('onboarding')
-  const tErrors = await getTranslations('errors')
   const { user, session } = await getAuth()
   if (!user || !session) redirect('/login')
 
@@ -41,7 +42,7 @@ export async function completeOnboarding(
     return { error: t('errors.birthDateTooFar') }
   }
 
-  try {
+  const result = await withActionLog('onboarding.complete', async () => {
     const { family } = await createFamily(
       { name: parsed.data.familyName, userId: user.id },
       prismaPublic,
@@ -61,10 +62,11 @@ export async function completeOnboarding(
       where: { id: session.id },
       data: { currentFamilyId: family.id },
     })
-  } catch (e) {
-    const msg = (e as Error).message
-    if (msg && tErrors.has(msg)) return { error: tErrors(msg) }
-    return { error: msg || t('errors.createFailed') }
+  })
+  if (!result.ok) {
+    // 위저드는 문장을 그대로 보여준다 — 여기서 요청 locale 로 번역해 넘긴다.
+    const tRoot = await getTranslations()
+    return { error: actionErrorText(tRoot, result) }
   }
 
   redirect('/')

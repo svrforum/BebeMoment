@@ -1,12 +1,12 @@
 'use server'
-import { getAuth } from '@/lib/auth'
+import { requireActionContext } from '@/lib/action-context'
+import type { ActionResult } from '@/lib/action-result'
 import { prismaPublic } from '@/lib/db-init'
-import { resolveContext } from '@/server/context'
+import { actionReject, withActionLog } from '@/lib/with-action-log'
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { initAssetViaMedia } from '@/server/upload/init'
 import { resolveCan } from '@bebe/core'
 import type { InitAssetResponse } from '@bebe/media-client'
-import { getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 
 // media 는 tus 업로드 URL 을 상대경로(/media/v1/tus/...)로 준다. tus-js-client 는 절대
@@ -37,37 +37,33 @@ export type StartUploadInput = {
   notify?: boolean
 }
 
-export async function startUpload(input: StartUploadInput): Promise<InitAssetResponse> {
-  const { session } = await getAuth()
-  if (!session) throw new Error('Unauthorized')
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) throw new Error('No current family')
-  if (!ctx.membership) throw new Error('No current family')
-  const t = await getTranslations('errors')
-  const familyCaps = await getFamilyCapabilities(prismaPublic)
-  if (!resolveCan(ctx.membership.role, 'asset.upload', familyCaps)) {
-    throw new Error(t('asset.uploadDenied'))
-  }
-  // 미디어(이미지/영상)만 — 클라가 보낸 mime 으로 워커 파이프라인이 분기하므로 경계에서 제한.
-  if (!/^(image|video)\//.test(input.mime)) {
-    throw new Error(t('asset.mediaOnly'))
-  }
+export async function startUpload(
+  input: StartUploadInput,
+): Promise<ActionResult<InitAssetResponse>> {
+  return withActionLog('upload.start', async () => {
+    const ctx = await requireActionContext()
+    const familyCaps = await getFamilyCapabilities(prismaPublic)
+    if (!resolveCan(ctx.membership.role, 'asset.upload', familyCaps)) {
+      throw actionReject(403, 'errors.asset.uploadDenied')
+    }
+    // 미디어(이미지/영상)만 — 클라가 보낸 mime 으로 워커 파이프라인이 분기하므로 경계에서 제한.
+    if (!/^(image|video)\//.test(input.mime)) {
+      throw actionReject(400, 'errors.asset.mediaOnly')
+    }
 
-  const result = await initAssetViaMedia({
-    familyId: ctx.family.id,
-    uploaderId: ctx.user.id,
-    mime: input.mime,
-    sizeBytes: input.sizeBytes,
-    originalName: input.originalName,
-    ...(input.fileModifiedAt !== undefined && { fileModifiedAt: input.fileModifiedAt }),
-    ...(input.clientBlurhash !== undefined && { clientBlurhash: input.clientBlurhash }),
-    ...(input.clientAspectRatio !== undefined && { clientAspectRatio: input.clientAspectRatio }),
-    ...(input.clientWidth !== undefined && { clientWidth: input.clientWidth }),
-    ...(input.clientHeight !== undefined && { clientHeight: input.clientHeight }),
-    ...(input.notify !== undefined && { notify: input.notify }),
+    const result = await initAssetViaMedia({
+      familyId: ctx.family.id,
+      uploaderId: ctx.user.id,
+      mime: input.mime,
+      sizeBytes: input.sizeBytes,
+      originalName: input.originalName,
+      ...(input.fileModifiedAt !== undefined && { fileModifiedAt: input.fileModifiedAt }),
+      ...(input.clientBlurhash !== undefined && { clientBlurhash: input.clientBlurhash }),
+      ...(input.clientAspectRatio !== undefined && { clientAspectRatio: input.clientAspectRatio }),
+      ...(input.clientWidth !== undefined && { clientWidth: input.clientWidth }),
+      ...(input.clientHeight !== undefined && { clientHeight: input.clientHeight }),
+      ...(input.notify !== undefined && { notify: input.notify }),
+    })
+    return { ...result, tusUploadUrl: await absolutizeTusUrl(result.tusUploadUrl) }
   })
-  return { ...result, tusUploadUrl: await absolutizeTusUrl(result.tusUploadUrl) }
 }

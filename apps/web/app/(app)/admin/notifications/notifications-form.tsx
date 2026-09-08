@@ -3,6 +3,7 @@ import { FirebaseSetupGuide } from '@/components/admin/firebase-setup-guide'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
+import { type ActionResult, actionErrorText } from '@/lib/action-result'
 import type { NotificationCategory } from '@bebe/core'
 import { useTranslations } from 'next-intl'
 import { type ReactNode, useState, useTransition } from 'react'
@@ -42,6 +43,7 @@ export function NotificationsForm({
   fcmClientConfigured,
 }: Props) {
   const t = useTranslations('admin')
+  const tRoot = useTranslations()
   const [masterOn, setMasterOn] = useState(master)
   const [cats, setCats] = useState(categories)
   const [hasKeys, setHasKeys] = useState(vapidPublicPrefix !== null)
@@ -55,110 +57,91 @@ export function NotificationsForm({
   const [status, setStatus] = useState<string | null>(null)
   const [pending, startTransition] = useTransition()
 
-  function onSaveClientConfig() {
+  /** 액션을 돌리고 성공/실패 문구를 상태줄에 쓴다. 실패면 `onFail` 로 낙관 갱신을 되돌린다. */
+  function run(action: () => Promise<ActionResult>, onSuccess: () => string, onFail?: () => void) {
     setStatus(null)
     startTransition(async () => {
-      try {
-        await setFcmClientConfig(clientJson)
-        setFcmHasClient(clientJson.trim().length > 0)
-        setClientJson('')
-        setStatus(
-          clientJson.trim()
-            ? t('notifications.clientConfigSaved')
-            : t('notifications.clientConfigDeleted'),
-        )
-      } catch (e) {
-        setStatus((e as Error).message)
+      const r = await action()
+      if (r.ok) {
+        setStatus(onSuccess())
+        return
       }
+      onFail?.()
+      setStatus(actionErrorText(tRoot, r))
     })
+  }
+
+  function onSaveClientConfig() {
+    const saved = clientJson
+    run(
+      () => setFcmClientConfig(saved),
+      () => {
+        setFcmHasClient(saved.trim().length > 0)
+        setClientJson('')
+        return saved.trim()
+          ? t('notifications.clientConfigSaved')
+          : t('notifications.clientConfigDeleted')
+      },
+    )
   }
 
   function toggleFcm(next: boolean) {
     setFcmOn(next)
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await setFcmEnabled(next)
-        setStatus(t('notifications.saved'))
-      } catch (e) {
-        setFcmOn(!next)
-        setStatus((e as Error).message)
-      }
-    })
+    run(
+      () => setFcmEnabled(next),
+      () => t('notifications.saved'),
+      () => setFcmOn(!next),
+    )
   }
 
   function onSaveServiceAccount() {
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await setFcmServiceAccount(saJson)
-        setFcmHasKey(saJson.trim().length > 0)
+    const saved = saJson
+    run(
+      () => setFcmServiceAccount(saved),
+      () => {
+        setFcmHasKey(saved.trim().length > 0)
         setSaJson('')
-        setStatus(
-          saJson.trim()
-            ? t('notifications.serviceAccountSaved')
-            : t('notifications.serviceAccountDeleted'),
-        )
-      } catch (e) {
-        setStatus((e as Error).message)
-      }
-    })
+        return saved.trim()
+          ? t('notifications.serviceAccountSaved')
+          : t('notifications.serviceAccountDeleted')
+      },
+    )
   }
 
   function toggleMaster(next: boolean) {
     setMasterOn(next)
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await setPushMaster(next)
-        setStatus(t('notifications.saved'))
-      } catch (e) {
-        setMasterOn(!next)
-        setStatus((e as Error).message)
-      }
-    })
+    run(
+      () => setPushMaster(next),
+      () => t('notifications.saved'),
+      () => setMasterOn(!next),
+    )
   }
 
   function toggleCategory(category: NotificationCategory, next: boolean) {
-    setCats((prev) => prev.map((c) => (c.category === category ? { ...c, enabled: next } : c)))
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await setPushCategory(category, next)
-        setStatus(t('notifications.saved'))
-      } catch (e) {
-        setCats((prev) => prev.map((c) => (c.category === category ? { ...c, enabled: !next } : c)))
-        setStatus((e as Error).message)
-      }
-    })
+    const apply = (enabled: boolean) =>
+      setCats((prev) => prev.map((c) => (c.category === category ? { ...c, enabled } : c)))
+    apply(next)
+    run(
+      () => setPushCategory(category, next),
+      () => t('notifications.saved'),
+      () => apply(!next),
+    )
   }
 
   function onGenerate() {
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await generateVapidKeys()
-        setHasKeys(true)
-        setKeyPrefix(null)
-        setStatus(t('notifications.keysGenerated'))
-      } catch (e) {
-        setStatus((e as Error).message)
-      }
+    run(generateVapidKeys, () => {
+      setHasKeys(true)
+      setKeyPrefix(null)
+      return t('notifications.keysGenerated')
     })
   }
 
   function onRegenerate() {
-    setStatus(null)
-    startTransition(async () => {
-      try {
-        await regenerateVapidKeys()
-        setHasKeys(true)
-        setKeyPrefix(null)
-        setConfirmingRegen(false)
-        setStatus(t('notifications.keysRegenerated'))
-      } catch (e) {
-        setStatus((e as Error).message)
-      }
+    run(regenerateVapidKeys, () => {
+      setHasKeys(true)
+      setKeyPrefix(null)
+      setConfirmingRegen(false)
+      return t('notifications.keysRegenerated')
     })
   }
 

@@ -1,5 +1,3 @@
-import { reinjectExif } from './exif-reinject'
-
 // 업로드 전 클라이언트 최적화: 긴 변을 MAX_EDGE 로 제한 + JPEG 재인코딩으로 용량을
 // 줄인다. EXIF(촬영일·GPS)는 재주입해 보존(Orientation=1, 픽셀은 이미 정위치).
 // 안드로이드/iOS/웹 공통 — <img> 디코드(브라우저가 EXIF 회전 자동 적용)+canvas.
@@ -108,7 +106,13 @@ export async function optimizeImage(file: File): Promise<File> {
   let outBlob: Blob = blob
   if (file.type === 'image/jpeg') {
     try {
-      const [origUrl, editedUrl] = await Promise.all([blobToDataUrl(file), blobToDataUrl(blob)])
+      // piexifjs 는 JPEG 를 실제로 재인코딩할 때만 필요하다 — 여기서 지연 로드해 업로드
+      // 매니저(앱 셸)가 그 번들을 미리 끌어오지 않게 한다.
+      const [{ reinjectExif }, origUrl, editedUrl] = await Promise.all([
+        import('./exif-reinject'),
+        blobToDataUrl(file),
+        blobToDataUrl(blob),
+      ])
       outBlob = dataUrlToBlob(reinjectExif(origUrl, editedUrl))
     } catch {
       // 원본에 EXIF 가 없거나 파싱 실패 — 메타 없이 그대로 진행.

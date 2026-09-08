@@ -1,5 +1,4 @@
 @import "tailwindcss";
-
 /* Use .dark class (or descendant) for dark: variants instead of OS media query */
 @custom-variant dark (&:where(.dark, .dark *));
 
@@ -12,6 +11,67 @@
 }
 
 @theme {
+  --font-sans:
+    "Pretendard Variable", "Pretendard", "Pretendard Fallback", -apple-system, BlinkMacSystemFont,
+    system-ui, sans-serif;
+  --font-number: "Pretendard Variable", "SF Mono", ui-monospace, monospace;
+
+  --radius-2xl: 24px;
+  --radius-3xl: 28px;
+
+  /* 두 겹의 얕은 깊이감 — 1px 접촉면 테두리 + 부드러운 확산. 무거운 elevation 없이 층이 읽힌다. */
+  --shadow-card:
+    0 0 0 1px rgb(0 0 0 / 0.03), 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px -6px rgb(0 0 0 / 0.08);
+  --shadow-elevated:
+    0 0 0 1px rgb(0 0 0 / 0.04), 0 2px 6px -2px rgb(0 0 0 / 0.06),
+    0 12px 32px -12px rgb(0 0 0 / 0.16);
+
+  --ease-ios: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --animate-toast-in: toast-in 240ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-toast-out: toast-out 160ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  @keyframes toast-in {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+  @keyframes toast-out {
+    from {
+      opacity: 1;
+    }
+    to {
+      opacity: 0;
+    }
+  }
+
+  --animate-pill-in: pill-in 220ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  --animate-pill-out: pill-out 160ms cubic-bezier(0.4, 0, 0.2, 1) both;
+  @keyframes pill-in {
+    from {
+      opacity: 0;
+      transform: translateY(8px) scale(0.96);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0) scale(1);
+    }
+  }
+  @keyframes pill-out {
+    from {
+      opacity: 1;
+      transform: scale(1);
+    }
+    to {
+      opacity: 0;
+      transform: scale(0.96);
+    }
+  }
+
   --color-base-0: #ffffff;
   /* base-50 = 페이지 배경. base-0(흰 카드) 와 충분히 분리되도록 한 단 더 어둡게
      (`#fafafa` → `#f3f3f7`) — iOS systemGroupedBackground 와 비슷한 톤. */

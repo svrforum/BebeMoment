@@ -1,5 +1,5 @@
 'use client'
-import { DEFAULT_FEATURE_FLAGS, type FeatureFlag, type FeatureFlags } from '@bebe/core'
+import { DEFAULT_FEATURE_FLAGS, type FeatureFlag, type FeatureFlags } from '@bebe/core/features'
 import { createContext, useContext } from 'react'
 
 const Ctx = createContext<FeatureFlags>(DEFAULT_FEATURE_FLAGS)

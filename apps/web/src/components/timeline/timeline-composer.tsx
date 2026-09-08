@@ -321,12 +321,10 @@ export function TimelineComposer({
     } catch (e) {
       // 스토리가 없으면 사진도 없어야 한다 — 실패한 제출의 사진이 타임라인에 개별로
       // 남으면 사용자가 손으로 지워야 한다(upload-dashboard 와 같은 규칙).
-      // 스냅샷이 먼저 — abortUploads 가 파일 목록을 비운다.
-      const created = createdAssetIds(
-        filesRef.current,
-        attachments.map((a) => a.fileId),
-      )
-      await abortUploads()
+      // 스냅샷이 먼저 — abortUploads 가 이 배치를 파일 목록에서 지운다.
+      const batchFileIds = attachments.map((a) => a.fileId)
+      const created = createdAssetIds(filesRef.current, batchFileIds)
+      await abortUploads(batchFileIds)
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       // 매니저가 이미 치운 첨부는 다시 눌러도 시작할 게 없다 — 목록에서 빼서 막다른 길을
       // 만들지 않는다(사용자는 다시 담으면 된다).

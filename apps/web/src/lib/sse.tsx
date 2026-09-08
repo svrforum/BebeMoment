@@ -1,6 +1,7 @@
 'use client'
 import type { AssetEvent } from '@bebe/core'
 import { type ReactNode, createContext, useCallback, useContext, useEffect, useRef } from 'react'
+import { reconnectDelayMs, shouldStopReconnecting } from './sse-backoff'
 
 /**
  * Single shared `EventSource` for the family stream — all subscribers
@@ -26,8 +27,11 @@ export function FamilySSEProvider({ children }: { children: ReactNode }) {
   const subscribers = useRef<Set<Subscriber>>(new Set())
 
   useEffect(() => {
-    const src = new EventSource('/api/stream/family')
-    src.onmessage = (e) => {
+    let src: EventSource | null = null
+    let timer: ReturnType<typeof setTimeout> | null = null
+    let consecutiveFailures = 0
+
+    const dispatch = (e: MessageEvent) => {
       let parsed: AssetEvent
       try {
         parsed = JSON.parse(e.data) as AssetEvent
@@ -42,7 +46,32 @@ export function FamilySSEProvider({ children }: { children: ReactNode }) {
         }
       }
     }
-    return () => src.close()
+
+    const connect = () => {
+      const es = new EventSource('/api/stream/family')
+      src = es
+      es.onopen = () => {
+        consecutiveFailures = 0
+      }
+      es.onmessage = dispatch
+      es.onerror = () => {
+        // 200 응답이 중간에 끊기면 EventSource 가 스스로 다시 붙는다(CONNECTING). 하지만
+        // 401·5xx·프록시 거절처럼 non-2xx 를 받으면 CLOSED 로 굳어 영영 돌아오지 않는다 —
+        // 그 경우만 우리가 백오프로 다시 연다. 세션이 만료돼 401 만 반복되면 포기한다.
+        if (es.readyState !== EventSource.CLOSED) return
+        es.close()
+        if (src === es) src = null
+        consecutiveFailures += 1
+        if (shouldStopReconnecting(consecutiveFailures)) return
+        timer = setTimeout(connect, reconnectDelayMs(consecutiveFailures))
+      }
+    }
+
+    connect()
+    return () => {
+      if (timer) clearTimeout(timer)
+      src?.close()
+    }
   }, [])
 
   const subscribe = useCallback((cb: Subscriber) => {

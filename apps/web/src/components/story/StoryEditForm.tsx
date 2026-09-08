@@ -227,7 +227,13 @@ export function StoryEditForm({
       const res = await fetch(`/api/story/${entryId}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ body: trimmed || ' ', assetIds, visibility }),
+        // visibility 는 바꿨을 때만 보낸다 — 같은 값이라도 보내면 서버가 family 역할의
+        // 편집을 "공개 범위 변경"으로 보고 거절한다(guardian 전용).
+        body: JSON.stringify({
+          body: trimmed || ' ',
+          assetIds,
+          ...(visibility !== defaultVisibility ? { visibility } : {}),
+        }),
       })
       if (!res.ok) {
         const err = await res.json().catch(() => ({}))
@@ -239,12 +245,10 @@ export function StoryEditForm({
     } catch (e) {
       // 저장이 실패하면 이번에 새로 올린 사진도 되돌린다 — 스토리엔 안 붙고 타임라인에만
       // 개별로 남는 사진이 생기는 걸 막는다(기존 사진은 건드리지 않는다).
-      // 스냅샷이 먼저 — abortUploads 가 파일 목록을 비운다.
-      const created = createdAssetIds(
-        filesRef.current,
-        orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2)),
-      )
-      await abortUploads()
+      // 스냅샷이 먼저 — abortUploads 가 이 배치를 파일 목록에서 지운다.
+      const batchFileIds = orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2))
+      const created = createdAssetIds(filesRef.current, batchFileIds)
+      await abortUploads(batchFileIds)
       const undone = created.length > 0 ? await rollbackAssets(created) : null
       const base = (e as Error).message
       void reportUploadFailure({
@@ -279,6 +283,7 @@ export function StoryEditForm({
     attachments,
     entryId,
     visibility,
+    defaultVisibility,
     submitting,
     startStagedUploads,
     abortUploads,

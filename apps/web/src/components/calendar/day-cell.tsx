@@ -37,6 +37,7 @@ export function DayCell({
   return (
     <Link
       href={`/timeline?date=${dateParam}`}
+      prefetch={false}
       className={cn(
         'group relative flex aspect-square overflow-hidden rounded-2xl',
         'transition-transform ease-ios active:scale-[0.94]',
