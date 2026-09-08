@@ -7,7 +7,6 @@ import { decideMemoryPush } from './scan'
 function grp(interval: MemoryInterval, assetCount: number): MemoryGroup {
   return {
     interval,
-    label: 'x',
     // biome-ignore lint/suspicious/noExplicitAny: 테스트 더미 — 길이만 의미
     assets: Array(assetCount).fill({}) as any,
     stories: [],
@@ -25,7 +24,7 @@ describe('decideMemoryPush', () => {
       lastYearly: null,
       lastMonthly: null,
     })
-    expect(d.yearly).toEqual({ count: 3, interval: '1년' })
+    expect(d.yearly).toEqual({ count: 3, interval: { kind: 'year', n: 1 } })
   })
 
   it('연 단위라도 오늘 이미 보냈으면 yearly 없음', () => {
@@ -48,7 +47,7 @@ describe('decideMemoryPush', () => {
       },
       () => 1, // 두 번째 월 그룹 선택
     )
-    expect(d.monthly).toEqual({ count: 5, interval: '1개월' })
+    expect(d.monthly).toEqual({ count: 5, interval: { kind: 'month', n: 1 } })
   })
 
   it('월 단위라도 마지막 발송 3일 전이면 monthly 없음(throttle)', () => {
@@ -71,6 +70,6 @@ describe('decideMemoryPush', () => {
       },
       () => 0,
     )
-    expect(d.monthly).toEqual({ count: 2, interval: '6개월' })
+    expect(d.monthly).toEqual({ count: 2, interval: { kind: 'month', n: 6 } })
   })
 })

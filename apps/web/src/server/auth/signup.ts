@@ -6,12 +6,12 @@ import { isValidUsername, normalizeUsername } from './username'
 const SignupInput = z
   .object({
     username: z.string().optional(),
-    email: z.string().email('올바른 이메일을 입력해주세요').optional(),
-    password: z.string().min(8, '비밀번호는 8자 이상이어야 해요'),
-    displayName: z.string().min(1, '이름을 입력해주세요').max(80),
+    email: z.string().email('errors.auth.emailInvalid').optional(),
+    password: z.string().min(8, 'errors.auth.passwordTooShort'),
+    displayName: z.string().min(1, 'errors.auth.displayNameRequired').max(80),
   })
   .refine((v) => v.username || v.email, {
-    message: '아이디 또는 이메일이 필요해요',
+    message: 'errors.auth.identifierOrEmailRequired',
   })
 
 export type SignupInput = z.infer<typeof SignupInput>

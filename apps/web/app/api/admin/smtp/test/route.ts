@@ -1,4 +1,5 @@
 import { prismaPublic } from '@/lib/db-init'
+import { getTranslations } from 'next-intl/server'
 import { sendMail } from '@/lib/mailer'
 import { requireAdmin } from '@/lib/require-admin'
 import { errorJson } from '@/lib/error-response'
@@ -12,12 +13,14 @@ export async function POST(req: Request) {
   if (ctx instanceof NextResponse) return ctx
   try {
     const { to } = BodySchema.parse(await req.json())
+    const t = await getTranslations('admin')
+    const body = t('smtp.testMail.body')
     await sendMail(
       {
         to,
-        subject: 'Bebe Moment SMTP 테스트',
-        html: '<p>SMTP 설정이 정상적으로 동작합니다.</p>',
-        text: 'SMTP 설정이 정상적으로 동작합니다.',
+        subject: t('smtp.testMail.subject'),
+        html: `<p>${body}</p>`,
+        text: body,
       },
       prismaPublic,
     )

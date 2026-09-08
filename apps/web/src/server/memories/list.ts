@@ -1,6 +1,6 @@
 import type { AssetWithUrls } from '@/server/asset/types'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
-import { type MemoryInterval, intervalLabel, intervalMonths, memoryInterval } from '@bebe/core'
+import { type MemoryInterval, intervalMonths, memoryInterval } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { GRID_URL_TIERS } from '@/lib/asset-url'
@@ -10,7 +10,6 @@ export type MemoryStory = Story & { assets: (StoryAsset & { asset: AssetWithUrls
 
 export type MemoryGroup = {
   interval: MemoryInterval
-  label: string
   assets: AssetWithUrls[]
   stories: MemoryStory[]
 }
@@ -130,7 +129,7 @@ function buildMemoryGroups(data: CollectedMemoryData): MemoryGroup[] {
     const key = `${iv.kind}-${iv.n}`
     let g = groups.get(key)
     if (!g) {
-      g = { interval: iv, label: intervalLabel(iv), assets: [], stories: [] }
+      g = { interval: iv, assets: [], stories: [] }
       groups.set(key, g)
     }
     return g

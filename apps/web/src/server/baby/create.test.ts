@@ -77,6 +77,6 @@ describe('createBaby', () => {
         { familyId: family.id, name: '아기', birthDate: tooFar, byUserId: user.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/1년/)
+    ).rejects.toThrow(/baby\.birthDateTooFar/)
   })
 })

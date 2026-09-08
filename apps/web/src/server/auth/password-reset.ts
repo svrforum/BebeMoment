@@ -5,7 +5,7 @@ import { z } from 'zod'
 
 const Input = z.object({
   token: z.string().min(1),
-  newPassword: z.string().min(8, '비밀번호는 8자 이상이어야 해요'),
+  newPassword: z.string().min(8, 'errors.auth.passwordTooShort'),
 })
 
 export type ResetPasswordInput = z.infer<typeof Input>

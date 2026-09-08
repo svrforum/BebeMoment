@@ -28,7 +28,7 @@ async function validationError(n: number): Promise<string> {
 
 describe('createStoryEntry 사진 수 검증', () => {
   it('사진이 0장이면 거절한다 — 스토리는 최소 1장', async () => {
-    expect(await validationError(0)).toContain('사진을 최소 1장')
+    expect(await validationError(0)).toContain('errors.story.photoRequired')
   })
 
   it('50장도 검증을 통과한다 — 상한 없음', async () => {

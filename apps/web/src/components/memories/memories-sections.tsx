@@ -1,3 +1,4 @@
+import { formatMemoryInterval } from '@/i18n/labels'
 import { StoryCard, storyCardDataFromEntry } from '@/components/story/story-card'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
@@ -13,7 +14,7 @@ export async function MemoriesSections({ groups }: { groups: MemoryGroup[] }) {
         <section key={`${g.interval.kind}-${g.interval.n}`}>
           <h2 className="mb-2.5 flex items-center gap-2 px-1">
             <span className="text-[15px] font-bold tracking-tight text-base-900 dark:text-base-50">
-              {g.label}
+              {formatMemoryInterval(g.interval, t)}
             </span>
             <span className="text-[12px] tabular-nums text-base-400">
               {[

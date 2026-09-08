@@ -1,3 +1,4 @@
+import { ServiceError } from '@/server/error'
 import type { PrismaClient } from '@bebe/db-public'
 
 export type LinkResult = { linked: boolean; conflict: boolean }
@@ -57,7 +58,6 @@ export async function unlinkIdentity(
   const hasThis = identities.some((i) => i.providerId === providerId)
   if (!hasThis) return // 멱등 — 이미 없음
   const otherOidc = identities.some((i) => i.providerId !== providerId)
-  if (!credential && !otherOidc)
-    throw new Error('마지막 로그인 수단은 해제할 수 없어요. 먼저 비밀번호를 설정해주세요.')
+  if (!credential && !otherOidc) throw new ServiceError(400, 'auth.lastLoginMethod')
   await prisma.oidcIdentity.deleteMany({ where: { userId, providerId } })
 }

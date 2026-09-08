@@ -1,7 +1,8 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { prismaPublic } from '@/lib/db-init'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
-import { errorJson, errorJsonKey, errorJsonText } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { readJsonLimited } from '@/lib/read-json-limited'
 import { authenticate } from '@/server/auth/authenticate'
 import { clientIp, rateLimit, tooManyRequests } from '@/server/auth/rate-limit'
@@ -9,7 +10,7 @@ import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
 const LoginInput = z.object({
-  identifier: z.string().min(1, '아이디 또는 이메일을 입력해주세요'),
+  identifier: z.string().min(1, 'errors.auth.identifierRequired'),
   password: z.string().min(1),
 })
 
@@ -32,7 +33,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ userId: user.id })
   } catch (e) {
     if (e instanceof ZodError) {
-      return await errorJsonText(e.issues[0]?.message ?? '입력값이 올바르지 않아요', 400)
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
     }
     return errorJson(e)
   }

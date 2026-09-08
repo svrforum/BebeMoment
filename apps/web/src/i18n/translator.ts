@@ -1,7 +1,7 @@
 import type { PrismaClient } from '@bebe/db-public'
 import { createTranslator } from 'next-intl'
 import { z } from 'zod'
-import { DEFAULT_LOCALE, LOCALES, type Locale } from './request'
+import { DEFAULT_LOCALE, LOCALES, type Locale } from './locales'
 import en from '../../messages/en.json'
 import ko from '../../messages/ko.json'
 

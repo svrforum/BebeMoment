@@ -124,7 +124,7 @@ describe('createMilestone', () => {
         db.prismaPublic,
         db.prismaMedia,
       ),
-    ).rejects.toThrow(/이미 기록/)
+    ).rejects.toThrow(/milestone\.duplicate/)
   })
 
   it('rejects unknown preset key', async () => {

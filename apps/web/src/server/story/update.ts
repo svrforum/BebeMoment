@@ -24,7 +24,7 @@ const Input = z.object({
     // 사진 필수 — 편집에서 assetIds 를 줄 땐 최소 1장(전부 비워 0장 되는 것 방지).
     assetIds: z
       .array(z.string().uuid())
-      .min(1, '사진을 최소 1장 추가해주세요')
+      .min(1, 'errors.story.photoRequired')
 
       .optional(),
   }),

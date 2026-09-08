@@ -1,9 +1,10 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
 import { createProvider, listProviders } from '@/server/oidc/providers'
-import { errorJson } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 const CreateSchema = z
   .object({
@@ -17,7 +18,7 @@ const CreateSchema = z
     scopes: z.array(z.string()).default(['openid', 'email', 'profile']),
   })
   .refine((d) => d.kind === 'naver' || /^https?:\/\/.+/.test(d.issuer), {
-    message: 'OIDC 공급자는 issuer URL 이 필요합니다',
+    message: 'errors.admin.oidcIssuerRequired',
     path: ['issuer'],
   })
 
@@ -45,6 +46,9 @@ export async function POST(req: Request) {
     const p = await createProvider(body, ctx.env.SECRET_KEY, prismaPublic)
     return NextResponse.json({ id: p.id })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }

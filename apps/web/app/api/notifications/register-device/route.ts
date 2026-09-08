@@ -1,3 +1,4 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { hasAdminAccess } from '@/lib/admin-access'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
@@ -10,7 +11,7 @@ import { setSetting } from '@/server/settings/set'
 import { parseEnv } from '@bebe/config'
 import type { User } from '@bebe/db-public'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 // 멀티 인스턴스 앱은 알림을 탭하면 그 알림의 출처 가족(서버)으로 전환한 뒤 딥링크한다.
 // 그러려면 푸시에 앱이 아는 공개 주소(리버스 프록시 도메인)가 실려야 하는데, 발송 워커엔
@@ -38,12 +39,12 @@ async function rememberPublicBase(
 }
 
 const registerSchema = z.object({
-  token: z.string().min(1, '토큰이 필요합니다').max(4096, '토큰이 너무 깁니다'),
+  token: z.string().min(1, 'errors.notif.tokenRequired').max(4096, 'errors.notif.tokenTooLong'),
   platform: z.enum(['android', 'ios']).default('android'),
 })
 
 const unregisterSchema = z.object({
-  token: z.string().min(1, '토큰이 필요합니다').max(4096, '토큰이 너무 깁니다'),
+  token: z.string().min(1, 'errors.notif.tokenRequired').max(4096, 'errors.notif.tokenTooLong'),
 })
 
 export async function POST(req: Request) {
@@ -58,6 +59,9 @@ export async function POST(req: Request) {
     await rememberPublicBase(req, user, session.currentFamilyId ?? null)
     return NextResponse.json({ ok: true })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }
@@ -70,6 +74,9 @@ export async function DELETE(req: Request) {
     await deleteDeviceToken({ userId: session.userId, token: body.token }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }

@@ -1,3 +1,4 @@
+import { ServiceError } from '@/server/error'
 import { can } from '@bebe/core'
 import type { Baby, PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
@@ -28,7 +29,7 @@ export async function createBaby(raw: unknown, prisma: PrismaClient): Promise<Ba
   // Allow future dates (due dates for unborn babies) up to ~1 year out.
   const oneYearFromNow = Date.now() + 400 * 86400_000
   if (birth.getTime() > oneYearFromNow) {
-    throw new Error('생년월일이 1년 이후일 수 없어요')
+    throw new ServiceError(400, 'baby.birthDateTooFar')
   }
 
   return prisma.baby.create({

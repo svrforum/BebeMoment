@@ -1,3 +1,4 @@
+import { ServiceError } from '@/server/error'
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { isValidPresetKey, resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
@@ -86,7 +87,7 @@ export async function createMilestone(
     })
   } catch (e) {
     if ((e as { code?: string }).code === 'P2002') {
-      throw new Error('이미 기록된 마일스톤이에요')
+      throw new ServiceError(400, 'milestone.duplicate')
     }
     throw e
   }

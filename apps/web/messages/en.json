@@ -288,6 +288,11 @@
       "confirmPlaceholder": "Confirm new password",
       "changing": "Changing…",
       "submit": "Change password"
+    },
+    "oidcReturn": {
+      "title": "Signed in",
+      "message": "You're signed in. Returning to the app…",
+      "button": "Back to the app"
     }
   },
   "invite": {
@@ -1165,7 +1170,11 @@
       "fromName": "From name",
       "save": "Save",
       "testSend": "Send test",
-      "recipient": "Recipient address"
+      "recipient": "Recipient address",
+      "testMail": {
+        "subject": "Bebe Moment SMTP test",
+        "body": "Your SMTP settings are working."
+      }
     },
     "members": {
       "title": "Member permissions",
@@ -1247,6 +1256,36 @@
       "title": "Features",
       "subtitle": "Toggle features on or off",
       "intro": "Turning a feature off hides it from everyone and stops it from working.",
+      "flags": {
+        "likes": {
+          "label": "Likes",
+          "description": "Let the family react to photos and videos."
+        },
+        "comments": {
+          "label": "Comments",
+          "description": "Let the family comment on photos and videos."
+        },
+        "bookmarks": {
+          "label": "Saved items",
+          "description": "Let each member keep a personal saved list."
+        },
+        "diary": {
+          "label": "Journal & records",
+          "description": "Write stories, growth records and milestones."
+        },
+        "albums": {
+          "label": "Albums",
+          "description": "Create albums and organise photos."
+        },
+        "share": {
+          "label": "Share links",
+          "description": "Copy a family share link for photos and stories."
+        },
+        "faces": {
+          "label": "Face recognition (experimental)",
+          "description": "Groups photos by person. Downloads a model and processes on the CPU when on."
+        }
+      },
       "save": "Save",
       "saved": "Saved",
       "failed": "Failed",
@@ -1553,7 +1592,34 @@
       "note": "Note",
       "photos": "Photos",
       "selectPhotos": "Select photos ({count})",
-      "save": "Save"
+      "save": "Save",
+      "presets": {
+        "first_smile": "First smile",
+        "neck_control": "Holds head up",
+        "rollover": "Rolls over",
+        "sit_unsupported": "Sits unsupported",
+        "crawl": "Crawls",
+        "first_tooth": "First tooth",
+        "stand_assisted": "Pulls to stand",
+        "walk_assisted": "Walks holding on",
+        "walk_unassisted": "Walks alone",
+        "first_word": "First word",
+        "first_solid_food": "First solid food",
+        "sleep_through": "Sleeps through the night",
+        "wave_bye": "Waves bye-bye",
+        "clap": "Claps",
+        "point": "Points",
+        "two_word_phrase": "Two-word phrase",
+        "run": "Runs",
+        "stairs": "Climbs stairs",
+        "brush_teeth": "Brushes teeth",
+        "potty_day": "Daytime potty trained",
+        "spoon_self": "Uses a spoon",
+        "draw_circle": "Draws a circle",
+        "name_colors": "Names colors",
+        "first_trip": "First trip",
+        "first_haircut": "First haircut"
+      }
     },
     "trash": {
       "title": "Trash",
@@ -1596,7 +1662,12 @@
     "digestBoth": "{photos} new photos and {others} new updates 💌",
     "digestPhotos": "{photos} new photos were added 📷",
     "digestOthers": "{others} new updates 💌",
-    "digestEmpty": "New updates 💌"
+    "digestEmpty": "New updates 💌",
+    "intervalYear": "{n, plural, one {# year} other {# years}}",
+    "intervalMonth": "{n, plural, one {# month} other {# months}}",
+    "intervalUnknown": "a while",
+    "testTitle": "Bebe Moment",
+    "testBody": "Your test notification arrived! 🎉"
   },
   "errors": {
     "unauthorized": "Sign in required",
@@ -1624,7 +1695,14 @@
       "handoffInvalidCode": "Invalid code.",
       "handoffExpiredCode": "Code has expired.",
       "handoffVerifyFailed": "Verification failed.",
-      "oidcProviderNotFound": "Provider not found."
+      "oidcProviderNotFound": "Provider not found.",
+      "identifierRequired": "Enter your username or email",
+      "usernameRequired": "Enter a username",
+      "passwordTooShort": "Your password must be at least 8 characters",
+      "displayNameRequired": "Enter a name",
+      "emailInvalid": "Enter a valid email address",
+      "identifierOrEmailRequired": "A username or an email is required",
+      "lastLoginMethod": "You can't unlink your last sign-in method. Set a password first."
     },
     "invite": {
       "notFound": "Invite not found",
@@ -1651,7 +1729,9 @@
       "oidcPassword": "Members who signed up with OIDC must change their password at the OIDC provider"
     },
     "family": {
-      "alreadyExists": "A family is already set up"
+      "alreadyExists": "A family is already set up",
+      "nameRequired": "Enter a family name",
+      "nameTooLong": "That name is too long"
     },
     "album": {
       "notFound": "Album not found",
@@ -1698,13 +1778,22 @@
       "selectionTooMany": "You can share up to 100 photos at once",
       "selectionNotFound": "Photos to share not found",
       "featureOff": "Sharing is turned off",
-      "targetRequired": "A share target is required"
+      "targetRequired": "A share target is required",
+      "ttlInvalid": "That expiry is not valid",
+      "targetOnlyOne": "Share exactly one target"
     },
     "notif": {
       "unknownCategory": "Unknown notification category",
       "fcmTokenFailed": "Failed to obtain an FCM access token",
       "fcmTokenMissing": "No token in the FCM access-token response",
-      "testCooldown": "Please try again in a moment"
+      "testCooldown": "Please try again in a moment",
+      "tokenRequired": "A token is required",
+      "tokenTooLong": "That token is too long",
+      "endpointRequired": "An endpoint is required",
+      "endpointInvalid": "A valid endpoint is required",
+      "endpointHttpsOnly": "Only https endpoints are allowed",
+      "p256dhRequired": "A p256dh key is required",
+      "authKeyRequired": "An auth key is required"
     },
     "backup": {
       "databaseUrlRequired": "DATABASE_URL is required (backup/restore)",
@@ -1722,7 +1811,8 @@
       "insufficientSpace": "Not enough free disk space to build the backup — free some space and retry"
     },
     "admin": {
-      "familyPermInvalid": "Only grantable permissions can be set in permissions.family"
+      "familyPermInvalid": "Only grantable permissions can be set in permissions.family",
+      "oidcIssuerRequired": "An OIDC provider needs an issuer URL"
     },
     "featureOff": {
       "comments": "Comments are turned off",
@@ -1733,7 +1823,22 @@
     },
     "protectedSetting": "That setting key is protected",
     "story": {
-      "visibilityGuardianOnly": "Only guardians can change story visibility"
+      "visibilityGuardianOnly": "Only guardians can change story visibility",
+      "photoRequired": "Add at least one photo"
+    },
+    "baby": {
+      "birthDateTooFar": "A birth date can't be more than a year from now"
+    },
+    "comment": {
+      "deleted": "That comment was deleted",
+      "ownOnly": "You can only edit your own comments"
+    },
+    "milestone": {
+      "duplicate": "That milestone is already recorded"
+    },
+    "user": {
+      "displayNameRequired": "Enter a name",
+      "displayNameTooLong": "Your name must be 60 characters or fewer"
     }
   },
   "upload": {
@@ -1836,7 +1941,9 @@
     "emptyTitle": "No memories for today yet",
     "emptyDescription": "As time goes by, you'll find photos and stories from 'a few months ago today' and 'a year ago today' right here",
     "photoCount": "{n} photos",
-    "storyCount": "{n} stories"
+    "storyCount": "{n} stories",
+    "intervalYear": "{n, plural, one {# year} other {# years}} ago today",
+    "intervalMonth": "{n, plural, one {# month} other {# months}} ago today"
   },
   "search": {
     "placeholder": "Search photos, stories, albums, people",
@@ -1851,5 +1958,13 @@
       "babies": "Babies",
       "people": "People"
     }
+  },
+  "age": {
+    "dday": "D-{n}",
+    "days": "Day {n}",
+    "hundredDays": "100 days",
+    "months": "{n, plural, one {# month} other {# months}}",
+    "monthsWithYears": "{n, plural, one {# month} other {# months}} · {years, plural, one {# year} other {# years}} old",
+    "anniversary": "{n, selectordinal, one {#st} two {#nd} few {#rd} other {#th}} birthday"
   }
 }

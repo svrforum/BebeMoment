@@ -1,5 +1,5 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
-import type { Locale } from '@/i18n/request'
+import type { Locale } from '@/i18n/locales'
 import { logger } from '@/lib/logger'
 import { type ServerT, getServerTranslator } from '@/i18n/translator'
 import { resolveRecipients } from './recipients'
@@ -100,7 +100,14 @@ export function buildNotification(
       }
     case 'memory.yearly':
     case 'memory.monthly': {
-      const interval = job.payload.interval ?? '예전'
+      // 잡 페이로드는 로케일을 모른다 — 간격을 구조(kind·n)로 싣고 여기서 문장으로 만든다.
+      // `interval` 문자열은 이 변경 전에 큐에 남아 있던 잡을 위한 폴백.
+      const kind = job.payload.intervalKind
+      const n = Number(job.payload.intervalN ?? '')
+      const interval =
+        (kind === 'year' || kind === 'month') && Number.isFinite(n)
+          ? t(kind === 'year' ? 'intervalYear' : 'intervalMonth', { n })
+          : (job.payload.interval ?? t('intervalUnknown'))
       const count = job.payload.count ?? ''
       return {
         title,

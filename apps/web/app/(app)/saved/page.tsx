@@ -80,6 +80,7 @@ export default async function SavedPage() {
       ]
     }),
     birthDate,
+    await getTranslations('age'),
   )
 
   // 북마크한 스토리도 타임라인처럼 같은 날짜 그룹 위에 끼운다. 사진 없는 날의 스토리는

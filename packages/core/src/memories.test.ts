@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { intervalLabel, memoryInterval } from './memories'
+import { memoryInterval } from './memories'
 
 const d = (s: string) => new Date(`${s}T00:00:00.000Z`)
 
@@ -28,14 +28,5 @@ describe('memoryInterval', () => {
   })
   it('1개월 전 같은 날 → month 1', () => {
     expect(memoryInterval(d('2026-05-30'), d('2026-04-30'))).toEqual({ kind: 'month', n: 1 })
-  })
-})
-
-describe('intervalLabel', () => {
-  it('year → N년 전 오늘', () => {
-    expect(intervalLabel({ kind: 'year', n: 1 })).toBe('1년 전 오늘')
-  })
-  it('month → N개월 전 오늘', () => {
-    expect(intervalLabel({ kind: 'month', n: 6 })).toBe('6개월 전 오늘')
   })
 })

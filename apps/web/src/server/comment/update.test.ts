@@ -117,7 +117,7 @@ describe('updateComment', () => {
         { id: c.id, familyId: family.id, body: 'nope', byUserId: u2.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/본인|permission/)
+    ).rejects.toThrow(/comment\.ownOnly|permission/)
   })
 
   it('rejects editing a soft-deleted comment', async () => {
@@ -137,6 +137,6 @@ describe('updateComment', () => {
         { id: c.id, familyId: family.id, body: 'try', byUserId: user.id },
         db.prismaPublic,
       ),
-    ).rejects.toThrow(/삭제/)
+    ).rejects.toThrow(/comment\.deleted/)
   })
 })

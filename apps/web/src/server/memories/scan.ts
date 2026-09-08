@@ -2,12 +2,8 @@ import type { MemoryInterval } from '@bebe/core'
 import type { MemoryGroup } from './list'
 
 export type MemoryPushDecision = {
-  yearly: { count: number; interval: string } | null
-  monthly: { count: number; interval: string } | null
-}
-
-function bareLabel(iv: MemoryInterval): string {
-  return iv.kind === 'year' ? `${iv.n}년` : `${iv.n}개월`
+  yearly: { count: number; interval: MemoryInterval } | null
+  monthly: { count: number; interval: MemoryInterval } | null
 }
 
 function groupCount(g: MemoryGroup): number {
@@ -42,7 +38,7 @@ export function decideMemoryPush(
   let yearly: MemoryPushDecision['yearly'] = null
   const topYearly = yearlyGroups[0] // 정렬상 가장 먼 과거(가장 큰 N년)
   if (topYearly && args.lastYearly !== todayStr) {
-    yearly = { count: groupCount(topYearly), interval: bareLabel(topYearly.interval) }
+    yearly = { count: groupCount(topYearly), interval: topYearly.interval }
   }
 
   let monthly: MemoryPushDecision['monthly'] = null
@@ -51,7 +47,7 @@ export function decideMemoryPush(
   if (monthlyGroups.length > 0 && throttleOk) {
     const idx = Math.min(Math.max(pick(monthlyGroups.length), 0), monthlyGroups.length - 1)
     const g = monthlyGroups[idx]
-    if (g) monthly = { count: groupCount(g), interval: bareLabel(g.interval) }
+    if (g) monthly = { count: groupCount(g), interval: g.interval }
   }
 
   return { yearly, monthly }

@@ -22,6 +22,8 @@ import {
 import { runScheduledBackupTick } from '@/server/backup/scheduled'
 import { closeWithGrace, shutdownGraceMs } from '@/server/notifications/graceful-shutdown'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
+import { milestonePresetLabel } from '@/i18n/labels'
+import { getInstanceLocale, getServerTranslator } from '@/i18n/translator'
 import { shouldAttemptVapidReload } from '@/server/notifications/vapid-reload'
 import { resolveNotificationVisibility } from '@/server/notifications/visibility'
 import { handleNotificationJob } from '@/server/notifications/worker'
@@ -35,7 +37,6 @@ import {
   FACE_CLUSTER_DISTANCE_MIN,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
-  getPreset,
 } from '@bebe/core'
 import type { NotifContext } from '@/server/notifications/worker'
 import { decideStoryPush } from '@/server/notifications/story-readiness'
@@ -138,7 +139,15 @@ async function resolveNotifContext(job: NotificationJob): Promise<NotifContext> 
           where: { id: p.milestoneId },
           select: { presetKey: true, customLabel: true },
         })
-        const label = m?.customLabel || (m?.presetKey ? getPreset(m.presetKey)?.labelKo : undefined)
+        // 프리셋 라벨은 카탈로그에 있다 — 워커는 요청 밖이라 인스턴스 로케일을 쓴다.
+        const label =
+          m?.customLabel ||
+          (m?.presetKey
+            ? milestonePresetLabel(
+                m.presetKey,
+                getServerTranslator(await getInstanceLocale(prismaPublic), 'misc'),
+              )
+            : undefined)
         if (label) ctx.milestoneLabel = label
       }
     }
@@ -183,7 +192,8 @@ async function runMemoriesScan(): Promise<void> {
         type: 'memory.yearly',
         payload: {
           count: String(decision.yearly.count),
-          interval: decision.yearly.interval,
+          intervalKind: decision.yearly.interval.kind,
+          intervalN: String(decision.yearly.interval.n),
           visibility: 'family',
         },
       })
@@ -196,7 +206,8 @@ async function runMemoriesScan(): Promise<void> {
         type: 'memory.monthly',
         payload: {
           count: String(decision.monthly.count),
-          interval: decision.monthly.interval,
+          intervalKind: decision.monthly.interval.kind,
+          intervalN: String(decision.monthly.interval.n),
           visibility: 'family',
         },
       })

@@ -1,5 +1,6 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { prismaPublic } from '@/lib/db-init'
-import { errorJson, errorJsonKey, errorJsonText } from '@/lib/error-response'
+import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { readJsonLimited } from '@/lib/read-json-limited'
 import { resolveCurrentFamilyForUser } from '@/lib/session-cookie'
@@ -15,10 +16,10 @@ import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
 const SignupInput = z.object({
-  username: z.string().min(1, '아이디를 입력해주세요'),
-  password: z.string().min(8, '비밀번호는 8자 이상이어야 해요'),
-  displayName: z.string().min(1, '이름을 입력해주세요').max(80),
-  email: z.string().email('올바른 이메일을 입력해주세요').optional(),
+  username: z.string().min(1, 'errors.auth.usernameRequired'),
+  password: z.string().min(8, 'errors.auth.passwordTooShort'),
+  displayName: z.string().min(1, 'errors.auth.displayNameRequired').max(80),
+  email: z.string().email('errors.auth.emailInvalid').optional(),
   inviteToken: z.string().min(1).optional(),
   setupToken: z.string().min(1).optional(),
 })
@@ -74,7 +75,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ userId: user.id })
   } catch (e) {
     if (e instanceof ZodError) {
-      return await errorJsonText(e.issues[0]?.message ?? '입력값이 올바르지 않아요', 400)
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
     }
     return errorJson(e)
   }

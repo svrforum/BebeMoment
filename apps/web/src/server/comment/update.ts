@@ -1,3 +1,4 @@
+import { ServiceError } from '@/server/error'
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import type { AssetEvent } from '@bebe/core'
 import { channelForFamily, resolveCan } from '@bebe/core'
@@ -24,7 +25,7 @@ export async function updateComment(
     where: { id: input.id, familyId: input.familyId },
   })
   if (!existing) throw new Error('Comment not found')
-  if (existing.deletedAt) throw new Error('삭제된 댓글이에요')
+  if (existing.deletedAt) throw new ServiceError(400, 'comment.deleted')
 
   const membership = await prisma.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
@@ -32,7 +33,7 @@ export async function updateComment(
   if (!membership || membership.deletedAt) throw new Error('No permission')
 
   if (existing.authorUserId !== input.byUserId) {
-    throw new Error('본인 댓글만 편집할 수 있어요')
+    throw new ServiceError(400, 'comment.ownOnly')
   }
   if (
     !resolveCan(membership.role, 'social.comment.edit.own', await getFamilyCapabilities(prisma))
