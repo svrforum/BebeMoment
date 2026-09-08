@@ -1,17 +1,32 @@
 # Ignore build artifacts and dev files
 node_modules
 **/node_modules
+# .next 통째로 — 특히 apps/web/.next/dev(1GB+ 의 dev 서버 캐시)는 절대 컨텍스트에 넣지 않는다.
 .next
 **/.next
 .git
 .github
+.claude
 .dev
 .playwright-mcp
 .superpowers
 docs
+android-app
+# e2e 는 워크스페이스 멤버라 매니페스트만 필요하다(lockfile 과 같은 peer 컨텍스트로 설치).
 e2e
+!e2e/package.json
 test-results
 playwright-report
 *.log
 .env
 .env.local
+# 빌드에 안 들어가는 리포 파일 — 컨텍스트에 넣으면 `COPY . .` 레이어가 무효화돼 문서·compose 를
+# 고칠 때마다 next build 를 다시 돌린다. (docker/ 는 엔트리포인트 스크립트 때문에 필요하다.)
+compose
+docker-compose.*.yml
+scripts
+*.md
+.env.example
+biome.jsonc
+vitest.workspace.ts
+.npmrc

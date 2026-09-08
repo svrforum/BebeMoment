@@ -1,9 +1,12 @@
 services:
   postgres:
     # pgvector 확장 포함(얼굴 임베딩 벡터검색).
-    # ⚠️ pg16 → pg17 메이저 업: 데이터 디렉터리 비호환 — pg17 가 pg16 볼륨을 못 읽는다.
-    #    기존 데이터는 pg_dump(16)→restore(17) 또는 pg_upgrade 로 옮기고 ./.dev/pg 를 비울 것.
-    image: pgvector/pgvector:pg17
+    # ⚠️ pg16 고정 — ./.dev/pg 볼륨은 pg16 데이터 디렉터리이고, 이 호스트에서는 그 볼륨이
+    #    곧 라이브 인스턴스의 DB 다. pg17 이미지는 pg16 볼륨을 못 읽어 크래시 루프가 된다.
+    #    프로덕션 compose 는 pg17 이다. 올리려면 docs/operations.md 의
+    #    "Upgrading Postgres 16 → 17"(앱 이미지의 pg17 클라이언트로 pg_dump → 새 볼륨에 복원)을
+    #    따른 뒤 여기 태그를 바꾼다.
+    image: pgvector/pgvector:pg16
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe
