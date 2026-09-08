@@ -123,6 +123,36 @@ describe('acceptInvite', () => {
     expect(r.membership.suspendedByUserId).toBeNull()
   })
 
+  // 초대 읽기가 트랜잭션 밖에서 일어나고 수락 표시는 조건 없이 갱신됐다 — 같은 토큰으로 동시에
+  // 두 명이 가입하면 둘 다 합류했다(1회용이 아니었다). 트랜잭션 안에서 조건부 updateMany 로
+  // 토큰을 먼저 선점하고, 선점한 쪽만 멤버십을 만든다.
+  it('lets exactly one of two concurrent acceptances through', async () => {
+    const { family, invite } = await setup()
+    const { user: a } = await signup(
+      { username: 'racer-a', password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { user: b } = await signup(
+      { username: 'racer-b', password: 'password123', displayName: 'B' },
+      db.prismaPublic,
+    )
+    const results = await Promise.allSettled([
+      acceptInvite({ token: invite.token, userId: a.id }, db.prismaPublic),
+      acceptInvite({ token: invite.token, userId: b.id }, db.prismaPublic),
+    ])
+    const fulfilled = results.filter((r) => r.status === 'fulfilled')
+    const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
+    expect(fulfilled).toHaveLength(1)
+    expect(rejected).toHaveLength(1)
+    expect((rejected[0]?.reason as Error).message).toBe('invite.alreadyAccepted')
+    const joined = await db.prismaPublic.membership.count({
+      where: { familyId: family.id, userId: { in: [a.id, b.id] } },
+    })
+    expect(joined).toBe(1)
+    const row = await db.prismaPublic.invite.findUnique({ where: { token: invite.token } })
+    expect([a.id, b.id]).toContain(row?.acceptedById)
+  })
+
   it('accepts regardless of user email (token-only)', async () => {
     const { invite } = await setup()
     const { user } = await signup(
