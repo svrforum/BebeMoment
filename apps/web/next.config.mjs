@@ -12,7 +12,6 @@ const repoRoot = path.join(import.meta.dirname, '..', '..')
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
-  output: 'standalone',
   outputFileTracingRoot: repoRoot,
   transpilePackages: ['@bebe/config', '@bebe/core', '@bebe/db-public', '@bebe/db-media'],
   experimental: {
@@ -77,8 +76,9 @@ const nextConfig = {
 
 // Next 16 fixes the not-found prerender regression (vercel/next.js#85668)
 // that forced --experimental-build-mode=compile on 15.5, so the standard
-// `next build` (Turbopack) now runs the full static-generation pipeline and
-// `output: 'standalone'` is re-enabled.
+// `next build` (Turbopack) runs the full static-generation pipeline.
+// No `output: 'standalone'` — the container runs `next start` on the full
+// tree, so the standalone copy was 75MB of output nothing read.
 //
 // Offline caching (serwist) was removed: Turbopack rejects its webpack
 // injection and push + PWA install never depended on it — they run on the

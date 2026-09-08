@@ -1,5 +1,6 @@
 #!/usr/bin/env sh
 set -e
+cd /repo
 
 # 이 이미지는 현재 linux/amd64 전용(arm64 빌드는 보류). ARM(시놀로지 ARM·라즈베리파이)에서
 # QEMU 에뮬레이션으로 띄우면 sharp/ffmpeg 등이 불안정하다 — 일찍 명확히 안내한다.
@@ -31,37 +32,42 @@ if [ "$(id -u bebe)" != "$PUID" ] || [ "$(id -g bebe)" != "$PGID" ]; then
   usermod -o -u "$PUID" -g "$target_group" bebe
 fi
 
-# Ensure /data is writable by bebe
-if [ -d /data ]; then
-  chown -R bebe:bebe /data 2>/dev/null || true
+# 볼륨 소유권은 숫자 PUID:PGID 로 맞춘다 — 이름 'bebe:bebe' 는 PGID=100(DSM users) 일 때
+# 그룹을 다시 1000 으로 되돌려 부팅마다 소유권이 뒤집혔다. 최상위를 맞춘 뒤 소유자가 다른
+# 항목만 고치므로 사진 수만 장을 매번 다시 쓰지 않는다. /backups 도 같은 규칙 — 호스트가
+# root 로 만든 바인드 마운트면 예약 백업이 전부 EACCES 였다.
+fix_owner() {
+  dir="$1"
+  [ -d "$dir" ] || return 0
+  chown "$PUID:$PGID" "$dir" 2>/dev/null || true
+  find "$dir" \( ! -user "$PUID" -o ! -group "$PGID" \) -exec chown "$PUID:$PGID" {} + 2>/dev/null || true
+}
+fix_owner /data
+fix_owner /backups
+
+# 이미지는 1000:1000 으로 구워졌다(Dockerfile COPY --chown). 다른 PUID/PGID 로 띄울 때는
+# Next 가 런타임에 쓰는 유일한 곳(.next/cache — unstable_cache 항목)만 맞춘다. .next 전체
+# 재귀 chown 은 하지 않는다 — 7천 파일이 컨테이너마다 쓰기 레이어로 복사됐다.
+if [ "$PUID" != "1000" ] || [ "$PGID" != "1000" ]; then
+  fix_owner /repo/apps/web/.next/cache
 fi
 
-# Next.js writes incremental cache (`.next/cache/fetch-cache`, image cache,
-# unstable_cache entries) at runtime. Builder stage created `.next` as
-# root, so bebe (uid 1000) can't write there without this.
-if [ -d /repo/apps/web/.next ]; then
-  chown -R bebe:bebe /repo/apps/web/.next 2>/dev/null || true
-fi
-
-# Run migrations. Use the workspace-pinned Prisma CLI (v7) via `pnpm exec` so
-# the version matches the schema + prisma.config.ts. `migrate deploy` reads the
-# datasource url from each package's prisma.config.ts (env DATABASE_URL).
+# Run migrations with the workspace-pinned Prisma CLI (v7), invoked with plain node from each
+# package directory so it reads that package's prisma.config.ts (datasource url = DATABASE_URL).
+# No pnpm/corepack at runtime — the pnpm wrapper used to download itself on first boot.
 # Order matters: db-public first (public schema), db-media second (cross-schema FKs).
+run_migrate() {
+  pkg="$1"
+  [ -f "packages/$pkg/prisma/schema.prisma" ] || return 0
+  echo "running prisma migrate deploy ($pkg)…"
+  (cd "packages/$pkg" && gosu bebe node node_modules/prisma/build/index.js migrate deploy) || {
+    echo "$pkg migration failed"
+    exit 1
+  }
+}
 if [ -z "$PRISMA_SKIP_MIGRATE" ]; then
-  if [ -f packages/db-public/prisma/schema.prisma ]; then
-    echo "running prisma migrate deploy (db-public)…"
-    gosu bebe pnpm --filter @bebe/db-public exec prisma migrate deploy || {
-      echo "db-public migration failed"
-      exit 1
-    }
-  fi
-  if [ -f packages/db-media/prisma/schema.prisma ]; then
-    echo "running prisma migrate deploy (db-media)…"
-    gosu bebe pnpm --filter @bebe/db-media exec prisma migrate deploy || {
-      echo "db-media migration failed"
-      exit 1
-    }
-  fi
+  run_migrate db-public
+  run_migrate db-media
 fi
 
 # Sync bebe_web / bebe_media role passwords from env (idempotent).
