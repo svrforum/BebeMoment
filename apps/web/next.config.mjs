@@ -80,12 +80,8 @@ const nextConfig = {
 // `next build` (Turbopack) now runs the full static-generation pipeline and
 // `output: 'standalone'` is re-enabled.
 //
-// @serwist/next stays DISABLED: in Next 16 Turbopack is the default builder
-// and @serwist/next's withSerwistInit injects a webpack config Turbopack
-// rejects ("build is using Turbopack, with a `webpack` config"). The serwist
-// worker source (app/sw.ts) is preserved for a future migration to
-// @serwist/turbopack / configurator mode. Push + PWA install still work via
-// the hand-written public/push-sw.js (registered in src/lib/push-client.ts),
-// which is independent of serwist.
+// Offline caching (serwist) was removed: Turbopack rejects its webpack
+// injection and push + PWA install never depended on it — they run on the
+// hand-written public/push-sw.js (registered in src/lib/push-client.ts).
 
 export default withNextIntl(nextConfig)
