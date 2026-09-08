@@ -126,6 +126,21 @@ describe('@theme 은 소스가 쓰는 커스텀 유틸리티 토큰을 전부 �
     expect(report).toEqual([])
   })
 
+  it('globals.css 가 참조하는 폰트 파일은 전부 public 에 있다', () => {
+    const css = readFileSync(path.join(ROOT, 'app/globals.css'), 'utf8')
+    const refs = [...css.matchAll(/url\((["']?)(\/fonts\/[^)"']+)\1\)/g)].map((m) => m[2] as string)
+    expect(refs.length).toBeGreaterThan(50)
+    const missing = refs.filter((p) => {
+      try {
+        statSync(path.join(ROOT, 'public', p))
+        return false
+      } catch {
+        return true
+      }
+    })
+    expect(missing).toEqual([])
+  })
+
   it('본문 폰트는 Pretendard 가 먼저 온다', () => {
     const m = theme.match(/--font-sans:\s*([^;]+);/)
     expect(m?.[1]?.trim()).toMatch(/^["']Pretendard Variable["']/)
