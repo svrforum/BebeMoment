@@ -1,9 +1,11 @@
 'use client'
+import { type ActionFailure, actionErrorText } from '@/lib/action-result'
 import { isOptimizeEnabled, optimizeImage } from '@/lib/image-optimize'
 import { useFamilySSE } from '@/lib/sse'
 import { isChunkLoadError, reloadForStaleChunk } from '@/lib/chunk-recovery'
 import { useToast } from '@/lib/toast'
-import { mimeForFile } from '@bebe/core'
+import { mimeForFile } from '@bebe/core/mime'
+import type { InitAssetResponse } from '@bebe/media-client'
 import { useTranslations } from 'next-intl'
 import type { UppyFile } from '@uppy/core'
 import {
@@ -19,12 +21,18 @@ import {
 import { startUpload } from './actions'
 import { reportUploadFailure } from './report-failure'
 
-/** init 실패는 업로드가 아예 시작되지 않는다는 뜻이라 반드시 서버 로그에 남긴다. */
+/**
+ * init 실패는 업로드가 아예 시작되지 않는다는 뜻이라 반드시 서버 로그에 남긴다. 거절
+ * (권한·미디어 아님)은 결과 봉투로 오므로 사람이 읽을 문장으로 바꿔 던진다 — Uppy 가 그
+ * 파일을 실패로 표시하고 토스트에 그 문장이 실린다.
+ */
 async function startUploadReporting(
   args: Parameters<typeof startUpload>[0],
-): Promise<Awaited<ReturnType<typeof startUpload>>> {
+  describeFailure: (f: ActionFailure) => string,
+): Promise<InitAssetResponse> {
+  let result: Awaited<ReturnType<typeof startUpload>>
   try {
-    return await startUpload(args)
+    result = await startUpload(args)
   } catch (e) {
     void reportUploadFailure({
       flow: 'upload-manager',
@@ -33,6 +41,10 @@ async function startUploadReporting(
     })
     throw e
   }
+  if (result.ok) return result.data
+  const message = describeFailure(result)
+  void reportUploadFailure({ flow: 'upload-manager', step: 'init', message })
+  throw new Error(message)
 }
 
 export type UppyFileMeta = { uploadToken?: string; assetId?: string }
@@ -44,6 +56,7 @@ export type FileRow = UppyFile<UppyFileMeta, UppyBody>
 type UppyInstance = {
   addFile: (file: { name: string; type: string; data: File }) => string
   removeFile: (id: string) => void
+  removeFiles: (ids: string[]) => void
   cancelAll: () => void
   getFiles: () => unknown[]
   setFileMeta: (id: string, meta: Record<string, unknown>) => void
@@ -70,8 +83,8 @@ export type UploadManager = {
    *  닫거나 취소할 때 호출 — 잔존 staged 파일이 다음 선택에서 Uppy 의 noDuplicates
    *  로 막히는 것을 막는다. 진행 중(started) 업로드는 건드리지 않는다(백그라운드 보존). */
   clearStaged: () => void
-  /** 진행 중·대기 중인 업로드를 모두 중단. 스토리 제출 실패 롤백과 함께 쓴다. */
-  abortUploads: () => Promise<void>
+  /** 이 배치(fileIds)의 진행 중·대기 중 업로드만 중단. 스토리 제출 실패 롤백과 함께 쓴다. */
+  abortUploads: (fileIds: readonly string[]) => Promise<void>
   markAssetDone: (assetId: string) => void
   /** opts.notify=false 면 이 배치 사진들의 개별 'asset.uploaded' 푸시를 생략한다
    *  (스토리 첨부 — 스토리 푸시 하나로 갈음). 기본 true. */
@@ -108,6 +121,7 @@ export function useUploadManager(): UploadManager {
 export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const toast = useToast()
   const t = useTranslations('upload')
+  const tRoot = useTranslations()
   const [files, setFiles] = useState<FileRow[]>([])
   const [doneIds, setDoneIds] = useState<Set<string>>(new Set())
   const [failedIds, setFailedIds] = useState<Set<string>>(new Set())
@@ -157,12 +171,13 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           allowedFileTypes: null,
         },
         autoProceed: false,
-        // Uppy 기본 영문 제한 메시지를 한국어로(중복 파일·크기·형식).
+        // Uppy 기본 영문 제한 메시지를 카탈로그 문구로(중복 파일·크기·형식). 파일명 자리는
+        // Uppy 가 채우므로 %{fileName} 을 값으로 넘겨 ICU 가 건드리지 않게 한다.
         locale: {
           strings: {
-            noDuplicates: "이미 추가된 파일이에요: '%{fileName}'",
-            exceedsSize: '파일이 너무 커요',
-            youCanOnlyUploadFileTypes: '이미지·영상만 올릴 수 있어요',
+            noDuplicates: t('uppy.noDuplicates', { name: "'%{fileName}'" }),
+            exceedsSize: t('uppy.exceedsSize'),
+            youCanOnlyUploadFileTypes: t('uppy.mediaOnly'),
           },
           // biome-ignore lint/suspicious/noExplicitAny: Uppy locale partial-strings type is awkward across the dynamic import
         } as any,
@@ -240,13 +255,16 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
               typeof lm === 'number' && lm > 946684800000 && lm <= Date.now() + 86400000
                 ? new Date(lm).toISOString()
                 : undefined
-            const init = await startUploadReporting({
-              mime: file.type ?? 'application/octet-stream',
-              sizeBytes: file.size ?? 0,
-              originalName: file.name ?? `upload-${id}`,
-              ...(fileModifiedAt ? { fileModifiedAt } : {}),
-              notify: notifyRef.current,
-            })
+            const init = await startUploadReporting(
+              {
+                mime: file.type ?? 'application/octet-stream',
+                sizeBytes: file.size ?? 0,
+                originalName: file.name ?? `upload-${id}`,
+                ...(fileModifiedAt ? { fileModifiedAt } : {}),
+                notify: notifyRef.current,
+              },
+              (f) => actionErrorText(tRoot, f),
+            )
             u.setFileMeta(id, { uploadToken: init.uploadToken, assetId: init.assetId })
             u.setFileState(id, { tus: { uploadUrl: init.tusUploadUrl } })
           }),
@@ -264,7 +282,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
       const onError = (file: FileRow | undefined, error: Error) => {
         toast({
-          title: `${file?.name ?? '파일'} 업로드 실패`,
+          title: t('fileUploadFailed', { name: file?.name ?? t('fileFallbackName') }),
           description: error.message,
           variant: 'danger',
         })
@@ -278,7 +296,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
       }
       const onRestrictionFailed = (_file: FileRow | undefined, error: Error) => {
         toast({
-          title: '업로드 제한',
+          title: t('restricted'),
           description: error.message,
           variant: 'danger',
         })
@@ -304,7 +322,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
 
     initLock.current = promise
     return promise
-  }, [uppy, toast])
+  }, [uppy, toast, t, tRoot])
 
   const markAssetDone = useCallback((assetId: string) => {
     setDoneIds((prev) => {
@@ -377,7 +395,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           return []
         }
         toast({
-          title: '업로더 초기화 실패',
+          title: t('initFailed'),
           description: (e as Error).message,
           variant: 'danger',
         })
@@ -397,7 +415,7 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
           if (typeof id === 'string') ids.push(id)
         } catch (e) {
           toast({
-            title: `${f.name} 추가 실패`,
+            title: t('addFailed', { name: f.name }),
             description: (e as Error).message,
             variant: 'danger',
           })
@@ -411,13 +429,18 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
   const removeFile = useCallback((id: string) => uppy?.removeFile(id), [uppy])
 
   /**
-   * 진행 중·대기 중인 업로드를 전부 세운다. 스토리 제출이 실패해 이미 올라간 사진을
+   * 이 배치의 진행 중·대기 중 업로드를 세운다. 스토리 제출이 실패해 이미 올라간 사진을
    * 되돌릴 때 함께 부른다 — 안 세우면 아직 init 안 한 파일들이 뒤늦게 새 자산을 만들어
-   * 되돌린 자리에 다시 나타난다.
+   * 되돌린 자리에 다시 나타난다. 파일 단위로 지우므로(tus 는 file-removed 에 abort) 같은
+   * 매니저에서 돌고 있는 다른 배치(백그라운드 업로드)는 건드리지 않는다.
    */
-  const abortUploads = useCallback(async () => {
-    ;(await initUppy())?.cancelAll()
-  }, [initUppy])
+  const abortUploads = useCallback(
+    async (fileIds: readonly string[]) => {
+      if (fileIds.length === 0) return
+      ;(await initUppy())?.removeFiles([...fileIds])
+    },
+    [initUppy],
+  )
 
   const clearStaged = useCallback(() => {
     if (!uppy) return
