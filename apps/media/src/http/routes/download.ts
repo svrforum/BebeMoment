@@ -9,7 +9,9 @@ import { MediaHttpError } from '../middleware/error-handler'
 
 // 요청 시점 재인코드(갤러리용 JPEG)는 동시에 2개까지. 넘치면 503 retriable — 워커의
 // 파생물 생성과 CPU 를 다투다 NAS 전체가 느려지는 걸 막는다.
-const LIVE_SLOTS = new Semaphore(2)
+// export 는 테스트 seam 이다: 슬롯을 직접 잡아야 거절 경로를 결정적으로 확인할 수 있다
+// (실제 재인코드 3개를 경주시키면 부하가 높은 기계에서 타임아웃으로 깨진다).
+export const LIVE_SLOTS = new Semaphore(2)
 
 function busy(): MediaHttpError {
   return new MediaHttpError({

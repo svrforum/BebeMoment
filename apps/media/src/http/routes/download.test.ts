@@ -4,6 +4,7 @@ import os from 'node:os'
 import path from 'node:path'
 import { type SignDownloadArgs, signDownloadToken } from '@/lib/jwt'
 import { buildApp } from '@/server'
+import { LIVE_SLOTS } from './download'
 import sharp from 'sharp'
 import { beforeAll, describe, expect, test } from 'vitest'
 
@@ -196,19 +197,24 @@ describe('GET /media/v1/download/:signed', () => {
     await app.close()
   })
 
-  test('a third concurrent gallery re-encode is refused with a retriable 503', async () => {
+  test('a gallery re-encode is refused with a retriable 503 while both slots are taken', async () => {
     const app = buildApp()
     const token = await tokenFor({ assetId: 'big', originalKey: BIG_KEY, quality: 'gallery' })
     const url = `/media/v1/download/${token}`
-    const results = await Promise.all([
-      app.inject({ method: 'GET', url }),
-      app.inject({ method: 'GET', url }),
-      app.inject({ method: 'GET', url }),
-    ])
-    const codes = results.map((r) => r.statusCode).sort()
-    expect(codes).toEqual([200, 200, 503])
-    const refused = results.find((r) => r.statusCode === 503)
-    expect(JSON.parse(refused?.body ?? '{}').error.retriable).toBe(true)
+
+    // 슬롯을 직접 채운다 — 실제 재인코드를 경주시키면 결과가 기계 속도에 좌우된다.
+    const held = [LIVE_SLOTS.tryAcquire(), LIVE_SLOTS.tryAcquire()]
+    expect(held.every(Boolean)).toBe(true)
+    try {
+      const refused = await app.inject({ method: 'GET', url })
+      expect(refused.statusCode).toBe(503)
+      expect(JSON.parse(refused.body).error.retriable).toBe(true)
+    } finally {
+      for (const release of held) release?.()
+    }
+
+    const after = await app.inject({ method: 'GET', url })
+    expect(after.statusCode).toBe(200)
     await app.close()
-  }, 60_000)
+  })
 })
