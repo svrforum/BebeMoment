@@ -1,4 +1,4 @@
-import type { Readable } from 'node:stream'
+import { type Readable, Transform, pipeline } from 'node:stream'
 import {
   CreateBucketCommand,
   DeleteObjectCommand,
@@ -9,7 +9,7 @@ import {
 } from '@aws-sdk/client-s3'
 import { Upload } from '@aws-sdk/lib-storage'
 import { getSignedUrl } from '@aws-sdk/s3-request-presigner'
-import type { StorageAdapter, StorageConfig, WriteResult } from './types'
+import type { StorageAdapter, StorageConfig, StorageStat, WriteResult } from './types'
 
 export class S3Adapter implements StorageAdapter {
   private readonly client: S3Client
@@ -35,12 +35,23 @@ export class S3Adapter implements StorageAdapter {
   }
 
   async write(key: string, stream: NodeJS.ReadableStream): Promise<WriteResult> {
+    // 바이트 수는 흘려보내며 센다 — 업로드 뒤 HeadObject 한 번을 아낀다. 소스 스트림 오류는
+    // 카운터를 같은 오류로 destroy 해 Upload.done() 이 거부되게 한다.
+    let size = 0
+    const counter = new Transform({
+      transform(chunk: Buffer, _enc, cb) {
+        size += chunk.length
+        cb(null, chunk)
+      },
+    })
+    pipeline(stream as Readable, counter, (err) => {
+      if (err) counter.destroy(err)
+    })
     const upload = new Upload({
       client: this.client,
-      params: { Bucket: this.bucket, Key: key, Body: stream as Readable },
+      params: { Bucket: this.bucket, Key: key, Body: counter },
     })
     await upload.done()
-    const size = await this.size(key)
     return { key, size }
   }
 
@@ -68,15 +79,26 @@ export class S3Adapter implements StorageAdapter {
     return res.Body as NodeJS.ReadableStream
   }
 
-  async exists(key: string): Promise<boolean> {
+  async stat(key: string): Promise<StorageStat | null> {
     try {
-      await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
-      return true
+      const res = await this.client.send(new HeadObjectCommand({ Bucket: this.bucket, Key: key }))
+      return {
+        size: Number(res.ContentLength ?? 0),
+        mtimeMs: res.LastModified ? res.LastModified.getTime() : null,
+      }
     } catch (e) {
       const name = (e as { name?: string }).name
-      if (name === 'NotFound' || name === 'NoSuchKey') return false
+      if (name === 'NotFound' || name === 'NoSuchKey') return null
       throw e
     }
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return (await this.stat(key)) !== null
+  }
+
+  localPath(_key: string): null {
+    return null
   }
 
   async delete(key: string): Promise<void> {

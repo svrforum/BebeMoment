@@ -55,6 +55,20 @@ describe('LocalAdapter', () => {
     expect((await collect(s)).toString()).toBe('234')
   })
 
+  it('stat returns size and mtime for a written key, null when missing', async () => {
+    const before = Date.now() - 1000
+    await adapter.writeBuffer('stat.bin', Buffer.from('0123456789'))
+    const s = await adapter.stat('stat.bin')
+    expect(s?.size).toBe(10)
+    expect(s?.mtimeMs).toBeGreaterThanOrEqual(before)
+    expect(await adapter.stat('missing.bin')).toBeNull()
+  })
+
+  it('localPath resolves the key inside the root', async () => {
+    expect(adapter.localPath('a/b.txt')).toBe(path.join(tmp, 'a/b.txt'))
+    expect(() => adapter.localPath('../escape')).toThrow(/invalid key/i)
+  })
+
   it('publicUrl returns /media/<key>', async () => {
     const url = await adapter.publicUrl('dir/file.png')
     expect(url).toBe('/media/dir/file.png')
