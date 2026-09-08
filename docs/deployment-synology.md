@@ -46,9 +46,11 @@ services:
       TZ: ${TZ:-Asia/Seoul}
       # web → 같은 컨테이너의 media(런타임) + Next /media rewrite(빌드). 단일 컨테이너라 localhost.
       MEDIA_INTERNAL_URL: http://localhost:3001
-      # 보통 미설정으로 두면 PUBLIC_URL 로 폴백된다(동일 오리진 /media/*). :3001 등을 넣지 말 것.
-      NEXT_PUBLIC_MEDIA_BASE_URL: ${PUBLIC_URL}
-      MEDIA_PUBLIC_BASE_URL: ${PUBLIC_URL}
+      # 미디어 URL 은 기본이 상대경로(/media/...)라 어떤 접속 경로(NAS IP·도메인)에서도 뜬다.
+      # 미디어를 별도 호스트로 분리할 때만 그 절대 URL 을 넣는다. PUBLIC_URL 이나 :3001 을
+      # 넣지 말 것 — http IP↔https 도메인 불일치·미노출 포트로 사진이 안 뜬다.
+      NEXT_PUBLIC_MEDIA_BASE_URL: ${NEXT_PUBLIC_MEDIA_BASE_URL:-}
+      MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
       MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
       STORAGE_MODE: local
@@ -58,6 +60,13 @@ services:
       PUID: ${PUID:-1026}
       PGID: ${PGID:-100}
       ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
+      # 첫 소유자 선점 방어(선택) — 설정하면 최초 가입에 /signup?setup=<값> 이 필요하다.
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      # 공유 링크 미리보기에 신뢰할 추가 호스트(쉼표). PUBLIC_URL 이 LAN 주소인데 도메인으로도
+      # 공유할 때만.
+      SHARE_ALLOWED_HOSTS: ${SHARE_ALLOWED_HOSTS:-}
+      # DSM 리버스 프록시 뒤(기본 true). 프록시 없이 3000 을 직접 노출하면 false.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
@@ -70,17 +79,37 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
+    # 정지 시 진행 중인 영상 변환을 끝낼 시간(앱 내부 45s 대기보다 길게).
+    stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 40s
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   postgres:
     # pgvector 포함(얼굴 임베딩 벡터검색). 기존 alpine 데이터에서 올리면 소유권을
     # 999(debian postgres)로 chown 후 사용.
     image: pgvector/pgvector:pg17
+    # NAS 기본값 — Postgres 기본 설정은 4GB 캐시·JIT 를 전제한다.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=256MB
+      - -c
+      - effective_cache_size=768MB
+      - -c
+      - work_mem=8MB
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - jit=off
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe
@@ -93,10 +122,17 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 
   redis:
     # Valkey (Redis BSD 포크). 서비스명은 redis 유지.
     image: valkey/valkey:9-alpine
+    # 큐 상태는 일시적 — 스냅샷은 한 시간에 한 번이면 충분하다.
+    command: ["valkey-server", "--save", "3600 1", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction", "--loglevel", "warning"]
     volumes:
       - /volume1/docker/bebe-moment/redis:/data
     restart: unless-stopped
@@ -105,11 +141,18 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
 ```
 
 > 표준 [`compose/docker-compose.yml`](../compose/docker-compose.yml) 과 동일한 구조에 시놀로지
-> 절대경로·PUID/PGID 만 맞춘 것입니다. 리소스 한도(`deploy.resources`)·얼굴인식 `ml` 서비스는
-> 표준 compose 를 참고해 그대로 옮길 수 있습니다(아래 "얼굴 인식" 참고).
+> 절대경로·PUID/PGID 만 맞춘 것입니다. 리소스 한도(`deploy.resources`)·프로세스별 힙
+> (`APP_HEAP_*`)·얼굴인식 `ml` 서비스는 표준 compose 를 참고해 그대로 옮길 수 있습니다(아래
+> "얼굴 인식" 참고). 이 블록의 env 키가 표준 compose 와 어긋나면 CI(`scripts/check-compose-doc-env.sh`)가
+> 잡습니다.
 
 ## 3. 환경변수 (env 탭)
 
@@ -130,10 +173,15 @@ MEDIA_JWT_SECRET=<랜덤 hex>
 # DB role 분리 (web=public 스키마, media=media 스키마). entrypoint 가 이 비번으로 역할 생성.
 BEBE_WEB_DB_PASSWORD=<복잡한 문자열>
 BEBE_MEDIA_DB_PASSWORD=<복잡한 문자열>
+
+# (선택) 공개 URL 을 먼저 열어야 한다면 — 최초 가입을 이 토큰으로 잠근다. openssl rand -hex 16
+# SETUP_TOKEN=
 ```
 
-> ⚠️ `MEDIA_PUBLIC_BASE_URL` / `NEXT_PUBLIC_MEDIA_BASE_URL` 에 `:3001` 같은 값을 **넣지 마세요.**
-> 노출되지 않은 포트를 가리켜 사진이 안 뜹니다. 미설정(또는 `PUBLIC_URL` 과 동일)이 정답입니다.
+> ⚠️ `MEDIA_PUBLIC_BASE_URL` / `NEXT_PUBLIC_MEDIA_BASE_URL` 은 **비워 두는 것이 기본**입니다.
+> 미디어 URL 이 상대경로(`/media/...`)라 NAS IP 로 열든 도메인으로 열든 사진이 뜹니다.
+> `:3001` 이나 `PUBLIC_URL` 을 넣으면 미노출 포트·mixed-content 로 사진이 안 뜹니다.
+> 미디어를 **별도 호스트로 분리한 경우에만** 그 절대 URL 을 넣습니다.
 
 ## 4. 시작 & 첫 로그인
 
@@ -182,6 +230,10 @@ Container Manager → 프로젝트 `bebe-moment` → **이미지 → 내려받�
   `MEDIA_SERVICE_TOKEN`·`MEDIA_JWT_SECRET` 가 빠졌습니다. `/api/health` 는 미디어를 안 거쳐
   200 으로 남으니 실제 사진 페이지로 확인하세요.
 - **페이지는 뜨는데 썸네일이 깨짐** — `MEDIA_PUBLIC_BASE_URL`/`NEXT_PUBLIC_MEDIA_BASE_URL` 에
-  `:3001` 등 노출 안 된 포트를 넣은 경우입니다. 미설정(PUBLIC_URL 폴백)으로 두세요.
-- **pg16 → pg17 업그레이드** — 데이터 디렉터리 비호환. `pg_dump`(구버전)→restore(pg17) 후
-  `pg/` 를 비우고 시작하거나, 앱 백업/복구를 사용하세요.
+  값을 넣은 경우입니다. 기본은 상대경로 `/media/...`(미설정)이고, 절대 URL 은 미디어를 별도
+  호스트로 분리했을 때만 넣습니다. `:3001`·`PUBLIC_URL` 을 넣었다면 지우고 다시 빌드하세요.
+- **예약 백업이 `EACCES` 로 실패** — `backups/` 폴더를 root 로 만든 경우입니다. 최신 이미지는
+  기동 시 `/backups` 최상위 소유권을 `PUID:PGID` 로 맞추므로 재시작하면 해결됩니다.
+- **pg16 → pg17 업그레이드** — 데이터 디렉터리 비호환. [operations.md](operations.md) 의
+  "Upgrading Postgres 16 → 17" 절차(앱 이미지 안의 pg17 클라이언트로 `pg_dump` → 새 볼륨에
+  복원)를 따르거나, 앱 백업/복구를 사용하세요.

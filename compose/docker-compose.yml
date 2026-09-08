@@ -32,6 +32,14 @@ services:
       PUID: ${PUID:-1000}
       PGID: ${PGID:-1000}
       ADMIN_USER_EMAIL: ${ADMIN_USER_EMAIL:-}
+      # 첫 소유자 선점 방어 — 설정하면 최초 가입에 /signup?setup=<값> 이 필요하다.
+      SETUP_TOKEN: ${SETUP_TOKEN:-}
+      # 공유 링크 미리보기(OG)에 신뢰할 추가 호스트(쉼표). PUBLIC_URL 이 LAN 주소인데
+      # 도메인으로도 공유할 때. 기본은 PUBLIC_URL 호스트만.
+      SHARE_ALLOWED_HOSTS: ${SHARE_ALLOWED_HOSTS:-}
+      # 리버스 프록시 뒤(기본)면 x-real-ip / x-forwarded-for 로 클라이언트 IP 를 본다.
+      # 프록시 없이 직접 노출하면 false — 위조 가능한 헤더로 레이트리밋을 우회하지 못하게.
+      TRUST_PROXY: ${TRUST_PROXY:-true}
       LOG_LEVEL: ${LOG_LEVEL:-info}
       BEBE_WEB_DB_PASSWORD: ${BEBE_WEB_DB_PASSWORD}
       BEBE_MEDIA_DB_PASSWORD: ${BEBE_MEDIA_DB_PASSWORD}
@@ -40,6 +48,11 @@ services:
       FACE_ML_URL: ${FACE_ML_URL:-http://ml:8000}
       # 백업 저장 위치(컨테이너 내부). BACKUP_DIR 볼륨을 호스트/시놀로지 공유폴더로 매핑.
       BACKUP_DIR: /backups
+      # 프로세스별 Node 힙 상한(MB). 합이 APP_MEMORY_LIMIT 아래여야 한다 — sharp/ffmpeg 는
+      # 힙 밖에서 메모리를 더 쓴다.
+      APP_HEAP_WEB_MB: ${APP_HEAP_WEB_MB:-768}
+      APP_HEAP_MEDIA_MB: ${APP_HEAP_MEDIA_MB:-640}
+      APP_HEAP_WORKER_MB: ${APP_HEAP_WORKER_MB:-256}
     volumes:
       - ${DATA_DIR:-./data}:/data
       - ${BACKUP_DIR:-./backups}:/backups
@@ -47,15 +60,22 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
-    # 미디어가 진행 중인 트랜스코드를 graceful 하게 끝낼 시간(앱 내부 30s force-exit 보다 약간
-    # 길게) — 기본 10s 면 stop/재시작 시 Docker 가 SIGKILL 해 잡이 잘린다.
-    stop_grace_period: 35s
+    # stop 시 컨테이너 안 run-app.sh 가 세 프로세스에 TERM 을 넘기고 최대 45s(APP_SHUTDOWN_GRACE_S)
+    # 기다린다 — media 는 진행 중 트랜스코드를 30s 안에 끝낸다. 그보다 길어야 Docker 가 먼저
+    # SIGKILL 하지 않는다(기본 10s 면 잡이 잘린다).
+    stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
       interval: 30s
       timeout: 5s
       retries: 3
       start_period: 40s
+    # 로그 회전 — 미디어 접근 로그가 대부분이라 회전 없이는 디스크를 무한히 먹는다.
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -65,6 +85,20 @@ services:
     # pgvector 확장 포함(얼굴 인식 임베딩 벡터검색). 신규 설치는 그대로, 기존 alpine
     # 데이터에서 올리는 경우 데이터 소유권을 999(debian postgres)로 chown 후 사용.
     image: pgvector/pgvector:pg17
+    # NAS 기본값 — Postgres 기본 설정은 4GB 캐시·JIT 를 전제하는데 이 컨테이너는
+    # PG_MEMORY_LIMIT(기본 512m) 안에서 돈다. SSD/NAS 라 random_page_cost 를 낮춘다.
+    command:
+      - postgres
+      - -c
+      - shared_buffers=${PG_SHARED_BUFFERS:-256MB}
+      - -c
+      - effective_cache_size=${PG_EFFECTIVE_CACHE:-768MB}
+      - -c
+      - work_mem=${PG_WORK_MEM:-8MB}
+      - -c
+      - random_page_cost=1.1
+      - -c
+      - jit=off
     environment:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe
@@ -77,6 +111,11 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:
@@ -110,6 +149,9 @@ services:
     # ⚠️ Redis 7.4+ 에서 옮길 땐 기존 dump.rdb(RDB v12)를 Valkey 9 가 못 읽는다 —
     #    REDIS_DIR 볼륨을 비우고 시작할 것. 큐/pub-sub 데이터는 일시적이라 손실 무방.
     image: valkey/valkey:9-alpine
+    # 큐 상태는 일시적이라 스냅샷은 한 시간에 한 번이면 충분하다 — 기본값이면 BullMQ 하트비트
+    # 때문에 유휴 상태에서도 20분마다 RDB 를 쓴다. noeviction: 큐 키를 잃느니 쓰기를 거부.
+    command: ["valkey-server", "--save", "3600 1", "--maxmemory", "96mb", "--maxmemory-policy", "noeviction", "--loglevel", "warning"]
     volumes:
       - ${REDIS_DIR:-./redis}:/data
     restart: unless-stopped
@@ -118,6 +160,11 @@ services:
       interval: 10s
       timeout: 3s
       retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "20m"
+        max-file: "5"
     deploy:
       resources:
         limits:
