@@ -4,7 +4,8 @@ import type { PersonSummary } from '@/server/people/list'
 import { Check, Users, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
+import { createPortal } from 'react-dom'
 import { PersonCard } from './person-card'
 
 /**
@@ -25,6 +26,10 @@ export function PersonGrid({
   const [picking, setPicking] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [merging, setMerging] = useState(false)
+  // 페이지 래퍼(.section-enter)가 transform 을 남겨 fixed 의 기준이 돼 버린다(§17#19) —
+  // 그대로 두면 합치기 바가 화면 아래로 밀린다. body 로 포털해서 화면에 고정한다.
+  const [mounted, setMounted] = useState(false)
+  useEffect(() => setMounted(true), [])
 
   const target = useMemo(() => {
     const chosen = people.filter((p) => selected.includes(p.id))
@@ -104,25 +109,28 @@ export function PersonGrid({
           />
         ))}
       </div>
-      {picking && selected.length > 0 && (
-        // 고른 게 화면 밖으로 밀리지 않게 하단에 고정 — 목록이 길어도 바로 합칠 수 있다.
-        <div className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+72px)] z-40 mx-auto flex max-w-md items-center gap-3 rounded-full bg-base-900/95 px-4 py-2.5 text-white shadow-elevated backdrop-blur dark:bg-base-50/95 dark:text-base-900">
-          <span className="min-w-0 flex-1 truncate text-sm">
-            {selected.length < 2
-              ? t('people.pickMore')
-              : t('people.mergeInto', { name: target?.name ?? t('people.unnamed') })}
-          </span>
-          <button
-            type="button"
-            onClick={() => void merge()}
-            disabled={selected.length < 2 || merging}
-            className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
-          >
-            <Check size={14} />
-            {merging ? t('people.merging') : t('people.mergeConfirm')}
-          </button>
-        </div>
-      )}
+      {mounted &&
+        picking &&
+        selected.length > 0 &&
+        createPortal(
+          <div className="pointer-events-auto fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+76px)] z-50 mx-auto flex max-w-md items-center gap-3 rounded-full bg-base-900/95 px-4 py-2.5 text-white shadow-elevated backdrop-blur dark:bg-base-50/95 dark:text-base-900">
+            <span className="min-w-0 flex-1 truncate text-sm">
+              {selected.length < 2
+                ? t('people.pickMore')
+                : t('people.mergeInto', { name: target?.name ?? t('people.unnamed') })}
+            </span>
+            <button
+              type="button"
+              onClick={() => void merge()}
+              disabled={selected.length < 2 || merging}
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+            >
+              <Check size={14} />
+              {merging ? t('people.merging') : t('people.mergeConfirm')}
+            </button>
+          </div>,
+          document.body,
+        )}
     </>
   )
 }
