@@ -5,7 +5,7 @@
  * 저장됐다. 앞으로 올리는 영상은 process-asset 이 바로잡지만, 기존 것들은 이 스크립트로
  * 한 번 훑어야 한다.
  *
- *   docker exec -w /repo bebe-app pnpm --filter @bebe/media exec tsx \
+ *   docker exec -w /repo/apps/media bebe-app node --import tsx \
  *     src/scripts/backfill-video-taken-at.ts [--dry-run]
  *
  * (tsx 는 apps/media 의 의존성이라 루트에서 node --import tsx 로는 안 잡힌다 — run-app.sh 와 같은 방식.)

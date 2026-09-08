@@ -5,7 +5,7 @@
  * 지금까지처럼 원본이 나가므로, 4:2:2·10비트로 찍힌 예전 영상은 이 스크립트를 한 번
  * 돌리기 전까지 계속 소리만 나는 파일로 저장된다.
  *
- *   docker exec -w /repo bebe-app pnpm --filter @bebe/media exec tsx \
+ *   docker exec -w /repo/apps/media bebe-app node --import tsx \
  *     src/scripts/backfill-video-playable.ts [--dry-run]
  *
  * (tsx 는 apps/media 의 의존성이라 루트에서 node --import tsx 로는 안 잡힌다 — run-app.sh 와 같은 방식.)
