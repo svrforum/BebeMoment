@@ -47,14 +47,12 @@ updates:
     schedule:
       interval: weekly
     ignore:
-      # The ML image pins numpy 1.26.4, which publishes no wheel past cp312, and
-      # insightface builds from source against numpy headers. Moving Python means
-      # migrating numpy 1.x -> 2.x first, so it cannot ride in on a bump (PR #15).
-      # Worse, nothing builds this image until a tag is pushed, so a bad bump
-      # surfaces mid-release.
+      # The numpy 1.26/cp312 reason is gone (the sidecar runs Python 3.13 and
+      # numpy 2.x), but the other half still holds: nothing builds this image
+      # until a tag is pushed, so a bad base bump surfaces mid-release. Majors
+      # stay a deliberate call; minors now ride in.
       - dependency-name: python
-        update-types:
-          ["version-update:semver-major", "version-update:semver-minor"]
+        update-types: ["version-update:semver-major"]
 
   # Python packages of the ML sidecar (apps/ml/requirements.txt) — the only
   # dependency file Dependabot was not watching.
@@ -62,8 +60,7 @@ updates:
     directory: /apps/ml
     schedule:
       interval: weekly
-    ignore:
-      # Same reason as the Python pin above: numpy 2.x needs a deliberate
-      # insightface migration, not a weekly bump.
-      - dependency-name: numpy
-        update-types: ["version-update:semver-major"]
+    # insightface is pinned in requirements-insightface.txt (installed with
+    # --no-deps so its GUI opencv and training extras stay out of the image).
+    # A stack bump must be validated by re-embedding the fixture faces and
+    # comparing cosine similarity against the stored vectors — see apps/ml/README.md.
