@@ -2,9 +2,19 @@ import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { cache } from 'react'
 import type { AssetWithUrls } from './types'
 
 export type { AssetWithUrls } from './types'
+
+/**
+ * 가족 스코프 자산 행 한 건. 뷰어는 같은 요청에서 번들(getAssetForFamily)과 상세
+ * (loadViewerDetail)가 같은 행을 각자 읽으므로 요청 스코프 `cache()` 로 한 번만 —
+ * 요청 밖(테스트·워커)에선 no-op.
+ */
+export const findAssetRow = cache((prismaMedia: PrismaMedia, assetId: string, familyId: string) =>
+  prismaMedia.asset.findFirst({ where: { id: assetId, familyId, deletedAt: null } }),
+)
 
 /**
  * 가족 스코프 단일 자산 조회. `viewerRole`+`prismaPublic` 이 주어지고 뷰어가 `family`
@@ -17,9 +27,7 @@ export async function getAssetForFamily(
   media: MediaClient,
   prismaPublic?: PrismaPublic,
 ): Promise<AssetWithUrls | null> {
-  const asset = await prismaMedia.asset.findFirst({
-    where: { id: args.assetId, familyId: args.familyId, deletedAt: null },
-  })
+  const asset = await findAssetRow(prismaMedia, args.assetId, args.familyId)
   if (!asset) return null
   if (
     args.viewerRole === 'family' &&
