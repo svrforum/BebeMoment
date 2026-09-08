@@ -30,8 +30,7 @@ export const Toast = forwardRef<
     ref={ref}
     className={cn(
       'group rounded-2xl bg-base-900 text-base-50 shadow-elevated px-4 py-3 flex items-center gap-3',
-      'data-[state=open]:animate-in data-[state=open]:fade-in data-[state=open]:slide-in-from-bottom-4',
-      'data-[state=closed]:animate-out data-[state=closed]:fade-out',
+      'data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out motion-reduce:animate-none',
       variant === 'danger' && 'bg-danger text-white',
       variant === 'success' && 'bg-emerald-600 text-white',
       className,

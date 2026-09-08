@@ -5,8 +5,13 @@ import { getSetting } from '@/server/settings/get'
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
+import { preload } from 'react-dom'
 import { z } from 'zod'
 import './globals.css'
+
+// 92개 서브셋 중 첫 화면이 거의 항상 쓰는 둘만 미리 받는다 — 91 은 기본 라틴 + 가장 흔한
+// 한글 음절, 90 은 그다음으로 흔한 음절. 나머지는 CSS 의 unicode-range 가 필요할 때 부른다.
+const PRELOADED_FONT_SUBSETS = [91, 90] as const
 
 export const metadata: Metadata = {
   title: 'Bebe Moment',
@@ -51,6 +56,13 @@ export default async function RootLayout({ children }: { children: React.ReactNo
   const defaultTheme = await readDefaultTheme()
   const locale = await getLocale()
   const messages = await getMessages()
+  for (const n of PRELOADED_FONT_SUBSETS) {
+    preload(`/fonts/pretendard/PretendardVariable.subset.${n}.woff2`, {
+      as: 'font',
+      type: 'font/woff2',
+      crossOrigin: 'anonymous',
+    })
+  }
   return (
     <html lang={locale} suppressHydrationWarning>
       <body>
