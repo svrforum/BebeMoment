@@ -1,7 +1,5 @@
 package im.bebe.app;
 
-import android.content.Context;
-import android.content.SharedPreferences;
 import android.net.Uri;
 import android.os.Looper;
 import com.getcapacitor.JSObject;
@@ -59,9 +57,9 @@ public class BebePushPlugin extends Plugin {
     }
 
     private boolean isCallerOriginAllowed() {
-        final String savedServerUrl = readServerUrl();
+        final String savedServerUrl = AccountsStore.readServerUrl(getContext());
         if (savedServerUrl == null) return false;
-        final Uri savedUri = safeParse(savedServerUrl);
+        final Uri savedUri = DeepLinks.safeParse(savedServerUrl);
         if (savedUri == null || savedUri.getHost() == null) return false;
 
         // WebView.getUrl() must run on the UI thread. If we're already there
@@ -80,62 +78,28 @@ public class BebePushPlugin extends Plugin {
                 if (!latch.await(2, java.util.concurrent.TimeUnit.SECONDS)) return false;
             } catch (InterruptedException ie) {
                 Thread.currentThread().interrupt();
+                NativeDiagnostics.warn(NativeDiagnostics.FLOW_FCM, "origin-check-interrupted", ie);
                 return false;
             } catch (Exception e) {
+                NativeDiagnostics.warn(NativeDiagnostics.FLOW_FCM, "origin-check", e);
                 return false;
             }
             currentUrl = holder[0];
         }
 
         if (currentUrl == null) return false;
-        final Uri currentUri = safeParse(currentUrl);
+        final Uri currentUri = DeepLinks.safeParse(currentUrl);
         if (currentUri == null || currentUri.getHost() == null) return false;
-        return sameOrigin(currentUri, savedUri);
+        return DeepLinks.sameOrigin(currentUri, savedUri);
     }
 
     private String safeGetWebViewUrl() {
         try {
             return getBridge().getWebView().getUrl();
         } catch (Exception e) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_FCM, "webview-url", e);
             return null;
         }
     }
 
-    private String readServerUrl() {
-        try {
-            SharedPreferences sp = getContext()
-                .getSharedPreferences("CapacitorStorage", Context.MODE_PRIVATE);
-            return sp.getString("serverUrl", null);
-        } catch (Exception e) {
-            return null;
-        }
-    }
-
-    private static boolean sameOrigin(Uri a, Uri b) {
-        final String aScheme = a.getScheme();
-        final String bScheme = b.getScheme();
-        final String aHost = a.getHost();
-        final String bHost = b.getHost();
-        if (aScheme == null || bScheme == null || aHost == null || bHost == null) return false;
-        if (!aScheme.equalsIgnoreCase(bScheme)) return false;
-        if (!aHost.equalsIgnoreCase(bHost)) return false;
-        return effectivePort(a) == effectivePort(b);
-    }
-
-    private static int effectivePort(Uri u) {
-        int p = u.getPort();
-        if (p != -1) return p;
-        final String s = u.getScheme();
-        if ("https".equalsIgnoreCase(s)) return 443;
-        if ("http".equalsIgnoreCase(s)) return 80;
-        return -1;
-    }
-
-    private static Uri safeParse(String s) {
-        try {
-            return Uri.parse(s);
-        } catch (Exception e) {
-            return null;
-        }
-    }
 }

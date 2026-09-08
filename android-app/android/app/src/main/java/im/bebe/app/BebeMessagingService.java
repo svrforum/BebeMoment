@@ -33,7 +33,8 @@ public class BebeMessagingService extends FirebaseMessagingService {
         // 푸시가 오면(새 사진·댓글 등) 위젯도 즉시 갱신해 최신 사진·뱃지를 반영.
         try {
             WidgetRefreshWorker.enqueueNow(getApplicationContext());
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "refresh-on-push", t);
         }
 
         NotificationManager nm = getSystemService(NotificationManager.class);

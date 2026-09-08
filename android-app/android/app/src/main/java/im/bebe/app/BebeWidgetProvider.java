@@ -25,7 +25,8 @@ public class BebeWidgetProvider extends AppWidgetProvider {
                     // MODE = 4장 위젯의 그리드↔큰사진 전환(그 위젯만).
                     if (ACTION_MODE.equals(action)) WidgetRefreshWorker.toggleMode(ctx, id);
                     else WidgetRefreshWorker.shuffle(ctx, id);
-                } catch (Throwable ignored) {
+                } catch (Throwable t) {
+                    NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget/receive-action", t);
                 }
             }
             return;
@@ -59,7 +60,8 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         // 위젯 추가 순간 호출되므로 절대 예외를 던지면 안 됨(던지면 "위젯 추가 불가").
         try {
             WidgetRefreshWorker.enqueueNow(ctx);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget/update", t);
         }
     }
 
@@ -68,7 +70,8 @@ public class BebeWidgetProvider extends AppWidgetProvider {
         try {
             WidgetRefreshWorker.ensurePeriodic(ctx);
             WidgetRefreshWorker.enqueueNow(ctx);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget/enabled", t);
         }
     }
 
@@ -81,7 +84,8 @@ public class BebeWidgetProvider extends AppWidgetProvider {
             Context ctx, AppWidgetManager mgr, int id, android.os.Bundle newOptions) {
         try {
             WidgetRefreshWorker.reRender(ctx, id);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget/options-changed", t);
         }
     }
 
@@ -89,7 +93,8 @@ public class BebeWidgetProvider extends AppWidgetProvider {
     public void onDeleted(Context ctx, int[] ids) {
         try {
             WidgetRefreshWorker.onWidgetsDeleted(ctx, ids);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget/deleted", t);
         }
     }
 

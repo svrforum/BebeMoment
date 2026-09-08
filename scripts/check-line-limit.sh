@@ -13,8 +13,13 @@ MAX_LINES="${MAX_LINES:-1500}"
 # What counts as "source"
 INCLUDE_EXTS='ts|tsx|js|jsx'
 
+# 안드로이드 셸의 네이티브 소스(android-app/**/src/main/java/**/*.java)도 같은 한도를
+# 받는다 — MainActivity 가 1,450줄까지 자란 뒤 추가. .java 를 INCLUDE_EXTS 에 넣지 않고
+# 경로로 좁히는 이유는 생성물(capacitor-cordova-android-plugins 등)을 끌어오지 않기 위해서다.
+ANDROID_JAVA_PATH='*android-app/*/src/main/java/*'
+
 # What gets ignored. Add patterns by editing here.
-EXCLUDE_REGEX='/node_modules/|/\.next/|/\.dev/|/generated/|/dist/|/coverage/|/\.git/|/build/|\.test\.tsx?$|\.spec\.tsx?$'
+EXCLUDE_REGEX='/node_modules/|/\.next/|/\.dev/|/generated/|/dist/|/coverage/|/\.git/|/build/|/src/main/assets/public/|\.test\.tsx?$|\.spec\.tsx?$'
 
 paths=("${@:-.}")
 
@@ -23,6 +28,13 @@ mapfile -t files < <(
     | grep -vE "$EXCLUDE_REGEX" \
     | sort
 )
+
+mapfile -t android_files < <(
+  find "${paths[@]}" -type f -path "$ANDROID_JAVA_PATH" -name '*.java' 2>/dev/null \
+    | grep -vE "$EXCLUDE_REGEX" \
+    | sort
+)
+files+=("${android_files[@]}")
 
 over=()   # > MAX_LINES (hard)
 warn=()   # WARN_LINES < n <= MAX_LINES (soft)
