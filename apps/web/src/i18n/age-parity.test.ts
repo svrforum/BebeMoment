@@ -28,7 +28,8 @@ describe('ko 나이 버킷 표기는 리팩터 전후로 같다', () => {
       const at = new Date(Date.UTC(2026, 0, 1 + d))
       const before = legacyBucketLabel(birth, at)
       const after = formatAgeBucket(ageBucket(birth, at), t)
-      if (before !== after) mismatches.push(`${at.toISOString().slice(0, 10)}: ${before} != ${after}`)
+      if (before !== after)
+        mismatches.push(`${at.toISOString().slice(0, 10)}: ${before} != ${after}`)
     }
     expect(mismatches.slice(0, 5)).toEqual([])
   })
