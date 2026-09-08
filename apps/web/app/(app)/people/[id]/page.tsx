@@ -1,3 +1,7 @@
+import {
+  PersonCooccurrenceNote,
+  PhotoCompanions,
+} from '@/components/people/person-cooccurrence-note'
 import { PersonHeaderActions } from '@/components/people/person-header-actions'
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
@@ -7,6 +11,7 @@ import { pickThumbUrl } from '@/lib/asset-url'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { getContext } from '@/server/context'
+import { listCooccurringPeople } from '@/server/people/cooccurrence'
 import { getPersonAssets, listPeople } from '@/server/people/list'
 import { getFeatureFlags } from '@/server/settings/features'
 import { ChevronLeft, ImageOff } from 'lucide-react'
@@ -30,6 +35,13 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
   )
   if (!person) notFound()
 
+  // 같은 사진에 함께 나온 사람 — 합칠지 새 사람으로 둘지 판단하는 단서(§people).
+  const cooccurrence = await listCooccurringPeople(
+    { familyId: ctx.family.id, personId: person.id, viewerRole: ctx.membership?.role ?? 'family' },
+    prismaMedia,
+    prismaPublic,
+  )
+
   const canManage = ctx.capabilities.includes('person.rename')
   // 합치기 대상 = 현재 사람을 뺀 나머지 사람들(사진 많은 순). family 가시성 그대로 사용.
   const mergeTargets = canManage
@@ -47,6 +59,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
           name: p.name,
           photoCount: p.photoCount,
           thumbUrl: pickThumbUrl(p.cover?.urls ?? null),
+          coPhotoCount: cooccurrence.summary.find((c) => c.id === p.id)?.photoCount ?? 0,
         }))
     : []
 
@@ -88,20 +101,25 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
             description={t('people.noPhotosDescription')}
           />
         ) : (
-          <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
-            {assets.map((a) => (
-              <AssetCard
-                key={a.id}
-                id={a.id}
-                publicNo={a.publicNo}
-                urls={a.urls}
-                status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
-                kind={a.kind as 'image' | 'video'}
-                durationMs={a.durationMs}
-                viewerCtx={`person:${person.id}`}
-              />
-            ))}
-          </div>
+          <>
+            <PersonCooccurrenceNote people={cooccurrence.summary} />
+            <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-8">
+              {assets.map((a) => (
+                <div key={a.id} className="relative">
+                  <AssetCard
+                    id={a.id}
+                    publicNo={a.publicNo}
+                    urls={a.urls}
+                    status={a.status as 'uploading' | 'processing' | 'ready' | 'failed'}
+                    kind={a.kind as 'image' | 'video'}
+                    durationMs={a.durationMs}
+                    viewerCtx={`person:${person.id}`}
+                  />
+                  <PhotoCompanions people={cooccurrence.byAsset[a.id] ?? []} />
+                </div>
+              ))}
+            </div>
+          </>
         )}
       </div>
     </>

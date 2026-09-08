@@ -1560,7 +1560,13 @@
       "mergeHint": "If the same person was detected separately, pick who to merge these photos into.",
       "mergeConfirm": "Merge",
       "merging": "Merging…",
-      "mergeFailed": "Couldn't merge"
+      "mergeFailed": "Couldn't merge",
+      "alsoHereTitle": "Appears in photos together with {name}",
+      "alsoHereMore": "Appears together with {name} and {rest} others",
+      "alsoHereHint": "Two faces in one photo are usually two different people.",
+      "alsoHerePhotos": "{count} photos",
+      "alsoInPhoto": "With: {names}",
+      "mergeCooccurWarning": "In {count} photos together"
     },
     "growth": {
       "empty": "Add your first growth record.",

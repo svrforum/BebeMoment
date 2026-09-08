@@ -1,12 +1,14 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
 import { useToast } from '@/lib/toast'
-import { Users } from 'lucide-react'
+import { TriangleAlert, Users } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useState } from 'react'
 
 export type MergeTarget = {
+  /** 이 사람과 같은 사진에 함께 나온 사진 수. 0 보다 크면 보통 다른 사람이다. */
+  coPhotoCount?: number
   id: string
   name: string | null
   photoCount: number
@@ -91,6 +93,12 @@ export function PersonMergeButton({
                     <span className="block text-xs text-base-500">
                       {t('people.photoCount', { count: p.photoCount })}
                     </span>
+                    {p.coPhotoCount ? (
+                      <span className="mt-0.5 inline-flex items-center gap-1 rounded-full bg-warning/15 px-1.5 py-0.5 text-[11px] font-medium text-warning">
+                        <TriangleAlert size={11} />
+                        {t('people.mergeCooccurWarning', { count: p.coPhotoCount })}
+                      </span>
+                    ) : null}
                   </span>
                   <span
                     className={`h-4 w-4 shrink-0 rounded-full border-2 ${
