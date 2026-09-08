@@ -135,6 +135,49 @@ backup is consistent (DB + media captured together).
      pair is regenerated).
 6. Run a full backup so a bundle with the new key exists.
 
+## Database roles: what they actually separate
+
+The deployment creates three logins, and it is worth being precise about what
+each one buys you, because the names suggest more isolation than exists.
+
+| Role | Used by | Reaches |
+| --- | --- | --- |
+| `bebe` (superuser, `DATABASE_URL`) | migrations, `pg_dump`/`pg_restore`, backup & restore | everything |
+| `bebe_web` (`DATABASE_URL_WEB`) | the web process's `public`-schema client | all of `public`; in `media`, only `assets_v_public`, `faces` (SELECT) and `persons` (SELECT, UPDATE) |
+| `bebe_media` (`DATABASE_URL_MEDIA`) | the media service **and the web process's media client** | all of `media`; nothing in `public` |
+
+**The real boundary is one-directional: the media service cannot read the
+`public` schema.** It holds only the `bebe_media` login, and `apps/media` does
+not even depend on `@bebe/db-public`, so users, families, sessions, settings and
+push subscriptions are out of its reach — by package dependency and by GRANT
+both. Anything the media worker needs from `public` (admin settings, family
+context) is passed to it in the job payload or the JWT.
+
+**The reverse is not a boundary.** The web process opens *both* connections: it
+talks to `public` as `bebe_web` and to `media` as `bebe_media`, and it reads and
+writes `media.assets` directly through the latter (soft delete, restore, person
+rename and merge, plus every timeline/album/story read). So `bebe_web`'s narrow
+`media` grants do not confine the web process — they only describe one of its two
+connections. Both passwords live in the same container environment, since web,
+media and the notifications worker are three processes in one container.
+
+What still holds, and is worth keeping:
+
+- **Package boundary** — `apps/media` imports `@bebe/db-media` only. That is
+  enforced at build time (the dependency is absent from `apps/media/package.json`)
+  and re-checked at runtime by the grants above.
+- **Schema split** — `public` and `media` are separate schemas with no
+  cross-schema foreign keys, so the media service's tables can be dumped,
+  migrated and reasoned about on their own.
+- **Family isolation** — this is enforced by the Prisma tenant extension on
+  every query, not by database roles.
+
+`media.assets_v_public` is a leftover from the original design, in which the web
+process was to see assets only through that view. No application code reads it,
+and it is stale (no `public_no`, no `duplicate_of`). It is kept so existing
+deployments do not lose the object or its grant, and it carries a `COMMENT`
+saying so — `\dv+ media.assets_v_public` in `psql` shows it.
+
 ## Migration failure recovery
 
 On startup the entrypoint runs `prisma migrate deploy` for both schemas. If it

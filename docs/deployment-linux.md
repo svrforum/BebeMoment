@@ -20,7 +20,9 @@ nano .env
 #   필수:
 #     SECRET_KEY            세션 서명 + 저장 시크릿 암호화 키
 #     POSTGRES_PASSWORD     postgres superuser 비밀번호
-#     BEBE_WEB_DB_PASSWORD  / BEBE_MEDIA_DB_PASSWORD   (web/media DB 롤 — 안 주면 부팅 실패)
+#     BEBE_WEB_DB_PASSWORD  / BEBE_MEDIA_DB_PASSWORD   (DB 롤 2개 — 안 주면 부팅 실패.
+#                           갈라지는 건 한 방향: media 는 public 스키마를 못 읽는다.
+#                           docs/operations.md 의 "Database roles" 참조)
 #     MEDIA_SERVICE_TOKEN   / MEDIA_JWT_SECRET          (미디어 내부 인증·서명, 각 32바이트+)
 #     PUBLIC_URL            https://bebe.example.com  (HTTPS 권장 — 아래 참조)
 #   선택:

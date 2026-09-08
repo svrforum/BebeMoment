@@ -170,7 +170,9 @@ TZ=Asia/Seoul
 MEDIA_SERVICE_TOKEN=<랜덤 hex>
 MEDIA_JWT_SECRET=<랜덤 hex>
 
-# DB role 분리 (web=public 스키마, media=media 스키마). entrypoint 가 이 비번으로 역할 생성.
+# DB 롤 두 개(bebe_web / bebe_media)의 비밀번호. entrypoint 가 이 비번으로 역할을 만든다.
+# 실제로 갈라지는 건 한 방향뿐이다 — media 서비스는 public 스키마를 못 읽는다.
+# (web 프로세스는 두 연결을 다 들고 media 스키마도 직접 읽고 쓴다. docs/operations.md 참조.)
 BEBE_WEB_DB_PASSWORD=<복잡한 문자열>
 BEBE_MEDIA_DB_PASSWORD=<복잡한 문자열>
 
