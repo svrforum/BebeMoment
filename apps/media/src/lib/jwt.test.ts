@@ -1,5 +1,12 @@
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
-import { signFileServeToken, signUploadToken, verifyFileServeToken, verifyUploadToken } from './jwt'
+import {
+  FILE_SERVE_TTL_SEC,
+  FILE_SERVE_WINDOW_SEC,
+  signFileServeToken,
+  signUploadToken,
+  verifyFileServeToken,
+  verifyUploadToken,
+} from './jwt'
 
 const SECRET = 'a'.repeat(40)
 
@@ -100,15 +107,62 @@ describe('file-serve token', () => {
     expect(payload.key).toBe('families/fam/assets/asset/original')
   })
 
-  test('file-serve token is valid for 1 hour', async () => {
+  const fileArgs = {
+    familyId: '11111111-1111-1111-1111-111111111111',
+    assetId: '22222222-2222-2222-2222-222222222222',
+    key: 'x',
+  }
+
+  test('iat is quantized to the 15-minute window and exp keeps at least 1 hour of validity', async () => {
     const { decodeJwt } = await import('jose')
-    const token = await signFileServeToken({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      assetId: '22222222-2222-2222-2222-222222222222',
-      key: 'x',
-    })
-    const { exp, iat } = decodeJwt(token)
-    expect((exp ?? 0) - (iat ?? 0)).toBe(60 * 60)
+    // 1_000_000_000 is 111 s into its window (window start 999_999_900).
+    const now = 1_000_000_000
+    const { exp, iat } = decodeJwt(await signFileServeToken(fileArgs, now))
+    expect(iat).toBe(999_999_900)
+    expect((iat ?? 1) % FILE_SERVE_WINDOW_SEC).toBe(0)
+    expect((exp ?? 0) - (iat ?? 0)).toBe(FILE_SERVE_TTL_SEC + FILE_SERVE_WINDOW_SEC)
+    // Even at the last second of the window the URL is still good for the full TTL.
+    const lastSecond = 999_999_900 + FILE_SERVE_WINDOW_SEC - 1
+    const late = decodeJwt(await signFileServeToken(fileArgs, lastSecond))
+    expect((late.exp ?? 0) - lastSecond).toBeGreaterThanOrEqual(FILE_SERVE_TTL_SEC)
+  })
+
+  test('the same key signed anywhere in one window yields the identical URL token', async () => {
+    const a = await signFileServeToken(fileArgs, 999_999_900)
+    const b = await signFileServeToken(fileArgs, 999_999_900 + 437)
+    const c = await signFileServeToken(fileArgs, 999_999_900 + FILE_SERVE_WINDOW_SEC - 1)
+    expect(b).toBe(a)
+    expect(c).toBe(a)
+  })
+
+  test('a different window or a different key yields a different token', async () => {
+    const a = await signFileServeToken(fileArgs, 999_999_900)
+    const nextWindow = await signFileServeToken(fileArgs, 999_999_900 + FILE_SERVE_WINDOW_SEC)
+    const otherKey = await signFileServeToken({ ...fileArgs, key: 'y' }, 999_999_900)
+    expect(nextWindow).not.toBe(a)
+    expect(otherKey).not.toBe(a)
+  })
+
+  test('a quantized token signed now still verifies', async () => {
+    const payload = await verifyFileServeToken(await signFileServeToken(fileArgs))
+    expect(payload.key).toBe('x')
+  })
+
+  test('upload and download tokens keep exact issue times', async () => {
+    const { decodeJwt } = await import('jose')
+    const before = Math.floor(Date.now() / 1000)
+    const { iat } = decodeJwt(
+      await signUploadToken({
+        sub: 'a',
+        familyId: 'b',
+        assetId: 'c',
+        mime: 'image/jpeg',
+        maxBytes: 1,
+        convertToCompatible: false,
+      }),
+    )
+    expect(iat).toBeGreaterThanOrEqual(before)
+    expect(iat).toBeLessThanOrEqual(before + 2)
   })
 
   test('upload token is rejected by file-serve verify', async () => {
