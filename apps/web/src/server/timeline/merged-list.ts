@@ -87,8 +87,7 @@ export async function listTimeline(
   const cursorBound = cursorTs && cur ? { lte: cursorTs } : null
   const takenRange = dayStart && dayEnd ? { gte: dayStart, lt: dayEnd } : null
   const takenBound = sort === 'taken' ? cursorBound : null
-  const takenFilter =
-    takenRange || takenBound ? { takenAt: { ...takenRange, ...takenBound } } : {}
+  const takenFilter = takenRange || takenBound ? { takenAt: { ...takenRange, ...takenBound } } : {}
   const assetRows = await prismaMedia.asset.findMany({
     where: {
       familyId,

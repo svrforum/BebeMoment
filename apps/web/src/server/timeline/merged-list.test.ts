@@ -377,7 +377,12 @@ describe('listTimeline — 같은 시각 경계의 키셋 커서', () => {
       ['eq1', 'eq2', 'eq3'].map((sha) => makeAsset(family.id, user.id, sameTs, sha)),
     )
     const seen = await walk(family.id, 'taken')
-    expect(seen).toEqual(rows.map((a) => a.id).sort().reverse())
+    expect(seen).toEqual(
+      rows
+        .map((a) => a.id)
+        .sort()
+        .reverse(),
+    )
   })
 
   it('업로드순: 같은 createdAt 3장을 limit 1 로 넘기면 셋 다 한 번씩', async () => {
@@ -395,6 +400,11 @@ describe('listTimeline — 같은 시각 경계의 키셋 커서', () => {
       })
     }
     const seen = await walk(family.id, 'uploaded')
-    expect(seen).toEqual(rows.map((a) => a.id).sort().reverse())
+    expect(seen).toEqual(
+      rows
+        .map((a) => a.id)
+        .sort()
+        .reverse(),
+    )
   })
 })
