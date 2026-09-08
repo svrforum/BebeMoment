@@ -1,32 +1,65 @@
 import { errorJsonKey } from '@/lib/error-response'
 import { createRedisConnection } from '@bebe/queue'
-import type IORedis from 'ioredis'
 import type { NextResponse } from 'next/server'
+
+/** 고정-윈도우 카운터에 필요한 최소 연산 — ioredis 인스턴스가 그대로 만족한다. */
+export type RateLimitStore = {
+  incr(key: string): Promise<number>
+  expire(key: string, seconds: number): Promise<unknown>
+  ttl(key: string): Promise<number>
+}
 
 // 인증 엔드포인트(로그인·가입·비번재설정·앱핸드오프) 무차별 대입 방어용 고정-윈도우
 // 레이트리밋. 공유 Redis(@bebe/queue) 사용. Redis 장애 시 fail-open(허용)해서 로그인이
 // 잠기지 않게 한다 — 보안 하드닝이지 가용성 위험이 되면 안 된다.
-let _redis: IORedis | null = null
-function redis(): IORedis | null {
+let _redis: RateLimitStore | null = null
+function redisStore(): RateLimitStore | null {
   if (_redis) return _redis
   if (!process.env.REDIS_URL) return null
   _redis = createRedisConnection(process.env.REDIS_URL)
   return _redis
 }
 
+/** 테스트·단일 프로세스용 인메모리 스토어. 시계를 주입해 윈도 만료를 결정적으로 검증한다. */
+export function memoryRateLimitStore(now: () => number = Date.now): RateLimitStore {
+  const entries = new Map<string, { n: number; expiresAt: number }>()
+  return {
+    async incr(key) {
+      const e = entries.get(key)
+      if (!e || e.expiresAt <= now()) {
+        entries.set(key, { n: 1, expiresAt: Number.POSITIVE_INFINITY })
+        return 1
+      }
+      e.n += 1
+      return e.n
+    },
+    async expire(key, seconds) {
+      const e = entries.get(key)
+      if (e) e.expiresAt = now() + seconds * 1000
+      return e ? 1 : 0
+    },
+    async ttl(key) {
+      const e = entries.get(key)
+      if (!e || e.expiresAt <= now()) return -2
+      if (e.expiresAt === Number.POSITIVE_INFINITY) return -1
+      return Math.ceil((e.expiresAt - now()) / 1000)
+    },
+  }
+}
+
 export async function rateLimit(
   key: string,
   limit: number,
   windowSec: number,
+  store: RateLimitStore | null = redisStore(),
 ): Promise<{ ok: boolean; retryAfter: number }> {
   try {
-    const r = redis()
-    if (!r) return { ok: true, retryAfter: 0 }
+    if (!store) return { ok: true, retryAfter: 0 }
     const k = `rl:${key}`
-    const n = await r.incr(k)
-    if (n === 1) await r.expire(k, windowSec)
+    const n = await store.incr(k)
+    if (n === 1) await store.expire(k, windowSec)
     if (n > limit) {
-      const ttl = await r.ttl(k)
+      const ttl = await store.ttl(k)
       return { ok: false, retryAfter: ttl > 0 ? ttl : windowSec }
     }
     return { ok: true, retryAfter: 0 }
