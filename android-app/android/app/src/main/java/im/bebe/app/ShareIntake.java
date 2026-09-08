@@ -7,10 +7,13 @@ import android.content.Intent;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.OpenableColumns;
+import android.util.Base64;
 import android.webkit.WebResourceResponse;
 import android.widget.Toast;
 import java.io.InputStream;
+import java.security.SecureRandom;
 import java.util.ArrayList;
+import java.util.Iterator;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import org.json.JSONArray;
@@ -23,12 +26,33 @@ import org.json.JSONObject;
  *
  * 크기 제한이 없다: 파일은 여기 맵에만 담고 메타데이터만 웹 훅에 주입하면, 웹이
  * {@code /__bebe_share/<id>} 로 fetch → WebViewClient 가 스트리밍으로 돌려준다.
+ *
+ * ⚠️ 이 경로는 **사용자의 사진 바이트를 페이지에 넘긴다**. 그래서 세 겹으로 좁힌다:
+ *   ① 요청 origin 이 공유 당시의 서버와 정확히 같아야 한다 (경로만 보면
+ *      allowNavigation:"*" 인 웹뷰에서 어느 페이지든 방금 공유한 사진을 읽을 수 있었다),
+ *   ② id 는 SecureRandom 32바이트 — 순번+uptimeMillis 는 추측 가능했다,
+ *   ③ 한 번 읽히면 즉시 버리고, 안 읽힌 것도 TTL 이 지나면 버린다.
  */
 final class ShareIntake {
 
     static final String PATH_PREFIX = "/__bebe_share/";
+    /** 웹이 훅을 붙이기까지 기다리는 시간(주입 스크립트가 25 × 300ms 재시도)보다 넉넉히. */
+    private static final long TTL_MS = 10 * 60 * 1000L;
 
-    private final Map<String, Uri> files = new ConcurrentHashMap<>();
+    private static final class Shared {
+        final Uri uri;
+        final long stagedAt;
+
+        Shared(Uri uri) {
+            this.uri = uri;
+            this.stagedAt = System.currentTimeMillis();
+        }
+    }
+
+    private final Map<String, Shared> files = new ConcurrentHashMap<>();
+    private final SecureRandom random = new SecureRandom();
+    /** 공유 당시의 서버 origin. 이 origin 의 페이지만 파일을 읽을 수 있다. */
+    private volatile String allowedOrigin = null;
 
     /**
      * 공유 인텐트를 스테이징하고, 웹에 주입할 스크립트를 돌려준다(넘길 게 없으면 null).
@@ -42,15 +66,17 @@ final class ShareIntake {
             return null;
         }
 
+        sweepExpired();
+        allowedOrigin = serverBase;
+
         final ContentResolver cr = activity.getContentResolver();
         final JSONArray meta = new JSONArray();
-        int i = 0;
         for (Uri u : uris) {
             try {
                 String mime = cr.getType(u);
                 if (mime == null) mime = "application/octet-stream";
-                final String id = (i++) + "-" + android.os.SystemClock.uptimeMillis();
-                files.put(id, u);
+                final String id = newId();
+                files.put(id, new Shared(u));
                 final JSONObject o = new JSONObject();
                 o.put("name", displayName(activity, u, mime));
                 o.put("type", mime);
@@ -88,20 +114,27 @@ final class ShareIntake {
 
     /**
      * {@code /__bebe_share/<id>} 요청을 공유받은 파일 스트림으로 응답한다(크기 무제한).
-     * 이 요청이 아니면 null — 호출부가 평소대로 넘긴다.
+     * 이 요청이 아니거나 허용된 origin 이 아니면 null — 호출부가 평소대로 넘긴다.
      */
     WebResourceResponse serve(Context ctx, Uri requestUri) {
         if (requestUri == null) return null;
         final String path = requestUri.getPath();
         if (path == null || !path.startsWith(PATH_PREFIX)) return null;
 
-        final Uri shared = files.get(path.substring(PATH_PREFIX.length()));
+        final String origin = allowedOrigin;
+        if (origin == null || !DeepLinks.sameOrigin(requestUri, DeepLinks.safeParse(origin))) {
+            NativeDiagnostics.warn("share", "foreign-origin", String.valueOf(requestUri.getHost()));
+            return null;
+        }
+
+        sweepExpired();
+        final Shared shared = files.remove(path.substring(PATH_PREFIX.length()));
         if (shared == null) return null;
         try {
             final ContentResolver cr = ctx.getContentResolver();
-            String mime = cr.getType(shared);
+            String mime = cr.getType(shared.uri);
             if (mime == null) mime = "application/octet-stream";
-            final InputStream in = cr.openInputStream(shared);
+            final InputStream in = cr.openInputStream(shared.uri);
             if (in == null) {
                 NativeDiagnostics.warn("share", "open-stream", "null stream");
                 return null;
@@ -110,6 +143,21 @@ final class ShareIntake {
         } catch (Exception e) {
             NativeDiagnostics.warn("share", "serve", e);
             return null;
+        }
+    }
+
+    private String newId() {
+        final byte[] bytes = new byte[32];
+        random.nextBytes(bytes);
+        return Base64.encodeToString(
+            bytes, Base64.URL_SAFE | Base64.NO_PADDING | Base64.NO_WRAP);
+    }
+
+    private void sweepExpired() {
+        final long cutoff = System.currentTimeMillis() - TTL_MS;
+        final Iterator<Map.Entry<String, Shared>> it = files.entrySet().iterator();
+        while (it.hasNext()) {
+            if (it.next().getValue().stagedAt < cutoff) it.remove();
         }
     }
 
@@ -126,7 +174,6 @@ final class ShareIntake {
         } catch (Exception e) {
             NativeDiagnostics.warn("share", "display-name", e);
         }
-        return "shared-" + android.os.SystemClock.uptimeMillis()
-            + (mime.startsWith("video/") ? ".mp4" : ".jpg");
+        return "shared-" + System.currentTimeMillis() + (mime.startsWith("video/") ? ".mp4" : ".jpg");
     }
 }

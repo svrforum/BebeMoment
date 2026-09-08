@@ -56,8 +56,9 @@ cd android && ./gradlew testDebugUnitTest   # -> app/build/reports/tests/testDeb
 JUnit + Robolectric, covering the pure logic that decides what the shell lets in:
 deep-link resolution and same-origin comparison (`DeepLinksTest`), the app-update
 URL check (`ApkUpdaterUrlTest`), `Content-Disposition` filename parsing
-(`DownloadsFilenameTest`), and the widget's date label / downsampling / canvas
-sizing (`WidgetRefreshWorkerTest`). Everything else — push delivery, widgets on a launcher, the
+(`DownloadsFilenameTest`), the widget's date label / downsampling / canvas sizing
+(`WidgetRefreshWorkerTest`), and the shared-photo intake's origin gate
+(`ShareIntakeTest`). Everything else — push delivery, widgets on a launcher, the
 Custom Tab handoff, installing an APK — can only be verified on a real phone.
 
 ## Release build & distribution
