@@ -1,4 +1,4 @@
-import { MILESTONE_PRESETS } from '@bebe/core'
+import { FEATURE_FLAGS, MILESTONE_PRESETS } from '@bebe/core'
 import { describe, expect, it } from 'vitest'
 import { formatAgeBucket, formatMemoryInterval, milestonePresetLabels } from './labels'
 import { getServerTranslator } from './translator'
@@ -9,6 +9,7 @@ const mem = {
   en: getServerTranslator('en', 'memories'),
 }
 const misc = { ko: getServerTranslator('ko', 'misc'), en: getServerTranslator('en', 'misc') }
+const admin = { ko: getServerTranslator('ko', 'admin'), en: getServerTranslator('en', 'admin') }
 
 describe('formatAgeBucket', () => {
   it('ko 는 기존 문구를 그대로 낸다 (core 에서 옮겨온 표기)', () => {
@@ -74,5 +75,22 @@ describe('milestonePresetLabels', () => {
   it('en 라벨에는 한글이 없다', () => {
     const labels = milestonePresetLabels(misc.en)
     for (const v of Object.values(labels)) expect(v).not.toMatch(/[가-힯]/)
+  })
+})
+
+// core 의 FEATURE_FLAG_LABELS 가 하던 검사 — 플래그를 추가하고 카탈로그를 잊으면 관리자
+// 화면에 키 경로가 그대로 뜬다.
+describe('기능 플래그 라벨', () => {
+  it('모든 플래그에 ko·en label·description 이 있다', () => {
+    for (const locale of ['ko', 'en'] as const) {
+      for (const flag of FEATURE_FLAGS) {
+        for (const field of ['label', 'description'] as const) {
+          const key = `features.flags.${flag}.${field}`
+          const value = admin[locale](key)
+          expect(value).toBeTruthy()
+          expect(value).not.toContain('features.flags.')
+        }
+      }
+    }
   })
 })
