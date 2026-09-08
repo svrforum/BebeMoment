@@ -10,15 +10,7 @@ import type { AssetEvent } from '@bebe/core'
 import { ArrowUp, FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import {
-  type CSSProperties,
-  useCallback,
-  useEffect,
-  useLayoutEffect,
-  useMemo,
-  useRef,
-  useState,
-} from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { TapModifiers } from './asset-card'
 import { BucketSection } from './bucket-section'
 import { type BucketGroup, estimateSectionHeight, mergeGroups, reconcileHead } from './groups'
@@ -406,17 +398,15 @@ export function TimelineGrid({
           // hover ring 을 잘라내지 않게 낸 자리 — 레이아웃 위치는 그대로다.
           <div
             key={g.dateKey}
-            style={
-              {
-                contentVisibility: 'auto',
-                containIntrinsicSize: `auto ${estimateSectionHeight({
-                  assetCount: g.assets.length,
-                  storyCount: g.stories?.length ?? 0,
-                })}px`,
-                paddingInline: '8px',
-                marginInline: '-8px',
-              } as CSSProperties
-            }
+            style={{
+              contentVisibility: 'auto',
+              containIntrinsicSize: `auto ${estimateSectionHeight({
+                assetCount: g.assets.length,
+                storyCount: g.stories?.length ?? 0,
+              })}px`,
+              paddingInline: '8px',
+              marginInline: '-8px',
+            }}
           >
             {showDivider && i === boundaryIndex && (
               <div className="my-6 flex items-center gap-3 px-1">
