@@ -1,4 +1,4 @@
-import IORedis, { type RedisOptions } from 'ioredis'
+import IORedis from 'ioredis'
 
 function resolveUrl(url?: string): string {
   return url ?? process.env.REDIS_URL ?? 'redis://localhost:6379'
@@ -9,8 +9,12 @@ function resolveUrl(url?: string): string {
  *
  * maxRetriesPerRequest=null: BullMQ 워커의 요구사항(블로킹 명령이 재시도 상한에 걸려 워커가
  * 죽지 않게). 재연결 중 명령을 버리지 않는 성질이라 publish 쪽에도 그대로 맞다.
+ *
+ * 반환 타입을 `RedisOptions` 로 넓히지 말 것 — ioredis 6 의 생성자는 `replyMapping` 으로
+ * 응답 타입을 추론하는데, 넓은 옵션 타입을 넘기면 exactOptionalPropertyTypes 아래서
+ * `replyMapping?: undefined` 가 걸려 어떤 오버로드에도 안 맞는다.
  */
-function redisOptions(): RedisOptions {
+function redisOptions() {
   return { maxRetriesPerRequest: null }
 }
 
