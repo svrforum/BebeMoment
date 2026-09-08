@@ -1597,6 +1597,7 @@
   "errors": {
     "unauthorized": "로그인이 필요해요",
     "noFamily": "현재 가족이 없어요",
+    "tooManyRequests": "시도가 너무 많아요. 잠시 후 다시 시도해주세요.",
     "forbidden": "권한이 없어요",
     "badRequest": "요청을 처리할 수 없어요",
     "notFound": "찾을 수 없어요",

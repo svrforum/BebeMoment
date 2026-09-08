@@ -1,5 +1,7 @@
+import { errorJsonKey } from '@/lib/error-response'
 import { createRedisConnection } from '@bebe/queue'
 import type IORedis from 'ioredis'
+import type { NextResponse } from 'next/server'
 
 // 인증 엔드포인트(로그인·가입·비번재설정·앱핸드오프) 무차별 대입 방어용 고정-윈도우
 // 레이트리밋. 공유 Redis(@bebe/queue) 사용. Redis 장애 시 fail-open(허용)해서 로그인이
@@ -54,10 +56,7 @@ export function clientIp(req: Request): string {
   return 'unknown'
 }
 
-/** 초과 시 표준 429 응답(Retry-After 헤더 + 한국어 메시지). */
-export function tooManyRequests(retryAfter: number): Response {
-  return new Response(JSON.stringify({ error: '시도가 너무 많아요. 잠시 후 다시 시도해주세요.' }), {
-    status: 429,
-    headers: { 'content-type': 'application/json', 'retry-after': String(retryAfter) },
-  })
+/** 초과 시 표준 429 응답(Retry-After 헤더) — 다른 API 에러처럼 로그·번역을 지난다. */
+export function tooManyRequests(retryAfter: number): Promise<NextResponse> {
+  return errorJsonKey('tooManyRequests', 429, { headers: { 'retry-after': String(retryAfter) } })
 }

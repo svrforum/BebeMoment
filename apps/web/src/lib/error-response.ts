@@ -39,11 +39,21 @@ export async function errorJson(e: unknown): Promise<NextResponse> {
   return NextResponse.json({ error: text }, { status })
 }
 
-/** 인라인 경계 에러(서비스 throw 가 아닌 라우트 자체 검증)용 — 키로 직접 응답. */
-export async function errorJsonKey(key: string, status: number): Promise<NextResponse> {
+/**
+ * 인라인 경계 에러(서비스 throw 가 아닌 라우트 자체 검증)용 — 키로 직접 응답.
+ * `headers` 는 429 의 `retry-after` 처럼 상태와 함께 가야 하는 응답 헤더.
+ */
+export async function errorJsonKey(
+  key: string,
+  status: number,
+  opts: { headers?: Record<string, string> } = {},
+): Promise<NextResponse> {
   const t = await getTranslations('errors')
   await logError(status, key)
-  return NextResponse.json({ error: t.has(key) ? t(key) : key }, { status })
+  return NextResponse.json(
+    { error: t.has(key) ? t(key) : key },
+    { status, ...(opts.headers ? { headers: opts.headers } : {}) },
+  )
 }
 
 /**

@@ -1597,6 +1597,7 @@
   "errors": {
     "unauthorized": "Sign in required",
     "noFamily": "No family selected",
+    "tooManyRequests": "Too many attempts. Please try again in a moment.",
     "forbidden": "You don't have permission",
     "badRequest": "Couldn't process the request",
     "notFound": "Not found",

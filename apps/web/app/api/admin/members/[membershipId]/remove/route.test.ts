@@ -123,11 +123,13 @@ describe('POST /api/admin/members/[membershipId]/remove', () => {
     state.auth = { user: member, currentFamilyId: family.id }
     const res = await post(membership.id, { confirm: true })
     expect(res.status).toBe(403)
+    expect(await res.json()).toEqual({ error: 'forbidden' })
   })
 
   it('returns 401 without a session', async () => {
     const { membership } = await setup()
     const res = await post(membership.id, { confirm: true })
     expect(res.status).toBe(401)
+    expect(await res.json()).toEqual({ error: 'unauthorized' })
   })
 })
