@@ -77,11 +77,22 @@ export type GetAssetUrlsResponse = z.infer<typeof getAssetUrlsResponse>
 // 잘라 보내므로 호출부는 개수를 신경 쓰지 않는다.
 export const BATCH_URLS_MAX_IDS = 200
 
+// 한 자산의 서명 URL 묶음은 원본 1 + 티어 3종 × 포맷 3 + 영상 2 로 최대 12개다. 그리드는
+// 그중 썸네일 2티어(+영상 포스터)만 그리는데, 나머지를 서명·직렬화하는 값이 그대로
+// 응답에 실렸다(100장 페이지 = ~1000 HS256 서명). 호출부가 필요한 티어만 지정하면
+// 나머지는 서명하지 않고 `null` 로 내려간다 — 응답 **형상은 그대로**라 기존 소비자는
+// 무수정이다. 생략하면 지금까지처럼 전 티어.
+export const ALL_ASSET_URL_TIERS = ['thumb', 'display', 'original', 'video'] as const
+export type AssetUrlTier = (typeof ALL_ASSET_URL_TIERS)[number]
+
 export const batchUrlsRequest = z.object({
   familyId: z.string().uuid(),
   assetIds: z.array(z.string().uuid()).max(BATCH_URLS_MAX_IDS),
   // Trash view needs URLs for soft-deleted assets; default keeps them excluded.
   includeDeleted: z.boolean().optional(),
+  // thumb = thumb256 + thumb512(그리드 srcset), display = display1080,
+  // original = 원본, video = 포스터 + 호환 재생본. 생략 = 전부.
+  tiers: z.array(z.enum(ALL_ASSET_URL_TIERS)).nonempty().optional(),
 })
 export type BatchUrlsRequest = z.infer<typeof batchUrlsRequest>
 

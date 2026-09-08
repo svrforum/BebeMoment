@@ -167,10 +167,12 @@ describe('getAssetUrlsBatch 청킹', () => {
 
   function batchServer(opts: { delayMs?: number } = {}) {
     const requests: string[][] = []
+    const bodies: Record<string, unknown>[] = []
     let inflight = 0
     let maxInflight = 0
     const fetchSpy = vi.fn(async (_url: string, init?: RequestInit) => {
       const body = JSON.parse(String(init?.body)) as { assetIds: string[] }
+      bodies.push(body as Record<string, unknown>)
       requests.push(body.assetIds)
       inflight += 1
       maxInflight = Math.max(maxInflight, inflight)
@@ -189,7 +191,7 @@ describe('getAssetUrlsBatch 청킹', () => {
       serviceToken: 's',
       fetch: fetchSpy,
     })
-    return { client, requests, maxInflight: () => maxInflight }
+    return { client, requests, bodies, maxInflight: () => maxInflight }
   }
 
   // 서버 스키마가 200개로 자르는데 호출부는 500개(뷰어 이웃·인물)나 무제한(추억·날짜
@@ -209,6 +211,20 @@ describe('getAssetUrlsBatch 청킹', () => {
     await client.getAssetUrlsBatch(familyId, ids)
     expect(requests).toHaveLength(9)
     expect(maxInflight()).toBe(4)
+  })
+
+  test('tiers 를 주면 모든 청크의 본문에 그대로 실린다', async () => {
+    const ids = Array.from({ length: 250 }, (_, i) => uuidAt(i))
+    const { client, bodies } = batchServer()
+    await client.getAssetUrlsBatch(familyId, ids, { tiers: ['thumb', 'video'] })
+    expect(bodies).toHaveLength(2)
+    for (const b of bodies) expect(b.tiers).toEqual(['thumb', 'video'])
+  })
+
+  test('tiers 를 안 주면 본문에 tiers 키가 없다 — 서버 기본(전 티어) 유지', async () => {
+    const { client, bodies } = batchServer()
+    await client.getAssetUrlsBatch(familyId, [uuidAt(1)])
+    expect(bodies[0]).not.toHaveProperty('tiers')
   })
 
   test('중복 id 는 한 번만 묻고, 빈 목록은 요청하지 않는다', async () => {

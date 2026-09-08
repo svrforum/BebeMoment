@@ -1,5 +1,6 @@
 import {
   type AssetUrls,
+  type AssetUrlTier,
   BATCH_URLS_MAX_IDS,
   type HealthResponse,
   type InitAssetRequest,
@@ -22,6 +23,12 @@ import {
 
 export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 
+export type BatchUrlsOptions = {
+  includeDeleted?: boolean
+  /** 필요한 티어만. 생략하면 전 티어(기존 동작). 지정한 티어 외에는 서명되지 않고 null. */
+  tiers?: AssetUrlTier[]
+}
+
 export type MediaClientConfig = {
   baseUrl: string
   serviceToken: string
@@ -34,7 +41,7 @@ export interface MediaClient {
   getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
-    opts?: { includeDeleted?: boolean },
+    opts?: BatchUrlsOptions,
   ): Promise<Record<string, AssetUrls>>
   setBabyTags(assetId: string, input: SetBabyTagsRequest): Promise<void>
   updateAssetMetadata(
@@ -155,7 +162,7 @@ export class HttpMediaClient implements MediaClient {
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
-    opts?: { includeDeleted?: boolean },
+    opts?: BatchUrlsOptions,
   ): Promise<Record<string, AssetUrls>> {
     const ids = Array.from(new Set(assetIds))
     if (ids.length === 0) return {}
@@ -172,6 +179,7 @@ export class HttpMediaClient implements MediaClient {
             familyId,
             assetIds: chunk,
             includeDeleted: opts?.includeDeleted,
+            ...(opts?.tiers ? { tiers: opts.tiers } : {}),
           }),
         },
         (b) => batchUrlsResponse.parse(b).urls,

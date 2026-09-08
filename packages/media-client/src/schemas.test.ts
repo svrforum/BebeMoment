@@ -1,5 +1,6 @@
 import { describe, expect, test } from 'vitest'
 import {
+  ALL_ASSET_URL_TIERS,
   VERSION,
   assetUrls,
   batchUrlsRequest,
@@ -96,6 +97,33 @@ describe('media-client schemas', () => {
     expect(() =>
       batchUrlsRequest.parse({ familyId: '22222222-2222-2222-2222-222222222222', assetIds: ids }),
     ).toThrow()
+  })
+
+  test('batchUrlsRequest tiers defaults to undefined = every tier', () => {
+    const parsed = batchUrlsRequest.parse({
+      familyId: '22222222-2222-2222-2222-222222222222',
+      assetIds: ['11111111-1111-1111-1111-111111111111'],
+    })
+    expect(parsed.tiers).toBeUndefined()
+    expect(ALL_ASSET_URL_TIERS).toEqual(['thumb', 'display', 'original', 'video'])
+  })
+
+  test('batchUrlsRequest accepts a tier subset', () => {
+    const parsed = batchUrlsRequest.parse({
+      familyId: '22222222-2222-2222-2222-222222222222',
+      assetIds: ['11111111-1111-1111-1111-111111111111'],
+      tiers: ['thumb', 'video'],
+    })
+    expect(parsed.tiers).toEqual(['thumb', 'video'])
+  })
+
+  test('batchUrlsRequest rejects an unknown tier and an empty tier list', () => {
+    const base = {
+      familyId: '22222222-2222-2222-2222-222222222222',
+      assetIds: ['11111111-1111-1111-1111-111111111111'],
+    }
+    expect(() => batchUrlsRequest.parse({ ...base, tiers: ['thumb512'] })).toThrow()
+    expect(() => batchUrlsRequest.parse({ ...base, tiers: [] })).toThrow()
   })
 
   test('batchUrlsResponse wraps map of asset urls', () => {
