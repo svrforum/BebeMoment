@@ -3,7 +3,7 @@ import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { type MemoryInterval, intervalLabel, intervalMonths, memoryInterval } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
-import type { MediaClient } from '@bebe/media-client'
+import type { AssetUrls, MediaClient } from '@bebe/media-client'
 
 export type MemoryStory = Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
 
@@ -16,17 +16,44 @@ export type MemoryGroup = {
 
 type ViewerRole = 'owner' | 'guardian' | 'family'
 
+type MemoryArgs = {
+  familyId: string
+  today: Date
+  viewerRole: ViewerRole
+  /** 그룹당 앞에서 N장만 signed URL 을 받는다(나머지는 `urls: null`). 타임라인 카드는 4장,
+   *  위젯은 10장만 그리므로 후보 전부를 서명하면 낭비다. 생략 시 전부(추억 페이지). 제한
+   *  모드에선 스토리 사진도 서명하지 않는다(카드·위젯이 안 씀). */
+  signLimit?: number
+}
+
+type DayWindow = { gte: Date; lt: Date }
+
 /**
- * 오늘과 "같은 일(日)이면서 정확히 N개월/N년 전"인 사진·스토리를 간격별로 묶어 반환한다.
- * 날짜 기준은 UTC(takenAt = wall-clock-as-UTC, 타임라인과 정합). 1차로 같은 일(日)·과거를
- * raw 로 좁히고, `memoryInterval` 로 whole-month 만 정밀 필터한다. 정렬은 먼 과거(큰 간격)
- * 먼저 — "1년 전 오늘"이 "6개월 전 오늘" 위에.
+ * `today` 와 같은 일(日)인 과거 달들의 UTC 하루 창. `memoryInterval` 이 추억으로 치는
+ * 날짜(같은 일·정수 달 전)를 그대로 열거하므로 `EXTRACT(DAY)` 풀스캔 대신 (family_id,
+ * taken_at) 인덱스 range 로 조회할 수 있다. 그 일이 없는 달(31일·윤일)은 창을 만들지
+ * 않고, `earliest` 가 속한 달까지 보고 멈춘다.
  */
+export function memoryDayWindows(today: Date, earliest: Date): DayWindow[] {
+  const y = today.getUTCFullYear()
+  const m = today.getUTCMonth()
+  const d = today.getUTCDate()
+  const out: DayWindow[] = []
+  for (let k = 1; Date.UTC(y, m - k + 1, 1) > earliest.getTime(); k += 1) {
+    const start = new Date(Date.UTC(y, m - k, d))
+    if (start.getUTCDate() !== d) continue
+    out.push({ gte: start, lt: new Date(Date.UTC(y, m - k, d + 1)) })
+  }
+  return out
+}
+
+type AssetRow = Awaited<ReturnType<PrismaMedia['asset']['findMany']>>[number]
+
 type CollectedMemoryData = {
   today: Date
-  assets: Awaited<ReturnType<PrismaMedia['asset']['findMany']>>
+  assets: AssetRow[]
   stories: (Story & { assets: StoryAsset[] })[]
-  storyAssetById: Map<string, Awaited<ReturnType<PrismaMedia['asset']['findMany']>>[number]>
+  storyAssetById: Map<string, AssetRow>
 }
 
 async function collectMemoryData(
@@ -35,41 +62,47 @@ async function collectMemoryData(
   prismaPublic: PrismaPublic,
 ): Promise<CollectedMemoryData> {
   const { familyId, today, viewerRole } = args
-  const day = today.getUTCDate()
-  const todayStr = today.toISOString().slice(0, 10)
+  const liveAsset = { familyId, deletedAt: null, status: 'ready' as const, duplicateOf: null }
+  const visibleStory = {
+    familyId,
+    deletedAt: null,
+    ...(viewerRole === 'family' ? { visibility: 'family' as const } : {}),
+  }
 
   // 비밀 스토리(guardians) 사진은 family 에게 단독 사진·스토리 썸네일 모두에서 숨긴다.
-  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
+  const [hiddenIds, earliestAsset, earliestStory] = await Promise.all([
+    hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId),
+    prismaMedia.asset.findFirst({
+      where: liveAsset,
+      orderBy: { takenAt: 'asc' },
+      select: { takenAt: true },
+    }),
+    prismaPublic.story.findFirst({
+      where: visibleStory,
+      orderBy: { entryDate: 'asc' },
+      select: { entryDate: true },
+    }),
+  ])
+  const hidden = new Set(hiddenIds)
 
-  const assetIdRows = await prismaMedia.$queryRaw<{ id: string }[]>`
-    SELECT id FROM media.assets
-    WHERE family_id = ${familyId}::uuid
-      AND deleted_at IS NULL AND status = 'ready' AND duplicate_of IS NULL
-      AND EXTRACT(DAY FROM taken_at) = ${day}::int
-      AND taken_at::date < ${todayStr}::date
-  `
-  const assetIds = assetIdRows.map((r) => r.id).filter((id) => !hidden.has(id))
-  const assets = assetIds.length
+  const assetWindows = earliestAsset ? memoryDayWindows(today, earliestAsset.takenAt) : []
+  const assets = assetWindows.length
     ? await prismaMedia.asset.findMany({
-        where: { id: { in: assetIds }, familyId, deletedAt: null },
+        where: {
+          ...liveAsset,
+          ...(hidden.size ? { id: { notIn: [...hidden] } } : {}),
+          OR: assetWindows.map((w) => ({ takenAt: w })),
+        },
+        orderBy: [{ takenAt: 'desc' }, { id: 'desc' }],
       })
     : []
 
-  const storyIdRows = await prismaPublic.$queryRaw<{ id: string }[]>`
-    SELECT id FROM stories
-    WHERE family_id = ${familyId}::uuid AND deleted_at IS NULL
-      AND EXTRACT(DAY FROM entry_date) = ${day}::int
-      AND entry_date::date < ${todayStr}::date
-  `
-  const storyIds = storyIdRows.map((r) => r.id)
-  const stories = storyIds.length
+  const storyWindows = earliestStory ? memoryDayWindows(today, earliestStory.entryDate) : []
+  const stories = storyWindows.length
     ? await prismaPublic.story.findMany({
-        where: {
-          id: { in: storyIds },
-          familyId,
-          ...(viewerRole === 'family' ? { visibility: 'family' } : {}),
-        },
+        where: { ...visibleStory, OR: storyWindows.map((w) => ({ entryDate: w })) },
         include: { assets: { orderBy: { order: 'asc' } } },
+        orderBy: [{ entryDate: 'desc' }, { id: 'desc' }],
       })
     : []
 
@@ -86,10 +119,7 @@ async function collectMemoryData(
   return { today, assets, stories, storyAssetById }
 }
 
-function buildMemoryGroups(
-  data: CollectedMemoryData,
-  urls: Record<string, AssetWithUrls['urls']>,
-): MemoryGroup[] {
+function buildMemoryGroups(data: CollectedMemoryData): MemoryGroup[] {
   const { today, assets, stories, storyAssetById } = data
   const groups = new Map<string, MemoryGroup>()
   const ensure = (iv: MemoryInterval): MemoryGroup => {
@@ -105,7 +135,7 @@ function buildMemoryGroups(
   for (const a of assets) {
     const iv = memoryInterval(today, a.takenAt)
     if (!iv) continue
-    ensure(iv).assets.push({ ...a, urls: urls[a.id] ?? null })
+    ensure(iv).assets.push({ ...a, urls: null })
   }
 
   for (const s of stories) {
@@ -115,10 +145,7 @@ function buildMemoryGroups(
       ...s,
       assets: s.assets.map((ea) => {
         const base = storyAssetById.get(ea.assetId) ?? null
-        const asset: AssetWithUrls | null = base
-          ? { ...base, urls: base.status === 'ready' ? (urls[base.id] ?? null) : null }
-          : null
-        return { ...ea, asset }
+        return { ...ea, asset: base ? { ...base, urls: null } : null }
       }),
     }
     ensure(iv).stories.push(withAssets)
@@ -129,23 +156,46 @@ function buildMemoryGroups(
   )
 }
 
+function signTargets(groups: MemoryGroup[], signLimit: number | undefined): string[] {
+  const ids = new Set<string>()
+  for (const g of groups) {
+    for (const a of g.assets.slice(0, signLimit ?? g.assets.length)) ids.add(a.id)
+    if (signLimit !== undefined) continue
+    for (const s of g.stories) {
+      for (const ea of s.assets) if (ea.asset?.status === 'ready') ids.add(ea.asset.id)
+    }
+  }
+  return [...ids]
+}
+
+function attachUrls(groups: MemoryGroup[], urls: Record<string, AssetUrls>): MemoryGroup[] {
+  const withUrls = (a: AssetWithUrls): AssetWithUrls => ({ ...a, urls: urls[a.id] ?? null })
+  return groups.map((g) => ({
+    ...g,
+    assets: g.assets.map(withUrls),
+    stories: g.stories.map((s) => ({
+      ...s,
+      assets: s.assets.map((ea) => ({ ...ea, asset: ea.asset ? withUrls(ea.asset) : null })),
+    })),
+  }))
+}
+
+/**
+ * 오늘과 "같은 일(日)이면서 정확히 N개월/N년 전"인 사진·스토리를 간격별로 묶어 반환한다.
+ * 날짜 기준은 UTC(takenAt = wall-clock-as-UTC, 타임라인과 정합). 후보 날짜 창을 JS 에서
+ * 열거해(`memoryDayWindows`) 인덱스 range 로 읽고, `memoryInterval` 로 whole-month 만 정밀
+ * 필터한다. 정렬은 먼 과거(큰 간격) 먼저 — "1년 전 오늘"이 "6개월 전 오늘" 위에.
+ */
 export async function listMemories(
-  args: { familyId: string; today: Date; viewerRole: ViewerRole },
+  args: MemoryArgs,
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
   media: MediaClient,
 ): Promise<MemoryGroup[]> {
-  const data = await collectMemoryData(args, prismaMedia, prismaPublic)
-  const allUrlIds = Array.from(
-    new Set<string>([
-      ...data.assets.map((a) => a.id),
-      ...Array.from(data.storyAssetById.values())
-        .filter((a) => a.status === 'ready')
-        .map((a) => a.id),
-    ]),
-  )
-  const urls = allUrlIds.length ? await media.getAssetUrlsBatch(args.familyId, allUrlIds) : {}
-  return buildMemoryGroups(data, urls)
+  const groups = buildMemoryGroups(await collectMemoryData(args, prismaMedia, prismaPublic))
+  const ids = signTargets(groups, args.signLimit)
+  const urls = ids.length ? await media.getAssetUrlsBatch(args.familyId, ids) : {}
+  return attachUrls(groups, urls)
 }
 
 /**
@@ -157,40 +207,5 @@ export async function listMemoryGroupsForCount(
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
 ): Promise<MemoryGroup[]> {
-  const data = await collectMemoryData(args, prismaMedia, prismaPublic)
-  return buildMemoryGroups(data, {})
-}
-
-/**
- * 오늘의 추억 개수(사진+스토리)만 빠르게 — 진입점 뱃지·카드 노출 판단용. 미디어 URL
- * 조회를 안 해 가볍다. 같은 일(日)·과거 후보는 항상 whole-month 추억이므로 raw count
- * 만으로 정확하다(memoryInterval 필터가 후보를 떨구지 않음).
- */
-export async function countMemories(
-  args: { familyId: string; today: Date; viewerRole: ViewerRole },
-  prismaMedia: PrismaMedia,
-  prismaPublic: PrismaPublic,
-): Promise<number> {
-  const { familyId, today, viewerRole } = args
-  const day = today.getUTCDate()
-  const todayStr = today.toISOString().slice(0, 10)
-
-  // 비밀 스토리 사진은 family 카운트에서 제외 — 후보 id 를 받아 hidden 을 떨군 뒤 센다.
-  const hidden = new Set(await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId))
-  const assetIdRows = await prismaMedia.$queryRaw<{ id: string }[]>`
-    SELECT id FROM media.assets
-    WHERE family_id = ${familyId}::uuid
-      AND deleted_at IS NULL AND status = 'ready' AND duplicate_of IS NULL
-      AND EXTRACT(DAY FROM taken_at) = ${day}::int
-      AND taken_at::date < ${todayStr}::date
-  `
-  const assetCount = assetIdRows.filter((r) => !hidden.has(r.id)).length
-  const storyRows = await prismaPublic.$queryRaw<{ c: number }[]>`
-    SELECT count(*)::int AS c FROM stories
-    WHERE family_id = ${familyId}::uuid AND deleted_at IS NULL
-      AND EXTRACT(DAY FROM entry_date) = ${day}::int
-      AND entry_date::date < ${todayStr}::date
-      AND (visibility = 'family' OR ${viewerRole}::text <> 'family')
-  `
-  return assetCount + (storyRows[0]?.c ?? 0)
+  return buildMemoryGroups(await collectMemoryData(args, prismaMedia, prismaPublic))
 }

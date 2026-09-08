@@ -33,8 +33,9 @@ export async function resolveNeighborIds(
   const LIMIT = 500
   try {
     if (kind === 'memories') {
+      // id 순서만 필요하다 — signed URL 은 받지 않는다.
       const groups = await listMemories(
-        { familyId: v.familyId, today: new Date(), viewerRole: v.viewerRole },
+        { familyId: v.familyId, today: new Date(), viewerRole: v.viewerRole, signLimit: 0 },
         prismaMedia,
         prismaPublic,
         media,
