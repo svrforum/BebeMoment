@@ -4,8 +4,8 @@ import { z } from 'zod'
 const NameSchema = z
   .string()
   .trim()
-  .min(1, '가족 이름을 입력해주세요')
-  .max(80, '이름이 너무 길어요')
+  .min(1, 'errors.family.nameRequired')
+  .max(80, 'errors.family.nameTooLong')
 
 /** 가족 이름 변경. Family 는 자체 id 가 anchor 라 tenant 미들웨어가 where.id 를 허용한다. */
 export async function renameFamily(

@@ -1,9 +1,10 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
 import { deleteSubscription, saveSubscription } from '@/server/notifications/subscriptions'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 // 푸시 엔드포인트는 https URL(브라우저 push service)만 허용하고 길이를 캡한다 —
 // 임의 문자열/거대 페이로드 저장(행 비대·blind SSRF 표면)을 막는다. register-device 의
@@ -11,17 +12,17 @@ import { z } from 'zod'
 const subscribeSchema = z.object({
   endpoint: z
     .string()
-    .url('올바른 엔드포인트가 필요합니다')
+    .url('errors.notif.endpointInvalid')
     .max(2048)
-    .startsWith('https://', 'https 엔드포인트만 허용됩니다'),
+    .startsWith('https://', 'errors.notif.endpointHttpsOnly'),
   keys: z.object({
-    p256dh: z.string().min(1, 'p256dh 키가 필요합니다').max(256),
-    auth: z.string().min(1, 'auth 키가 필요합니다').max(256),
+    p256dh: z.string().min(1, 'errors.notif.p256dhRequired').max(256),
+    auth: z.string().min(1, 'errors.notif.authKeyRequired').max(256),
   }),
 })
 
 const unsubscribeSchema = z.object({
-  endpoint: z.string().min(1, '엔드포인트가 필요합니다').max(2048),
+  endpoint: z.string().min(1, 'errors.notif.endpointRequired').max(2048),
 })
 
 export async function POST(req: Request) {
@@ -41,6 +42,9 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ ok: true })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }
@@ -53,6 +57,9 @@ export async function DELETE(req: Request) {
     await deleteSubscription({ userId: session.userId, endpoint: body.endpoint }, prismaPublic)
     return NextResponse.json({ ok: true })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }

@@ -1,3 +1,4 @@
+import { errorKeyFromIssue } from '@/i18n/error-key'
 import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
@@ -7,7 +8,7 @@ import { isShareTtl } from '@/server/share/token'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
-import { z } from 'zod'
+import { ZodError, z } from 'zod'
 
 type CtxError = { errorKey: string; status: number }
 async function getCtx(): Promise<CtxError | { ctx: Awaited<ReturnType<typeof resolveContext>> }> {
@@ -31,14 +32,14 @@ const createSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
-    ttl: z.string().refine(isShareTtl, '유효하지 않은 기간'),
+    ttl: z.string().refine(isShareTtl, 'errors.share.ttlInvalid'),
   })
   .refine(
     (b) =>
       [b.storyId, b.assetId, b.albumId, b.assetIds?.length ? b.assetIds : null, b.date].filter(
         Boolean,
       ).length === 1,
-    '공유 대상은 하나만',
+    'errors.share.targetOnlyOne',
   )
 
 function targetFromQuery(url: URL): ShareTarget | null {
@@ -100,6 +101,9 @@ export async function POST(req: Request) {
     )
     return NextResponse.json({ token, expiresAt })
   } catch (e) {
+    if (e instanceof ZodError) {
+      return await errorJsonKey(errorKeyFromIssue(e.issues[0]?.message), 400)
+    }
     return errorJson(e)
   }
 }
