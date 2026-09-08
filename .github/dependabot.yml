@@ -55,3 +55,15 @@ updates:
       - dependency-name: python
         update-types:
           ["version-update:semver-major", "version-update:semver-minor"]
+
+  # Python packages of the ML sidecar (apps/ml/requirements.txt) — the only
+  # dependency file Dependabot was not watching.
+  - package-ecosystem: pip
+    directory: /apps/ml
+    schedule:
+      interval: weekly
+    ignore:
+      # Same reason as the Python pin above: numpy 2.x needs a deliberate
+      # insightface migration, not a weekly bump.
+      - dependency-name: numpy
+        update-types: ["version-update:semver-major"]

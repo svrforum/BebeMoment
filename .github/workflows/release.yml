@@ -22,6 +22,7 @@ env:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -57,6 +58,7 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm check:lines
+      - run: scripts/check-compose-doc-env.sh
       - run: pnpm -r --filter '!@bebe/e2e' test
 
   # verify 와 **동시에** 출발한다 — 이미지 빌드가 테스트를 기다리느라 릴리즈 전체가
@@ -65,6 +67,7 @@ jobs:
   # 설치자에게 노출될 일이 없다. 태그는 verify 통과 후 publish 잡이 붙인다.
   build:
     runs-on: ubuntu-latest
+    timeout-minutes: 40
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
@@ -103,6 +106,7 @@ jobs:
   # 얼굴 인식 ML 사이드카(옵트인). app 과 별개 이미지로 발행 — faces 켠 인스턴스만 pull.
   ml:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
     outputs:
       digest: ${{ steps.build.outputs.digest }}
     steps:
@@ -132,16 +136,90 @@ jobs:
           provenance: true
           sbom: true
 
+  # 빌드된 바로 그 다이제스트를 실제로 부팅해 본다 — 테스트·빌드가 다 초록이어도 엔트리포인트·
+  # 마이그레이션·프로세스 기동·graceful stop 은 컨테이너 안에서만 드러난다(pnpm 이 첫 부팅에
+  # 자기를 내려받던 것, SIGTERM 이 서버에 안 닿던 것 모두 그랬다).
+  smoke:
+    needs: [build]
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    env:
+      IMAGE: ${{ env.APP_IMAGE }}@${{ needs.build.outputs.digest }}
+    steps:
+      - uses: docker/login-action@v4
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+      - name: start postgres + valkey + app
+        run: |
+          set -euo pipefail
+          docker network create smoke
+          docker run -d --name smoke-pg --network smoke \
+            -e POSTGRES_DB=bebe -e POSTGRES_USER=bebe -e POSTGRES_PASSWORD=bebe \
+            pgvector/pgvector:pg17
+          docker run -d --name smoke-valkey --network smoke valkey/valkey:9-alpine
+          for _ in $(seq 1 30); do
+            docker exec smoke-pg pg_isready -U bebe >/dev/null 2>&1 && break
+            sleep 1
+          done
+          SECRET_KEY="$(openssl rand -hex 32)"
+          MEDIA_SERVICE_TOKEN="$(openssl rand -hex 24)"
+          MEDIA_JWT_SECRET="$(openssl rand -hex 24)"
+          docker run -d --name smoke-app --network smoke -p 3000:3000 \
+            -e DATABASE_URL=postgres://bebe:bebe@smoke-pg:5432/bebe \
+            -e REDIS_URL=redis://smoke-valkey:6379 \
+            -e SECRET_KEY="$SECRET_KEY" \
+            -e MEDIA_SERVICE_TOKEN="$MEDIA_SERVICE_TOKEN" \
+            -e MEDIA_JWT_SECRET="$MEDIA_JWT_SECRET" \
+            -e PUBLIC_URL=http://localhost:3000 \
+            -e MEDIA_INTERNAL_URL=http://localhost:3001 \
+            "$IMAGE"
+      - name: wait for health, then check the pages the healthcheck does not cover
+        run: |
+          set -euo pipefail
+          ok=""
+          for _ in $(seq 1 120); do
+            if curl -fsS http://localhost:3000/api/health >/dev/null 2>&1; then ok=1; break; fi
+            if [ "$(docker inspect -f '{{.State.Running}}' smoke-app)" != "true" ]; then
+              echo "app container exited during startup" >&2; break
+            fi
+            sleep 1
+          done
+          [ -n "$ok" ] || { echo "::error::/api/health not 200 within 120s"; exit 1; }
+          curl -fsS 'http://localhost:3000/api/health?deep=1'
+          curl -fsS http://localhost:3000/media/v1/health >/dev/null
+          # 빈 인스턴스에선 /login 이 첫 가입(/signup)으로 307 리다이렉트한다 — 따라가서 실제
+          # 페이지가 렌더링되는지(200 + 5KB 이상) 본다.
+          out="$(curl -fsSL -o /dev/null -w '%{size_download} %{http_code} %{url_effective}' http://localhost:3000/login)"
+          echo "/login -> ${out}"
+          size="${out%% *}"; rest="${out#* }"; code="${rest%% *}"
+          [ "$code" = "200" ] || { echo "::error::/login did not end in 200 (${out})"; exit 1; }
+          [ "$size" -gt 5120 ] || { echo "::error::/login body too small (${out})"; exit 1; }
+      - name: graceful stop reaches the servers
+        run: |
+          set -euo pipefail
+          docker stop -t 60 smoke-app
+          code="$(docker inspect -f '{{.State.ExitCode}}' smoke-app)"
+          echo "exit code: $code"
+          docker logs smoke-app 2>&1 | grep -q 'bebe-media shutting down' \
+            || { echo "::error::media never logged its shutdown — SIGTERM did not reach it"; exit 1; }
+          [ "$code" = "0" ] || { echo "::error::container exited $code on stop"; exit 1; }
+      - name: app logs
+        if: always()
+        run: docker logs smoke-app 2>&1 | tail -200
+
   # 안드로이드 APK 는 이 web 릴리즈(v* 태그)에서 빌드하지 않는다 — 앱은 별도 `android-v*`
   # 채널(로컬 서명 빌드 + gh release, 인앱 배너가 읽는 유일 채널)로만 배포한다. 과거엔 이
   # 잡이 v* 태그마다 semver 파생 versionCode(예: v0.0.54→54) APK 를 v* 릴리즈에 붙여,
   # android-v* 채널(versionCode 다른 산식)과 충돌 — CI APK 설치자가 android-v* 로 업데이트할
   # 때 다운그레이드 거부로 막다른 길이 됐다. 채널을 android-v* 하나로 단일화했다.
 
-  # 여기가 실제 게이트다 — verify 가 통과해야 비로소 태그가 붙어 설치자에게 보인다.
+  # 여기가 실제 게이트다 — verify·smoke 가 통과해야 비로소 태그가 붙어 설치자에게 보인다.
   publish:
-    needs: [verify, build, ml]
+    needs: [verify, build, ml, smoke]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: docker/login-action@v4
         with:
@@ -181,6 +259,7 @@ jobs:
     # (ref_name 이 브랜치명이라 'main' 이라는 릴리즈가 생겨버린다).
     if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: softprops/action-gh-release@v2
         with:

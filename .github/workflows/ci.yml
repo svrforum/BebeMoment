@@ -3,9 +3,15 @@ on:
   pull_request:
   push:
     branches: [main]
+# 같은 브랜치에 새 푸시가 오면 이전 실행을 취소한다 — 걸린 e2e 가 러너를 몇 시간씩 잡고
+# 있었다(2026-09-05, 5h54m). timeout-minutes 가 두 번째 안전망.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     services:
       postgres:
         image: pgvector/pgvector:pg17
@@ -41,6 +47,8 @@ jobs:
       - run: pnpm lint
       - run: pnpm typecheck
       - run: pnpm check:lines
+      # 시놀로지 문서의 compose 블록이 표준 compose 와 어긋나지 않는지(env 키·미디어 URL 폴백).
+      - run: scripts/check-compose-doc-env.sh
       - run: pnpm -r --filter '!@bebe/e2e' test
       # next build catches proxy.ts / next.config / CSP / route errors that lint
       # and typecheck miss — otherwise they only surface at release-tag time.
@@ -53,6 +61,7 @@ jobs:
   # 늘리지 않는다.
   e2e:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v4
       - uses: pnpm/action-setup@v6
