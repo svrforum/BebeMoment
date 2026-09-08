@@ -153,4 +153,10 @@ describe('POST /media/v1/download/mint — auto quality', () => {
     expect(payload.quality).toBe('original')
     expect(payload.mimeType).toBe('image/png')
   })
+
+  test('제거된 압축 품질(hd)은 더 이상 발급하지 않는다', async () => {
+    await createImage('image/jpeg', 'a.jpg')
+    const res = await mint('hd')
+    expect(res.statusCode).toBe(400)
+  })
 })

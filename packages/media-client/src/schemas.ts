@@ -125,7 +125,9 @@ export type UpdateAssetMetadataResponse = z.infer<typeof updateAssetMetadataResp
 export const mintDownloadRequest = z.object({
   familyId: z.string().uuid(),
   assetId: z.string().uuid(),
-  quality: z.enum(['auto', 'original', 'hd', 'sd']),
+  // auto = 기본 저장(폰에서 열리는 파일), original = 저장된 바이트 그대로. 압축
+  // 다운로드(hd/sd)는 제거됐다 — web 라우트가 옛 요청을 auto 로 접는다.
+  quality: z.enum(['auto', 'original']),
 })
 export type MintDownloadRequest = z.infer<typeof mintDownloadRequest>
 

@@ -3,11 +3,8 @@ import { prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
-import { getSetting } from '@/server/settings/get'
 import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
-import { z } from 'zod'
-
-const QUERY = z.object({ q: z.enum(['auto', 'original', 'hd', 'sd']).default('auto') })
+import { parseDownloadQuality } from './quality'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { session } = await getAuth()
@@ -19,7 +16,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
 
   const url = new URL(req.url)
-  const { q } = QUERY.parse(Object.fromEntries(url.searchParams))
+  const quality = parseDownloadQuality(url.searchParams.get('q'))
   const { id } = await params
 
   // family 역할은 비밀 스토리 사진을 다운로드(공유 저장 포함)할 수 없다 — 다른 노출
@@ -29,14 +26,6 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     (await isAssetHiddenFromViewer('family', id, prismaPublic, ctx.family.id))
   ) {
     return errorJsonKey('notFound', 404)
-  }
-
-  // 압축 옵션이 꺼져 있으면 hd/sd 요청을 원본으로 폴백한다 — UI 가 숨겨져 있어도
-  // URL 을 직접 친 경우에 대비한 서버측 최종 방어.
-  let quality = q
-  if (q === 'hd' || q === 'sd') {
-    const enabled = await getSetting('download.compress.enabled', z.boolean(), true, prismaPublic)
-    if (!enabled) quality = 'original'
   }
 
   try {
