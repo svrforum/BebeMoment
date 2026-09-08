@@ -20,6 +20,7 @@ import {
   sendFcm,
 } from '@/server/notifications/fcm'
 import { runScheduledBackupTick } from '@/server/backup/scheduled'
+import { closeWithGrace, shutdownGraceMs } from '@/server/notifications/graceful-shutdown'
 import { ensureVapidKeys } from '@/server/notifications/vapid'
 import { shouldAttemptVapidReload } from '@/server/notifications/vapid-reload'
 import { resolveNotificationVisibility } from '@/server/notifications/visibility'
@@ -27,6 +28,7 @@ import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
+import { purgeStaleWidgetTokens } from '@/server/widget/token'
 import {
   DEFAULT_FACE_CLUSTER_DISTANCE,
   FACE_CLUSTER_DISTANCE_MAX,
@@ -48,9 +50,14 @@ const stringSetting = z.string()
 // 뒤, 그래도 안 끝나면 처리가 멈췄다고 보고 그냥 발송(푸시 유실 방지).
 const STORY_PUSH_DEFER_MS = 5000
 const STORY_PUSH_MAX_DEFERS = 60
+// 유지보수 잡(추억 스캔·다이제스트·백업 틱·휴지통·위젯 토큰 정리)은 알림과 다른 큐에서 돈다.
+// 한 큐·concurrency 1 로 섞여 있을 땐 백업 한 번이 도는 몇 분 동안 푸시가 전부 밀렸다.
+// 이 큐의 유일한 생산자·소비자가 이 워커라 이름을 여기서만 안다.
+const MAINTENANCE_QUEUE = 'maintenance'
 const MEMORIES_SCAN_JOB = 'memories-scan'
 const BACKUP_TICK_JOB = 'backup-tick'
 const TRASH_PURGE_JOB = 'trash-purge'
+const WIDGET_TOKEN_PURGE_JOB = 'widget-token-purge'
 
 /**
  * 자동 휴지통 비우기 — retention.trash_days 를 넘긴 소프트삭제 자산을 영구 삭제한다.
@@ -394,24 +401,6 @@ async function main(): Promise<void> {
   const worker = new Worker<NotificationJob>(
     NOTIFICATIONS_QUEUE,
     async (job: Job<NotificationJob>) => {
-      if (job.name === MEMORIES_SCAN_JOB) {
-        await runMemoriesScan()
-        return
-      }
-      if (job.name === DIGEST_SCAN_JOB) {
-        await runDigestScan()
-        return
-      }
-      if (job.name === BACKUP_TICK_JOB) {
-        await runScheduledBackupTick(new Date(), prismaPublic, (m) =>
-          console.log('[backup-tick]', m),
-        )
-        return
-      }
-      if (job.name === TRASH_PURGE_JOB) {
-        await runTrashPurge()
-        return
-      }
       // 얼굴 인식(옵트인) — 새 사진이 ready 되면(asset.uploaded) features.faces 켜진
       // 인스턴스만 face-detect 잡을 enqueue. media 는 public 설정을 못 읽으므로 web 이
       // 게이팅한다(§17#10 upload.convert_to_compatible 와 동일 패턴). 푸시 게이트와
@@ -546,37 +535,84 @@ async function main(): Promise<void> {
         },
       })
     },
-    { connection },
+    // 푸시 발송은 I/O 대기가 대부분이라 몇 개씩 겹쳐도 된다 — 유지보수 잡이 분리됐으니 여기서
+    // 오래 도는 건 없다. FCM 토큰 발급은 fingerprint 단위 in-flight 공유로 동시 요청에 안전.
+    { connection, concurrency: 4 },
   )
-
   worker.on('failed', (job, err) => {
     console.error(`[notifications-worker] job ${job?.id} failed:`, err)
   })
 
-  // 매일 09:00(서버 로컬) 추억 스캔 — 반복 작업 1개로 등록(jobId 고정 → 멱등).
-  const queue = new Queue(NOTIFICATIONS_QUEUE, { connection })
-  await queue.add(
-    MEMORIES_SCAN_JOB,
-    {},
-    { repeat: { pattern: '0 9 * * *' }, jobId: MEMORIES_SCAN_JOB, removeOnComplete: true },
+  // 유지보수 잡은 한 번에 하나씩(백업이 도는 동안 휴지통 비우기가 겹치지 않게).
+  const maintenance = new Worker(
+    MAINTENANCE_QUEUE,
+    async (job: Job) => {
+      if (job.name === MEMORIES_SCAN_JOB) return runMemoriesScan()
+      if (job.name === DIGEST_SCAN_JOB) return runDigestScan()
+      if (job.name === BACKUP_TICK_JOB) {
+        return runScheduledBackupTick(new Date(), prismaPublic, (m) =>
+          console.log('[backup-tick]', m),
+        )
+      }
+      if (job.name === TRASH_PURGE_JOB) return runTrashPurge()
+      if (job.name === WIDGET_TOKEN_PURGE_JOB) {
+        const n = await purgeStaleWidgetTokens(new Date(), prismaPublic)
+        if (n > 0) console.log(`[widget-token-purge] removed ${n} idle token(s)`)
+        return
+      }
+      throw new Error(`unknown maintenance job: ${job.name}`)
+    },
+    { connection, concurrency: 1 },
   )
-  // 매시간 정각 다이제스트 스캔(슬롯/야간 판단은 핸들러가) — 반복 작업 1개.
-  await queue.add(
-    DIGEST_SCAN_JOB,
-    {},
-    { repeat: { pattern: '0 * * * *' }, jobId: DIGEST_SCAN_JOB, removeOnComplete: true },
-  )
-  // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
-  await queue.add(TRASH_PURGE_JOB, {} as NotificationJob, {
-    repeat: { pattern: '30 3 * * *' },
-    jobId: TRASH_PURGE_JOB,
-    removeOnComplete: true,
+  maintenance.on('failed', (job, err) => {
+    console.error(`[maintenance-worker] job ${job?.name} failed:`, err)
   })
-  await queue.add(
+
+  // 반복 작업은 jobId 고정 → 멱등(재기동해도 하나만). 유지보수 잡이 알림 큐에 있던 시절의
+  // 반복 등록은 Redis 에 남아 있으므로 걷어낸다 — 안 그러면 알림 워커가 모르는 잡을 계속 받는다.
+  const notificationQueue = new Queue(NOTIFICATIONS_QUEUE, { connection })
+  const legacyRepeatables = new Set([
+    MEMORIES_SCAN_JOB,
+    DIGEST_SCAN_JOB,
+    TRASH_PURGE_JOB,
     BACKUP_TICK_JOB,
-    {},
-    { repeat: { pattern: '5 * * * *' }, jobId: BACKUP_TICK_JOB, removeOnComplete: true },
-  )
+  ])
+  for (const r of await notificationQueue.getRepeatableJobs()) {
+    if (legacyRepeatables.has(r.name)) await notificationQueue.removeRepeatableByKey(r.key)
+  }
+
+  const maintenanceQueue = new Queue(MAINTENANCE_QUEUE, { connection })
+  const repeat = (name: string, pattern: string) =>
+    maintenanceQueue.add(name, {}, { repeat: { pattern }, jobId: name, removeOnComplete: true })
+  // 매일 09:00(서버 로컬) 추억 스캔.
+  await repeat(MEMORIES_SCAN_JOB, '0 9 * * *')
+  // 매시간 정각 다이제스트 스캔(슬롯/야간 판단은 핸들러가).
+  await repeat(DIGEST_SCAN_JOB, '0 * * * *')
+  // 매일 03:30 휴지통 비우기, 03:45 유휴 위젯 토큰 정리.
+  await repeat(TRASH_PURGE_JOB, '30 3 * * *')
+  await repeat(WIDGET_TOKEN_PURGE_JOB, '45 3 * * *')
+  // 매시간(분 5) 백업 스케줄 틱 — 설정대로 시각 맞으면 백업 생성 + 보존 정리.
+  await repeat(BACKUP_TICK_JOB, '5 * * * *')
+
+  // SIGTERM/SIGINT: 새 잡을 받지 않고 진행 중인 잡(백업은 분 단위)이 끝나길 상한까지 기다린다.
+  // 예전엔 핸들러가 없어 docker stop 이 SIGKILL 로 끝냈고 잡이 반쯤 남았다.
+  let stopping = false
+  const shutdown = async (signal: string): Promise<void> => {
+    if (stopping) return
+    stopping = true
+    const graceMs = shutdownGraceMs(process.env.WORKER_SHUTDOWN_GRACE_MS)
+    console.log(`[notifications-worker] ${signal} — closing workers (grace ${graceMs}ms)`)
+    const result = await closeWithGrace([() => worker.close(), () => maintenance.close()], graceMs)
+    if (result === 'timed-out') {
+      console.error('[notifications-worker] grace period exceeded — forcing close')
+      await Promise.allSettled([worker.close(true), maintenance.close(true)])
+    }
+    await Promise.allSettled([notificationQueue.close(), maintenanceQueue.close()])
+    connection.disconnect()
+    process.exit(result === 'closed' ? 0 : 1)
+  }
+  process.on('SIGTERM', () => void shutdown('SIGTERM'))
+  process.on('SIGINT', () => void shutdown('SIGINT'))
 
   console.log('[notifications-worker] started')
 }
