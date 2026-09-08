@@ -110,7 +110,9 @@ describe('account linking', () => {
       db.prismaPublic,
     )
 
-    await expect(unlinkIdentity(user.id, prov.id, db.prismaPublic)).rejects.toThrow(/마지막/)
+    await expect(unlinkIdentity(user.id, prov.id, db.prismaPublic)).rejects.toThrow(
+      /auth\.lastLoginMethod/,
+    )
     expect(await listUserIdentities(user.id, db.prismaPublic)).toHaveLength(1)
   })
 
