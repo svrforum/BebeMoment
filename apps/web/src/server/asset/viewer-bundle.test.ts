@@ -252,3 +252,38 @@ describe('loadViewerBundle', () => {
     expect(bundle?.prev).toBeNull()
   })
 })
+
+describe('loadViewerBundle — 같은 takenAt 의 prev/next', () => {
+  // 키셋 조건에 단순 상·하한(lte/gte)을 덧붙여도 같은 시각은 id 로 갈라야 한다 —
+  // 세 장이 같은 시각이면 id 순으로 이웃이 정해지고 양쪽 다 빠짐이 없다.
+  it('같은 시각 3장의 가운데(id 순)는 양쪽 이웃이 모두 있다', async () => {
+    const { user, family } = await setup()
+    const ts = new Date('2026-04-10T10:00:00Z')
+    const ids = (
+      await Promise.all(
+        ['same1', 'same2', 'same3'].map((sha) => makeReadyAsset(family.id, user.id, sha, ts)),
+      )
+    ).sort()
+    const [low, mid, high] = ids as [string, string, string]
+    const bundle = await loadViewerBundle(
+      { assetId: mid, familyId: family.id },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    // 정렬은 (takenAt desc, id desc): prev = 더 작은 id, next = 더 큰 id.
+    expect(bundle?.prevId).toBe(low)
+    expect(bundle?.nextId).toBe(high)
+
+    await db.prismaMedia.asset.updateMany({
+      where: { id: { in: ids }, familyId: family.id },
+      data: { createdAt: ts },
+    })
+    const uploaded = await loadViewerBundle(
+      { assetId: mid, familyId: family.id, sort: 'uploaded' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(uploaded?.prevId).toBe(low)
+    expect(uploaded?.nextId).toBe(high)
+  })
+})

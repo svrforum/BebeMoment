@@ -407,4 +407,41 @@ describe('listStoryEntries', () => {
     const combinedIds = [...page1.items, ...page2.items].map((e) => e.id)
     expect(new Set(combinedIds).size).toBe(5)
   })
+
+  it('같은 entryDate 3개를 limit 1 로 넘기면 셋 다 한 번씩', async () => {
+    const { user, family, baby } = await setup()
+    const ids: string[] = []
+    for (let i = 0; i < 3; i += 1) {
+      const a = await makeReadyAsset(family.id, user.id)
+      const e = await createStoryEntry(
+        {
+          familyId: family.id,
+          babyId: baby.id,
+          entryDate: '2026-04-07',
+          body: `same-day-${i}`,
+          assetIds: [a.id],
+          byUserId: user.id,
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      )
+      ids.push(e.id)
+    }
+    const media = new FakeMediaClient()
+    const seen: string[] = []
+    let cursor: string | undefined
+    for (let i = 0; i < 5; i += 1) {
+      const page = await listStoryEntries(
+        family.id,
+        { limit: 1, ...(cursor ? { cursor } : {}) },
+        db.prismaPublic,
+        db.prismaMedia,
+        media,
+      )
+      seen.push(...page.items.map((e) => e.id))
+      if (!page.nextCursor) break
+      cursor = page.nextCursor
+    }
+    expect(seen).toEqual([...ids].sort().reverse())
+  })
 })

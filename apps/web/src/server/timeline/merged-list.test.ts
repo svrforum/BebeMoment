@@ -348,3 +348,53 @@ describe('listTimeline — 실패한 자산', () => {
     expect(items).toHaveLength(0)
   })
 })
+
+describe('listTimeline — 같은 시각 경계의 키셋 커서', () => {
+  // 커서 조건에 인덱스가 탈 수 있는 단순 상한(lte)을 덧붙여도 OR 정밀 조건은 그대로다 —
+  // 같은 시각 3장을 한 장씩 넘길 때 빠짐·중복이 없어야 한다.
+  async function walk(familyId: string, sort: 'taken' | 'uploaded'): Promise<string[]> {
+    const seen: string[] = []
+    let cursor: string | undefined
+    for (let i = 0; i < 5; i += 1) {
+      const page = await listTimeline(
+        familyId,
+        { limit: 1, sort, ...(cursor ? { cursor } : {}) },
+        db.prismaPublic,
+        db.prismaMedia,
+        new FakeMediaClient(),
+      )
+      seen.push(...page.items.map((it) => it.id))
+      if (!page.nextCursor) break
+      cursor = page.nextCursor
+    }
+    return seen
+  }
+
+  it('촬영순: 같은 takenAt 3장을 limit 1 로 넘기면 셋 다 한 번씩', async () => {
+    const { user, family } = await setup()
+    const sameTs = new Date('2026-04-10T10:00:00Z')
+    const rows = await Promise.all(
+      ['eq1', 'eq2', 'eq3'].map((sha) => makeAsset(family.id, user.id, sameTs, sha)),
+    )
+    const seen = await walk(family.id, 'taken')
+    expect(seen).toEqual(rows.map((a) => a.id).sort().reverse())
+  })
+
+  it('업로드순: 같은 createdAt 3장을 limit 1 로 넘기면 셋 다 한 번씩', async () => {
+    const { user, family } = await setup()
+    const created = new Date('2026-04-20T00:00:00Z')
+    const rows = await Promise.all(
+      ['up1', 'up2', 'up3'].map((sha, i) =>
+        makeAsset(family.id, user.id, new Date(`2026-04-1${i}`), sha),
+      ),
+    )
+    for (const a of rows) {
+      await db.prismaMedia.asset.update({
+        where: { id: a.id, familyId: family.id },
+        data: { createdAt: created },
+      })
+    }
+    const seen = await walk(family.id, 'uploaded')
+    expect(seen).toEqual(rows.map((a) => a.id).sort().reverse())
+  })
+})
