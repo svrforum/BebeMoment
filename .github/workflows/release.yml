@@ -51,8 +51,21 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      # apps/media 의 ffmpeg 래퍼 테스트는 실제 바이너리를 쓴다(러너 이미지엔 없다).
-      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
+      # 시스템 바이너리에 의존하는 테스트: 미디어의 ffmpeg 래퍼와 백업의 pg_dump.
+      # 러너 기본 pg 클라이언트는 16 이라 pg17 서버 덤프를 거절한다 — 이미지와 같은
+      # pgdg 저장소에서 17 을 받는다. 없으면 해당 테스트는 실패가 아니라 skip 된다.
+      - name: install ffmpeg and postgresql-client-17
+        run: |
+          set -euo pipefail
+          sudo install -d /usr/share/postgresql-common/pgdg
+          sudo curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
+            -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc
+          echo "deb [signed-by=/usr/share/postgresql-common/pgdg/apt.postgresql.org.asc] https://apt.postgresql.org/pub/repos/apt $(lsb_release -cs)-pgdg main" \
+            | sudo tee /etc/apt/sources.list.d/pgdg.list > /dev/null
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends ffmpeg postgresql-client-17
+          ffmpeg -version | head -1
+          pg_dump --version
       - run: pnpm --filter @bebe/db-public exec prisma generate
       - run: pnpm --filter @bebe/db-media  exec prisma generate
       - run: pnpm --filter @bebe/db-public exec prisma migrate deploy

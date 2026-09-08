@@ -5,6 +5,7 @@ import path from 'node:path'
 import { promisify } from 'node:util'
 import { type TestDb, startTestDb } from '@bebe/db-public/src/test-db'
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { PG_SERVER_MAJOR, hasBinary, hasPgClientForServer } from '@/test-support/binaries'
 import { BUNDLE_SPACE_MARGIN_BYTES, createBackup } from './create'
 
 const runFile = promisify(execFile)
@@ -71,7 +72,10 @@ async function filesUnder(dir: string): Promise<string[]> {
   return out
 }
 
-describe('createBackup', () => {
+// pg_dump 는 서버보다 major 가 낮으면 거절하고, 번들은 zstd/tar 를 실행한다.
+const canRun = hasPgClientForServer && hasBinary('zstd', 'tar')
+
+describe.skipIf(!canRun)(`createBackup (pg_dump >= ${PG_SERVER_MAJOR}, zstd, tar)`, () => {
   it('streams tar into zstd — no raw tar touches the disk, work dir is cleaned', async () => {
     const { manifest, bundlePath } = await createBackup(baseArgs('full', new Date()))
     const members = await listMembers(bundlePath)
