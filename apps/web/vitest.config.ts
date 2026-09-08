@@ -11,7 +11,7 @@ export default defineConfig({
     },
   },
   test: {
-    include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
+    include: ['src/**/*.test.ts', 'src/**/*.test.tsx', 'app/**/*.test.ts', 'proxy.test.ts'],
     environment: 'node',
     testTimeout: 120_000,
     hookTimeout: 120_000,
