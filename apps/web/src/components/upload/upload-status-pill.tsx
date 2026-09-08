@@ -1,6 +1,5 @@
 'use client'
 import { cn } from '@/lib/cn'
-import { AnimatePresence, motion } from 'framer-motion'
 import { Check, ImagePlus, Loader2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useMemo, useState } from 'react'
@@ -9,6 +8,9 @@ import { useUploadManager } from './upload-manager'
 type Props = {
   onClick: () => void
 }
+
+// globals.css 의 --animate-pill-out 길이와 맞춘다.
+const EXIT_MS = 160
 
 export function UploadStatusPill({ onClick }: Props) {
   const { files, totalActive, uploadingCount, processingCount } = useUploadManager()
@@ -64,60 +66,66 @@ export function UploadStatusPill({ onClick }: Props) {
   const visible = totalActive > 0 || recentlyDone
   const completed = recentlyDone && totalActive === 0
 
+  // 퇴장 애니메이션이 끝날 때까지 마운트를 유지한다(CSS keyframe 은 언마운트 후엔 못 돈다).
+  const [rendered, setRendered] = useState(false)
+  useEffect(() => {
+    if (visible) {
+      setRendered(true)
+      return
+    }
+    const timer = setTimeout(() => setRendered(false), EXIT_MS)
+    return () => clearTimeout(timer)
+  }, [visible])
+
+  if (!rendered) return null
   return (
-    <AnimatePresence>
-      {visible && (
-        <motion.button
-          type="button"
-          onClick={onClick}
-          initial={{ opacity: 0, y: 12, scale: 0.95 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 12, scale: 0.95 }}
-          transition={{ type: 'spring', stiffness: 480, damping: 28 }}
-          aria-label={t('status.aria')}
-          className={cn(
-            'fixed bottom-36 right-4 z-30 flex items-center gap-2.5 overflow-hidden rounded-full pl-3 pr-4 py-2.5 text-[13px] font-medium shadow-elevated ring-1 backdrop-blur-xl md:bottom-24',
-            completed
-              ? 'bg-success/95 text-white ring-success/40'
-              : 'bg-base-0/95 text-base-900 ring-base-200 dark:bg-base-900/95 dark:text-base-50 dark:ring-base-700',
-          )}
-        >
-          <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
-            {completed ? (
-              <Check className="h-4 w-4" strokeWidth={2.6} />
-            ) : uploadingCount > 0 ? (
-              <>
-                <svg className="absolute inset-0 -rotate-90" viewBox="0 0 28 28" aria-hidden="true">
-                  <circle
-                    cx="14"
-                    cy="14"
-                    r="11"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeOpacity="0.18"
-                    strokeWidth="2.5"
-                  />
-                  <circle
-                    cx="14"
-                    cy="14"
-                    r="11"
-                    fill="none"
-                    stroke="currentColor"
-                    strokeWidth="2.5"
-                    strokeLinecap="round"
-                    strokeDasharray={`${(percent / 100) * 69.115} 69.115`}
-                    className="text-point-500 transition-[stroke-dasharray] duration-200"
-                  />
-                </svg>
-                <ImagePlus className="h-3.5 w-3.5 text-point-500" strokeWidth={2.4} />
-              </>
-            ) : (
-              <Loader2 className="h-4 w-4 animate-spin text-point-500" strokeWidth={2.4} />
-            )}
-          </span>
-          <span className="truncate">{completed ? t('status.done') : label}</span>
-        </motion.button>
+    <button
+      type="button"
+      onClick={onClick}
+      data-state={visible ? 'open' : 'closed'}
+      aria-label={t('status.aria')}
+      className={cn(
+        'fixed bottom-36 right-4 z-30 flex items-center gap-2.5 overflow-hidden rounded-full pl-3 pr-4 py-2.5 text-[13px] font-medium shadow-elevated ring-1 backdrop-blur-xl md:bottom-24',
+        'data-[state=open]:animate-pill-in data-[state=closed]:animate-pill-out motion-reduce:animate-none',
+        completed
+          ? 'bg-success/95 text-white ring-success/40'
+          : 'bg-base-0/95 text-base-900 ring-base-200 dark:bg-base-900/95 dark:text-base-50 dark:ring-base-700',
       )}
-    </AnimatePresence>
+    >
+      <span className="relative flex h-7 w-7 shrink-0 items-center justify-center">
+        {completed ? (
+          <Check className="h-4 w-4" strokeWidth={2.6} />
+        ) : uploadingCount > 0 ? (
+          <>
+            <svg className="absolute inset-0 -rotate-90" viewBox="0 0 28 28" aria-hidden="true">
+              <circle
+                cx="14"
+                cy="14"
+                r="11"
+                fill="none"
+                stroke="currentColor"
+                strokeOpacity="0.18"
+                strokeWidth="2.5"
+              />
+              <circle
+                cx="14"
+                cy="14"
+                r="11"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2.5"
+                strokeLinecap="round"
+                strokeDasharray={`${(percent / 100) * 69.115} 69.115`}
+                className="text-point-500 transition-[stroke-dasharray] duration-200"
+              />
+            </svg>
+            <ImagePlus className="h-3.5 w-3.5 text-point-500" strokeWidth={2.4} />
+          </>
+        ) : (
+          <Loader2 className="h-4 w-4 animate-spin text-point-500" strokeWidth={2.4} />
+        )}
+      </span>
+      <span className="truncate">{completed ? t('status.done') : label}</span>
+    </button>
   )
 }

@@ -6,16 +6,18 @@ import { type ReactNode, createContext, useCallback, useContext, useMemo, useSta
 import { UploadManagerProvider, useUploadManager } from './upload-manager'
 import { UploadStatusPill } from './upload-status-pill'
 
+function UploaderLoading() {
+  const t = useTranslations('upload')
+  return (
+    <div className="flex h-[380px] items-center justify-center text-sm text-base-500">
+      {t('preparing')}
+    </div>
+  )
+}
+
 const LazyUploadDashboard = dynamic(
   () => import('./upload-dashboard').then((m) => ({ default: m.UploadDashboard })),
-  {
-    ssr: false,
-    loading: () => (
-      <div className="flex h-[380px] items-center justify-center text-sm text-base-500">
-        업로더 준비 중…
-      </div>
-    ),
-  },
+  { ssr: false, loading: () => <UploaderLoading /> },
 )
 
 type UploadSheetContextType = {
