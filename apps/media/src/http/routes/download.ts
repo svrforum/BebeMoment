@@ -1,4 +1,3 @@
-import { spawn } from 'node:child_process'
 import { keyBelongsToAsset } from '@/domain/asset-key'
 import { getEnv } from '@/lib/env'
 import { type DownloadTokenPayload, verifyDownloadToken } from '@/lib/jwt'
@@ -8,8 +7,8 @@ import { getStorage } from '@/lib/storage'
 import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
 
-// 요청 시점 변환(라이브 ffmpeg·sharp 리사이즈·갤러리 재인코드)은 동시에 2개까지. 넘치면
-// 503 retriable — 워커의 파생물 생성과 CPU 를 다투다 NAS 전체가 느려지는 걸 막는다.
+// 요청 시점 재인코드(갤러리용 JPEG)는 동시에 2개까지. 넘치면 503 retriable — 워커의
+// 파생물 생성과 CPU 를 다투다 NAS 전체가 느려지는 걸 막는다.
 const LIVE_SLOTS = new Semaphore(2)
 
 function busy(): MediaHttpError {
@@ -111,131 +110,31 @@ async function serveGalleryJpeg(
   return reply.status(200).send(out)
 }
 
-async function serveHdImageDerivative(
-  reply: FastifyReply,
-  payload: DownloadTokenPayload,
-  hdImageKey: string,
-): Promise<FastifyReply> {
-  if (await redirectIfS3(reply, hdImageKey)) return reply
-  const storage = getStorage()
-  const exists = await storage.exists(hdImageKey)
-  if (!exists) return await serveLiveResizedImage(reply, payload)
-  const stream = await storage.read(hdImageKey)
-  reply.header('content-type', 'image/jpeg')
-  return reply.status(200).send(stream)
-}
-
 async function serveVideoCompat(
   reply: FastifyReply,
-  payload: DownloadTokenPayload,
   videoCompatKey: string,
 ): Promise<FastifyReply> {
   if (await redirectIfS3(reply, videoCompatKey)) return reply
   const storage = getStorage()
-  // 파생물이 사라졌으면(정리·부분 복구) 실시간 변환으로 떨어뜨린다 — 저장이 실패하는
-  // 것보다 느리게라도 되는 편이 낫다.
+  // 파생물이 사라졌으면(정리·부분 복구) 404 로 알린다 — 예전엔 요청마다 ffmpeg 를 띄워
+  // 실시간 변환했지만, 그 비용은 저장 한 번의 값어치가 없고 원인(사라진 파생물)도 가렸다.
   const st = await storage.stat(videoCompatKey)
-  if (!st) return await serveLiveTranscodedVideo(reply, payload)
+  if (!st) throw notFound()
   const stream = await storage.read(videoCompatKey)
   reply.header('content-type', 'video/mp4')
   reply.header('content-length', String(st.size))
   return reply.status(200).send(stream)
 }
 
-async function serveLiveResizedImage(
-  reply: FastifyReply,
-  payload: DownloadTokenPayload,
-): Promise<FastifyReply> {
-  const storage = getStorage()
-  if (!(await storage.exists(payload.originalKey))) throw notFound()
-  const target = payload.quality === 'hd' ? 1080 : 720
-  const buf = await streamToBuffer(await storage.read(payload.originalKey))
-  const out = await withLiveSlot(() =>
-    decodeSharp(buf)
-      .rotate()
-      .resize({ height: target, withoutEnlargement: true })
-      .jpeg({ quality: 88, mozjpeg: true })
-      .toBuffer(),
-  )
-  reply.header('content-type', 'image/jpeg')
-  reply.header('content-length', String(out.length))
-  return reply.status(200).send(out)
-}
-
-async function serveLiveTranscodedVideo(
-  reply: FastifyReply,
-  payload: DownloadTokenPayload,
-): Promise<FastifyReply> {
-  const storage = getStorage()
-  if (!(await storage.exists(payload.originalKey))) throw notFound()
-  // 슬롯은 ffmpeg 가 끝날 때까지 쥔다 — 응답은 스트리밍이라 send() 가 곧 반환된다.
-  const release = LIVE_SLOTS.tryAcquire()
-  if (!release) throw busy()
-
-  const height = payload.quality === 'hd' ? 1080 : 720
-  // libx264 는 짝수 width 가 필요 — trunc(oh*a/2)*2.
-  // fragmented MP4 — content-length 알 수 없음 → 스트리밍.
-  const ffArgs = [
-    '-i',
-    '-',
-    '-vf',
-    `scale=trunc(oh*a/2)*2:${height}`,
-    '-c:v',
-    'libx264',
-    '-preset',
-    'veryfast',
-    '-crf',
-    '24',
-    '-c:a',
-    'aac',
-    '-b:a',
-    '128k',
-    '-movflags',
-    '+frag_keyframe+empty_moov',
-    '-f',
-    'mp4',
-    'pipe:1',
-  ]
-  const ff = spawn('ffmpeg', ffArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
-  ff.once('close', release)
-  ff.once('error', release)
-  const stderrChunks: Buffer[] = []
-  ff.stderr.on('data', (c: Buffer) => {
-    // 진단용 — 평소엔 버린다. 종료 코드 비정상이면 로그로 흘려보낼 수 있게 보관.
-    if (stderrChunks.length < 64) stderrChunks.push(c)
-  })
-
-  const input = await storage.read(payload.originalKey)
-  input.on('error', () => {
-    ff.kill('SIGKILL')
-  })
-  input.pipe(ff.stdin)
-  ff.stdin.on('error', () => {
-    // EPIPE — ffmpeg 가 먼저 종료된 경우. 입력을 끊고 마무리.
-    try {
-      ;(input as unknown as { destroy?: () => void }).destroy?.()
-    } catch {
-      // 정리 실패는 무시.
-    }
-  })
-
-  // 응답이 끊기면 ffmpeg 도 종료.
-  reply.raw.on('close', () => {
-    if (!ff.killed) ff.kill('SIGKILL')
-  })
-
-  // 비정상 종료는 로그로만 — 응답 헤더는 이미 나갔다.
-  ff.on('exit', (code) => {
-    if (code !== 0 && code !== null) {
-      const tail = Buffer.concat(stderrChunks).toString('utf8').slice(-2000)
-      reply.log.warn({ code, stderr: tail }, 'ffmpeg transcode failed')
-    }
-  })
-
-  reply.header('content-type', 'video/mp4')
-  // 응답 시작 — stdout 스트림을 그대로 흘려보낸다.
-  reply.status(200).send(ff.stdout)
-  return reply
+// 살아있는 품질은 original / gallery / compat 뿐이다. 제거된 압축 다운로드(hd·sd)로 이미
+// 발급된 토큰(TTL 10분)이 배포 직후 저장을 실패시키지 않도록 살아있는 품질로 접는다 —
+// 사진은 갤러리용 JPEG(토큰이 이미 .jpg·image/jpeg 로 발급돼 있어 일치), 영상은 원본.
+function effectiveQuality(payload: DownloadTokenPayload): DownloadTokenPayload['quality'] {
+  const quality: string = payload.quality
+  if (quality === 'gallery') return 'gallery'
+  if (quality === 'compat') return payload.videoCompatKey ? 'compat' : 'original'
+  if (quality === 'original') return 'original'
+  return payload.kind === 'image' ? 'gallery' : 'original'
 }
 
 export const downloadRoute: FastifyPluginAsync = async (app) => {
@@ -255,11 +154,9 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
     }
 
     // 토큰의 familyId/assetId 와 서빙할 key 들을 결속(IDOR 방어 — files.ts 와 동일).
-    // 원본은 families/ 접두, hdImageKey 는 derivatives/ 접두라 둘 다 허용해야 한다.
+    // 원본은 families/ 접두, 파생물(호환 영상)은 derivatives/ 접두라 둘 다 허용해야 한다.
     if (
       !keyBelongsToAsset(payload.originalKey, payload.familyId, payload.assetId) ||
-      (payload.hdImageKey !== undefined &&
-        !keyBelongsToAsset(payload.hdImageKey, payload.familyId, payload.assetId)) ||
       (payload.videoCompatKey !== undefined &&
         !keyBelongsToAsset(payload.videoCompatKey, payload.familyId, payload.assetId))
     ) {
@@ -273,27 +170,11 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
 
     setDownloadHeaders(reply, payload)
 
-    if (payload.quality === 'original') {
-      return await serveOriginal(reply, payload)
+    const quality = effectiveQuality(payload)
+    if (quality === 'gallery') return await serveGalleryJpeg(reply, payload)
+    if (quality === 'compat' && payload.videoCompatKey) {
+      return await serveVideoCompat(reply, payload.videoCompatKey)
     }
-
-    if (payload.quality === 'gallery') {
-      return await serveGalleryJpeg(reply, payload)
-    }
-
-    if (payload.quality === 'compat') {
-      if (!payload.videoCompatKey) return await serveLiveTranscodedVideo(reply, payload)
-      return await serveVideoCompat(reply, payload, payload.videoCompatKey)
-    }
-
-    if (payload.kind === 'image') {
-      if (payload.quality === 'hd' && payload.hdImageKey) {
-        return await serveHdImageDerivative(reply, payload, payload.hdImageKey)
-      }
-      return await serveLiveResizedImage(reply, payload)
-    }
-
-    // video, hd | sd
-    return await serveLiveTranscodedVideo(reply, payload)
+    return await serveOriginal(reply, payload)
   })
 }

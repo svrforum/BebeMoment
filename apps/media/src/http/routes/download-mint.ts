@@ -6,9 +6,8 @@ import type { FastifyPluginAsync } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
 import { assertServiceToken } from '../middleware/service-token'
 
-// quality 별 다운로드 파일명/mime 을 결정. 사용자는 원본 파일명 그대로 받기를
-// 원하므로 `_1080`/`_720p` 접미사는 안 붙인다. 단 출력 포맷이 원본과 다르면
-// (HEIC→JPEG / MOV→MP4 등) 확장자만 적절히 교체 — 같은 확장자면 그대로 둔다.
+// 다운로드 파일명/mime 을 결정. 사용자는 원본 파일명 그대로 받기를 원하므로 접미사는
+// 안 붙이고, 출력 포맷이 원본과 다를 때(MOV→MP4 호환본 등) 확장자만 교체한다.
 function replaceExt(filename: string, newExt: string): string {
   const dot = filename.lastIndexOf('.')
   const stem = dot > 0 ? filename.slice(0, dot) : filename
@@ -19,19 +18,12 @@ type EffectiveQuality = DownloadTokenPayload['quality']
 
 function deriveFilename(
   original: string,
-  kind: 'image' | 'video',
-  quality: EffectiveQuality,
+  quality: Exclude<EffectiveQuality, 'original'>,
 ): { filename: string; mimeType: string } {
-  if (quality === 'original') {
-    return { filename: original, mimeType: '' }
-  }
   if (quality === 'gallery') {
     return { filename: original, mimeType: 'image/jpeg' }
   }
-  if (kind === 'video') {
-    return { filename: replaceExt(original, '.mp4'), mimeType: 'video/mp4' }
-  }
-  return { filename: replaceExt(original, '.jpg'), mimeType: 'image/jpeg' }
+  return { filename: replaceExt(original, '.mp4'), mimeType: 'video/mp4' }
 }
 
 export const downloadMintRoute: FastifyPluginAsync = async (app) => {
@@ -75,27 +67,15 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
       effective = 'gallery'
     }
 
-    const { filename: derivedName, mimeType: derivedMime } = deriveFilename(
-      asset.originalFilename,
-      kind,
-      effective,
-    )
-    const filename = effective === 'original' ? asset.originalFilename : derivedName
-    const mimeType = effective === 'original' ? asset.mimeType : derivedMime
-
-    // 이미지 + HD 면 사전 생성된 display1080.jpeg 가 있는지 확인. 있으면
-    // 그 키를 토큰에 박아 두고, 다운로드 라우트는 라이브 리사이즈 없이
-    // 그대로 스트리밍한다.
-    let hdImageKey: string | undefined
-    if (kind === 'image' && effective === 'hd') {
-      hdImageKey = derivatives?.display1080?.jpeg
-    }
+    const { filename, mimeType } =
+      effective === 'original'
+        ? { filename: asset.originalFilename, mimeType: asset.mimeType }
+        : deriveFilename(asset.originalFilename, effective)
 
     const token = await signDownloadToken({
       familyId,
       assetId,
       originalKey: asset.originalKey,
-      ...(hdImageKey !== undefined ? { hdImageKey } : {}),
       ...(videoCompatKey !== undefined ? { videoCompatKey } : {}),
       kind,
       quality: effective,

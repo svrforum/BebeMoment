@@ -119,7 +119,7 @@ export async function verifyFileServeToken(token: string): Promise<VerifiedFileS
 }
 
 // ─── Download Token ──────────────────────────────────────────
-// 사용자 다운로드용 — original / hd / sd 품질을 토큰에 박아 두어
+// 사용자 다운로드용 — 결정된 품질과 서빙할 키를 토큰에 박아 두어
 // 다운로드 라우트가 DB 조회 없이 즉시 응답할 수 있게 한다.
 
 export type DownloadTokenPayload = {
@@ -130,11 +130,12 @@ export type DownloadTokenPayload = {
   familyId: string
   assetId: string
   originalKey: string
-  hdImageKey?: string
   videoCompatKey?: string
   kind: 'image' | 'video'
-  // gallery = JPEG 를 회전 굽기·EXIF 제거로 재인코딩(auto 저장의 기본). original 은 바이트 그대로.
-  quality: 'original' | 'gallery' | 'compat' | 'hd' | 'sd'
+  // original = 저장된 바이트 그대로. gallery = JPEG 를 회전 굽기·EXIF 제거로 재인코딩(auto
+  // 저장의 기본). compat = 워커가 만들어 둔 호환 영상. (제거된 hd/sd 로 발급된 토큰은
+  // 다운로드 라우트가 살아있는 품질로 접는다 — download.ts 의 effectiveQuality.)
+  quality: 'original' | 'gallery' | 'compat'
   filename: string
   mimeType: string
 }
@@ -152,7 +153,6 @@ export async function signDownloadToken(args: SignDownloadArgs): Promise<string>
     familyId: args.familyId,
     assetId: args.assetId,
     originalKey: args.originalKey,
-    ...(args.hdImageKey !== undefined ? { hdImageKey: args.hdImageKey } : {}),
     ...(args.videoCompatKey !== undefined ? { videoCompatKey: args.videoCompatKey } : {}),
     kind: args.kind,
     quality: args.quality,
