@@ -80,6 +80,6 @@ describe('resetPasswordWithToken', () => {
     const { token } = await seedToken()
     await expect(
       resetPasswordWithToken({ token, newPassword: 'short' }, db.prismaPublic),
-    ).rejects.toThrow('8자')
+    ).rejects.toThrow('errors.auth.passwordTooShort')
   })
 })
