@@ -5,6 +5,7 @@
   var ACTIVE_KEY = 'serverUrl'
   var ACCOUNTS_KEY = 'bebeAccounts'
   var app = document.getElementById('app')
+  var t = window.bebeI18n.t
 
   function prefs() {
     return window.Capacitor && window.Capacitor.Plugins && window.Capacitor.Plugins.Preferences
@@ -92,15 +93,16 @@
   }
 
   function render() {
+    document.title = t('accounts.title')
     Promise.all([getAccounts(), pget(ACTIVE_KEY)]).then(function (res) {
       var list = res[0]
       var active = res[1]
       clear()
       app.append(
-        el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 4px', textContent: '가족 전환' }),
+        el('h1', { style: 'font-size:24px;font-weight:800;margin:0 0 4px', textContent: t('accounts.title') }),
         el('p', {
           style: 'color:#71717a;margin:0 0 22px;font-size:14px',
-          textContent: '연결된 가족을 선택하거나 새로 추가하세요',
+          textContent: t('accounts.subtitle'),
         }),
       )
 
@@ -125,7 +127,7 @@
         ])
         row.append(info)
         if (isActive) {
-          row.append(el('span', { style: 'color:#6b8afd;font-size:13px;font-weight:700', textContent: '현재' }))
+          row.append(el('span', { style: 'color:#6b8afd;font-size:13px;font-weight:700', textContent: t('accounts.current') }))
         }
         row.append(
           el('button', {
@@ -145,7 +147,7 @@
       app.append(
         el('button', {
           style: GHOST_BTN,
-          textContent: '+ 가족 추가',
+          textContent: t('accounts.add'),
           onclick: addFlow,
         }),
       )
@@ -153,7 +155,7 @@
         app.append(
           el('button', {
             style: GHOST_BTN + ';margin-top:18px;border:0;color:#71717a',
-            textContent: '닫기',
+            textContent: t('accounts.close'),
             onclick: function () { window.location.href = active },
           }),
         )
@@ -163,7 +165,7 @@
 
   function confirmRemove(acc) {
     var label = acc.name && acc.name.trim() ? acc.name : domainOf(acc.url)
-    if (!window.confirm('"' + label + '" 가족을 목록에서 제거할까요?')) return
+    if (!window.confirm(t('accounts.removeConfirm', { name: label }))) return
     Promise.all([getAccounts(), pget(ACTIVE_KEY)]).then(function (res) {
       var list = res[0].filter(function (a) { return a.url !== acc.url })
       var active = res[1]
@@ -193,7 +195,7 @@
     var msg = el('p', { style: 'color:#ef4444;margin:10px 0 0;font-size:14px;min-height:1px', textContent: '' })
     function submit(force) {
       var url = normalize(input.value)
-      if (!url) { msg.textContent = '주소를 입력해주세요.'; return }
+      if (!url) { msg.textContent = t('accounts.needUrl'); return }
       msg.textContent = ''
       var doAdd = function () {
         getAccounts().then(function (list) {
@@ -203,26 +205,26 @@
       }
       if (force) return doAdd()
       msg.style.color = '#71717a'
-      msg.textContent = '서버 확인 중…'
+      msg.textContent = t('accounts.checking')
       reachable(url).then(function (ok) {
         if (ok) return doAdd()
         msg.style.color = '#ef4444'
-        msg.textContent = '서버 확인 실패. 주소가 맞다면 "그래도 추가"를 눌러보세요.'
+        msg.textContent = t('accounts.checkFailed')
         if (!document.getElementById('force')) {
-          app.append(el('button', { id: 'force', style: GHOST_BTN, textContent: '그래도 추가', onclick: function () { submit(true) } }))
+          app.append(el('button', { id: 'force', style: GHOST_BTN, textContent: t('accounts.addAnyway'), onclick: function () { submit(true) } }))
         }
       })
     }
     app.append(
-      el('h1', { style: 'font-size:22px;font-weight:800;margin:0 0 6px', textContent: '가족 추가' }),
-      el('p', { style: 'color:#71717a;margin:0 0 20px;font-size:14px', textContent: '추가할 가족 서버 주소를 입력하세요' }),
+      el('h1', { style: 'font-size:22px;font-weight:800;margin:0 0 6px', textContent: t('accounts.addTitle') }),
+      el('p', { style: 'color:#71717a;margin:0 0 20px;font-size:14px', textContent: t('accounts.addSubtitle') }),
       input,
       el('button', {
         style: 'margin-top:16px;width:100%;padding:15px;border:0;border-radius:999px;background:#6b8afd;color:#fff;font-size:16px;font-weight:600',
-        textContent: '연결',
+        textContent: t('accounts.connect'),
         onclick: function () { submit(false) },
       }),
-      el('button', { style: GHOST_BTN, textContent: '취소', onclick: render }),
+      el('button', { style: GHOST_BTN, textContent: t('accounts.cancel'), onclick: render }),
       msg,
     )
     input.focus()

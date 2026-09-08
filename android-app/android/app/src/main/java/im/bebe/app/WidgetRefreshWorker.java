@@ -119,12 +119,14 @@ public class WidgetRefreshWorker extends Worker {
             try {
                 fetchAndCache(ctx, sp, id, server, token);
             } catch (Exception e) {
-                // 조용히 — 마지막 캐시로 렌더.
+                // 마지막 캐시로 렌더는 계속하되, 왜 새 사진이 안 오는지는 남긴다.
+                NativeDiagnostics.report(ctx, NativeDiagnostics.FLOW_WIDGET, "fetch", e);
             }
         }
         try {
             render(ctx, sp, mgr, id, quad);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.report(ctx, NativeDiagnostics.FLOW_WIDGET, "render", t);
         }
     }
 
@@ -138,7 +140,11 @@ public class WidgetRefreshWorker extends Worker {
         conn.setReadTimeout(8000);
         StringBuilder body = new StringBuilder();
         try {
-            if (conn.getResponseCode() != 200) return;
+            final int code = conn.getResponseCode();
+            if (code != 200) {
+                NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "data-fetch", "status=" + code);
+                return;
+            }
             try (InputStream is = conn.getInputStream()) {
                 byte[] buf = new byte[4096];
                 int n;
@@ -207,8 +213,9 @@ public class WidgetRefreshWorker extends Worker {
                     bmp.compress(Bitmap.CompressFormat.JPEG, 90, fos);
                 }
                 saved++;
-            } catch (Exception ignored) {
+            } catch (Exception e) {
                 // 한 장 실패가 나머지를 막지 않게 — 받은 만큼만 캐시한다.
+                NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "cache-photo", e);
             }
         }
         return saved;
@@ -219,7 +226,11 @@ public class WidgetRefreshWorker extends Worker {
         conn.setConnectTimeout(8000);
         conn.setReadTimeout(12000);
         try {
-            if (conn.getResponseCode() != 200) return null;
+            final int code = conn.getResponseCode();
+            if (code != 200) {
+                NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "photo-fetch", "status=" + code);
+                return null;
+            }
             java.io.ByteArrayOutputStream bout = new java.io.ByteArrayOutputStream();
             try (InputStream is = conn.getInputStream()) {
                 byte[] buf = new byte[8192];
@@ -240,7 +251,7 @@ public class WidgetRefreshWorker extends Worker {
         }
     }
 
-    private static int sampleSize(int w, int h, int target) {
+    static int sampleSize(int w, int h, int target) {
         int s = 1;
         final int max = Math.max(w, h);
         // target*2 여유로 둬 화질을 유지하면서 메모리만 절감(2의 거듭제곱).
@@ -261,13 +272,15 @@ public class WidgetRefreshWorker extends Worker {
             for (int i = 0; i < MAX_PHOTOS; i++) {
                 try {
                     new java.io.File(photoFile(ctx, id, i, false)).delete();
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "delete-photo-cache", e);
                 }
             }
             for (int i = 0; i < MAX_MEMORY_PHOTOS; i++) {
                 try {
                     new java.io.File(photoFile(ctx, id, i, true)).delete();
-                } catch (Exception ignored) {
+                } catch (Exception e) {
+                    NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "delete-memory-cache", e);
                 }
             }
         }
@@ -295,7 +308,8 @@ public class WidgetRefreshWorker extends Worker {
         }
         try {
             render(ctx, sp, mgr, id, quad);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.report(ctx, NativeDiagnostics.FLOW_WIDGET, "render-shuffle", t);
         }
     }
 
@@ -312,7 +326,8 @@ public class WidgetRefreshWorker extends Worker {
         sp.edit().putString(wk(id, "style"), all[(at + 1) % all.length]).putInt(wk(id, "shuffleIdx"), 0).apply();
         try {
             render(ctx, sp, mgr, id, quad);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.report(ctx, NativeDiagnostics.FLOW_WIDGET, "render-style", t);
         }
     }
 
@@ -322,7 +337,8 @@ public class WidgetRefreshWorker extends Worker {
         AppWidgetManager mgr = AppWidgetManager.getInstance(ctx);
         try {
             render(ctx, sp, mgr, id, isQuad(ctx, mgr, id));
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.report(ctx, NativeDiagnostics.FLOW_WIDGET, "render-resize", t);
         }
     }
 
@@ -469,7 +485,8 @@ public class WidgetRefreshWorker extends Worker {
                     return Math.max(MIN_ASPECT, Math.min(MAX_ASPECT, (float) w / h));
                 }
             }
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "widget-aspect", t);
         }
         return 1f;
     }
@@ -531,11 +548,11 @@ public class WidgetRefreshWorker extends Worker {
         return BitmapFactory.decodeFile(path, opts);
     }
 
-    private static int canvasW(float aspect) {
+    static int canvasW(float aspect) {
         return aspect >= 1f ? FRAME_MAX_PX : Math.max(1, Math.round(FRAME_MAX_PX * aspect));
     }
 
-    private static int canvasH(float aspect) {
+    static int canvasH(float aspect) {
         return aspect >= 1f ? Math.max(1, Math.round(FRAME_MAX_PX / aspect)) : FRAME_MAX_PX;
     }
 
@@ -572,7 +589,7 @@ public class WidgetRefreshWorker extends Worker {
 
     /**
      * 다운스케일 후 필터 업스케일로 낸 블러. RenderScript 는 API 31 에서 폐기됐고
-     * RenderEffect 는 31+ 인데 minSdk 가 22 라, 의존성 없이 전 기기에서 도는 이 방법을 쓴다.
+     * RenderEffect 는 31+ 인데 minSdk 가 24 라, 의존성 없이 전 기기에서 도는 이 방법을 쓴다.
      */
     private static Bitmap blurred(Bitmap src, int w, int h) {
         try {
@@ -586,6 +603,7 @@ public class WidgetRefreshWorker extends Worker {
             small.recycle();
             return big;
         } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "blur", t);
             return null;
         }
     }
@@ -627,6 +645,7 @@ public class WidgetRefreshWorker extends Worker {
             int curYear = Calendar.getInstance().get(Calendar.YEAR);
             return y == curYear ? (m + "월 " + day + "일") : (y + "." + m + "." + day);
         } catch (Exception e) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "photo-date-label", e);
             return "";
         }
     }

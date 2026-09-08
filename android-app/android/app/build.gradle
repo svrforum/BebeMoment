@@ -36,6 +36,13 @@ android {
             }
         }
     }
+    testOptions {
+        unitTests {
+            // 위젯 라벨·URL 판정 테스트가 실제 리소스와 org.json 을 쓴다(Robolectric).
+            includeAndroidResources = true
+            returnDefaultValues = true
+        }
+    }
     buildTypes {
         release {
             minifyEnabled false
@@ -62,6 +69,7 @@ dependencies {
     implementation "androidx.browser:browser:1.7.0"
     implementation project(':capacitor-android')
     testImplementation "junit:junit:$junitVersion"
+    testImplementation "org.robolectric:robolectric:$robolectricVersion"
     androidTestImplementation "androidx.test.ext:junit:$androidxJunitVersion"
     androidTestImplementation "androidx.test.espresso:espresso-core:$androidxEspressoCoreVersion"
     implementation project(':capacitor-cordova-android-plugins')

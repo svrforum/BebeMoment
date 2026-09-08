@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<!-- 영어 로케일 오버라이드. 기본(values/)은 한국어를 유지한다 — 앱 이름·패키지명·URL
+     스킴은 브랜드/식별자라 번역하지 않는다. -->
+<resources>
+    <string name="widget_single_label">Bebe photo</string>
+    <string name="widget_quad_label">Bebe photos (4)</string>
+</resources>

@@ -15,7 +15,8 @@ public class BebeQuadWidgetProvider extends AppWidgetProvider {
     public void onUpdate(Context ctx, AppWidgetManager mgr, int[] ids) {
         try {
             WidgetRefreshWorker.enqueueNow(ctx);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "quad-widget/update", t);
         }
     }
 
@@ -24,7 +25,8 @@ public class BebeQuadWidgetProvider extends AppWidgetProvider {
         try {
             WidgetRefreshWorker.ensurePeriodic(ctx);
             WidgetRefreshWorker.enqueueNow(ctx);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "quad-widget/enabled", t);
         }
     }
 
@@ -37,7 +39,8 @@ public class BebeQuadWidgetProvider extends AppWidgetProvider {
             Context ctx, AppWidgetManager mgr, int id, android.os.Bundle newOptions) {
         try {
             WidgetRefreshWorker.reRender(ctx, id);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "quad-widget/options-changed", t);
         }
     }
 
@@ -45,7 +48,8 @@ public class BebeQuadWidgetProvider extends AppWidgetProvider {
     public void onDeleted(Context ctx, int[] ids) {
         try {
             WidgetRefreshWorker.onWidgetsDeleted(ctx, ids);
-        } catch (Throwable ignored) {
+        } catch (Throwable t) {
+            NativeDiagnostics.warn(NativeDiagnostics.FLOW_WIDGET, "quad-widget/deleted", t);
         }
     }
 }

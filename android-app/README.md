@@ -25,9 +25,12 @@ The server side (token storage, FCM HTTP v1 sending, admin settings) lives in
 
 ## Prerequisites
 
-- JDK 17, Android SDK (platform 34, build-tools 34), Node 18+.
+- **Capacitor 8** — JDK 21, Android SDK (platform 36, build-tools 36), Node 22+.
+  Capacitor 8's androidx dependencies (`core` 1.17, `activity` 1.11) declare
+  `minCompileSdk=36`, so compileSdk/targetSdk 36 and **minSdk 24** are forced —
+  Android 5.x (API 22/23) is no longer supported.
 - On this server they're already installed: `~/android-sdk` +
-  `/usr/lib/jvm/java-17-openjdk-amd64`.
+  `/usr/lib/jvm/java-21-openjdk-amd64` (JDK 17 is still there for other projects).
 
 ## Build
 
@@ -38,11 +41,25 @@ npx cap sync android        # after changing www/ or plugins
 
 cd android
 export ANDROID_HOME=~/android-sdk
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ./gradlew assembleDebug      # -> app/build/outputs/apk/debug/app-debug.apk
 ```
 
 The **debug** APK is signed with the debug key — fine for sideloading/testing.
+
+## Tests
+
+```bash
+cd android && ./gradlew testDebugUnitTest   # -> app/build/reports/tests/testDebugUnit/
+```
+
+JUnit + Robolectric, covering the pure logic that decides what the shell lets in:
+deep-link resolution and same-origin comparison (`DeepLinksTest`), the app-update
+URL check (`ApkUpdaterUrlTest`), `Content-Disposition` filename parsing
+(`DownloadsFilenameTest`), the widget's date label / downsampling / canvas sizing
+(`WidgetRefreshWorkerTest`), and the shared-photo intake's origin gate
+(`ShareIntakeTest`). Everything else — push delivery, widgets on a launcher, the
+Custom Tab handoff, installing an APK — can only be verified on a real phone.
 
 ## Release build & distribution
 
@@ -54,11 +71,11 @@ absent, the release build is left unsigned (debug builds are unaffected).
 cd android-app && npx cap sync android
 cd android
 export ANDROID_HOME=~/android-sdk
-export JAVA_HOME=/usr/lib/jvm/java-17-openjdk-amd64
+export JAVA_HOME=/usr/lib/jvm/java-21-openjdk-amd64
 ./gradlew assembleRelease     # -> app/build/outputs/apk/release/app-release.apk
 
 # verify it is release-signed (not the Android debug key)
-$ANDROID_HOME/build-tools/34.0.0/apksigner verify --print-certs \
+$ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs \
   app/build/outputs/apk/release/app-release.apk
 ```
 
