@@ -144,7 +144,9 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     env:
-      IMAGE: ${{ env.APP_IMAGE }}@${{ needs.build.outputs.digest }}
+      # job-level env 에서는 env 컨텍스트를 못 쓴다(참조하면 워크플로 자체가 컴파일 실패 →
+      # 태그를 밀어도 릴리스가 아예 안 돈다). 이미지 경로는 여기서 다시 적는다.
+      IMAGE: ghcr.io/${{ github.repository_owner }}/bebe-moment/app@${{ needs.build.outputs.digest }}
     steps:
       - uses: docker/login-action@v4
         with:
