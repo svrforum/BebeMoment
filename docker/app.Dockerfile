@@ -53,12 +53,23 @@ RUN --mount=type=cache,id=next-build,target=/repo/apps/web/.next/cache \
 # CI=true: 설정이 바뀐 modules 디렉터리 재생성 확인을 TTY 없이 통과시킨다.
 # pnpm 은 제거된 devDependency 의 optionalDependencies(biome CLI 바이너리, e2e 의 옛 sharp 등
 # 110MB)를 store 에 남긴다 — prune-store.mjs 가 어느 패키지에서도 닿지 않는 store 디렉터리를 지운다.
-# 그 뒤 런타임이 읽지 않는 것 둘을 더 걷어낸다:
+# 그 뒤 런타임이 읽지 않는 것들을 더 걷어낸다. 아래는 전부 이미지를 띄워 확인한 목록이다
+# (부팅 → migrate deploy → /api/health?deep=1 → 페이지 렌더가 제거 전후로 동일):
 #   - .next/server 의 소스맵 — next start 는 소스맵을 켜지 않는다(스택 트레이스는 지금도 청크 기준)
 #   - @next/swc — next build/dev 전용 네이티브 바이너리(125MB), next start 는 로드하지 않는다
 #   - typescript — prisma 의 optional peer. migrate deploy 는 없이도 돈다(오프라인 부팅으로 확인)
-# ⚠️ @prisma/dev·@prisma/studio-core·pglite 는 prisma CLI 가 시작하자마자 require 한다 —
-#    지우면 migrate deploy 가 MODULE_NOT_FOUND 로 죽는다(직접 확인). 100MB 지만 그대로 둔다.
+#   - lucide-react(39MB) — Turbopack 이 아이콘을 클라이언트 청크에 인라인한다. .next 어디에도
+#     `require("lucide-react")` 가 없고(client-reference-manifest 에 남는 건 모듈 경로 문자열뿐)
+#     제거 전후 /login·/signup 응답이 바이트까지 같다
+#   - lightningcss(20MB) — Tailwind/Next 의 빌드 타임 CSS 컴파일러. CSS 는 이미 .next/static 에 있다
+#   - playwright(16MB) — e2e 러너가 next 의 peer 로 딸려온 것
+#   - pglite(24MB)·rolldown(23MB) — `prisma dev`(로컬 임베디드 DB) 전용. migrate deploy 는 안 탄다
+# ⚠️ 반대로 이것들은 **지우면 부팅이 죽는다**(전부 실제로 깨뜨려 확인):
+#   - @prisma/studio-core·@prisma/dev — prisma CLI 의 build/index.js 가 top-level 에서
+#     `@prisma/studio-core/data/bff`·`@prisma/dev/internal/state` 를 require 한다
+#   - effect — @prisma/config 이 require 한다(위 둘의 부속이 아니라 별도 경로)
+#   - @swc/core(27MB) — next start 가 next.config.mjs 를 읽고, 그게 next-intl/plugin →
+#     MessageExtractor → @swc/core 로 이어진다. 빌드 전용처럼 보이지만 런타임 의존이다
 # .next/cache 는 런타임에 Next 가 unstable_cache 항목을 쓰는 곳 — 비워 두되 존재해야 한다.
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     CI=true pnpm install --prod --frozen-lockfile --ignore-scripts --offline \
@@ -66,6 +77,12 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     && rm -rf apps/web/.next/cache e2e \
     && find apps/web/.next/server -name '*.map' -type f -delete \
     && rm -rf node_modules/.pnpm/@next+swc-linux-x64-gnu@* node_modules/.pnpm/typescript@* \
+    && rm -rf node_modules/.pnpm/lucide-react@* \
+       node_modules/.pnpm/lightningcss-linux-x64-gnu@* \
+       node_modules/.pnpm/playwright@* node_modules/.pnpm/playwright-core@* \
+       node_modules/.pnpm/@playwright+* \
+       node_modules/.pnpm/@electric-sql+pglite* \
+       node_modules/.pnpm/rolldown@* node_modules/.pnpm/@rolldown+* \
     && mkdir -p apps/web/.next/cache
 
 # -------- ffmpeg --------
