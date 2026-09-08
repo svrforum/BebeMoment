@@ -1,6 +1,12 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
-import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import {
+  GRID_THUMB_SIZES,
+  pickBlurhash,
+  pickThumbSrcSet,
+  pickThumbTrio,
+  pickThumbUrl,
+} from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
@@ -40,6 +46,8 @@ type Props = {
   /** 컬렉션 맥락(memories·saved·album:id 등) — 상세 링크에 실어 뷰어 스와이프가 그
    *  컬렉션 안에서만 이동하게. 없으면 전역 타임라인. */
   viewerCtx?: string | null
+  /** 첫 화면에 바로 보이는 카드 — lazy 대신 eager + fetchPriority=high 로 LCP 를 앞당긴다. */
+  priority?: boolean
 }
 
 const STATUS_KEY: Record<
@@ -75,6 +83,7 @@ export function AssetCard({
   onContextMenu,
   sort = 'taken',
   viewerCtx = null,
+  priority = false,
 }: Props) {
   const detailQp = new URLSearchParams()
   if (sort === 'uploaded') detailQp.set('sort', 'uploaded')
@@ -184,7 +193,10 @@ export function AssetCard({
           dominantColor={urls?.dominantColor ?? null}
           blurhash={blurhash}
           className="h-full w-full"
-          loading="lazy"
+          srcSet={pickThumbSrcSet(urls)}
+          sizes={GRID_THUMB_SIZES}
+          loading={priority ? 'eager' : 'lazy'}
+          fetchPriority={priority ? 'high' : 'auto'}
         />
       ) : (
         <div className="flex h-full w-full items-center justify-center text-xs text-base-500">
@@ -290,6 +302,9 @@ export function AssetCard({
   return (
     <Link
       href={detailHref}
+      // 상세는 동적 라우트라 프리페치해 봐야 빈 로딩 경계만 받는다 — 그리드 스크롤마다
+      // 수십 건의 무의미한 요청을 내지 않는다.
+      prefetch={false}
       aria-label={kind === 'video' ? t('card.openVideo') : t('card.openPhoto')}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}

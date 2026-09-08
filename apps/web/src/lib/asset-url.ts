@@ -40,6 +40,29 @@ export function pickThumbTrio(urls: AssetUrls | null | undefined): DerivativeTri
   return urls.thumb256 ?? urls.thumb512 ?? null
 }
 
+export type ThumbSrcSet = { avif: string; webp: string; jpeg: string }
+
+/**
+ * 그리드 썸네일용 srcset — thumb256 과 thumb512 를 폭 서술자(`256w`/`512w`)로 묶는다.
+ * 브라우저가 `sizes` 와 DPR 로 둘 중 하나를 고른다(고밀도 화면이 256 을 늘려 흐릿하게
+ * 보이던 것을 512 가 대신한다). 한 티어만 있으면 그것만, 둘 다 없으면 null.
+ */
+export function pickThumbSrcSet(urls: AssetUrls | null | undefined): ThumbSrcSet | null {
+  if (!urls) return null
+  const tiers = [
+    [urls.thumb256, 256],
+    [urls.thumb512, 512],
+  ].filter((t): t is [DerivativeTrio, number] => t[0] !== null)
+  if (tiers.length === 0) return null
+  const join = (format: keyof DerivativeTrio) =>
+    tiers.map(([trio, width]) => `${trio[format]} ${width}w`).join(', ')
+  return { avif: join('avif'), webp: join('webp'), jpeg: join('jpeg') }
+}
+
+/** 타임라인 그리드의 열 수(3 → 4 → 5 → … → xl 에서 ~160px)에 맞춘 sizes. */
+export const GRID_THUMB_SIZES =
+  '(min-width: 1280px) 160px, (min-width: 768px) 20vw, (min-width: 640px) 25vw, 33vw'
+
 /**
  * 큰 이미지 trio. 디테일 페이지용.
  */

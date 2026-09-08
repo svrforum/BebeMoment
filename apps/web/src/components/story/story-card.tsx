@@ -50,6 +50,7 @@ export function StoryCard({ data }: { data: StoryCardData }) {
   return (
     <Link
       href={`/story/${data.publicNo}`}
+      prefetch={false}
       className="group flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 p-2.5 shadow-card transition-all duration-200 active:scale-[0.99] md:hover:-translate-y-0.5 md:hover:shadow-elevated dark:border-base-800/70 dark:bg-base-900"
     >
       <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
