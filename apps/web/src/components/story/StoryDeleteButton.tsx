@@ -1,7 +1,9 @@
 'use client'
 import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
+import { type ActionResult, actionErrorText } from '@/lib/action-result'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
+import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { AlertTriangle, Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -10,8 +12,8 @@ import { useState, useTransition } from 'react'
 type Photo = { id: string; urls: AssetUrls | null }
 
 type Props = {
-  /** entry id 에 바인딩된 server action. deletePhotos 를 인자로 받는다. */
-  onDelete: (deletePhotos: boolean) => Promise<void>
+  /** entry id 에 바인딩된 server action. deletePhotos 를 인자로 받는다. 성공하면 redirect. */
+  onDelete: (deletePhotos: boolean) => Promise<ActionResult>
   /** 스토리에 포함된 사진들 — 삭제 다이얼로그에서 보여주고 "함께 삭제" 여부를 고른다. */
   photos: Photo[]
 }
@@ -20,6 +22,8 @@ const THUMB_LIMIT = 9
 
 export function StoryDeleteButton({ onDelete, photos }: Props) {
   const t = useTranslations('story')
+  const tRoot = useTranslations()
+  const toast = useToast()
   const [open, setOpen] = useState(false)
   const [deletePhotos, setDeletePhotos] = useState(false)
   const [pending, startTransition] = useTransition()
@@ -28,7 +32,11 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
 
   const handleConfirm = () => {
     startTransition(async () => {
-      await onDelete(deletePhotos)
+      const r = await onDelete(deletePhotos)
+      if (!r.ok) {
+        toast({ title: actionErrorText(tRoot, r), variant: 'danger' })
+        return
+      }
       setOpen(false)
     })
   }

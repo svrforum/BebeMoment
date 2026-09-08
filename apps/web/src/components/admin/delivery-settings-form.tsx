@@ -1,5 +1,6 @@
 'use client'
 import { setDeliverySettings } from '@/(app)/admin/notifications/actions'
+import { actionErrorText } from '@/lib/action-result'
 import { useToast } from '@/lib/toast'
 import { useTranslations } from 'next-intl'
 import { useState, useTransition } from 'react'
@@ -28,6 +29,7 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
   const [pending, start] = useTransition()
   const toast = useToast()
   const t = useTranslations('admin')
+  const tRoot = useTranslations()
 
   function save(next: Partial<DeliveryInitial>) {
     const payload: DeliveryInitial = {
@@ -40,12 +42,14 @@ export function DeliverySettingsForm({ initial }: { initial: DeliveryInitial }) 
       ...next,
     }
     start(async () => {
-      try {
-        await setDeliverySettings(payload)
-        toast({ title: t('delivery.saved'), variant: 'success' })
-      } catch {
-        toast({ title: t('delivery.failed'), variant: 'danger' })
-      }
+      const r = await setDeliverySettings(payload)
+      if (r.ok) toast({ title: t('delivery.saved'), variant: 'success' })
+      else
+        toast({
+          title: t('delivery.failed'),
+          description: actionErrorText(tRoot, r),
+          variant: 'danger',
+        })
     })
   }
 

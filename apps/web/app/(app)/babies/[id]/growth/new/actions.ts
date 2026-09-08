@@ -1,6 +1,8 @@
 'use server'
+import type { FormActionState } from '@/lib/action-result'
 import { getAuth } from '@/lib/auth'
 import { prismaPublic } from '@/lib/db-init'
+import { withActionLog } from '@/lib/with-action-log'
 import { resolveContext } from '@/server/context'
 import { createGrowthRecord } from '@/server/growth/create'
 import { redirect } from 'next/navigation'
@@ -19,7 +21,11 @@ function parseOptionalString(v: FormDataEntryValue | null): string | undefined {
   return s === '' ? undefined : s
 }
 
-export async function createGrowthAction(babyId: string, formData: FormData) {
+export async function createGrowthAction(
+  babyId: string,
+  _prev: FormActionState,
+  formData: FormData,
+): Promise<FormActionState> {
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -27,19 +33,24 @@ export async function createGrowthAction(babyId: string, formData: FormData) {
     prismaPublic,
   )
   if (!ctx.family || !ctx.user) redirect('/onboarding')
+  const family = ctx.family
+  const user = ctx.user
 
-  await createGrowthRecord(
-    {
-      familyId: ctx.family.id,
-      babyId,
-      measuredAt: String(formData.get('measuredAt') ?? ''),
-      heightCm: parseOptionalNumber(formData.get('heightCm')),
-      weightKg: parseOptionalNumber(formData.get('weightKg')),
-      headCm: parseOptionalNumber(formData.get('headCm')),
-      note: parseOptionalString(formData.get('note')),
-      byUserId: ctx.user.id,
-    },
-    prismaPublic,
+  const result = await withActionLog('growth.create', () =>
+    createGrowthRecord(
+      {
+        familyId: family.id,
+        babyId,
+        measuredAt: String(formData.get('measuredAt') ?? ''),
+        heightCm: parseOptionalNumber(formData.get('heightCm')),
+        weightKg: parseOptionalNumber(formData.get('weightKg')),
+        headCm: parseOptionalNumber(formData.get('headCm')),
+        note: parseOptionalString(formData.get('note')),
+        byUserId: user.id,
+      },
+      prismaPublic,
+    ),
   )
+  if (!result.ok) return result
   redirect(`/babies/${babyId}/growth`)
 }

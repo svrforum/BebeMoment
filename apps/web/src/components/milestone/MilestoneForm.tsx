@@ -1,9 +1,10 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { type FormActionState, actionErrorText } from '@/lib/action-result'
 import type { MilestonePreset } from '@bebe/core'
 import { useTranslations } from 'next-intl'
-import { useState } from 'react'
+import { useActionState, useState } from 'react'
 import { AssetPickerSheet, type PickerAsset } from '../story/AssetPickerSheet'
 
 export function MilestoneForm({
@@ -13,7 +14,7 @@ export function MilestoneForm({
   preset,
   submitLabel,
 }: {
-  action: (fd: FormData) => void
+  action: (prev: FormActionState, fd: FormData) => Promise<FormActionState>
   availableAssets: PickerAsset[]
   defaults?: {
     achievedAt?: string
@@ -25,11 +26,18 @@ export function MilestoneForm({
   submitLabel?: string
 }) {
   const t = useTranslations('misc')
+  const tRoot = useTranslations()
+  const [failure, formAction] = useActionState(action, null)
   const [assetIds, setAssetIds] = useState<string[]>(defaults?.assetIds ?? [])
   const label = submitLabel ?? t('milestone.save')
 
   return (
-    <form action={action} className="space-y-3">
+    <form action={formAction} className="space-y-3">
+      {failure && (
+        <p className="text-sm text-danger" role="alert">
+          {actionErrorText(tRoot, failure)}
+        </p>
+      )}
       {preset ? (
         <div>
           <Label>{t('milestone.label')}</Label>

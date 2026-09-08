@@ -1346,6 +1346,7 @@
       "errInvalidClientConfig": "The Firebase client config needs apiKey, appId, projectId, and messagingSenderId."
     },
     "delivery": {
+      "digestHourInQuietHours": "The digest send time falls inside quiet hours. Adjust the time or the quiet hours.",
       "saved": "Saved",
       "failed": "Couldn't save",
       "modeHeading": "Delivery method",
@@ -1696,6 +1697,7 @@
       "targetRequired": "A share target is required"
     },
     "notif": {
+      "unknownCategory": "Unknown notification category",
       "fcmTokenFailed": "Failed to obtain an FCM access token",
       "fcmTokenMissing": "No token in the FCM access-token response",
       "testCooldown": "Please try again in a moment"
@@ -1731,6 +1733,17 @@
     }
   },
   "upload": {
+    "preparing": "Preparing the uploader…",
+    "initFailed": "Could not start the uploader",
+    "addFailed": "Could not add {name}",
+    "fileUploadFailed": "{name} failed to upload",
+    "fileFallbackName": "File",
+    "restricted": "Upload restricted",
+    "uppy": {
+      "noDuplicates": "Already added: {name}",
+      "exceedsSize": "The file is too large",
+      "mediaOnly": "Only images and videos can be uploaded"
+    },
     "addAtLeastOne": "Add at least one photo",
     "uploadNotFinished": "Your photos are still uploading. They'll be saved to the timeline, so check back there in a moment.",
     "storyFailed": "Couldn't post the story",

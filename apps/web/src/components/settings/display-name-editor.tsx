@@ -1,5 +1,6 @@
 'use client'
 import { setDisplayName } from '@/(app)/settings/actions'
+import { actionErrorText } from '@/lib/action-result'
 import { Check, Pencil, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -15,6 +16,7 @@ export function DisplayNameEditor({
   badge?: React.ReactNode
 }) {
   const t = useTranslations('settings')
+  const tRoot = useTranslations()
   const [name, setName] = useState(initial)
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(initial)
@@ -35,10 +37,12 @@ export function DisplayNameEditor({
     setError(null)
     try {
       const r = await setDisplayName({ displayName: trimmed })
-      setName(r.displayName)
+      if (!r.ok) {
+        setError(actionErrorText(tRoot, r))
+        return
+      }
+      setName(r.data.displayName)
       setEditing(false)
-    } catch (e) {
-      setError((e as Error).message)
     } finally {
       setSaving(false)
     }
