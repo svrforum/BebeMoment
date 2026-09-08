@@ -247,6 +247,12 @@ before that verdict existed have none, so an old 4:2:2 / 10-bit recording is sti
 saved as the original — a file that plays sound only on most phones. This script
 probes each existing video once and stores the verdict.
 
+If the `preview.mp4` a video points at is missing from storage (a partial restore, a
+manual cleanup), saving that video answers **404** instead of re-encoding the original
+on the spot — a missing derivative is a storage problem worth seeing, not something to
+hide behind a per-request transcode. Restore `/data` from a backup, or re-upload the
+video, to get the derivative back.
+
 ```bash
 docker exec -w /repo/apps/media bebe-app \
   node --import tsx src/scripts/backfill-video-playable.ts --dry-run
