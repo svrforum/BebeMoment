@@ -2,6 +2,7 @@ import { getAuth } from '@/lib/auth'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
+import { formatDayShareMeta } from '@/server/share/day-meta'
 import { type DayPreview, buildDayPreview } from '@/server/share/day-preview'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
@@ -10,10 +11,10 @@ import { pickShareBaseUrl } from '@/lib/share-base-url'
 import { clientIp, rateLimit } from '@/server/auth/rate-limit'
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
-import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
 import type { Metadata } from 'next'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
+import { cache } from 'react'
 import { AlbumShareView } from './album-view'
 import { DayShareView } from './day-view'
 import { PhotoSetShareView } from './photo-set-view'
@@ -46,9 +47,11 @@ type Loaded =
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
   | { status: 'expired' | 'revoked' | 'notfound' }
 
-async function load(token: string, base: string): Promise<Loaded> {
+// generateMetadata 와 페이지가 같은 요청 안에서 한 번씩 부른다 — cache() 로 묶어 DB·미디어 조회와
+// 레이트리밋 카운트가 요청당 한 번만 일어나게 한다.
+const load = cache(async (token: string, base: string): Promise<Loaded> => {
   // 무인증 공개 라우트 — IP 당 레이트리밋으로 토큰 추측·스크래핑(매 히트 DB+미디어 호출)
-  // 폭주를 막는다. 정상 열람엔 넉넉(분당 120, 페이지+OG 2히트라 ≈60뷰/분/IP).
+  // 폭주를 막는다. 정상 열람엔 넉넉(분당 120 뷰/IP).
   const ip = clientIp({ headers: await headers() } as unknown as Request)
   if (!(await rateLimit(`share:${ip}`, 120, 60)).ok) return { status: 'notfound' }
   // 공유 기능 OFF 면 기존 링크도 더 이상 열리지 않는다(관리자 kill-switch).
@@ -96,7 +99,7 @@ async function load(token: string, base: string): Promise<Loaded> {
       kind: 'day',
       preview: day,
       date: r.target.date,
-      meta: await dayMeta(r.target.date, r.familyId, day.photos.total, day.stories.length),
+      meta: await dayMeta(r.target.date, day.photos.total, day.stories.length),
     }
   }
 
@@ -122,36 +125,13 @@ async function load(token: string, base: string): Promise<Loaded> {
     familyId: r.familyId,
     set: { preview, ids: preview.ids, meta },
   }
-}
+})
 
-// "9월 4일 · D+120 · 사진 12장 · 이야기 2개" — 타임라인 날짜 헤더와 같은 정보.
-async function dayMeta(
-  date: string,
-  familyId: string,
-  photoCount: number,
-  storyCount: number,
-): Promise<string> {
+// "9월 4일 · 사진 12장 · 이야기 2개" — 공개 메타라 D+N 은 넣지 않는다(날짜와 함께면 생일이 된다).
+async function dayMeta(date: string, photoCount: number, storyCount: number): Promise<string> {
   const t = await getTranslations('share')
   const locale = await getLocale()
-  const at = new Date(`${date}T00:00:00.000Z`)
-  const monthDay = new Intl.DateTimeFormat(locale, {
-    month: 'long',
-    day: 'numeric',
-    timeZone: 'UTC',
-  })
-  const baby = await prismaPublic.baby.findFirst({
-    where: { familyId, deletedAt: null },
-    orderBy: { birthDate: 'asc' },
-    select: { birthDate: true },
-  })
-  return [
-    monthDay.format(at),
-    baby ? formatDDay(babyDaysDiff(baby.birthDate, at)) : null,
-    t('photoset.metaCount', { n: photoCount }),
-    storyCount > 0 ? t('photoset.storyCount', { n: storyCount }) : null,
-  ]
-    .filter((s): s is string => Boolean(s))
-    .join(' · ')
+  return formatDayShareMeta({ date, locale, photoCount, storyCount }, t)
 }
 
 export async function generateMetadata({
