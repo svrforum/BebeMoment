@@ -33,6 +33,9 @@ export async function suspendMember(
       },
     })
     await tx.session.deleteMany({ where: { userId: membership.userId } })
+    // 위젯 bearer 토큰은 세션과 달리 만료가 없다 — 지우지 않으면 정지된 멤버의 홈 위젯이
+    // 계속 가족 사진을 받는다.
+    await tx.widgetToken.deleteMany({ where: { userId: membership.userId } })
   })
   return { suspendedAt }
 }

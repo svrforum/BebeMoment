@@ -42,7 +42,8 @@ export async function createStoryEntry(
   ) {
     throw new Error('No permission')
   }
-  assertCanSetStoryVisibility(membership.role, input.visibility)
+  // 새 스토리의 "현재" 가시성은 기본값(family) — 그 값을 명시해 보내는 건 변경이 아니다.
+  assertCanSetStoryVisibility(membership.role, input.visibility, 'family')
 
   if (input.babyId) {
     const baby = await prismaPublic.baby.findFirst({

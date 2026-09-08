@@ -5,6 +5,7 @@ import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
+import { setSetting } from '../settings/set'
 import { createStoryEntry } from './create'
 import { updateStoryEntry } from './update'
 
@@ -256,5 +257,62 @@ describe('updateStoryEntry', () => {
     expect(updated.id).toBe(entry.id)
     const links = await db.prismaPublic.storyAsset.findMany({ where: { entryId: entry.id } })
     expect(links.map((l) => l.assetId)).toEqual([asset.id])
+  })
+
+  // 편집 폼은 현재 가시성을 그대로 되보낸다. 값이 같은데 family 역할이라고 거부하면
+  // record.edit.own 을 받은 family 편집자는 본문 한 줄도 못 고친다(저장마다 403).
+  it('family 편집자가 바뀌지 않은 visibility 를 함께 보내도 저장된다', async () => {
+    const { user: owner, family } = await setup()
+    const { user: editor } = await signup(
+      { username: 'editor', password: 'password123', displayName: 'E' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: editor.id, role: 'family' },
+    })
+    await setSetting(
+      'permissions.family',
+      ['record.create', 'record.edit.own'],
+      null,
+      db.prismaPublic,
+    )
+    const a = await makeReadyAsset(family.id, owner.id, '1'.repeat(64), 'upd-fam1')
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-01',
+        body: '원본문',
+        assetIds: [a.id],
+        byUserId: editor.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const updated = await updateStoryEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: editor.id,
+        patch: { body: '고친 본문', visibility: 'family' },
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.body).toBe('고친 본문')
+    expect(updated.visibility).toBe('family')
+
+    await expect(
+      updateStoryEntry(
+        {
+          id: entry.id,
+          familyId: family.id,
+          byUserId: editor.id,
+          patch: { visibility: 'guardians' },
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow('story.visibilityGuardianOnly')
   })
 })

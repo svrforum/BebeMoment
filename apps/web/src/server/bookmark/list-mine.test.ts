@@ -187,4 +187,57 @@ describe('listMyBookmarks', () => {
     )
     expect(ownerView.items.map((b) => b.assetId).sort()).toEqual([normal.id, secret.id].sort())
   })
+
+  // 숨김을 DB 페이지 뒤에 JS 로 걸러내면 hasMore 가 걸러내기 전 개수로 계산돼, 숨긴 북마크가
+  // 페이지 안에 있을 때 다음 페이지가 있는데도 목록이 끝나 버렸다(family 뷰어의 저장됨이
+  // 일찍 끝나던 문제). 숨김은 where 로 내려가고 hasMore 는 DB 페이지에서 나와야 한다.
+  it('keeps paginating past a hidden bookmark inside the page (family viewer)', async () => {
+    const { user, family } = await setup()
+    const assets = []
+    for (let i = 0; i < 5; i++) {
+      const a = await makeReadyAsset(family.id, user.id, `pg${i}`)
+      await toggleBookmark(
+        { assetId: a.id, familyId: family.id, byUserId: user.id },
+        db.prismaPublic,
+        db.prismaMedia,
+      )
+      await new Promise((r) => setTimeout(r, 2))
+      assets.push(a)
+    }
+    // 두 번째로 최신인 북마크를 비밀 스토리에 담아 family 에게서 숨긴다.
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [assets[3]!.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const media = new FakeMediaClient()
+    const p1 = await listMyBookmarks(
+      family.id,
+      user.id,
+      { limit: 3, viewerRole: 'family' },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(p1.items.map((b) => b.assetId)).toEqual([assets[4]!.id, assets[2]!.id, assets[1]!.id])
+    expect(p1.nextCursor).not.toBeNull()
+    const p2 = await listMyBookmarks(
+      family.id,
+      user.id,
+      { limit: 3, viewerRole: 'family', cursor: p1.nextCursor! },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(p2.items.map((b) => b.assetId)).toEqual([assets[0]!.id])
+    expect(p2.nextCursor).toBeNull()
+  })
 })

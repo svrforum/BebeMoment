@@ -15,7 +15,7 @@ import { Upload } from '@aws-sdk/lib-storage'
 import type { PrismaClient } from '@bebe/db-public'
 import { z } from 'zod'
 import { resolveChainFrom } from './chain'
-import { type BackupManifest, bundleName, manifestName } from './manifest'
+import { type BackupManifest, bundleName, isValidBackupId, manifestName } from './manifest'
 
 export type RemoteConfig = {
   endpoint: string // S3 호환(MinIO/B2). 비우면 AWS S3
@@ -164,6 +164,26 @@ export function remoteConfigFromEnv(env: NodeJS.ProcessEnv): RemoteConfig | null
   }
 }
 
+/**
+ * 버킷에서 읽은 매니페스트 본문 → 매니페스트. 손상·남의 파일·다른 버전은 null(목록 하나 때문에
+ * 전체 조회가 죽으면 안 된다). id 와 parentId 는 **백업 id 형식이어야** 한다 — 그대로
+ * `path.join(backupDir, id + '.tar.zst')` 의 파일명이 되고 체인 탐색이 parentId 를 따라가므로,
+ * 버킷의 JSON 을 믿으면 `../../x` 같은 id 가 백업 디렉터리 밖에 쓴다.
+ */
+export function parseRemoteManifest(body: string): BackupManifest | null {
+  let m: BackupManifest
+  try {
+    m = JSON.parse(body) as BackupManifest
+  } catch {
+    return null
+  }
+  if (m?.version !== 1) return null
+  if (typeof m.id !== 'string' || !isValidBackupId(m.id)) return null
+  if (m.parentId !== null && (typeof m.parentId !== 'string' || !isValidBackupId(m.parentId)))
+    return null
+  return m
+}
+
 /** 버킷(prefix 하위)의 사이드카 매니페스트를 전부 읽어 최신순으로. */
 export async function listRemoteBackups(cfg: RemoteConfig): Promise<BackupManifest[]> {
   const s3 = makeClient(cfg)
@@ -189,13 +209,8 @@ export async function listRemoteBackups(cfg: RemoteConfig): Promise<BackupManife
       const res = await s3.send(new GetObjectCommand({ Bucket: cfg.bucket, Key }))
       const body = await res.Body?.transformToString()
       if (!body) continue
-      try {
-        const m = JSON.parse(body) as BackupManifest
-        // 손상·남의 파일은 조용히 건너뛴다 — 목록 하나 때문에 전체 조회가 죽으면 안 된다.
-        if (m?.version === 1 && typeof m.id === 'string') out.push(m)
-      } catch {
-        // 매니페스트가 아닌 파일
-      }
+      const m = parseRemoteManifest(body)
+      if (m) out.push(m)
     }
   } finally {
     s3.destroy()
@@ -219,6 +234,7 @@ export async function downloadBackupFromRemote(args: {
   backupDir: string
   id: string
 }): Promise<{ downloaded: boolean }> {
+  if (!isValidBackupId(args.id)) throw new ServiceError(400, 'backup.invalidId')
   const bundle = path.join(args.backupDir, bundleName(args.id))
   const manifest = path.join(args.backupDir, manifestName(args.id))
   const have = await Promise.all([

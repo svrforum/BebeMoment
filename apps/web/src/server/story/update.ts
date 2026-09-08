@@ -51,7 +51,7 @@ export async function updateStoryEntry(
   if (!resolveCan(membership.role, isOwn ? 'record.edit.own' : 'record.edit.any', familyCaps)) {
     throw new Error('No permission to edit this entry')
   }
-  assertCanSetStoryVisibility(membership.role, input.patch.visibility)
+  assertCanSetStoryVisibility(membership.role, input.patch.visibility, entry.visibility)
   if (input.patch.babyId) {
     const baby = await prismaPublic.baby.findFirst({
       where: { id: input.patch.babyId, familyId: input.familyId, deletedAt: null },

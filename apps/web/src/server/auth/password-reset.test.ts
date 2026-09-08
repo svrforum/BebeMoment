@@ -13,6 +13,8 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.session.deleteMany()
+  await db.prismaPublic.widgetToken.deleteMany()
   await db.prismaPublic.passwordResetToken.deleteMany()
   await db.prismaPublic.account.deleteMany()
   await db.prismaPublic.user.deleteMany()
@@ -46,6 +48,16 @@ describe('resetPasswordWithToken', () => {
     expect(await verifyPassword('brandnewpw', refreshed!.passwordHash!)).toBe(true)
     const used = await db.prismaPublic.passwordResetToken.findUnique({ where: { token } })
     expect(used?.usedAt).not.toBeNull()
+  })
+  it('세션과 함께 위젯 토큰도 지운다 — 잠근 계정의 위젯이 계속 사진을 받으면 안 된다', async () => {
+    const { user, token } = await seedToken()
+    await db.prismaPublic.session.create({
+      data: { token: 's-1', userId: user.id, expiresAt: new Date(Date.now() + 60_000) },
+    })
+    await db.prismaPublic.widgetToken.create({ data: { token: 'w-1', userId: user.id } })
+    await resetPasswordWithToken({ token, newPassword: 'brandnewpw' }, db.prismaPublic)
+    expect(await db.prismaPublic.session.count({ where: { userId: user.id } })).toBe(0)
+    expect(await db.prismaPublic.widgetToken.count({ where: { userId: user.id } })).toBe(0)
   })
   it('만료된 토큰은 거부한다', async () => {
     const { token } = await seedToken({ expiresAt: new Date(Date.now() - 1000) })

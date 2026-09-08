@@ -23,6 +23,20 @@ export async function acceptInvite(
   if (!user) throw new NotFoundError('invite.userNotFound')
 
   return prisma.$transaction(async (tx) => {
+    // 토큰을 먼저 선점한다 — 위의 읽기는 트랜잭션 밖이라 같은 토큰으로 동시에 들어온 두 가입이
+    // 둘 다 통과했다(1회용이 아니었다). 조건부 갱신은 행 잠금 뒤 WHERE 를 다시 평가하므로
+    // 늦은 쪽은 count 0 을 받고, 던지면 트랜잭션이 되돌아가 멤버십도 남지 않는다.
+    const claimed = await tx.invite.updateMany({
+      where: {
+        token: invite.token,
+        acceptedAt: null,
+        revokedAt: null,
+        expiresAt: { gt: new Date() },
+      },
+      data: { acceptedAt: new Date(), acceptedById: input.userId },
+    })
+    if (claimed.count !== 1) throw new ConflictError('invite.alreadyAccepted')
+
     const existing = await tx.membership.findUnique({
       where: { familyId_userId: { familyId: invite.familyId, userId: input.userId } },
     })
@@ -53,11 +67,6 @@ export async function acceptInvite(
             role: invite.role,
           },
         })
-
-    await tx.invite.update({
-      where: { token: invite.token },
-      data: { acceptedAt: new Date(), acceptedById: input.userId },
-    })
 
     return { membership, familyId: invite.familyId }
   })

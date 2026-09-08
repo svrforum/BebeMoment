@@ -5,6 +5,12 @@ import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type IORedis from 'ioredis'
 import { ForbiddenError, NotFoundError } from '../error'
 
+// 업로더 본인은 갓 올린 사진을 asset.delete.own 없이도 휴지통에 넣을 수 있다. 스토리 제출이
+// 실패하면 클라이언트가 방금 올린 사진을 같은 라우트로 되돌리는데(rollback-assets), 업로드만
+// 받은 family 멤버는 그게 403 이라 실패한 스토리마다 사진이 타임라인에 흩어졌다. 올린 사람이
+// 한 시간 안에 되돌리는 건 업로드 권한의 연장이지 삭제 권한이 아니다.
+const UPLOADER_GRACE_MS = 60 * 60 * 1000
+
 export async function softDeleteAsset(
   args: { assetId: string; familyId: string; byUserId: string },
   prismaPublic: PrismaPublic,
@@ -24,10 +30,11 @@ export async function softDeleteAsset(
   if (!asset) throw new NotFoundError('asset.notFound')
 
   const familyCaps = await getFamilyCapabilities(prismaPublic)
+  const isUploader = asset.uploadedByUserId === args.byUserId
   const canDelete =
-    (asset.uploadedByUserId === args.byUserId &&
-      resolveCan(membership.role, 'asset.delete.own', familyCaps)) ||
-    resolveCan(membership.role, 'asset.delete.any', familyCaps)
+    (isUploader && resolveCan(membership.role, 'asset.delete.own', familyCaps)) ||
+    resolveCan(membership.role, 'asset.delete.any', familyCaps) ||
+    (isUploader && Date.now() - asset.createdAt.getTime() <= UPLOADER_GRACE_MS)
   if (!canDelete) throw new ForbiddenError('asset.deleteDenied')
 
   await prismaMedia.asset.update({

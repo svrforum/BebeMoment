@@ -38,11 +38,12 @@ async function setup() {
 }
 
 describe('suspendMember', () => {
-  it('멤버를 정지하고 활성 세션을 모두 삭제한다', async () => {
+  it('멤버를 정지하고 활성 세션·위젯 토큰을 모두 삭제한다', async () => {
     const { owner, family, member, membership } = await setup()
     await db.prismaPublic.session.create({
       data: { token: 't-1', userId: member.id, expiresAt: new Date(Date.now() + 60_000) },
     })
+    await db.prismaPublic.widgetToken.create({ data: { token: 'w-1', userId: member.id } })
     const result = await suspendMember(
       {
         membershipId: membership.id,
@@ -61,6 +62,7 @@ describe('suspendMember', () => {
     expect(updated?.suspendedByUserId).toBe(owner.id)
     const sessions = await db.prismaPublic.session.findMany({ where: { userId: member.id } })
     expect(sessions).toHaveLength(0)
+    expect(await db.prismaPublic.widgetToken.count({ where: { userId: member.id } })).toBe(0)
   })
   it('owner 가 아닌 actor(guardian)는 정지할 수 없다', async () => {
     const { family, membership } = await setup()

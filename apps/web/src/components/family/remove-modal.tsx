@@ -31,7 +31,7 @@ export function RemoveModal({ open, onOpenChange, membershipId, displayName }: P
       const res = await fetch(`/api/admin/members/${membershipId}/remove`, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ confirm }),
+        body: JSON.stringify({ confirm: confirm === confirmWord }),
       })
       if (!res.ok) {
         const data = await res.json().catch(() => ({}))

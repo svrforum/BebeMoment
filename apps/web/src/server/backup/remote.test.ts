@@ -2,7 +2,66 @@ import { encryptSecret } from '@/lib/crypto'
 import { setSetting } from '@/server/settings/set'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { loadRemoteConfig, redactSecrets } from './remote'
+import {
+  downloadBackupFromRemote,
+  loadRemoteConfig,
+  parseRemoteManifest,
+  redactSecrets,
+} from './remote'
+
+// 버킷의 JSON 은 신뢰할 수 없다 — id 가 그대로 path.join(backupDir, id + '.tar.zst') 의 파일명이
+// 되므로 `../../x` 같은 id 는 백업 디렉터리 밖에 쓴다. parentId 도 체인을 따라 같은 경로로 간다.
+describe('parseRemoteManifest', () => {
+  const good = {
+    version: 1,
+    id: 'bebe-backup-20260830-010203-full-0a1b2c',
+    createdAt: '2026-08-30T01:02:03.000Z',
+    type: 'full',
+    parentId: null,
+    schemaMigrations: [],
+    includesSecret: false,
+    dataFileCount: 0,
+    dataBytes: 0,
+  }
+
+  it('accepts a well-formed manifest', () => {
+    expect(parseRemoteManifest(JSON.stringify(good))?.id).toBe(good.id)
+    const incr = { ...good, type: 'incr', parentId: good.id }
+    expect(parseRemoteManifest(JSON.stringify(incr))?.parentId).toBe(good.id)
+  })
+
+  it('rejects an id that is not a backup id (path traversal)', () => {
+    expect(parseRemoteManifest(JSON.stringify({ ...good, id: '../../x' }))).toBeNull()
+    expect(parseRemoteManifest(JSON.stringify({ ...good, id: '/etc/passwd' }))).toBeNull()
+    expect(parseRemoteManifest(JSON.stringify({ ...good, id: 42 }))).toBeNull()
+  })
+
+  it('rejects a non-null parentId that is not a backup id', () => {
+    expect(parseRemoteManifest(JSON.stringify({ ...good, parentId: '../../x' }))).toBeNull()
+    expect(parseRemoteManifest(JSON.stringify({ ...good, parentId: 7 }))).toBeNull()
+  })
+
+  it('rejects other versions and non-JSON bodies', () => {
+    expect(parseRemoteManifest(JSON.stringify({ ...good, version: 2 }))).toBeNull()
+    expect(parseRemoteManifest('not json')).toBeNull()
+  })
+})
+
+describe('downloadBackupFromRemote', () => {
+  it('refuses an invalid id before touching the bucket or the disk', async () => {
+    const cfg = {
+      endpoint: '',
+      region: 'us-east-1',
+      bucket: 'b',
+      prefix: '',
+      accessKeyId: 'k',
+      secretAccessKey: 's',
+    }
+    await expect(
+      downloadBackupFromRemote({ cfg, backupDir: '/nonexistent', id: '../../x' }),
+    ).rejects.toThrow('backup.invalidId')
+  })
+})
 
 describe('redactSecrets', () => {
   it('masks AWS access key ids', () => {
