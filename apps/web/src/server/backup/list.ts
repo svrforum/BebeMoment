@@ -1,15 +1,20 @@
 import { promises as fs } from 'node:fs'
 import path from 'node:path'
-import { type BackupManifest, bundleName, manifestName } from './manifest'
+import { type BackupManifest, bundleName, isValidBackupId, manifestName } from './manifest'
 
 export type BackupEntry = BackupManifest & { bundleBytes: number }
 
+// 사이드카의 id/parentId 는 그대로 번들 파일명·체인 탐색 경로가 된다 — 백업 볼륨이 손상·위변조돼도
+// 백업 id 형식이 아닌 값은 따라가지 않는다(원격 매니페스트와 같은 규칙).
 async function readManifest(dir: string, file: string): Promise<BackupManifest | null> {
   try {
     const raw = await fs.readFile(path.join(dir, file), 'utf8')
     const m = JSON.parse(raw) as BackupManifest
-    if (m && m.version === 1 && typeof m.id === 'string') return m
-    return null
+    if (!m || m.version !== 1) return null
+    if (typeof m.id !== 'string' || !isValidBackupId(m.id)) return null
+    if (m.parentId !== null && (typeof m.parentId !== 'string' || !isValidBackupId(m.parentId)))
+      return null
+    return m
   } catch {
     return null
   }
