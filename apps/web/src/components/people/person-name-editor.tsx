@@ -7,9 +7,12 @@ import { useEffect, useRef, useState } from 'react'
 export function PersonNameEditor({
   personId,
   initialName,
+  onEditingChange,
 }: {
   personId: string
   initialName: string | null
+  /** 편집 중에는 헤더의 다른 액션을 숨겨 입력창에 자리를 내준다(좁은 화면 넘침 방지). */
+  onEditingChange?: (editing: boolean) => void
 }) {
   const t = useTranslations('misc')
   const router = useRouter()
@@ -21,7 +24,8 @@ export function PersonNameEditor({
 
   useEffect(() => {
     if (editing) inputRef.current?.focus()
-  }, [editing])
+    onEditingChange?.(editing)
+  }, [editing, onEditingChange])
 
   const save = async () => {
     setSaving(true)
@@ -59,8 +63,10 @@ export function PersonNameEditor({
   }
 
   return (
-    <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-2">
+    // 헤더의 오른쪽 슬롯은 줄어들지 않는다(app-header). 입력창이 기본 폭으로 열리면
+    // 저장·취소 버튼이 화면 밖으로 밀려나므로 뷰포트에 맞춰 상한을 둔다.
+    <div className="flex min-w-0 flex-col gap-1.5">
+      <div className="flex min-w-0 items-center gap-2">
         <input
           ref={inputRef}
           value={value}
@@ -71,7 +77,7 @@ export function PersonNameEditor({
           }}
           maxLength={100}
           placeholder={t('people.namePlaceholder')}
-          className="min-w-0 flex-1 rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm outline-none focus:border-point-400 dark:border-base-700 dark:bg-base-900"
+          className="w-[min(60vw,16rem)] min-w-0 flex-1 rounded-xl border border-base-200 bg-base-0 px-3 py-2 text-sm outline-none focus:border-point-400 dark:border-base-700 dark:bg-base-900"
         />
         <button
           type="button"

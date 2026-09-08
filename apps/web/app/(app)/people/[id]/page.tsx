@@ -1,5 +1,4 @@
-import { PersonMergeButton } from '@/components/people/person-merge-button'
-import { PersonNameEditor } from '@/components/people/person-name-editor'
+import { PersonHeaderActions } from '@/components/people/person-header-actions'
 import { AppHeader } from '@/components/shell/app-header'
 import { AssetCard } from '@/components/timeline/asset-card'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
@@ -73,10 +72,11 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
         }
         right={
           canManage ? (
-            <div className="flex items-center gap-2">
-              <PersonMergeButton sourceId={person.id} targets={mergeTargets} />
-              <PersonNameEditor personId={person.id} initialName={person.name} />
-            </div>
+            <PersonHeaderActions
+              personId={person.id}
+              initialName={person.name}
+              mergeTargets={mergeTargets}
+            />
           ) : undefined
         }
       />
