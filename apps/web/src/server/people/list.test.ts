@@ -6,7 +6,7 @@ import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'
-import { getPersonAssets, listPeople, mergePeople } from './list'
+import { getPersonAssets, listPeople, mergeManyPeople, mergePeople } from './list'
 
 let db: FullTestDb
 beforeAll(async () => {
@@ -288,5 +288,84 @@ describe('people secret filtering', () => {
       db.prismaPublic,
     )
     expect(ownerDetail.assets.map((a) => a.id)).toEqual([secretAsset])
+  })
+})
+
+describe('mergeManyPeople', () => {
+  it('moves every selected cluster into the target and keeps its name', async () => {
+    const { user } = await signup(
+      { email: `t-${Date.now()}-mm@b.com`, password: 'password123', displayName: 'T' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
+    const a1 = await makeReadyAsset(family.id, user.id)
+    const a2 = await makeReadyAsset(family.id, user.id)
+    const a3 = await makeReadyAsset(family.id, user.id)
+    const target = await db.prismaMedia.person.create({
+      data: { familyId: family.id, name: '딸기' },
+    })
+    const s1 = await db.prismaMedia.person.create({ data: { familyId: family.id } })
+    const s2 = await db.prismaMedia.person.create({ data: { familyId: family.id } })
+    await addFace(family.id, a1, target.id)
+    await addFace(family.id, a2, s1.id)
+    await addFace(family.id, a3, s2.id)
+
+    const r = await mergeManyPeople(
+      { familyId: family.id, sourceIds: [s1.id, s2.id, target.id], targetId: target.id },
+      db.prismaMedia,
+    )
+    expect(r).toEqual({ merged: 2, moved: 2 })
+
+    const people = await listPeople(
+      { familyId: family.id, viewerRole: 'owner' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+      db.prismaPublic,
+    )
+    expect(people).toHaveLength(1)
+    expect(people[0]?.name).toBe('딸기')
+    expect(people[0]?.photoCount).toBe(3)
+  })
+
+  it('refuses a person from another family and moves nothing', async () => {
+    const { user: u1 } = await signup(
+      { email: `t-${Date.now()}-x1@b.com`, password: 'password123', displayName: 'A' },
+      db.prismaPublic,
+    )
+    const { family: f1 } = await createFamily({ name: 'F1', userId: u1.id }, db.prismaPublic)
+    const { user: u2 } = await signup(
+      { email: `t-${Date.now()}-x2@b.com`, password: 'password123', displayName: 'B' },
+      db.prismaPublic,
+    )
+    const { family: f2 } = await createFamily({ name: 'F2', userId: u2.id }, db.prismaPublic)
+    const a1 = await makeReadyAsset(f1.id, u1.id)
+    const mine = await db.prismaMedia.person.create({ data: { familyId: f1.id } })
+    const target = await db.prismaMedia.person.create({ data: { familyId: f1.id } })
+    const theirs = await db.prismaMedia.person.create({ data: { familyId: f2.id } })
+    await addFace(f1.id, a1, mine.id)
+
+    await expect(
+      mergeManyPeople(
+        { familyId: f1.id, sourceIds: [mine.id, theirs.id], targetId: target.id },
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow('person not found')
+    const stillMine = await db.prismaMedia.face.count({ where: { personId: mine.id } })
+    expect(stillMine).toBe(1)
+  })
+
+  it('rejects a selection that is only the target', async () => {
+    const { user } = await signup(
+      { email: `t-${Date.now()}-only@b.com`, password: 'password123', displayName: 'T' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
+    const only = await db.prismaMedia.person.create({ data: { familyId: family.id } })
+    await expect(
+      mergeManyPeople(
+        { familyId: family.id, sourceIds: [only.id], targetId: only.id },
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow('nothing to merge')
   })
 })

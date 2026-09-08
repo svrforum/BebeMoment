@@ -37,7 +37,7 @@ export default async function PeoplePage() {
             description={t('people.emptyDescription')}
           />
         ) : (
-          <PersonGrid people={people} />
+          <PersonGrid people={people} canManage={ctx.capabilities.includes('person.rename')} />
         )}
       </div>
     </>

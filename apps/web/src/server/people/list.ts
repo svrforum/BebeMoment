@@ -263,6 +263,37 @@ export async function mergePeople(
   })
 }
 
+/**
+ * 여러 군집을 하나로 합친다 — 목록에서 여러 개를 골라 한 번에. 사진 한 장짜리 군집이
+ * 수십 개씩 생기면 하나씩 들어가서 합치는 건 현실적이지 않다.
+ *
+ * 대상(target)은 합치는 쪽에 포함돼 있어도 되고(그러면 나머지만 옮긴다), 이름이 있으면
+ * 그 이름이 남는다. 트랜잭션 하나로 처리해 중간에 실패하면 아무것도 옮기지 않는다.
+ */
+export async function mergeManyPeople(
+  args: { familyId: string; sourceIds: string[]; targetId: string },
+  prismaMedia: PrismaMedia,
+): Promise<{ merged: number; moved: number }> {
+  const { familyId, targetId } = args
+  const sourceIds = [...new Set(args.sourceIds)].filter((id) => id !== targetId)
+  if (sourceIds.length === 0) throw new Error('nothing to merge')
+  const ids = [...sourceIds, targetId]
+  const found = await prismaMedia.person.findMany({
+    where: { id: { in: ids }, familyId },
+    select: { id: true },
+  })
+  if (found.length !== ids.length) throw new Error('person not found')
+  return await prismaMedia.$transaction(async (tx) => {
+    const moved = await tx.face.updateMany({
+      where: { familyId, personId: { in: sourceIds } },
+      data: { personId: targetId },
+    })
+    // 얼굴을 옮긴 뒤에 지운다 — 먼저 지우면 onDelete:SetNull 이 얼굴을 미배정으로 흩는다.
+    await tx.person.deleteMany({ where: { id: { in: sourceIds }, familyId } })
+    return { merged: sourceIds.length, moved: moved.count }
+  })
+}
+
 /** 사람 이름 변경(빈 문자열 → null = "이름 없음"). family 스코프 강제. */
 export async function renamePerson(
   args: { familyId: string; personId: string; name: string | null },

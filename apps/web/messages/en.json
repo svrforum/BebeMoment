@@ -1577,7 +1577,12 @@
       "alsoHereHint": "Two faces in one photo are usually two different people.",
       "alsoHerePhotos": "{count} photos",
       "alsoInPhoto": "With: {names}",
-      "mergeCooccurWarning": "In {count} photos together"
+      "mergeCooccurWarning": "In {count} photos together",
+      "pickToMerge": "Merge several",
+      "pickCancel": "Done",
+      "pickMore": "Pick at least two to merge",
+      "mergeInto": "Merge into {name}",
+      "mergedMany": "Merged {count} of them"
     },
     "growth": {
       "empty": "Add your first growth record.",

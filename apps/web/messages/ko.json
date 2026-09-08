@@ -1577,7 +1577,12 @@
       "alsoHereHint": "한 사진에 함께 나왔다면 보통 다른 사람이에요.",
       "alsoHerePhotos": "{count}장",
       "alsoInPhoto": "함께: {names}",
-      "mergeCooccurWarning": "같은 사진 {count}장에 함께 나와요"
+      "mergeCooccurWarning": "같은 사진 {count}장에 함께 나와요",
+      "pickToMerge": "여러 명 합치기",
+      "pickCancel": "그만두기",
+      "pickMore": "합칠 사람을 2명 이상 골라주세요",
+      "mergeInto": "{name} 으로 합치기",
+      "mergedMany": "{count}명을 합쳤어요"
     },
     "growth": {
       "empty": "첫 성장 기록을 남겨보세요.",
