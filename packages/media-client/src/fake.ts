@@ -1,5 +1,7 @@
+import type { BatchUrlsOptions } from './client'
 import { type MediaClient, MediaError } from './client'
 import type {
+  AssetUrlTier,
   AssetUrls,
   HealthResponse,
   InitAssetRequest,
@@ -13,7 +15,7 @@ import { assetUrls as assetUrlsSchema } from './schemas'
 type Calls = {
   initAsset: InitAssetRequest[]
   getAssetUrls: { assetId: string; familyId: string }[]
-  getAssetUrlsBatch: { familyId: string; assetIds: string[] }[]
+  getAssetUrlsBatch: { familyId: string; assetIds: string[]; tiers?: readonly AssetUrlTier[] }[]
   setBabyTags: { assetId: string; input: SetBabyTagsRequest }[]
   deleteAsset: { assetId: string; familyId: string }[]
   purgeAsset: { assetId: string; familyId: string }[]
@@ -33,6 +35,28 @@ function emptyUrls(): AssetUrls {
     videoPoster: null,
     videoCompat: null,
     expiresAt: new Date(Date.now() + 10 * 60_000).toISOString(),
+  }
+}
+
+function restrictToTiers(urls: AssetUrls, tiers: readonly AssetUrlTier[] | undefined): AssetUrls {
+  if (!tiers) return urls
+  const want = (t: AssetUrlTier) => tiers.includes(t)
+  // 서버와 같은 규칙 — 파생물이 하나도 없는(레거시·처리중) 자산은 원본이 유일한 표시
+  // 경로라 티어를 좁혀도 원본만은 남긴다.
+  const hasDerivative =
+    urls.thumb256 !== null ||
+    urls.thumb512 !== null ||
+    urls.display1080 !== null ||
+    urls.videoPoster !== null ||
+    urls.videoCompat !== null
+  return {
+    ...urls,
+    thumb256: want('thumb') ? urls.thumb256 : null,
+    thumb512: want('thumb') ? urls.thumb512 : null,
+    display1080: want('display') ? urls.display1080 : null,
+    original: want('original') || !hasDerivative ? urls.original : null,
+    videoPoster: want('video') ? urls.videoPoster : null,
+    videoCompat: want('video') ? urls.videoCompat : null,
   }
 }
 
@@ -92,12 +116,20 @@ export class FakeMediaClient implements MediaClient {
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
-    _opts?: { includeDeleted?: boolean },
+    opts?: BatchUrlsOptions,
   ): Promise<Record<string, AssetUrls>> {
     this.maybeThrow()
-    this.calls.getAssetUrlsBatch.push({ familyId, assetIds })
+    this.calls.getAssetUrlsBatch.push({
+      familyId,
+      assetIds,
+      ...(opts?.tiers ? { tiers: opts.tiers } : {}),
+    })
     const out: Record<string, AssetUrls> = {}
-    for (const id of assetIds) out[id] = this.urlsByAsset.get(id) ?? emptyUrls()
+    // 실제 서버처럼 요청하지 않은 티어는 null 로 지운다 — 티어를 좁힌 호출부가 지우고
+    // 나서도 쓰는 필드가 있으면 테스트에서 바로 드러난다.
+    for (const id of assetIds) {
+      out[id] = restrictToTiers(this.urlsByAsset.get(id) ?? emptyUrls(), opts?.tiers)
+    }
     return out
   }
 

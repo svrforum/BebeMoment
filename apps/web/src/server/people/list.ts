@@ -1,12 +1,13 @@
+import { GRID_URL_TIERS, type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
 import type { AssetWithUrls } from '@/server/asset/types'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
-import type { AssetUrls, MediaClient } from '@bebe/media-client'
+import type { MediaClient } from '@bebe/media-client'
 
 export type FaceBox = { x: number; y: number; w: number; h: number }
 
-export type PersonCover = { assetId: string; urls: AssetUrls | null; bbox: FaceBox }
+export type PersonCover = { assetId: string; urls: GridAssetUrls | null; bbox: FaceBox }
 
 export type PersonSummary = {
   id: string
@@ -79,7 +80,7 @@ export async function listPeople(
   if (rows.length === 0) return []
 
   const coverAssetIds = Array.from(new Set(rows.map((r) => r.asset_id)))
-  const urls = await media.getAssetUrlsBatch(familyId, coverAssetIds)
+  const urls = await media.getAssetUrlsBatch(familyId, coverAssetIds, { tiers: GRID_URL_TIERS })
 
   return rows
     .map((r) => ({
@@ -88,7 +89,7 @@ export async function listPeople(
       photoCount: r.photo_count,
       cover: {
         assetId: r.asset_id,
-        urls: urls[r.asset_id] ?? null,
+        urls: toGridUrls(urls[r.asset_id]),
         bbox: { x: r.bbox_x, y: r.bbox_y, w: r.bbox_w, h: r.bbox_h },
       } satisfies PersonCover,
     }))
@@ -223,11 +224,12 @@ export async function getPersonAssets(
     ? await media.getAssetUrlsBatch(
         familyId,
         assets.map((a) => a.id),
+        { tiers: GRID_URL_TIERS },
       )
     : {}
   return {
     person,
-    assets: assets.map((a) => ({ ...a, urls: urls[a.id] ?? null })),
+    assets: assets.map((a) => ({ ...a, urls: toGridUrls(urls[a.id]) })),
     truncated,
   }
 }

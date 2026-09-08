@@ -1,4 +1,5 @@
 import { pickDisplayUrl } from '@/lib/asset-url'
+import type { AssetUrlTier } from '@bebe/media-client'
 import { listMemories } from '@/server/memories/list'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { bucketLabel } from '@bebe/core'
@@ -28,6 +29,11 @@ export type WidgetData = {
 // 위젯이 받아갈 최신 사진 풀. 그리드 위젯은 앞 4장만, 단일 위젯은 새로고침(랜덤)
 // 버튼이 이 풀에서 무작위로 한 장을 고른다.
 const WIDGET_PHOTO_POOL = 10
+
+// 위젯은 큰 사진 한 장씩만 그린다(`pickDisplayUrl`) — 썸네일 6종과 영상 트랙은 안 쓴다.
+// 원본은 남긴다: display1080 이 없는 자산(레거시 · 포스터만 있는 옛 영상)의 폴백이라
+// 빼면 그 자산이 위젯 풀에서 조용히 사라진다.
+const WIDGET_URL_TIERS: readonly AssetUrlTier[] = ['display', 'original']
 
 /**
  * 위젯 데이터 — 사용자의 현재 가족 최신 사진들(display URL, 최대 4장) + 가장 먼저
@@ -124,7 +130,9 @@ export async function getWidgetData(
   const assets = assetsRaw.length > 0 || source === 'recent' ? assetsRaw : await selectRecent()
 
   const ids = assets.map((a) => a.id)
-  const urlsMap = ids.length ? await media.getAssetUrlsBatch(familyId, ids) : {}
+  const urlsMap = ids.length
+    ? await media.getAssetUrlsBatch(familyId, ids, { tiers: WIDGET_URL_TIERS })
+    : {}
   // url·date 를 같은 순서로 — url 없는 자산은 함께 걸러 인덱스 정합을 유지한다.
   const photos = assets
     .map((a) => ({ url: pickDisplayUrl(urlsMap[a.id] ?? null), date: a.takenAt }))
@@ -135,7 +143,13 @@ export async function getWidgetData(
   // 추억은 소스와 무관하게 항상 실어 보낸다 — 네이티브가 스타일을 바꿀 때 네트워크를
   // 타지 않고 캐시에서 즉시 그릴 수 있어야 한다. 가장 먼 간격("1년 전 오늘")이 앞에 온다.
   const memoryGroups = await listMemories(
-    { familyId, today: new Date(), viewerRole: membership.role, signLimit: WIDGET_PHOTO_POOL },
+    {
+      familyId,
+      today: new Date(),
+      viewerRole: membership.role,
+      signLimit: WIDGET_PHOTO_POOL,
+      tiers: WIDGET_URL_TIERS,
+    },
     prismaMedia,
     prismaPublic,
     media,

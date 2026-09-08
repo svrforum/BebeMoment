@@ -118,6 +118,67 @@ describe('resolveAssetUrls', () => {
     expect(signedKeys.length).toBe(7)
   })
 
+  const modern = () =>
+    mkAsset({
+      derivatives: {
+        v: 2,
+        thumb256: { avif: 'a256', webp: 'w256', jpeg: 'j256' },
+        thumb512: { avif: 'a512', webp: 'w512', jpeg: 'j512' },
+        display1080: { avif: 'a1080', webp: 'w1080', jpeg: 'j1080' },
+      },
+    } as unknown as Partial<Asset>)
+
+  test('no tiers argument signs exactly what it signs today', async () => {
+    vi.mocked(buildSignedUrl).mockClear()
+    const urls = await resolveAssetUrls(modern())
+    // original + thumb256×3 + thumb512×3 + display1080×3
+    expect(vi.mocked(buildSignedUrl).mock.calls).toHaveLength(10)
+    expect(urls.original).toContain('/media/v1/files/')
+    expect(urls.display1080).not.toBeNull()
+  })
+
+  test('tiers=[thumb] signs only the two thumb trios and nulls the rest', async () => {
+    vi.mocked(buildSignedUrl).mockClear()
+    const urls = await resolveAssetUrls(modern(), { tiers: ['thumb'] })
+    const keys = vi.mocked(buildSignedUrl).mock.calls.map(([args]) => args.key)
+    expect(keys.sort()).toEqual(['a256', 'a512', 'j256', 'j512', 'w256', 'w512'])
+    expect(urls.thumb256?.jpeg).toContain('/media/v1/files/')
+    expect(urls.thumb512?.jpeg).toContain('/media/v1/files/')
+    expect(urls.display1080).toBeNull()
+    expect(urls.original).toBeNull()
+    // 메타데이터는 티어와 무관하게 항상 실린다 — 그리드 placeholder 가 이걸로 그려진다.
+    expect(urls.aspectRatio).toBe(1920 / 1080)
+    expect(urls.expiresAt).toMatch(/Z$/)
+  })
+
+  test('tiers=[video] signs poster and compat only', async () => {
+    vi.mocked(buildSignedUrl).mockClear()
+    const urls = await resolveAssetUrls(
+      mkAsset({
+        kind: 'video',
+        derivatives: {
+          v: 2,
+          thumb256: { avif: 'a256', webp: 'w256', jpeg: 'j256' },
+          videoPoster: 'poster.jpg',
+          videoCompat: 'preview.mp4',
+        },
+      } as unknown as Partial<Asset>),
+      { tiers: ['video'] },
+    )
+    const keys = vi.mocked(buildSignedUrl).mock.calls.map(([args]) => args.key)
+    expect(keys.sort()).toEqual(['poster.jpg', 'preview.mp4'])
+    expect(urls.thumb256).toBeNull()
+  })
+
+  test('a narrowed tier list still signs the original when nothing was derived', async () => {
+    // 파생물이 없는 레거시·처리중 자산은 원본이 유일한 표시 경로 — 여기서 원본까지
+    // 지우면 그리드가 통째로 빈 타일이 된다.
+    vi.mocked(buildSignedUrl).mockClear()
+    const urls = await resolveAssetUrls(mkAsset(), { tiers: ['thumb'] })
+    expect(vi.mocked(buildSignedUrl).mock.calls).toHaveLength(1)
+    expect(urls.original).toContain('/media/v1/files/')
+  })
+
   test('blurhash and dominantColor flow through from asset row', async () => {
     const urls = await resolveAssetUrls(
       mkAsset({

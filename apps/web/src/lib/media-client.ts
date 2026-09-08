@@ -1,5 +1,6 @@
 import {
   type AssetUrls,
+  type BatchUrlsOptions,
   type HealthResponse,
   HttpMediaClient,
   type InitAssetRequest,
@@ -49,10 +50,18 @@ function cacheEnabled(): boolean {
   return process.env.MEDIA_URL_CACHE !== 'off'
 }
 
-function makeBatchKey(familyId: string, assetIds: string[], includeDeleted: boolean): BatchKey {
+function makeBatchKey(
+  familyId: string,
+  assetIds: string[],
+  opts: BatchUrlsOptions | undefined,
+): BatchKey {
   // Sort to make order-insensitive — same set of ids = same key.
   const sorted = [...assetIds].sort()
-  return `${familyId}|${includeDeleted ? '1' : '0'}|${sorted.join(',')}`
+  // 티어도 키에 넣는다 — 같은 id 묶음을 썸네일만으로 한 번, display 로 한 번 묻는
+  // 화면들이 있어(그리드 vs 위젯) 티어를 빼면 한쪽이 다른 쪽의 좁은 응답을 받아
+  // 사진이 조용히 사라진다.
+  const tiers = opts?.tiers ? [...opts.tiers].sort().join('+') : 'all'
+  return `${familyId}|${opts?.includeDeleted ? '1' : '0'}|${tiers}|${sorted.join(',')}`
 }
 
 function evictExpired(map: Map<string, { expiresAt: number }>, now: number): void {
@@ -119,12 +128,12 @@ class CachingMediaClient implements MediaClient {
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
-    opts?: { includeDeleted?: boolean },
+    opts?: BatchUrlsOptions,
   ): Promise<Record<string, AssetUrls>> {
     if (!cacheEnabled() || assetIds.length === 0) {
       return this.inner.getAssetUrlsBatch(familyId, assetIds, opts)
     }
-    const key = makeBatchKey(familyId, assetIds, opts?.includeDeleted ?? false)
+    const key = makeBatchKey(familyId, assetIds, opts)
     const now = Date.now()
     const hit = batchCache.get(key)
     if (hit && hit.expiresAt > now) {

@@ -1,9 +1,10 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
-import type { AssetUrls, MediaClient } from '@bebe/media-client'
+import { GRID_URL_TIERS, type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
+import type { MediaClient } from '@bebe/media-client'
 
-export type CalendarAsset = { id: string; takenAtISO: string; urls: AssetUrls | null }
+export type CalendarAsset = { id: string; takenAtISO: string; urls: GridAssetUrls | null }
 export type CalendarMonth = { assets: CalendarAsset[]; storyDays: string[] }
 
 const dayKeyOf = (d: Date): string => `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
@@ -52,7 +53,9 @@ export async function loadCalendarMonth(
     seen.add(key)
     coverIds.push(a.id)
   }
-  const urlsMap = coverIds.length ? await media.getAssetUrlsBatch(familyId, coverIds) : {}
+  const urlsMap = coverIds.length
+    ? await media.getAssetUrlsBatch(familyId, coverIds, { tiers: GRID_URL_TIERS })
+    : {}
 
   // 모델 B — 그 달 사진 중 (보이는) 스토리에 속한 게 있으면 해당 일자에 스토리 뱃지.
   const storyDayKeys = new Set<string>()
@@ -87,7 +90,7 @@ export async function loadCalendarMonth(
     assets: rawAssets.map((a) => ({
       id: a.id,
       takenAtISO: a.takenAt.toISOString(),
-      urls: urlsMap[a.id] ?? null,
+      urls: toGridUrls(urlsMap[a.id]),
     })),
     storyDays: Array.from(storyDayKeys),
   }

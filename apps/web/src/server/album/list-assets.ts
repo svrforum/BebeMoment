@@ -1,3 +1,4 @@
+import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
@@ -68,13 +69,15 @@ export async function listAlbumAssets(
   const byId = new Map(assets.map((a) => [a.id, a]))
 
   const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
-  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(args.familyId, readyIds) : {}
+  const urlsMap = readyIds.length
+    ? await media.getAssetUrlsBatch(args.familyId, readyIds, { tiers: GRID_URL_TIERS })
+    : {}
 
   return {
     assets: visibleLinks
       .map((l) => byId.get(l.assetId))
       .filter((a): a is NonNullable<typeof a> => !!a)
-      .map((a) => ({ ...a, urls: urlsMap[a.id] ?? null })),
+      .map((a) => ({ ...a, urls: toGridUrls(urlsMap[a.id]) })),
     total,
     truncated: total > visibleLinks.length,
   }
