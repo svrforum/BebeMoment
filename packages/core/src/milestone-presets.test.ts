@@ -16,9 +16,10 @@ describe('milestone presets', () => {
     expect(new Set(keys).size).toBe(keys.length)
   })
 
-  it('all labels are non-empty', () => {
+  it('carries no prose — only key, category and age range', () => {
     for (const p of MILESTONE_PRESETS) {
-      expect(p.labelKo.length).toBeGreaterThan(0)
+      expect(Object.keys(p).sort()).toEqual(['category', 'key', 'typicalAgeMonths'])
+      expect(p.key.length).toBeGreaterThan(0)
     }
   })
 
@@ -44,25 +45,31 @@ describe('milestone presets', () => {
   })
 
   it('getPreset returns the preset or undefined', () => {
-    expect(getPreset('first_smile')?.labelKo).toBe('첫 웃음')
+    expect(getPreset('first_smile')?.category).toBe('social')
     expect(getPreset('nope')).toBeUndefined()
   })
 })
 
 describe('presetKeysMatching', () => {
-  it('사용자가 화면에서 보는 한국어 라벨로 찾는다', () => {
-    expect(presetKeysMatching('첫 웃음')).toContain('first_smile')
+  const labels = { first_smile: '첫 웃음', crawl: '기어다니기' }
+
+  it('호출부가 넘긴(번역된) 라벨로 찾는다', () => {
+    expect(presetKeysMatching('첫 웃음', labels)).toContain('first_smile')
   })
 
   it('부분 문자열도 찾는다', () => {
-    expect(presetKeysMatching('웃음').length).toBeGreaterThan(0)
+    expect(presetKeysMatching('웃음', labels)).toEqual(['first_smile'])
   })
 
-  it('키로도 찾는다 — 라벨은 한국어뿐이다', () => {
+  it('라벨이 없어도 키로는 찾는다', () => {
     expect(presetKeysMatching('first_smile')).toContain('first_smile')
   })
 
+  it('영어 라벨을 넘기면 영어로 찾는다', () => {
+    expect(presetKeysMatching('smile', { first_smile: 'First smile' })).toEqual(['first_smile'])
+  })
+
   it('빈 검색어는 전부가 아니라 아무것도 아니다', () => {
-    expect(presetKeysMatching('   ')).toEqual([])
+    expect(presetKeysMatching('   ', labels)).toEqual([])
   })
 })

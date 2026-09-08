@@ -1,4 +1,7 @@
-import { bucketLabel } from '@bebe/core'
+import { DEFAULT_LOCALE } from '@/i18n/request'
+import { type LabelT, formatAgeBucket } from '@/i18n/labels'
+import { getServerTranslator } from '@/i18n/translator'
+import { ageBucket } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 
 /**
@@ -12,7 +15,9 @@ import type { AssetUrls } from '@bebe/media-client'
  * 각 그룹은 다음을 가진다:
  *   - dateKey:   "YYYY-MM-DD" (UTC 일자)
  *   - dateLabel: "2026.05.27" (사용자가 본 라벨 — locale-agnostic)
- *   - bucketLabel: 나이 버킷 ("생후 47일" / "100일" / "1주년 (돌)" 등)
+ *   - bucketLabel: 나이 버킷 ("생후 47일" / "100일" / "1주년 (돌)" 등). 표기는 카탈로그의
+ *                `age` 네임스페이스가 만든다 — 호출부가 요청 로케일 번역기를 넘기면 그
+ *                로케일로, 안 넘기면 기본 로케일로 만든다.
  *   - babyDays:  birthDate 와의 일수(음수=D-, 0=D-Day, 양수=D+) — 컴포넌트에서
  *                포맷팅. null 이면 baby 가 없는 가족.
  *   - assets:    그날의 자산
@@ -65,7 +70,16 @@ export function babyDaysDiff(birthDate: Date, at: Date): number {
   return Math.round((b - a) / MS_PER_DAY)
 }
 
-export function groupAssetsByDay(assets: DayAssetLike[], birthDate: Date | null): DayGroup[] {
+/**
+ * `t` 는 `age` 네임스페이스 번역기. 요청 안에서 부르면 `getTranslations('age')` 를 넘겨
+ * 사용자의 로케일로 나이 버킷을 쓰고, 안 넘기면 기본 로케일로 쓴다(요청 컨텍스트가 없는
+ * 호출부용 — 여기서 쿠키를 읽을 수는 없다).
+ */
+export function groupAssetsByDay(
+  assets: DayAssetLike[],
+  birthDate: Date | null,
+  t: LabelT = getServerTranslator(DEFAULT_LOCALE, 'age'),
+): DayGroup[] {
   // 최신 일자 먼저. **하루 안에서는 받은 순서를 그대로 둔다** — 호출부(merged-list)가
   // 스토리에 담은 순서를 이미 반영해 넘기는데, 여기서 ts desc 로 다시 정렬하면 그게 통째로
   // 되돌아가 스토리 사진이 또 역순으로 보인다. JS sort 는 안정적이라 일자 키로만 정렬하면
@@ -81,14 +95,14 @@ export function groupAssetsByDay(assets: DayAssetLike[], birthDate: Date | null)
       current = {
         dateKey: key,
         dateLabel: utcDayLabel(a.ts),
-        // For pre-birth dates bucketLabel returns "D-N" — same as the D-day
-        // chip — so suppress it then to avoid showing the same string twice
-        // in the bucket header. Post-birth labels ("생후 N일" / "100일" /
-        // "N주년") are meaningfully different and stay.
+        // For pre-birth dates the bucket is 'dday' — the same string as the
+        // D-day chip — so suppress it then to avoid showing the same string
+        // twice in the bucket header. Post-birth labels are meaningfully
+        // different and stay.
         bucketLabel: (() => {
           if (!birthDate) return null
           const days = babyDaysDiff(birthDate, a.ts)
-          return days < 0 ? null : bucketLabel(birthDate, a.ts)
+          return days < 0 ? null : formatAgeBucket(ageBucket(birthDate, a.ts), t)
         })(),
         babyDays: birthDate ? babyDaysDiff(birthDate, a.ts) : null,
         assets: [],

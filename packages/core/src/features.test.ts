@@ -1,10 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import {
-  DEFAULT_FEATURE_FLAGS,
-  FEATURE_FLAGS,
-  FEATURE_FLAG_LABELS,
-  resolveFeatureFlags,
-} from './features'
+import { DEFAULT_FEATURE_FLAGS, FEATURE_FLAGS, resolveFeatureFlags } from './features'
 
 describe('DEFAULT_FEATURE_FLAGS', () => {
   it('faces 만 기본 OFF, 나머지는 ON', () => {
@@ -14,11 +9,9 @@ describe('DEFAULT_FEATURE_FLAGS', () => {
     }
   })
 
-  it('모든 플래그 키에 기본값과 라벨이 있다', () => {
+  it('모든 플래그 키에 기본값이 있다 (라벨은 카탈로그에 있다)', () => {
     for (const key of FEATURE_FLAGS) {
       expect(DEFAULT_FEATURE_FLAGS[key]).toBeTypeOf('boolean')
-      expect(FEATURE_FLAG_LABELS[key].label).toBeTruthy()
-      expect(FEATURE_FLAG_LABELS[key].description).toBeTruthy()
     }
   })
 })

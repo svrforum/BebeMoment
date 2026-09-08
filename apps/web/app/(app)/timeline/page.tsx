@@ -16,7 +16,8 @@ import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
 import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
-import { bucketLabel } from '@bebe/core'
+import { formatAgeBucket } from '@/i18n/labels'
+import { ageBucket } from '@bebe/core'
 import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Search, Sparkles, UsersRound } from 'lucide-react'
@@ -32,6 +33,7 @@ export default async function TimelinePage({
   const ctx = await getContext()
   if (!ctx.family) return null
   const t = await getTranslations('timeline')
+  const tAge = await getTranslations('age')
   const { date, sort } = await searchParams
   const dateFilter = typeof date === 'string' && /^\d{4}-\d{2}-\d{2}$/.test(date) ? date : null
   const sortMode: 'taken' | 'uploaded' = sort === 'uploaded' ? 'uploaded' : 'taken'
@@ -59,7 +61,7 @@ export default async function TimelinePage({
   ])
   const birthDate: Date | null = baby?.birthDate ?? null
   // 가족 이름 아래 부제: "아기이름 · D+89 · 생후 2개월" (출생일 기준 D-day + 나이 버킷).
-  // 출생 전엔 D-day(formatDDay)와 나이버킷(bucketLabel)이 둘 다 'D-85'로 같아 중복 → D-day 만.
+  // 출생 전엔 D-day(formatDDay)와 나이버킷이 둘 다 'D-85'로 같아 중복 → D-day 만.
   let babySubtitle: string | null = null
   if (baby) {
     if (birthDate) {
@@ -68,7 +70,7 @@ export default async function TimelinePage({
       babySubtitle =
         diff < 0
           ? `${baby.name} · ${formatDDay(diff)}`
-          : `${baby.name} · ${formatDDay(diff)} · ${bucketLabel(birthDate, now)}`
+          : `${baby.name} · ${formatDDay(diff)} · ${formatAgeBucket(ageBucket(birthDate, now), tAge)}`
     } else {
       babySubtitle = baby.name
     }

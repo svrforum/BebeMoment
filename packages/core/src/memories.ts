@@ -14,10 +14,6 @@ export function memoryInterval(today: Date, date: Date): MemoryInterval | null {
   return months % 12 === 0 ? { kind: 'year', n: months / 12 } : { kind: 'month', n: months }
 }
 
-export function intervalLabel(interval: MemoryInterval): string {
-  return interval.kind === 'year' ? `${interval.n}년 전 오늘` : `${interval.n}개월 전 오늘`
-}
-
 /** 가까운 과거가 먼저 오도록 정렬할 때 쓰는 개월 환산값. */
 export function intervalMonths(interval: MemoryInterval): number {
   return interval.kind === 'year' ? interval.n * 12 : interval.n

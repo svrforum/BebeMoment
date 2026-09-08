@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { bucketLabel, daysBetween, monthsBetween } from './age'
+import { ageBucket, daysBetween, monthsBetween } from './age'
 
 describe('daysBetween', () => {
   it('returns 0 for same day', () => {
@@ -25,48 +25,63 @@ describe('monthsBetween', () => {
   })
 })
 
-describe('bucketLabel', () => {
+describe('ageBucket', () => {
   const birth = new Date('2026-01-01')
-  it('태어난 날은 생후 1일', () => {
-    expect(bucketLabel(birth, new Date('2026-01-01'))).toBe('생후 1일')
+  it('태어난 날은 days 1', () => {
+    expect(ageBucket(birth, new Date('2026-01-01'))).toEqual({ kind: 'days', n: 1 })
   })
-  it('태어난 다음날은 생후 2일', () => {
-    expect(bucketLabel(birth, new Date('2026-01-02'))).toBe('생후 2일')
+  it('태어난 다음날은 days 2', () => {
+    expect(ageBucket(birth, new Date('2026-01-02'))).toEqual({ kind: 'days', n: 2 })
   })
-  it('46일 뒤는 생후 47일', () => {
-    expect(bucketLabel(birth, new Date('2026-02-16'))).toBe('생후 47일')
+  it('46일 뒤는 days 47', () => {
+    expect(ageBucket(birth, new Date('2026-02-16'))).toEqual({ kind: 'days', n: 47 })
   })
-  it('99일 뒤는 생후 100일 경계', () => {
-    expect(bucketLabel(birth, new Date('2026-04-10'))).toBe('100일')
+  it('days 의 마지막 날은 99', () => {
+    expect(ageBucket(birth, new Date('2026-04-09'))).toEqual({ kind: 'days', n: 99 })
   })
-  it('100일 다음날은 "생후 3개월"', () => {
-    expect(bucketLabel(birth, new Date('2026-04-11'))).toBe('생후 3개월')
+  it('99일 뒤는 hundredDays 경계', () => {
+    expect(ageBucket(birth, new Date('2026-04-10'))).toEqual({ kind: 'hundredDays', n: 100 })
   })
-  it('생후 11개월', () => {
-    expect(bucketLabel(birth, new Date('2026-12-15'))).toBe('생후 11개월')
+  it('100일 다음날은 months 3', () => {
+    expect(ageBucket(birth, new Date('2026-04-11'))).toEqual({ kind: 'months', n: 3 })
   })
-  it('정확히 1년 뒤는 "1주년 (돌)"', () => {
-    expect(bucketLabel(birth, new Date('2027-01-01'))).toBe('1주년 (돌)')
+  it('만 1년 미만은 months (만 나이 없음)', () => {
+    expect(ageBucket(birth, new Date('2026-12-15'))).toEqual({ kind: 'months', n: 11 })
   })
-  it('돌 이후는 개월수 + 만 나이 병기', () => {
-    expect(bucketLabel(birth, new Date('2027-07-01'))).toBe('생후 18개월 · 만 1세')
-  })
-  it('개월수가 커도 만 나이를 병기 (97개월 → 만 8세)', () => {
-    // 2026-01-01 + 97개월 = 2034-02 → floor(97/12)=8
-    expect(bucketLabel(birth, new Date('2034-02-15'))).toBe('생후 97개월 · 만 8세')
-  })
-  it('1년 미만은 만 나이 병기 안 함', () => {
-    expect(bucketLabel(birth, new Date('2026-12-15'))).toBe('생후 11개월')
+  it('정확히 1년 뒤는 anniversary 1', () => {
+    expect(ageBucket(birth, new Date('2027-01-01'))).toEqual({ kind: 'anniversary', n: 1 })
   })
   it('2주년', () => {
-    expect(bucketLabel(birth, new Date('2028-01-01'))).toBe('2주년')
+    expect(ageBucket(birth, new Date('2028-01-01'))).toEqual({ kind: 'anniversary', n: 2 })
+  })
+  it('돌 이후는 개월수 + 만 나이', () => {
+    expect(ageBucket(birth, new Date('2027-07-01'))).toEqual({
+      kind: 'monthsWithYears',
+      n: 18,
+      years: 1,
+    })
+  })
+  it('개월수가 커도 만 나이를 함께 (97개월 → 만 8세)', () => {
+    // 2026-01-01 + 97개월 = 2034-02 → floor(97/12)=8
+    expect(ageBucket(birth, new Date('2034-02-15'))).toEqual({
+      kind: 'monthsWithYears',
+      n: 97,
+      years: 8,
+    })
+  })
+  it('연 배수여도 날짜가 다르면 anniversary 아님', () => {
+    expect(ageBucket(birth, new Date('2027-01-15'))).toEqual({
+      kind: 'monthsWithYears',
+      n: 12,
+      years: 1,
+    })
   })
 
   // 출산 예정일(birthDate)이 미래인 태아기 사진 — 출산까지 남은 일수 D-day 카운트다운
-  it('출산 하루 전은 "D-1"', () => {
-    expect(bucketLabel(birth, new Date('2025-12-31'))).toBe('D-1')
+  it('출산 하루 전은 dday 1', () => {
+    expect(ageBucket(birth, new Date('2025-12-31'))).toEqual({ kind: 'dday', n: 1 })
   })
-  it('출산 119일 전은 "D-119"', () => {
-    expect(bucketLabel(birth, new Date('2025-09-04'))).toBe('D-119')
+  it('출산 119일 전은 dday 119', () => {
+    expect(ageBucket(birth, new Date('2025-09-04'))).toEqual({ kind: 'dday', n: 119 })
   })
 })

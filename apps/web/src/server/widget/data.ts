@@ -1,7 +1,9 @@
+import { formatAgeBucket, formatMemoryInterval } from '@/i18n/labels'
+import { getInstanceLocale, getServerTranslator } from '@/i18n/translator'
 import { pickDisplayUrl } from '@/lib/asset-url'
 import { listMemories } from '@/server/memories/list'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
-import { bucketLabel } from '@bebe/core'
+import { ageBucket } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -134,6 +136,12 @@ export async function getWidgetData(
 
   // 추억은 소스와 무관하게 항상 실어 보낸다 — 네이티브가 스타일을 바꿀 때 네트워크를
   // 타지 않고 캐시에서 즉시 그릴 수 있어야 한다. 가장 먼 간격("1년 전 오늘")이 앞에 온다.
+  // 위젯은 요청 컨텍스트(쿠키) 밖에서 그려지므로 사용자별 로케일을 못 읽는다 — 푸시 워커와
+  // 같은 인스턴스 로케일(appearance.default_locale)로 나이·추억 라벨을 만든다.
+  const locale = await getInstanceLocale(prismaPublic)
+  const tAge = getServerTranslator(locale, 'age')
+  const tMemories = getServerTranslator(locale, 'memories')
+
   const memoryGroups = await listMemories(
     { familyId, today: new Date(), viewerRole: membership.role, signLimit: WIDGET_PHOTO_POOL },
     prismaMedia,
@@ -154,8 +162,11 @@ export async function getWidgetData(
     babyName: baby?.name ?? null,
     birthDate: baby ? baby.birthDate.toISOString().slice(0, 10) : null,
     newCount,
-    ageText: baby ? bucketLabel(baby.birthDate, new Date()) : null,
+    ageText: baby ? formatAgeBucket(ageBucket(baby.birthDate, new Date()), tAge) : null,
     memoryUrls,
-    memoryLabel: memoryUrls.length ? (memoryGroup?.label ?? null) : null,
+    memoryLabel:
+      memoryUrls.length && memoryGroup
+        ? formatMemoryInterval(memoryGroup.interval, tMemories)
+        : null,
   }
 }

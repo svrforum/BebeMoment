@@ -1,5 +1,6 @@
 import { decryptSecret } from '@/lib/crypto'
 import type { PrismaClient } from '@bebe/db-public'
+import { getTranslations } from 'next-intl/server'
 import webpush from 'web-push'
 import { deleteDeviceToken, listDeviceTokensForUsers } from './device-tokens'
 import { getFcmAccessToken, parseServiceAccount, sendFcm } from './fcm'
@@ -16,12 +17,6 @@ export type TestSendResult = {
   fcm: { sent: number; failed: number; total: number; enabled: boolean }
 }
 
-const TEST_PAYLOAD = {
-  title: '베베 모먼트',
-  body: '테스트 알림이 잘 도착했어요! 🎉',
-  url: '/timeline',
-}
-
 /**
  * 로그인한 사용자가 자기 자신의 기기로 테스트 푸시를 쏜다 — "내 설정이 동작하나"
  * 확인용. 실제 알림 파이프라인(워커·수신자 해석)을 거치지 않고 본인 구독/토큰에
@@ -34,6 +29,9 @@ export async function sendTestNotification(
   store: Store,
   secretKey: string,
 ): Promise<TestSendResult> {
+  // 본인이 누른 버튼이라 요청 로케일이 있다 — 워커(인스턴스 로케일)와 달리 사용자 언어로.
+  const t = await getTranslations('push')
+  const testPayload = { title: t('testTitle'), body: t('testBody'), url: '/timeline' }
   const subs = await prisma.pushSubscription.findMany({ where: { userId } })
   let webSent = 0
   let webFailed = 0
@@ -41,7 +39,7 @@ export async function sendTestNotification(
     const keys = await ensureVapidKeys(store, secretKey)
     const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
     webpush.setVapidDetails(contact, keys.publicKey, keys.privateKey)
-    const payload = JSON.stringify(TEST_PAYLOAD)
+    const payload = JSON.stringify(testPayload)
     for (const sub of subs) {
       try {
         await webpush.sendNotification(
@@ -74,13 +72,13 @@ export async function sendTestNotification(
       const { token: accessToken } = await getFcmAccessToken(sa)
       // 멀티 인스턴스 앱이 알림 탭 시 이 가족(서버)으로 전환하도록 공개 주소를 실어 보낸다.
       const publicBase = (await store.get('push.public_base')) ?? undefined
-      for (const t of tokens) {
-        const r = await sendFcm(t.token, TEST_PAYLOAD, sa.projectId, accessToken, publicBase)
+      for (const tk of tokens) {
+        const r = await sendFcm(tk.token, testPayload, sa.projectId, accessToken, publicBase)
         if (r === 'ok') {
           fcmSent++
         } else {
           fcmFailed++
-          if (r === 'expired') await deleteDeviceToken({ userId, token: t.token }, prisma)
+          if (r === 'expired') await deleteDeviceToken({ userId, token: tk.token }, prisma)
         }
       }
     }

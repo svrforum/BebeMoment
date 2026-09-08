@@ -17,30 +17,40 @@ export function monthsBetween(from: Date, to: Date): number {
 }
 
 /**
- * 아기 나이 버킷 라벨.
- *   출산 전     → "D-N" (출산 예정일까지 남은 일수, 태아기 기록)
- *   0..98일  → "생후 N일" (N = daysBetween + 1, 한국 관례)
- *   99일     → "100일" (daysBetween + 1 이 100인 시점)
- *   100일+   → "생후 N개월" (1년 넘으면 "· 만 N세" 병기 — 97개월이 만 몇 살인지 직관적이게)
- *   정확히 N주년 당일 → "1주년 (돌)" / "N주년"
+ * 아기 나이 버킷. 문자열이 아니라 구조로 돌려준다 — core 는 web·media·워커가 함께 쓰는
+ * 패키지라 next-intl 을 못 쓰고, 여기서 문장을 만들면 영어 UI 에도 한국어가 그대로 샜다.
+ * 표기는 호출부(카탈로그 `age` 네임스페이스)가 맡는다.
  */
-export function bucketLabel(birthDate: Date, at: Date): string {
+export type AgeBucket =
+  /** 출산 전 — n = 출산 예정일까지 남은 일수(양수). */
+  | { kind: 'dday'; n: number }
+  /** 0..98일 경과 — n = 경과일 + 1 (한국 관례로 태어난 날이 1일). */
+  | { kind: 'days'; n: number }
+  /** n = 100. `days` 의 n 이 100 이 되는 하루. */
+  | { kind: 'hundredDays'; n: number }
+  /** 100일 초과 · 만 1년 미만 — n = 개월수. */
+  | { kind: 'months'; n: number }
+  /** 만 1년 이상 — n = 개월수, years = 만 나이(97개월이 만 몇 살인지 직관적이게 병기). */
+  | { kind: 'monthsWithYears'; n: number; years: number }
+  /** 정확히 n주년 당일. */
+  | { kind: 'anniversary'; n: number }
+
+export function ageBucket(birthDate: Date, at: Date): AgeBucket {
   const elapsed = daysBetween(birthDate, at)
-  if (elapsed < 0) return `D-${-elapsed}`
+  if (elapsed < 0) return { kind: 'dday', n: -elapsed }
 
   const day = elapsed + 1
-  if (day <= 99) return `생후 ${day}일`
-  if (day === 100) return '100일'
+  if (day <= 99) return { kind: 'days', n: day }
+  if (day === 100) return { kind: 'hundredDays', n: 100 }
 
   const months = monthsBetween(birthDate, at)
   const years = Math.floor(months / 12)
 
   if (years >= 1) {
     const anniversary = months % 12 === 0 && at.getDate() === birthDate.getDate()
-    if (anniversary) return years === 1 ? '1주년 (돌)' : `${years}주년`
+    if (anniversary) return { kind: 'anniversary', n: years }
   }
 
-  // 개월수가 커지면(예: 97개월) 만 나이가 직관적이지 않다 — 1년 이상이면 만 나이를 병기.
   // years = floor(months/12) 가 곧 만 나이(monthsBetween 이 생일 경과를 이미 반영).
-  return years >= 1 ? `생후 ${months}개월 · 만 ${years}세` : `생후 ${months}개월`
+  return years >= 1 ? { kind: 'monthsWithYears', n: months, years } : { kind: 'months', n: months }
 }

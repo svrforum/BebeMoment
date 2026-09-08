@@ -1,4 +1,4 @@
-import { type Role, getPreset, presetKeysMatching } from '@bebe/core'
+import { type Role, presetKeysMatching } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { isAlbumSecretForViewer } from '@/server/album/secret-visibility'
@@ -10,6 +10,9 @@ export type SearchInput = {
   query: string
   /** 인물 검색은 얼굴 인식 기능이 켜졌을 때만 (features.faces). */
   facesEnabled: boolean
+  /** 프리셋 키 → 요청 로케일 라벨. 라벨은 DB 가 아니라 카탈로그에 있어 호출부가 넘긴다
+   *  (`milestonePresetLabels(t)`). 비우면 프리셋은 키로만 매칭된다. */
+  presetLabels?: Readonly<Record<string, string>>
 }
 
 export type SearchResults = {
@@ -64,7 +67,8 @@ export async function searchAll(
   if (q.length === 0) return EMPTY(q)
   const { familyId, viewerRole } = input
   const like = { contains: q, mode: 'insensitive' as const }
-  const presetKeys = presetKeysMatching(q)
+  const presetLabels = input.presetLabels ?? {}
+  const presetKeys = presetKeysMatching(q, presetLabels)
   const familyOnly = viewerRole === 'family'
 
   const [storyRows, milestoneRows, albumRows, babyRows, personRows] = await Promise.all([
@@ -151,7 +155,7 @@ export async function searchAll(
   const milestones = milestoneRows.map((m) => ({
     id: m.id,
     // 다른 화면과 같은 방식으로 라벨을 푼다 — 예전엔 프리셋 기록이 빈 제목으로 나왔다.
-    label: m.customLabel ?? (m.presetKey ? (getPreset(m.presetKey)?.labelKo ?? '') : ''),
+    label: m.customLabel ?? (m.presetKey ? (presetLabels[m.presetKey] ?? m.presetKey) : ''),
     note: m.note,
     achievedAt: m.achievedAt,
     babyId: m.babyId,

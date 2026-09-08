@@ -6,6 +6,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { listMilestonePickerAssets } from '@/server/milestone/picker-assets'
+import { milestonePresetLabel } from '@/i18n/labels'
 import { getPreset } from '@bebe/core'
 import { getTranslations } from 'next-intl/server'
 import { notFound, redirect } from 'next/navigation'
@@ -19,6 +20,7 @@ export default async function NewMilestonePage({
   searchParams: Promise<{ presetKey?: string }>
 }) {
   const t = await getTranslations('family')
+  const tMisc = await getTranslations('misc')
   const { session } = await getAuth()
   if (!session) redirect('/login')
   const ctx = await resolveContext(
@@ -39,7 +41,9 @@ export default async function NewMilestonePage({
   )
   return (
     <>
-      <AppHeader title={preset ? preset.labelKo : t('babies.customMilestone')} />
+      <AppHeader
+        title={preset ? milestonePresetLabel(preset.key, tMisc) : t('babies.customMilestone')}
+      />
       <div className="mx-auto max-w-sm px-5 py-6">
         <Card>
           <CardBody>

@@ -1,3 +1,4 @@
+import { formatMemoryInterval } from '@/i18n/labels'
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import type { MemoryGroup } from '@/server/memories/list'
@@ -8,6 +9,7 @@ import Link from 'next/link'
 /** 타임라인 최상단 "오늘 추억" 카드. 대표 간격 하나(보통 가장 먼 과거)를 미리 보여준다. */
 export async function MemoriesCard({ group }: { group: MemoryGroup }) {
   const t = await getTranslations('timeline')
+  const tMemories = await getTranslations('memories')
   const thumbs = group.assets.slice(0, 4)
   return (
     <Link
@@ -17,7 +19,7 @@ export async function MemoriesCard({ group }: { group: MemoryGroup }) {
       <div className="mb-2 flex items-center gap-2">
         <Sparkles className="h-[18px] w-[18px] flex-shrink-0 text-point-500" strokeWidth={2} />
         <span className="text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
-          {group.label}
+          {formatMemoryInterval(group.interval, tMemories)}
         </span>
         <span className="ml-auto flex items-center gap-0.5 text-[12px] font-medium text-point-600 dark:text-point-300">
           {t('memories.view')}

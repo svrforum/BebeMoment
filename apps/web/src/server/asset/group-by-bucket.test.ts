@@ -14,7 +14,12 @@ describe('groupAssetsByBucket', () => {
     ]
     const groups = groupAssetsByBucket(assets, birth)
     // Sort by latest-first
-    expect(groups.map((g) => g.label)).toEqual(['1주년 (돌)', '생후 3개월', '생후 2일', '생후 1일'])
+    expect(groups.map((g) => g.bucket)).toEqual([
+      { kind: 'anniversary', n: 1 },
+      { kind: 'months', n: 3 },
+      { kind: 'days', n: 2 },
+      { kind: 'days', n: 1 },
+    ])
     expect(groups[0]?.assets.map((a) => a.id)).toEqual(['d'])
     expect(groups[1]?.assets.map((a) => a.id)).toEqual(['c'])
   })

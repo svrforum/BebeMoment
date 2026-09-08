@@ -1,6 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
+import { milestonePresetLabel } from '@/i18n/labels'
 import { type FormActionState, actionErrorText } from '@/lib/action-result'
 import type { MilestonePreset } from '@bebe/core'
 import { useTranslations } from 'next-intl'
@@ -41,7 +42,7 @@ export function MilestoneForm({
       {preset ? (
         <div>
           <Label>{t('milestone.label')}</Label>
-          <p className="text-sm">{preset.labelKo}</p>
+          <p className="text-sm">{milestonePresetLabel(preset.key, t)}</p>
           <input type="hidden" name="presetKey" value={preset.key} />
         </div>
       ) : (

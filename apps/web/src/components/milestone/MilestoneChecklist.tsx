@@ -1,3 +1,4 @@
+import { milestonePresetLabel } from '@/i18n/labels'
 import type { MilestonePreset } from '@bebe/core'
 import { Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -10,7 +11,7 @@ export function MilestoneChecklist({
 }: {
   presets: (MilestonePreset & { taken: boolean })[]
   babyId: string
-  achieved: { id: string; labelKo: string; achievedAt: Date; presetKey: string | null }[]
+  achieved: { id: string; label: string; achievedAt: Date; presetKey: string | null }[]
 }) {
   const t = useTranslations('misc')
   const categories = ['motor', 'language', 'social', 'cognitive', 'life'] as const
@@ -44,7 +45,7 @@ export function MilestoneChecklist({
                   href={`/babies/${babyId}/milestones/${a.id}`}
                   className="flex items-center justify-between px-4 py-3 hover:bg-base-50 dark:hover:bg-base-900"
                 >
-                  <span>{a.labelKo}</span>
+                  <span>{a.label}</span>
                   <span className="text-xs text-base-500">
                     {a.achievedAt.toISOString().slice(0, 10)}
                   </span>
@@ -67,7 +68,7 @@ export function MilestoneChecklist({
                     href={`/babies/${babyId}/milestones/new?presetKey=${encodeURIComponent(p.key)}`}
                     className="flex items-center justify-between px-4 py-3 text-base-500 hover:bg-base-50 dark:hover:bg-base-900"
                   >
-                    <span>{p.labelKo}</span>
+                    <span>{milestonePresetLabel(p.key, t)}</span>
                     <span className="text-xs">
                       {t('milestone.ageRangeMonths', {
                         from: p.typicalAgeMonths[0],

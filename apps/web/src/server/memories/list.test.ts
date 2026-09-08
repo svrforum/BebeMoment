@@ -116,7 +116,6 @@ describe('listMemories', () => {
       { kind: 'month', n: 6 },
     ])
     expect(groups[0]?.assets).toHaveLength(2)
-    expect(groups[0]?.label).toBe('1년 전 오늘')
     expect(groups[1]?.stories).toHaveLength(1)
   })
 

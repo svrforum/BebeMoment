@@ -9,7 +9,6 @@ import {
   FACE_CLUSTER_DISTANCE_MAX,
   FACE_CLUSTER_DISTANCE_MIN,
   FEATURE_FLAGS,
-  FEATURE_FLAG_LABELS,
   type FeatureFlag,
   type FeatureFlags,
 } from '@bebe/core'
@@ -89,8 +88,10 @@ export default function FeaturesAdminPage() {
             {FEATURE_FLAGS.map((k) => (
               <div key={k} className="flex items-center justify-between gap-4">
                 <div>
-                  <div className="font-medium">{FEATURE_FLAG_LABELS[k].label}</div>
-                  <div className="text-xs text-base-500">{FEATURE_FLAG_LABELS[k].description}</div>
+                  <div className="font-medium">{t(`features.flags.${k}.label`)}</div>
+                  <div className="text-xs text-base-500">
+                    {t(`features.flags.${k}.description`)}
+                  </div>
                 </div>
                 <Toggle
                   checked={flags[k]}
