@@ -19,7 +19,8 @@ INCLUDE_EXTS='ts|tsx|js|jsx'
 ANDROID_JAVA_PATH='*android-app/*/src/main/java/*'
 
 # What gets ignored. Add patterns by editing here.
-EXCLUDE_REGEX='/node_modules/|/\.next/|/\.dev/|/generated/|/dist/|/coverage/|/\.git/|/build/|/src/main/assets/public/|\.test\.tsx?$|\.spec\.tsx?$'
+# /.claude/ 는 에이전트 worktree(리포 사본)가 사는 곳이라 같은 파일을 여러 번 세게 된다.
+EXCLUDE_REGEX='/node_modules/|/\.next/|/\.dev/|/\.claude/|/generated/|/dist/|/coverage/|/\.git/|/build/|/src/main/assets/public/|\.test\.tsx?$|\.spec\.tsx?$'
 
 paths=("${@:-.}")
 
