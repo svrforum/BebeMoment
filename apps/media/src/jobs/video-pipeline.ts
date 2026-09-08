@@ -3,11 +3,10 @@ import { mkdtemp, readFile, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import { computeBlurhash } from '@/domain/blurhash'
-import { rgbToHex } from '@/domain/color'
+import { encodeBlurhash } from '@/domain/blurhash'
+import { averageColor } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import ffmpeg from 'fluent-ffmpeg'
-import { decodeSharp } from '@/lib/sharp'
 import { isBroadlyPlayableVideo } from '@/domain/video-compat'
 import { type Trio, generateTrios } from './derivative-trios'
 import { videoCreatedAt } from './video-created-at'
@@ -129,31 +128,18 @@ export async function processVideo(
     // Build the same image trio grid we generate for photos, sourced from the
     // poster frame. Done in parallel with the preview transcode.
     const posterBuf = await readFile(posterPath)
-    let dominantColor: string | null = null
-    try {
-      const stats = await decodeSharp(posterBuf).stats()
-      if (stats.channels.length >= 3) {
-        const [r, g, b] = stats.channels
-        dominantColor = rgbToHex(r?.mean ?? 0, g?.mean ?? 0, b?.mean ?? 0)
-      }
-    } catch {
-      // best-effort
-    }
-    const blurhash = await computeBlurhash(posterBuf)
-    const triosPromise = generateTrios({
-      buffer: posterBuf,
-      assetId: input.assetId,
-      storage,
-    })
+    const generated = generateTrios({ buffer: posterBuf, assetId: input.assetId, storage })
 
     const posterKey = `derivatives/${input.assetId}/poster.jpg`
     const previewKey = `derivatives/${input.assetId}/preview.mp4`
 
-    const [, trios] = await Promise.all([
+    const [, { trios, preview }] = await Promise.all([
       previewPromise.then(() => storage.write(previewKey, createReadStream(previewPath))),
-      triosPromise,
+      generated,
     ])
     await storage.writeBuffer(posterKey, posterBuf, 'image/jpeg')
+    const dominantColor = averageColor(preview)
+    const blurhash = encodeBlurhash(preview)
 
     const aspectRatio =
       width && height && width > 0 && height > 0 ? Number((width / height).toFixed(4)) : null

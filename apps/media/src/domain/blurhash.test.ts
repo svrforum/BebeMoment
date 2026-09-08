@@ -1,6 +1,29 @@
 import sharp from 'sharp'
 import { describe, expect, test } from 'vitest'
-import { computeBlurhash } from './blurhash'
+import { computeBlurhash, encodeBlurhash } from './blurhash'
+
+describe('encodeBlurhash', () => {
+  test('encodes an RGBA raw preview and matches the decode-based path', async () => {
+    const png = await sharp({
+      create: { width: 200, height: 100, channels: 3, background: { r: 200, g: 100, b: 50 } },
+    })
+      .png()
+      .toBuffer()
+    const raw = await sharp(png)
+      .resize(64, 64, { fit: 'inside' })
+      .ensureAlpha()
+      .raw()
+      .toBuffer({ resolveWithObject: true })
+    const fromRaw = encodeBlurhash({ data: raw.data, info: raw.info })
+    expect(fromRaw).toBe(await computeBlurhash(png))
+  })
+
+  test('returns null for a raw buffer that is not RGBA', () => {
+    expect(
+      encodeBlurhash({ data: Buffer.from([1, 2, 3]), info: { width: 1, height: 1, channels: 3 } }),
+    ).toBeNull()
+  })
+})
 
 describe('computeBlurhash', () => {
   test('returns string for a real image buffer', async () => {

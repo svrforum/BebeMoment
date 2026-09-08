@@ -1,5 +1,5 @@
-import { computeBlurhash } from '@/domain/blurhash'
-import { rgbToHex } from '@/domain/color'
+import { encodeBlurhash } from '@/domain/blurhash'
+import { averageColor } from '@/domain/color'
 import type { StorageAdapter } from '@bebe/storage'
 import { decodeSharp } from '@/lib/sharp'
 import { type Trio, generateTrios } from './derivative-trios'
@@ -7,7 +7,7 @@ import { type Trio, generateTrios } from './derivative-trios'
 export type ProcessImageInput = {
   originalKey: string
   assetId: string
-  /** 이미 읽은 원본 바이트(있으면 재사용해 중복 read 회피). 변환된 경우엔 넘기지 않는다. */
+  /** 이미 읽은(또는 변환된) 원본 바이트. 없으면 스토리지에서 읽는다. */
   buffer?: Buffer
 }
 
@@ -36,6 +36,7 @@ export async function processImage(
   storage: StorageAdapter,
 ): Promise<ProcessImageResult> {
   const buf = input.buffer ?? (await collect(await storage.read(input.originalKey)))
+  // 헤더만 읽는다 — 픽셀 디코드는 아래 generateTrios 의 파이프라인 한 번뿐이다.
   const meta = await decodeSharp(buf).metadata()
   // EXIF Orientation 5-8(세로 촬영) 사진은 sharp metadata 의 width/height 가 회전 전
   // raw 치수다. 파생물은 .rotate() 로 자동회전되므로(derivative-trios), 표시 비율과
@@ -44,19 +45,7 @@ export async function processImage(
   const orientedWidth = meta.autoOrient?.width ?? meta.width
   const orientedHeight = meta.autoOrient?.height ?? meta.height
 
-  let dominantColor: string | null = null
-  try {
-    const stats = await decodeSharp(buf).stats()
-    if (stats.channels.length >= 3) {
-      const [r, g, b] = stats.channels
-      dominantColor = rgbToHex(r?.mean ?? 0, g?.mean ?? 0, b?.mean ?? 0)
-    }
-  } catch {
-    // dominant color is best-effort
-  }
-
-  const blurhash = await computeBlurhash(buf)
-  const trios = await generateTrios({ buffer: buf, assetId: input.assetId, storage })
+  const { trios, preview } = await generateTrios({ buffer: buf, assetId: input.assetId, storage })
 
   const aspectRatio =
     orientedWidth && orientedHeight && orientedWidth > 0 && orientedHeight > 0
@@ -67,8 +56,8 @@ export async function processImage(
     width: orientedWidth,
     height: orientedHeight,
     aspectRatio,
-    blurhash,
-    dominantColor,
+    blurhash: encodeBlurhash(preview),
+    dominantColor: averageColor(preview),
     derivatives: {
       v: 2,
       thumb256: trios.thumb256,

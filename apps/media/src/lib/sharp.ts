@@ -1,3 +1,4 @@
+import { availableParallelism } from 'node:os'
 import sharp, { type Sharp, type SharpOptions } from 'sharp'
 import { getEnv } from './env'
 
@@ -6,7 +7,15 @@ import { getEnv } from './env'
 // 가 자산을 failed 로 처리한다(워커 크래시 없음). 모든 sharp() 디코드는 이 헬퍼를 거친다.
 let maxInputPixels: number | undefined
 
+// libvips 스레드 수는 명시한다 — 기본(코어 수 전부)은 잡 concurrency 와 곱해져 NAS 를
+// 포화시켰다. MEDIA_VIPS_THREADS 미설정 시 코어의 절반.
+function configure(): number {
+  const env = getEnv()
+  sharp.concurrency(env.MEDIA_VIPS_THREADS ?? Math.max(1, Math.floor(availableParallelism() / 2)))
+  return env.MEDIA_MAX_INPUT_PIXELS
+}
+
 export function decodeSharp(input: Buffer | string, opts: SharpOptions = {}): Sharp {
-  maxInputPixels ??= getEnv().MEDIA_MAX_INPUT_PIXELS
+  maxInputPixels ??= configure()
   return sharp(input, { failOn: 'none', limitInputPixels: maxInputPixels, ...opts })
 }

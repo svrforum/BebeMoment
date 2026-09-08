@@ -3,17 +3,44 @@ import os from 'node:os'
 import path from 'node:path'
 import { createAdapter } from '@bebe/storage'
 import sharp from 'sharp'
-import { afterEach, beforeEach, describe, expect, test } from 'vitest'
+import { afterEach, beforeEach, describe, expect, test, vi } from 'vitest'
+import { decodeSharp } from '@/lib/sharp'
 import { processImage } from './image-pipeline'
+
+vi.mock('@/lib/sharp', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('@/lib/sharp')>()
+  return { ...mod, decodeSharp: vi.fn(mod.decodeSharp) }
+})
 
 describe('processImage', () => {
   let dir: string
   beforeEach(() => {
     dir = fs.mkdtempSync(path.join(os.tmpdir(), 'bebe-image-test-'))
+    vi.mocked(decodeSharp).mockClear()
   })
   afterEach(() => {
     fs.rmSync(dir, { recursive: true, force: true })
   })
+
+  test('opens the original at most twice: header metadata + one shared pipeline', async () => {
+    const buf = await sharp({
+      create: { width: 1200, height: 800, channels: 3, background: { r: 20, g: 120, b: 220 } },
+    })
+      .jpeg()
+      .toBuffer()
+    const adapter = createAdapter({ mode: 'local', path: dir })
+    const r = await processImage({ originalKey: 'x', assetId: 'asset-d', buffer: buf }, adapter)
+    expect(vi.mocked(decodeSharp).mock.calls.length).toBeLessThanOrEqual(2)
+    // The placeholders are derived from the shared pipeline, not from separate decodes.
+    // JPEG quantisation may move the mean by a unit per channel, so compare with a tolerance.
+    expect(r.blurhash).toBeTruthy()
+    const [red, green, blue] = [1, 3, 5].map((i) =>
+      Number.parseInt((r.dominantColor ?? '').slice(i, i + 2), 16),
+    )
+    expect(red).toBeCloseTo(20, -1)
+    expect(green).toBeCloseTo(120, -1)
+    expect(blue).toBeCloseTo(220, -1)
+  }, 30_000)
 
   test('produces 9 variants (3 sizes × 3 formats) + blurhash + dominantColor + aspectRatio', async () => {
     const buf = await sharp({

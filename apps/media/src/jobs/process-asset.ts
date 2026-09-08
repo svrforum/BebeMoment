@@ -77,9 +77,16 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     let sizeBytes = asset.sizeBytes
     let convertedFrom: string | null = null
     let oldOriginalKey: string | null = null
+    // 파생물 파이프라인에 넘길 바이트 — 변환했으면 변환본(새 키를 다시 읽지 않는다).
+    let pipelineBuf = originalBuf
     if (convertEnabled && asset.kind === 'image' && needsConvert(asset.mimeType)) {
       const result = await convertImageIfNeeded(
-        { originalKey: asset.originalKey, mimeType: asset.mimeType, assetId: asset.id },
+        {
+          originalKey: asset.originalKey,
+          mimeType: asset.mimeType,
+          assetId: asset.id,
+          ...(originalBuf ? { buffer: originalBuf } : {}),
+        },
         storage,
       )
       if (result) {
@@ -88,6 +95,7 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
         sizeBytes = result.newSizeBytes
         convertedFrom = result.originalMimeType
         oldOriginalKey = asset.originalKey
+        pipelineBuf = result.converted
       }
     }
 
@@ -100,12 +108,11 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
     let dominantColor: string | null = null
 
     if (asset.kind === 'image') {
-      // 변환했으면 새 키(변환본)를 파이프라인이 직접 읽어야 하므로 버퍼 재사용 불가.
       const r = await processImage(
         {
           originalKey,
           assetId: asset.id,
-          ...(!convertedFrom && originalBuf ? { buffer: originalBuf } : {}),
+          ...(pipelineBuf ? { buffer: pipelineBuf } : {}),
         },
         storage,
       )
