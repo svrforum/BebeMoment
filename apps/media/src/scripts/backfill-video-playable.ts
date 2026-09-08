@@ -12,29 +12,18 @@
  *
  * ffprobe 는 파일 헤더만 읽으면 되지만 스토리지 어댑터가 스트림만 주므로 임시 파일로 받는다.
  */
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
-import ffmpeg from 'fluent-ffmpeg'
+import type { StorageAdapter } from '@bebe/storage'
 import { parseDerivativesV2 } from '../domain/derivatives-v2'
 import { isBroadlyPlayableVideo } from '../domain/video-compat'
+import { ffprobeJson } from '../lib/ffmpeg'
 import { logger } from '../lib/logger'
 import { prisma } from '../lib/prisma'
-import { getStorage } from '../lib/storage'
+import { getStorage, withLocalFile } from '../lib/storage'
 
-async function probePlayable(bytes: Buffer): Promise<boolean> {
-  const work = await mkdtemp(path.join(tmpdir(), 'bebe-playable-'))
-  const local = path.join(work, 'input')
-  try {
-    await writeFile(local, bytes)
-    const meta = await new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
-      ffmpeg.ffprobe(local, (err, data) => (err ? reject(err) : resolve(data)))
-    })
-    const video = meta.streams.find((s) => s.codec_type === 'video')
-    return isBroadlyPlayableVideo(video?.codec_name, video?.pix_fmt)
-  } finally {
-    await rm(work, { recursive: true, force: true })
-  }
+async function probePlayable(storage: StorageAdapter, key: string): Promise<boolean> {
+  const meta = await withLocalFile(storage, key, ffprobeJson)
+  const video = meta.streams.find((s) => s.codec_type === 'video')
+  return isBroadlyPlayableVideo(video?.codec_name, video?.pix_fmt)
 }
 
 async function main(): Promise<void> {
@@ -64,9 +53,7 @@ async function main(): Promise<void> {
 
   for (const a of videos) {
     try {
-      const chunks: Buffer[] = []
-      for await (const c of await storage.read(a.originalKey)) chunks.push(c as Buffer)
-      const ok = await probePlayable(Buffer.concat(chunks))
+      const ok = await probePlayable(storage, a.originalKey)
 
       // 기존 파생물을 보존한 채 판정만 얹는다.
       const current = await prisma.asset.findFirst({

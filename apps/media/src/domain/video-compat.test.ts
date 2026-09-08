@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isBroadlyPlayableVideo } from './video-compat'
+import { isBroadlyPlayableVideo, needsPreview } from './video-compat'
 
 describe('isBroadlyPlayableVideo', () => {
   it('폰으로 찍은 영상은 원본 그대로 내려도 된다', () => {
@@ -36,5 +36,38 @@ describe('isBroadlyPlayableVideo', () => {
 
   it('대소문자 표기는 무시한다', () => {
     expect(isBroadlyPlayableVideo('H264', 'YUV420P')).toBe(true)
+  })
+})
+
+describe('needsPreview', () => {
+  const phone = {
+    codecName: 'h264',
+    pixFmt: 'yuv420p',
+    width: 1920,
+    height: 1080,
+    bitRate: 4_000_000,
+  }
+
+  it('폰에서 바로 재생되는 1080p 이하·6Mbps 이하 원본은 호환본을 만들지 않는다', () => {
+    expect(needsPreview(phone)).toBe(false)
+    // 세로 촬영(1080x1920)도 1080p 다 — 짧은 변 기준.
+    expect(needsPreview({ ...phone, width: 1080, height: 1920 })).toBe(false)
+    expect(needsPreview({ ...phone, codecName: 'hevc', bitRate: 6_000_000 })).toBe(false)
+  })
+
+  it('코덱·픽셀포맷이 폰 디코더 밖이면 호환본이 필요하다', () => {
+    expect(needsPreview({ ...phone, pixFmt: 'yuv422p10le' })).toBe(true)
+    expect(needsPreview({ ...phone, codecName: 'prores' })).toBe(true)
+  })
+
+  it('1080p 를 넘거나 6Mbps 를 넘으면 브라우저용으로 줄인 호환본이 필요하다', () => {
+    expect(needsPreview({ ...phone, width: 3840, height: 2160 })).toBe(true)
+    expect(needsPreview({ ...phone, width: 2560, height: 1080 })).toBe(true)
+    expect(needsPreview({ ...phone, bitRate: 6_000_001 })).toBe(true)
+  })
+
+  it('치수·비트레이트를 모르면 안전하게 호환본을 만든다', () => {
+    expect(needsPreview({ ...phone, height: undefined })).toBe(true)
+    expect(needsPreview({ ...phone, bitRate: undefined })).toBe(true)
   })
 })

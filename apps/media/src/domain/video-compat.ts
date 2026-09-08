@@ -15,3 +15,31 @@ export function isBroadlyPlayableVideo(
   if (!codecName || !pixFmt) return false
   return PLAYABLE_CODECS.has(codecName.toLowerCase()) && PLAYABLE_PIX_FMTS.has(pixFmt.toLowerCase())
 }
+
+export type PreviewDecisionInput = {
+  codecName: string | undefined
+  pixFmt: string | undefined
+  /** 회전 보정된 표시 치수. */
+  width: number | undefined
+  height: number | undefined
+  /** 컨테이너 전체 비트레이트(bit/s). */
+  bitRate: number | undefined
+}
+
+// 호환본(preview.mp4)은 폰·브라우저가 원본을 못 틀 때를 위한 것이다. 폰이 바로 재생하는
+// 코덱이고 1080p(짧은 변 ≤1080, 긴 변 ≤1920)·6 Mbps 이하면 호환본은 같은 크기거나 더 큰
+// 복사본일 뿐이라 만들지 않는다 — 원본이 곧 재생용이 된다. 치수·비트레이트를 모르면
+// 안전한 쪽(호환본 생성)으로.
+const PREVIEW_MAX_SHORT_SIDE = 1080
+const PREVIEW_MAX_LONG_SIDE = 1920
+const PREVIEW_MAX_BIT_RATE = 6_000_000
+
+export function needsPreview(v: PreviewDecisionInput): boolean {
+  if (!isBroadlyPlayableVideo(v.codecName, v.pixFmt)) return true
+  if (v.width === undefined || v.height === undefined) return true
+  if (v.bitRate === undefined || !Number.isFinite(v.bitRate)) return true
+  const shortSide = Math.min(v.width, v.height)
+  const longSide = Math.max(v.width, v.height)
+  if (shortSide > PREVIEW_MAX_SHORT_SIDE || longSide > PREVIEW_MAX_LONG_SIDE) return true
+  return v.bitRate > PREVIEW_MAX_BIT_RATE
+}
