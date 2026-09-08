@@ -40,6 +40,8 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # apps/media 의 ffmpeg 래퍼 테스트는 실제 바이너리를 쓴다(러너 이미지엔 없다).
+      - run: sudo apt-get update && sudo apt-get install -y --no-install-recommends ffmpeg
       - run: pnpm --filter @bebe/db-public exec prisma generate
       - run: pnpm --filter @bebe/db-media  exec prisma generate
       - run: pnpm --filter @bebe/db-public exec prisma migrate deploy

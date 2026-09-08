@@ -1,13 +1,21 @@
+import { spawnSync } from 'node:child_process'
 import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { FfmpegError, ffprobeJson, runFfmpeg } from './ffmpeg'
 
+// 이 파일만 실제 ffmpeg 바이너리를 요구한다. 이미지·CI 에는 있지만 기여자 노트북엔 없을 수
+// 있어, 없으면 실패가 아니라 skip 이다 — CI 에서는 설치 단계가 있으니 실제로 돌아간다.
+const hasFfmpeg =
+  spawnSync('ffmpeg', ['-version'], { stdio: 'ignore' }).status === 0 &&
+  spawnSync('ffprobe', ['-version'], { stdio: 'ignore' }).status === 0
+
 let work: string
 let clip: string
 
 beforeAll(async () => {
+  if (!hasFfmpeg) return
   work = await mkdtemp(path.join(tmpdir(), 'bebe-ffmpeg-'))
   clip = path.join(work, 'clip.mp4')
   await runFfmpeg([
@@ -24,10 +32,11 @@ beforeAll(async () => {
 }, 60_000)
 
 afterAll(async () => {
+  if (!work) return
   await rm(work, { recursive: true, force: true })
 })
 
-describe('ffprobeJson', () => {
+describe.skipIf(!hasFfmpeg)('ffprobeJson', () => {
   it('parses streams and format of a generated clip', async () => {
     const meta = await ffprobeJson(clip)
     const video = meta.streams.find((s) => s.codec_type === 'video')
@@ -45,7 +54,7 @@ describe('ffprobeJson', () => {
   })
 })
 
-describe('runFfmpeg', () => {
+describe.skipIf(!hasFfmpeg)('runFfmpeg', () => {
   it('overwrites an existing output (retries re-run into the same path)', async () => {
     await expect(
       runFfmpeg(['-f', 'lavfi', '-i', 'testsrc=duration=1:size=64x64:rate=10', clip]),
