@@ -184,7 +184,7 @@ export default async function TimelinePage({
 
   // 오늘 추억 — 날짜 필터가 없는 기본 타임라인에서만 상단 카드로.
   const memoryGroups = await listMemories(
-    { familyId: ctx.family.id, today: new Date(), viewerRole },
+    { familyId: ctx.family.id, today: new Date(), viewerRole, signLimit: 4 },
     prismaMedia,
     prismaPublic,
     getMediaClient(),

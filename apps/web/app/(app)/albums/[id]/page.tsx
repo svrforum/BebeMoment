@@ -60,8 +60,8 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   ])
   const assets = assetsResult.assets
 
-  // Child album preview thumbs — up to N latest attachments per child album
-  // in one window-function query (cheap regardless of family size).
+  // Child album preview thumbs — the N latest attachments per child album,
+  // read per album with a LATERAL top-N so cost tracks N, not attachment count.
   // family 에겐 비밀 스토리 사진이 자식 앨범 표지로도 노출되면 안 된다(Rule A).
   const hiddenAssetIds = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, ctx.family.id)
   const previewByAlbum = await previewAttachmentsByAlbum(
