@@ -420,6 +420,9 @@
     },
     "grid": {
       "loadMoreFailed": "Couldn't load more. Please try again in a moment",
+      "newPhotos": "Load {count} new photos",
+      "newChanges": "Load latest changes",
+      "dismissNew": "Dismiss",
       "deletePartialFailed": "Some deletions failed",
       "deletePartialDesc": "{done}/{total} deleted. Please try again.",
       "deletedCount": "{count} photos deleted",
