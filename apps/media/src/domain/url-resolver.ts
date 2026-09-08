@@ -1,5 +1,5 @@
 import type { Asset } from '@bebe/db-media'
-import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
+import type { AssetUrlTier, AssetUrls, DerivativeTrio } from '@bebe/media-client'
 import { parseDerivativesV2 } from './derivatives-v2'
 import { buildSignedUrl } from './signed-url'
 
@@ -27,10 +27,24 @@ async function trioFromKeys(
   return { avif, webp, jpeg }
 }
 
-export async function resolveAssetUrls(asset: Asset): Promise<AssetUrls> {
+export type ResolveAssetUrlsOptions = {
+  /** 서명할 티어. 생략하면 전부(기존 동작). 지정한 티어 밖은 서명하지 않고 null 로 나간다. */
+  tiers?: readonly AssetUrlTier[]
+}
+
+export async function resolveAssetUrls(
+  asset: Asset,
+  opts?: ResolveAssetUrlsOptions,
+): Promise<AssetUrls> {
   const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString()
   const derivatives = parseDerivativesV2(asset.derivatives)
   const sign = signerFor(asset)
+
+  const tiers = opts?.tiers
+  const want = (tier: AssetUrlTier): boolean => tiers === undefined || tiers.includes(tier)
+  // 파생물이 하나도 없는 자산(레거시 v1 · 아직 처리 중)은 원본이 유일한 표시 경로다.
+  // 티어를 좁혔다고 여기서 원본까지 지우면 그 자산은 그리드에서 빈 타일이 된다.
+  const wantOriginal = want('original') || derivatives === null
 
   // Sign every URL for this asset in parallel — was 4× sequential awaits
   // (original → thumb256 → thumb512 → display1080) which dominated batch
@@ -38,14 +52,22 @@ export async function resolveAssetUrls(asset: Asset): Promise<AssetUrls> {
   // parallel lets a single-asset call finish in one tick.
   const [originalUrl, thumb256, thumb512, display1080, videoPoster, videoCompat] =
     await Promise.all([
-      sign(asset.originalKey),
-      derivatives?.thumb256 ? trioFromKeys(sign, derivatives.thumb256) : Promise.resolve(null),
-      derivatives?.thumb512 ? trioFromKeys(sign, derivatives.thumb512) : Promise.resolve(null),
-      derivatives?.display1080
+      wantOriginal ? sign(asset.originalKey) : Promise.resolve(null),
+      want('thumb') && derivatives?.thumb256
+        ? trioFromKeys(sign, derivatives.thumb256)
+        : Promise.resolve(null),
+      want('thumb') && derivatives?.thumb512
+        ? trioFromKeys(sign, derivatives.thumb512)
+        : Promise.resolve(null),
+      want('display') && derivatives?.display1080
         ? trioFromKeys(sign, derivatives.display1080)
         : Promise.resolve(null),
-      derivatives?.videoPoster ? sign(derivatives.videoPoster) : Promise.resolve(null),
-      derivatives?.videoCompat ? sign(derivatives.videoCompat) : Promise.resolve(null),
+      want('video') && derivatives?.videoPoster
+        ? sign(derivatives.videoPoster)
+        : Promise.resolve(null),
+      want('video') && derivatives?.videoCompat
+        ? sign(derivatives.videoCompat)
+        : Promise.resolve(null),
     ])
 
   const aspectRatio =

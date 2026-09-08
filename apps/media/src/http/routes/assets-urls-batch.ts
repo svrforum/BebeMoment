@@ -8,7 +8,7 @@ import { assertServiceToken } from '../middleware/service-token'
 export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {
   app.post('/media/v1/assets/urls:batch', async (req, reply) => {
     assertServiceToken(req.headers.authorization)
-    const { familyId, assetIds, includeDeleted } = batchUrlsRequest.parse(req.body)
+    const { familyId, assetIds, includeDeleted, tiers } = batchUrlsRequest.parse(req.body)
 
     if (assetIds.length === 0) {
       const empty = batchUrlsResponse.parse({ v: 1, urls: {} })
@@ -24,7 +24,10 @@ export const assetsUrlsBatchRoute: FastifyPluginAsync = async (app) => {
     // is itself parallel, so a 100-asset batch goes from ~100×N×roundtrip
     // sequential JWT signs to one wall-time burst.
     const resolved = await Promise.all(
-      assets.map(async (asset) => [asset.id, await resolveAssetUrls(asset)] as const),
+      assets.map(
+        async (asset) =>
+          [asset.id, await resolveAssetUrls(asset, tiers ? { tiers } : undefined)] as const,
+      ),
     )
     const urls: Record<string, AssetUrls> = Object.fromEntries(resolved)
 

@@ -100,6 +100,52 @@ describe('POST /media/v1/assets/urls:batch', () => {
     await app.close()
   })
 
+  test('tiers narrows the response to the requested tiers, byte-identical otherwise', async () => {
+    const id = '22222222-2222-2222-2222-222222222222'
+    await seedAsset(id)
+    await db.prisma.asset.update({
+      where: { id },
+      data: {
+        derivatives: {
+          v: 2,
+          thumb256: { avif: 'a256', webp: 'w256', jpeg: 'j256' },
+          thumb512: { avif: 'a512', webp: 'w512', jpeg: 'j512' },
+          display1080: { avif: 'a1080', webp: 'w1080', jpeg: 'j1080' },
+        },
+      },
+    })
+    const app = buildApp()
+    const ask = async (tiers?: string[]) => {
+      const res = await app.inject({
+        method: 'POST',
+        url: '/media/v1/assets/urls:batch',
+        headers: { authorization: `Bearer ${TOKEN}` },
+        payload: {
+          familyId: '11111111-1111-1111-1111-111111111111',
+          assetIds: [id],
+          ...(tiers ? { tiers } : {}),
+        },
+      })
+      expect(res.statusCode).toBe(200)
+      return JSON.parse(res.body).urls[id]
+    }
+
+    const thumbOnly = await ask(['thumb'])
+    expect(thumbOnly.thumb256.jpeg).toContain('/media/v1/files/')
+    expect(thumbOnly.thumb512.jpeg).toContain('/media/v1/files/')
+    expect(thumbOnly.display1080).toBeNull()
+    expect(thumbOnly.original).toBeNull()
+
+    // 티어를 안 주면 예전과 같은 응답 — 같은 15분 창 안이라 URL 문자열까지 동일하다
+    // (expiresAt 만 호출 시각이라 다르다).
+    const full = await ask()
+    const alsoFull = await ask(['thumb', 'display', 'original', 'video'])
+    expect({ ...alsoFull, expiresAt: '' }).toEqual({ ...full, expiresAt: '' })
+    expect(full.display1080.avif).toContain('/media/v1/files/')
+    expect(full.thumb256).toEqual(thumbOnly.thumb256)
+    await app.close()
+  })
+
   test('rejects requests exceeding 200 asset ids', async () => {
     const ids = Array.from({ length: 201 }, () => '22222222-2222-2222-2222-222222222222')
     const app = buildApp()
