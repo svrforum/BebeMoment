@@ -22,6 +22,34 @@ export default function FeaturesAdminPage() {
   const [saving, setSaving] = useState(false)
   const [ml, setMl] = useState<{ url: string; reachable: boolean } | null>(null)
   const [mlBusy, setMlBusy] = useState(false)
+  const [backfill, setBackfill] = useState<string | null>(null)
+  const [backfillBusy, setBackfillBusy] = useState(false)
+
+  // 탐지 방식이 바뀌어도 예전 사진은 그대로다 — 관리자가 소급 적용할 수 있어야 한다.
+  async function runBackfill(scope: 'missing' | 'all') {
+    setBackfillBusy(true)
+    setBackfill(null)
+    try {
+      const res = await fetch('/api/admin/faces/backfill', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ scope }),
+      })
+      if (!res.ok) throw new Error('failed')
+      const d = (await res.json()) as { queued: number; remaining: number }
+      setBackfill(
+        d.queued === 0
+          ? t('features.faceBackfill.none')
+          : d.remaining > 0
+            ? t('features.faceBackfill.queuedMore', { count: d.queued })
+            : t('features.faceBackfill.queued', { count: d.queued }),
+      )
+    } catch {
+      setBackfill(t('features.faceBackfill.failed'))
+    } finally {
+      setBackfillBusy(false)
+    }
+  }
 
   // 얼굴 인식은 켜기만 하면 되는데 ml 컨테이너는 compose 프로필 뒤에 있어 기본으로 없다.
   // 없으면 잡이 조용히 실패만 반복하므로, 여기서 실제로 닿는지 눌러 확인할 수 있게 한다.
@@ -120,6 +148,35 @@ export default function FeaturesAdminPage() {
                       : t('features.faceMl.unreachable', { url: ml.url })}
                   </span>
                 )}
+              </div>
+            </CardBody>
+          </Card>
+        )}
+        {flags.faces && (
+          <Card>
+            <CardBody className="space-y-2">
+              <div className="font-medium">{t('features.faceBackfill.title')}</div>
+              <p className="text-xs text-base-500">{t('features.faceBackfill.help')}</p>
+              <div className="flex flex-wrap items-center gap-2">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void runBackfill('missing')}
+                  disabled={backfillBusy}
+                >
+                  {backfillBusy
+                    ? t('features.faceBackfill.running')
+                    : t('features.faceBackfill.runMissing')}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => void runBackfill('all')}
+                  disabled={backfillBusy}
+                >
+                  {t('features.faceBackfill.runAll')}
+                </Button>
+                {backfill && <span className="text-[12px] text-base-500">{backfill}</span>}
               </div>
             </CardBody>
           </Card>

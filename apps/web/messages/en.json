@@ -1302,6 +1302,17 @@
         "checking": "Checking…",
         "ok": "Connected ({url})",
         "unreachable": "⚠️ Unreachable ({url}) — start the ml container or check FACE_ML_URL"
+      },
+      "faceBackfill": {
+        "title": "Re-scan older photos",
+        "help": "Faces are only read as photos arrive, so older photos keep whatever the old detection found. Run it again here. Photos are untouched — only the faces are re-read.",
+        "runMissing": "Only photos with no face",
+        "runAll": "All photos",
+        "running": "Sending…",
+        "queued": "Sent {count} photos to be read again",
+        "queuedMore": "Sent {count} photos. More are left — press again to continue",
+        "none": "Nothing to re-scan",
+        "failed": "Could not send"
       }
     },
     "system": {

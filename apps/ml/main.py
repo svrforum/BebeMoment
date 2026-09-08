@@ -28,6 +28,15 @@ MIN_SCORE = float(os.environ.get("FACE_MIN_SCORE", "0.3"))
 # 그대로 보낸다 — 그래서 실사진은 절대 안 걸릴 만큼 넉넉히 두되 무한정 받지는 않는다.
 MAX_UPLOAD_BYTES = int(float(os.environ.get("FACE_MAX_UPLOAD_MB", "64")) * 1024 * 1024)
 MAX_PIXELS = int(float(os.environ.get("FACE_MAX_PIXELS", "80")) * 1_000_000)
+# SCRFD 는 똑바로 선 얼굴 위주로 학습돼, 누워서 찍은 사진(아기를 안고 옆으로 기울인 컷)의
+# 90° 돌아간 얼굴을 통째로 놓친다 — 실제 라이브 데이터에서 얼굴 0개로 나온 사진 37장 중
+# 9장이 돌리면 얼굴이 나왔다. 그래서 **0개일 때만** 90°/270° 로 한 번씩 더 본다(0개인
+# 사진에서만 도는 비용이고, 대부분의 사진은 첫 시도에 끝난다). 좌표는 원본 기준으로 되돌린다.
+ROTATION_FALLBACK = os.environ.get("FACE_ROTATION_FALLBACK", "true").lower() not in (
+    "0",
+    "false",
+    "no",
+)
 
 _model = None
 _load_error: str | None = None
@@ -118,19 +127,9 @@ def warmup():
     return {"ok": True, "pack": PACK}
 
 
-@app.post("/faces")
-async def faces(file: UploadFile = File(...)):
-    data = await file.read()
-    if len(data) > MAX_UPLOAD_BYTES:
-        raise HTTPException(status_code=413, detail="payload too large")
-    arr = np.frombuffer(data, dtype=np.uint8)
-    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)  # BGR
-    if img is None:
-        raise HTTPException(status_code=400, detail="invalid image")
+def _detect(model, img) -> list[dict]:
+    """한 장에서 얼굴을 뽑아 0..1 정규화 bbox 로 돌려준다(회전 보정 전, 이 이미지 기준)."""
     h, w = img.shape[:2]
-    if h * w > MAX_PIXELS:
-        raise HTTPException(status_code=413, detail="image too large")
-    model = get_model()
     out = []
     for f in model.get(img):
         score = float(f.det_score)
@@ -150,4 +149,61 @@ async def faces(file: UploadFile = File(...)):
                 "score": score,
             }
         )
-    return {"width": w, "height": h, "faces": out}
+    return out
+
+
+def _iou(a: dict, b: dict) -> float:
+    """정규화 bbox 두 개의 교집합/합집합 — 회전마다 잡힌 같은 얼굴을 한 번만 남기려고."""
+    ax2, ay2 = a["x"] + a["w"], a["y"] + a["h"]
+    bx2, by2 = b["x"] + b["w"], b["y"] + b["h"]
+    iw = max(0.0, min(ax2, bx2) - max(a["x"], b["x"]))
+    ih = max(0.0, min(ay2, by2) - max(a["y"], b["y"]))
+    inter = iw * ih
+    union = a["w"] * a["h"] + b["w"] * b["h"] - inter
+    return inter / union if union > 0 else 0.0
+
+
+def unrotate_bbox(box: dict, k: int) -> dict:
+    """`np.rot90(img, k)` 에서 잡힌 정규화 bbox 를 원본 좌표계로 되돌린다.
+
+    k=1 은 반시계 90°(원본의 오른쪽 변이 위로 온다), k=3 은 시계 90°.
+    회전된 이미지의 (x, y, w, h) 는 원본에서 축이 바뀌므로 w/h 도 맞바꾼다.
+    """
+    x, y, w, h = box["x"], box["y"], box["w"], box["h"]
+    if k % 4 == 1:
+        return {"x": y, "y": 1.0 - x - w, "w": h, "h": w}
+    if k % 4 == 3:
+        return {"x": 1.0 - y - h, "y": x, "w": h, "h": w}
+    if k % 4 == 2:
+        return {"x": 1.0 - x - w, "y": 1.0 - y - h, "w": w, "h": h}
+    return dict(box)
+
+
+@app.post("/faces")
+async def faces(file: UploadFile = File(...)):
+    data = await file.read()
+    if len(data) > MAX_UPLOAD_BYTES:
+        raise HTTPException(status_code=413, detail="payload too large")
+    arr = np.frombuffer(data, dtype=np.uint8)
+    img = cv2.imdecode(arr, cv2.IMREAD_COLOR)  # BGR
+    if img is None:
+        raise HTTPException(status_code=400, detail="invalid image")
+    h, w = img.shape[:2]
+    if h * w > MAX_PIXELS:
+        raise HTTPException(status_code=413, detail="image too large")
+    model = get_model()
+    out = _detect(model, img)
+    rotated: list[int] = []
+    if not out and ROTATION_FALLBACK:
+        # 두 방향 모두 본다 — 한 사진 안에서도 얼굴마다 기울기가 달라(안은 사람과 안긴
+        # 아기) 한쪽에서만 잡히는 경우가 있다. 겹치는 탐지는 IoU 로 한 번만 남긴다.
+        for k in (1, 3):
+            for f in _detect(model, np.ascontiguousarray(np.rot90(img, k))):
+                f["bbox"] = unrotate_bbox(f["bbox"], k)
+                if any(_iou(f["bbox"], g["bbox"]) > 0.5 for g in out):
+                    continue
+                out.append(f)
+                deg = 90 if k == 1 else 270
+                if deg not in rotated:
+                    rotated.append(deg)
+    return {"width": w, "height": h, "faces": out, "rotated": rotated}
