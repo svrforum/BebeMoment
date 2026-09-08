@@ -1,4 +1,5 @@
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import { cache } from 'react'
 
 /**
  * 비밀 스토리(가시성 `guardians`)에 묶인 자산 ID 집합. 이 자산들은 `family` 역할에게
@@ -11,22 +12,24 @@ import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
  *
  * StoryAsset 은 familyId 컬럼이 없는 조인 테이블이라 부모 Story 로 스코프한다(먼저 가족의
  * 비밀 스토리 id 를 가져온 뒤 그 entryId 로 링크 조회 — tenant 미들웨어 정합).
+ *
+ * 한 타임라인 렌더에서 레이아웃·타임라인·추억·인물이 각자 부르므로 요청 스코프 `cache()`
+ * (요청 밖에선 no-op). 반환 배열은 공유되니 호출부는 읽기만 한다.
  */
-export async function listSecretAssetIds(
-  prismaPublic: PrismaPublic,
-  familyId: string,
-): Promise<string[]> {
-  const secretStories = await prismaPublic.story.findMany({
-    where: { familyId, deletedAt: null, visibility: 'guardians' },
-    select: { id: true },
-  })
-  if (secretStories.length === 0) return []
-  const links = await prismaPublic.storyAsset.findMany({
-    where: { entryId: { in: secretStories.map((s) => s.id) } },
-    select: { assetId: true },
-  })
-  return Array.from(new Set(links.map((l) => l.assetId)))
-}
+export const listSecretAssetIds = cache(
+  async (prismaPublic: PrismaPublic, familyId: string): Promise<string[]> => {
+    const secretStories = await prismaPublic.story.findMany({
+      where: { familyId, deletedAt: null, visibility: 'guardians' },
+      select: { id: true },
+    })
+    if (secretStories.length === 0) return []
+    const links = await prismaPublic.storyAsset.findMany({
+      where: { entryId: { in: secretStories.map((s) => s.id) } },
+      select: { assetId: true },
+    })
+    return Array.from(new Set(links.map((l) => l.assetId)))
+  },
+)
 
 /**
  * 뷰어 역할에 따른 "숨길 자산 ID" — owner/guardian 은 전부 보므로 빈 배열(추가 쿼리 없음),
@@ -42,7 +45,8 @@ export async function hiddenAssetIdsForViewer(
   return listSecretAssetIds(prismaPublic, familyId)
 }
 
-/** family 가 특정 자산에 접근/액션할 수 있는지 — 비밀 자산이면 false. owner/guardian 은 항상 true. */
+/** family 가 특정 자산에 접근/액션할 수 있는지 — 비밀 자산이면 false. owner/guardian 은 항상 true.
+ *  집합을 만들지 않고 "살아있는 비밀 스토리에 이 자산이 묶여 있나" 존재 여부만 묻는다. */
 export async function isAssetHiddenFromViewer(
   viewerRole: Role | 'owner' | 'guardian' | 'family',
   assetId: string,
@@ -50,6 +54,9 @@ export async function isAssetHiddenFromViewer(
   familyId: string,
 ): Promise<boolean> {
   if (viewerRole !== 'family') return false
-  const secret = await listSecretAssetIds(prismaPublic, familyId)
-  return secret.includes(assetId)
+  const link = await prismaPublic.storyAsset.findFirst({
+    where: { assetId, entry: { familyId, deletedAt: null, visibility: 'guardians' } },
+    select: { assetId: true },
+  })
+  return link !== null
 }
