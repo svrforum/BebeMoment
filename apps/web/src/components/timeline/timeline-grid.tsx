@@ -7,60 +7,25 @@ import { EmptyState } from '@/components/ui/empty-state'
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
 import type { AssetEvent } from '@bebe/core'
-import type { AssetUrls } from '@bebe/media-client'
-import { FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
+import { ArrowUp, FolderPlus, ImagePlus, Trash2, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { StoryCardData } from '@/components/story/story-card'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { TapModifiers } from './asset-card'
 import { BucketSection } from './bucket-section'
+import { type BucketGroup, estimateSectionHeight, mergeGroups, reconcileHead } from './groups'
+import {
+  AT_TOP_SCROLL_PX,
+  NO_PENDING,
+  type PendingChanges,
+  hasPending,
+  pendingLabelCount,
+  receiveEvent,
+} from './live-refresh'
 import { TimelineContextMenu } from './timeline-context-menu'
 
-type AssetRow = {
-  id: string
-  publicNo: number
-  status: 'uploading' | 'processing' | 'ready' | 'failed'
-  kind: 'image' | 'video'
-  urls: AssetUrls | null
-  /** ts 는 디바이더(여기까지 봤어요) 경계 계산에 쓰인다 — 없어도 그리드는 동작. */
-  ts?: Date
-}
-
-type BucketGroup = {
-  /** UTC 일자 키 — append 시 같은 날 버킷 병합 기준. */
-  dateKey: string
-  label: string
-  /** Optional age-bucket secondary line (e.g. "생후 47일"). */
-  ageLabel?: string | null
-  /** Optional D-day chip (e.g. "D+97" / "D-Day"). */
-  dDay?: string | null
-  assets: AssetRow[]
-  /** 이 날짜의 스토리(사진 그리드 위에 글 카드로). */
-  stories?: StoryCardData[]
-}
-
-// append 시 같은 날(dateKey) 버킷은 병합(자산·스토리 id 중복 제거), 나머지는 이어붙임.
-function mergeGroups(prev: BucketGroup[], next: BucketGroup[]): BucketGroup[] {
-  if (next.length === 0) return prev
-  const out = [...prev]
-  const last = out[out.length - 1]
-  let start = 0
-  if (last && next[0] && last.dateKey === next[0].dateKey) {
-    const seen = new Set(last.assets.map((a) => a.id))
-    const storySeen = new Set((last.stories ?? []).map((s) => s.id))
-    out[out.length - 1] = {
-      ...last,
-      assets: [...last.assets, ...next[0].assets.filter((a) => !seen.has(a.id))],
-      stories: [
-        ...(last.stories ?? []),
-        ...(next[0].stories ?? []).filter((s) => !storySeen.has(s.id)),
-      ],
-    }
-    start = 1
-  }
-  return [...out, ...next.slice(start)]
-}
+// useLayoutEffect 는 SSR 에서 경고를 낸다. 스크롤 보정은 브라우저에서만 의미가 있다.
+const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
 
 type Props = {
   initialGroups: BucketGroup[]
@@ -106,6 +71,9 @@ export function TimelineGrid({
   const [pickerOpen, setPickerOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [menu, setMenu] = useState<{ id: string; x: number; y: number } | null>(null)
+  const [pending, setPending] = useState<PendingChanges>(NO_PENDING)
+  /** 화면에 안 그려지므로 ref — 몇 페이지까지 불러왔는지(1 = 첫 페이지만). */
+  const pagesLoadedRef = useRef(1)
 
   const selectionMode = selected.size > 0
 
@@ -128,26 +96,81 @@ export function TimelineGrid({
       if (refreshTimer.current) clearTimeout(refreshTimer.current)
     }
   }, [])
+  const scheduleRefresh = useCallback(() => {
+    if (refreshTimer.current) clearTimeout(refreshTimer.current)
+    refreshTimer.current = setTimeout(() => router.refresh(), 800)
+  }, [router])
+
+  // pending 은 화면에 그려지므로 state, 그 최신값은 SSE 콜백이 같은 틱에 연달아 읽으므로 ref.
+  const pendingRef = useRef<PendingChanges>(NO_PENDING)
+  const updatePending = useCallback((next: PendingChanges) => {
+    pendingRef.current = next
+    setPending(next)
+  }, [])
+
   const handleEvent = useCallback(
     (event: AssetEvent) => {
-      if (
-        event.type === 'asset.deleted' ||
-        (event.type === 'asset.updated' && (event.status === 'ready' || event.status === 'failed'))
-      ) {
-        if (refreshTimer.current) clearTimeout(refreshTimer.current)
-        refreshTimer.current = setTimeout(() => router.refresh(), 800)
-      }
+      const decision = receiveEvent(pendingRef.current, event, {
+        scrollY: window.scrollY,
+        pagesLoaded: pagesLoadedRef.current,
+      })
+      if (decision.pending !== pendingRef.current) updatePending(decision.pending)
+      if (decision.refreshNow) scheduleRefresh()
     },
-    [router],
+    [scheduleRefresh, updatePending],
   )
   useFamilySSE(handleEvent)
 
-  // SSR(또는 router.refresh)이 새 initialGroups 를 주면 상태를 재동기화한다 — 새로고침
-  // 후 페이지네이션은 1페이지로 리셋(허용 가능, 새 업로드 반영 우선).
+  const groupsRef = useRef(groups)
   useEffect(() => {
-    setGroups(initialGroups)
-    setCursor(initialNextCursor)
-  }, [initialGroups, initialNextCursor])
+    groupsRef.current = groups
+  }, [groups])
+  const appliedRef = useRef(initialGroups)
+  const anchorRef = useRef<{ scrollY: number; height: number } | null>(null)
+  // 정렬·날짜가 바뀌면 목록이 다른 순서의 다른 목록이다 — 이어붙이지 말고 통째로 교체.
+  // (?sort= 토글은 같은 컴포넌트 인스턴스를 유지한 채 새 initialGroups 만 준다.)
+  const scopeKey = `${sort}|${date ?? ''}`
+  const scopeRef = useRef(scopeKey)
+
+  // SSR(또는 router.refresh)이 새 initialGroups 를 주면 **머리만** 갈아끼우고 사용자가
+  // 추가로 불러온 페이지는 남긴다. 예전엔 통째로 1페이지로 되돌려서, 남이 사진 한 장을
+  // 올리는 순간 작년 봄까지 스크롤한 사람이 맨 앞으로 튕겼다.
+  useEffect(() => {
+    const scopeChanged = scopeRef.current !== scopeKey
+    if (appliedRef.current === initialGroups && !scopeChanged) return
+    appliedRef.current = initialGroups
+    scopeRef.current = scopeKey
+    // 맨 위가 아니면 갱신 전후 문서 높이 차이만큼 스크롤을 되밀어 보던 사진을 붙잡는다.
+    if (!scopeChanged && window.scrollY >= AT_TOP_SCROLL_PX) {
+      anchorRef.current = {
+        scrollY: window.scrollY,
+        height: document.documentElement.scrollHeight,
+      }
+    }
+    const reconciled = scopeChanged
+      ? { groups: initialGroups, keptPages: false }
+      : reconcileHead(groupsRef.current, initialGroups)
+    groupsRef.current = reconciled.groups
+    setGroups(reconciled.groups)
+    if (!reconciled.keptPages) {
+      setCursor(initialNextCursor)
+      pagesLoadedRef.current = 1
+    }
+    updatePending(NO_PENDING)
+  }, [initialGroups, initialNextCursor, scopeKey, updatePending])
+
+  useBrowserLayoutEffect(() => {
+    const anchor = anchorRef.current
+    if (!anchor) return
+    anchorRef.current = null
+    const delta = document.documentElement.scrollHeight - anchor.height
+    if (delta !== 0) window.scrollTo(0, Math.max(0, anchor.scrollY + delta))
+  }, [groups])
+
+  const applyPending = useCallback(() => {
+    updatePending(NO_PENDING)
+    router.refresh()
+  }, [router, updatePending])
 
   const loadMore = useCallback(async () => {
     if (!cursor || loadingMore) return
@@ -168,6 +191,7 @@ export function TimelineGrid({
       }))
       setGroups((prev) => mergeGroups(prev, revived))
       setCursor(data.nextCursor)
+      pagesLoadedRef.current += 1
     } catch {
       toast({ title: t('grid.loadMoreFailed'), variant: 'danger' })
     } finally {
@@ -360,9 +384,30 @@ export function TimelineGrid({
 
   return (
     <>
-      <div className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4">
+      {/* overflow-anchor 를 끄는 이유: 갱신 후 스크롤 보정을 우리가 직접 한다(위 layout
+          effect). 브라우저의 자동 앵커링까지 겹치면 두 번 밀려 오히려 튄다. */}
+      <div
+        className="mx-auto max-w-3xl lg:max-w-5xl xl:max-w-6xl px-5 py-4"
+        style={{ overflowAnchor: 'none' }}
+      >
         {groups.map((g, i) => (
-          <div key={g.dateKey}>
+          // content-visibility: 화면 밖 날짜 섹션의 레이아웃·페인트를 건너뛴다. 사진이
+          // 수천 장이어도 브라우저가 실제로 재는 건 보이는 몇 섹션뿐. 아직 한 번도 그려진
+          // 적 없는 섹션은 아래 추정 높이로 자리만 잡고, 한 번 그려진 뒤엔 `auto` 가 실제
+          // 높이를 기억한다. 좌우 여백(padding+음수 margin)은 paint containment 가 카드
+          // hover ring 을 잘라내지 않게 낸 자리 — 레이아웃 위치는 그대로다.
+          <div
+            key={g.dateKey}
+            style={{
+              contentVisibility: 'auto',
+              containIntrinsicSize: `auto ${estimateSectionHeight({
+                assetCount: g.assets.length,
+                storyCount: g.stories?.length ?? 0,
+              })}px`,
+              paddingInline: '8px',
+              marginInline: '-8px',
+            }}
+          >
             {showDivider && i === boundaryIndex && (
               <div className="my-6 flex items-center gap-3 px-1">
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
@@ -398,6 +443,14 @@ export function TimelineGrid({
           </div>
         )}
       </div>
+
+      {hasPending(pending) && !selectionMode && (
+        <NewChangesPill
+          count={pendingLabelCount(pending)}
+          onApply={applyPending}
+          onDismiss={() => updatePending(NO_PENDING)}
+        />
+      )}
 
       {selectionMode && (
         <SelectionBar
@@ -446,6 +499,47 @@ export function TimelineGrid({
         sort={sort}
       />
     </>
+  )
+}
+
+/**
+ * 깊이 스크롤한 사람에게 "새 사진이 있다"만 알리는 알약. 누르면 그때 새로고침하고,
+ * 보고 있던 위치는 그대로 유지된다(새 사진은 위쪽에 쌓인다). 닫으면 조용해진다.
+ */
+function NewChangesPill({
+  count,
+  onApply,
+  onDismiss,
+}: {
+  count: number
+  onApply: () => void
+  onDismiss: () => void
+}) {
+  const t = useTranslations('timeline')
+  return (
+    <div
+      className="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4"
+      style={{ top: 'calc(env(safe-area-inset-top) + 96px)' }}
+    >
+      <div className="pointer-events-auto flex items-center gap-0.5 rounded-full border border-base-200/70 bg-base-0/95 py-1 pl-3 pr-1 shadow-elevated backdrop-blur-xl dark:border-base-800/70 dark:bg-base-900/95">
+        <button
+          type="button"
+          onClick={onApply}
+          className="flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pr-1 text-[13px] font-semibold text-point-600 transition active:scale-95 dark:text-point-400"
+        >
+          <ArrowUp size={14} strokeWidth={2.6} />
+          {count > 0 ? t('grid.newPhotos', { count }) : t('grid.newChanges')}
+        </button>
+        <button
+          type="button"
+          onClick={onDismiss}
+          aria-label={t('grid.dismissNew')}
+          className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 dark:hover:bg-base-800"
+        >
+          <X size={14} strokeWidth={2.2} />
+        </button>
+      </div>
+    </div>
   )
 }
 

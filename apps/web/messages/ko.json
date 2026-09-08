@@ -420,6 +420,9 @@
     },
     "grid": {
       "loadMoreFailed": "더 불러오지 못했어요. 잠시 후 다시 시도해주세요",
+      "newPhotos": "새 사진 {count}장 불러오기",
+      "newChanges": "새 변경사항 불러오기",
+      "dismissNew": "알림 닫기",
       "deletePartialFailed": "일부 삭제 실패",
       "deletePartialDesc": "{done}/{total}개 삭제됨. 다시 시도해주세요.",
       "deletedCount": "{count}장 삭제됨",
