@@ -99,6 +99,6 @@ describe('signup with username', () => {
   it('requires at least one of username or email', async () => {
     await expect(
       signup({ password: 'password123', displayName: 'X' }, db.prismaPublic),
-    ).rejects.toThrow(/아이디 또는 이메일/)
+    ).rejects.toThrow(/errors\.auth\.identifierOrEmailRequired/)
   })
 })
