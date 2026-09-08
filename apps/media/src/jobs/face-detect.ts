@@ -1,3 +1,4 @@
+import { chooseCluster } from '@/domain/face-cluster'
 import { DEFAULT_FACE_CLUSTER_DISTANCE } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
@@ -104,7 +105,7 @@ export async function faceDetect(args: {
 
   const asset = await prisma.asset.findFirst({
     where: { id: assetId, familyId, status: 'ready', deletedAt: null },
-    select: { id: true, kind: true, originalKey: true },
+    select: { id: true, kind: true, originalKey: true, takenAt: true },
   })
   if (!asset) return
 
@@ -148,18 +149,35 @@ export async function faceDetect(args: {
     const faceId = inserted[0]?.id
     if (!faceId) continue
 
-    // 증분 군집 — 같은 가족의 이미 배정된 얼굴 중 가장 가까운 것.
-    const near = await prisma.$queryRawUnsafe<{ person_id: string; dist: number }[]>(
-      `SELECT person_id, (embedding <=> $1::vector) AS dist
-         FROM media.faces
-        WHERE family_id = $2::uuid AND person_id IS NOT NULL AND id <> $3::uuid
-        ORDER BY embedding <=> $1::vector
-        LIMIT 1`,
+    // 증분 군집 — 같은 가족의 이미 배정된 얼굴 중 가까운 후보 몇 개를 보고 고른다.
+    // 하나만 보지 않는 이유: 촬영일이 가까운 얼굴에는 임계값을 넉넉히 주므로(성장에 따른
+    // 거리 증가 보정, domain/face-cluster.ts), 1등이 밀려도 2~3등이 붙을 수 있다.
+    const near = await prisma.$queryRawUnsafe<
+      { person_id: string; dist: number; gap_days: number | null }[]
+    >(
+      `SELECT f.person_id,
+              (f.embedding <=> $1::vector) AS dist,
+              CASE WHEN a.taken_at IS NULL OR $4::timestamptz IS NULL THEN NULL
+                   ELSE abs(extract(epoch FROM (a.taken_at - $4::timestamptz)) / 86400.0)
+              END AS gap_days
+         FROM media.faces f
+         JOIN media.assets a ON a.id = f.asset_id
+        WHERE f.family_id = $2::uuid AND f.person_id IS NOT NULL AND f.id <> $3::uuid
+        ORDER BY f.embedding <=> $1::vector
+        LIMIT 8`,
       emb,
       familyId,
       faceId,
+      asset.takenAt,
     )
-    let personId = near[0] && near[0].dist <= maxDistance ? near[0].person_id : null
+    let personId = chooseCluster(
+      near.map((r) => ({
+        personId: r.person_id,
+        dist: Number(r.dist),
+        gapDays: r.gap_days === null ? null : Number(r.gap_days),
+      })),
+      { maxDistance },
+    )
 
     if (!personId) {
       const person = await prisma.person.create({

@@ -40,6 +40,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
     { familyId: ctx.family.id, personId: person.id, viewerRole: ctx.membership?.role ?? 'family' },
     prismaMedia,
     prismaPublic,
+    getMediaClient(),
   )
 
   const canManage = ctx.capabilities.includes('person.rename')

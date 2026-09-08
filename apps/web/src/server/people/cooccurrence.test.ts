@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
@@ -89,8 +90,8 @@ describe('listCooccurringPeople', () => {
       db.prismaPublic,
     )
 
-    expect(r.summary).toEqual([{ id: baby.id, name: '딸기', photoCount: 1 }])
-    expect(r.byAsset[shared]).toEqual([{ id: baby.id, name: '딸기', photoCount: 1 }])
+    expect(r.summary).toEqual([{ id: baby.id, name: '딸기', photoCount: 1, cover: null }])
+    expect(r.byAsset[shared]).toEqual([{ id: baby.id, name: '딸기', photoCount: 1, cover: null }])
     expect(r.byAsset[alone]).toBeUndefined()
   })
 
@@ -132,8 +133,8 @@ describe('listCooccurringPeople', () => {
       db.prismaPublic,
     )
     expect(r.summary).toEqual([
-      { id: often.id, name: '엄마', photoCount: 2 },
-      { id: once.id, name: '아빠', photoCount: 1 },
+      { id: often.id, name: '엄마', photoCount: 2, cover: null },
+      { id: once.id, name: '아빠', photoCount: 1, cover: null },
     ])
     expect(r.byAsset[a1]?.map((p) => p.name)).toEqual(['엄마', '아빠'])
   })
@@ -195,5 +196,26 @@ describe('listCooccurringPeople', () => {
       db.prismaPublic,
     )
     expect(r.summary).toEqual([])
+  })
+})
+
+describe('listCooccurringPeople covers', () => {
+  it('fills the face circle from the best-scoring live face when a media client is given', async () => {
+    const { user, family } = await setup()
+    const shared = await makeReadyAsset(family.id, user.id)
+    const better = await makeReadyAsset(family.id, user.id)
+    const me = await db.prismaMedia.person.create({ data: { familyId: family.id, name: null } })
+    const other = await db.prismaMedia.person.create({ data: { familyId: family.id, name: 'X' } })
+    await addFace(family.id, shared, me.id)
+    await addFace(family.id, shared, other.id, 0.4)
+    await addFace(family.id, better, other.id, 0.95)
+
+    const r = await listCooccurringPeople(
+      { familyId: family.id, personId: me.id, viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(r.summary[0]?.cover?.assetId).toBe(better)
   })
 })
