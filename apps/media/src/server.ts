@@ -15,6 +15,7 @@ import { filesRoute } from './http/routes/files'
 import { healthRoute } from './http/routes/health'
 import { sseProgressRoute } from './http/routes/sse-progress'
 import { tusRoute } from './http/routes/tus'
+import { getEnv } from './lib/env'
 import { logger, sanitizeUrl } from './lib/logger'
 
 export function buildApp(): FastifyInstance {
@@ -65,8 +66,7 @@ export function buildApp(): FastifyInstance {
 }
 
 export async function startServer(): Promise<() => Promise<void>> {
-  const port = Number(process.env.MEDIA_PORT ?? 3001)
-  const host = process.env.MEDIA_HOST ?? '0.0.0.0'
+  const { MEDIA_PORT: port, MEDIA_HOST: host } = getEnv()
 
   const app = buildApp()
   await app.listen({ port, host })

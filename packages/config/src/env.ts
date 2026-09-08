@@ -37,6 +37,8 @@ function looksLikePlaceholderSecret(value: string): boolean {
   return SECRET_PLACEHOLDER_PATTERNS.some((p) => low.includes(p))
 }
 
+const positiveInt = z.coerce.number().int().positive()
+
 const EnvSchema = z
   .object({
     DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
@@ -70,6 +72,27 @@ const EnvSchema = z
     LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
     TRUST_PROXY: envBool(true),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    // ── 미디어 서비스 튜닝 노브 ──
+    // 여기 없는 값을 process.env 로 직접 읽으면 오타·비숫자가 NaN 으로 조용히 흘러 들어간다.
+    // 잘못된 값은 부팅에서 거부한다(web 도 같은 스키마를 쓰므로 web 부팅에서도 보인다).
+    MEDIA_ROLE: z.enum(['server', 'worker', 'both']).default('both'),
+    MEDIA_HOST: z.string().default('0.0.0.0'),
+    MEDIA_PORT: positiveInt.default(3001),
+    MEDIA_CONCURRENCY_THUMBNAIL: positiveInt.default(3),
+    MEDIA_CONCURRENCY_VIDEO: positiveInt.default(1),
+    MEDIA_FACES_CONCURRENCY: positiveInt.default(1),
+    MEDIA_SHUTDOWN_GRACE_MS: positiveInt.default(30_000),
+    MEDIA_MAX_UPLOAD_BYTES: positiveInt.default(5 * 1024 * 1024 * 1024),
+    MEDIA_FAMILY_QUOTA_BYTES: z.coerce.number().int().nonnegative().default(0),
+    MEDIA_MAX_INPUT_PIXELS: positiveInt.default(64_000_000),
+    MEDIA_STALE_UPLOAD_HOURS: z.coerce.number().positive().default(6),
+    MEDIA_STALE_PROCESSING_HOURS: z.coerce.number().positive().default(12),
+    MEDIA_DERIVATIVES_INCLUDE_AVIF: envBool(true),
+    MEDIA_AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(3),
+    MEDIA_VIPS_THREADS: positiveInt.optional(),
+    MEDIA_FFMPEG_THREADS: positiveInt.optional(),
+    MEDIA_URL_CACHE: z.enum(['on', 'off']).default('on'),
+    FACE_ML_URL: z.string().url().default('http://ml:8000'),
   })
   .transform((env) => ({
     ...env,

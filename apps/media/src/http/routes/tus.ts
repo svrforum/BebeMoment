@@ -4,7 +4,7 @@ import { prisma } from '@/lib/prisma'
 import { createRedisConnection } from '@/lib/redis'
 import { logger } from '@/lib/logger'
 import { getTusStore } from '@/lib/tus-store'
-import { parseEnv } from '@bebe/config'
+import { getEnv } from '@/lib/env'
 import { ASSET_QUEUE } from '@bebe/core'
 import { MemoryLocker, Server as TusServer, type Upload } from '@tus/server'
 import { Queue } from 'bullmq'
@@ -17,7 +17,7 @@ type NodeReqWithToken = {
 }
 
 export const tusRoute: FastifyPluginAsync = async (app) => {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const env = getEnv()
   const redis = createRedisConnection(env.REDIS_URL)
   const queue = new Queue(ASSET_QUEUE, { connection: redis })
 
@@ -28,7 +28,7 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     done(null, payload),
   )
 
-  const globalMaxBytes = Number(process.env.MEDIA_MAX_UPLOAD_BYTES ?? 5 * 1024 * 1024 * 1024)
+  const globalMaxBytes = env.MEDIA_MAX_UPLOAD_BYTES
 
   const tusServer = new TusServer({
     path: '/media/v1/tus',

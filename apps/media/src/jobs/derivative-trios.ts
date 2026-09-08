@@ -1,5 +1,6 @@
 import type { StorageAdapter } from '@bebe/storage'
 import type sharp from 'sharp'
+import { getEnv } from '@/lib/env'
 import { decodeSharp } from '@/lib/sharp'
 
 export type SizeKey = 'thumb256' | 'thumb512' | 'display1080'
@@ -67,7 +68,7 @@ export async function generateTrios(args: {
   storage: StorageAdapter
 }): Promise<Trios> {
   const { buffer, assetId, storage } = args
-  const includeAvif = process.env.MEDIA_DERIVATIVES_INCLUDE_AVIF !== 'false'
+  const includeAvif = getEnv().MEDIA_DERIVATIVES_INCLUDE_AVIF
   const formatsToGenerate: FormatKey[] = includeAvif ? ['avif', 'webp', 'jpeg'] : ['webp', 'jpeg']
 
   const sizeKeys = Object.keys(SIZES) as SizeKey[]
