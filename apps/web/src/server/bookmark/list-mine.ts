@@ -1,3 +1,4 @@
+import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { AssetBookmark, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
@@ -65,12 +66,14 @@ export async function listMyBookmarks(
   const byId = new Map(assets.map((a) => [a.id, a]))
 
   const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
-  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
+  const urlsMap = readyIds.length
+    ? await media.getAssetUrlsBatch(familyId, readyIds, { tiers: GRID_URL_TIERS })
+    : {}
 
   const joined = page.map((b) => {
     const base = byId.get(b.assetId) ?? null
     const withUrls: AssetWithUrls | null = base
-      ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
+      ? { ...base, urls: base.status === 'ready' ? toGridUrls(urlsMap[base.id]) : null }
       : null
     return { ...b, asset: withUrls }
   })

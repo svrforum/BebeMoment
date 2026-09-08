@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { AssetWithUrls } from '../asset/types'
 import { decodeCursor, encodeCursor } from '../cursor'
@@ -162,11 +163,15 @@ export async function listTimeline(
       [...pageAssets, ...extraAssets].filter((a) => a.status === 'ready').map((a) => a.id),
     ),
   )
-  const urlsMap = allIds.length ? await media.getAssetUrlsBatch(familyId, allIds) : {}
+  // 타임라인은 격자 썸네일과 스토리 카드 표지만 그린다 — display1080·원본까지 서명해
+  // 내려보내면 한 페이지에 URL 텍스트만 수백 KB 다(§signed-url tiers).
+  const urlsMap = allIds.length
+    ? await media.getAssetUrlsBatch(familyId, allIds, { tiers: GRID_URL_TIERS })
+    : {}
 
   const withUrls = (a: (typeof pageAssets)[number]): AssetWithUrls => ({
     ...a,
-    urls: a.status === 'ready' ? (urlsMap[a.id] ?? null) : null,
+    urls: a.status === 'ready' ? toGridUrls(urlsMap[a.id]) : null,
   })
 
   const joinedEntries = entries.map((e) => ({

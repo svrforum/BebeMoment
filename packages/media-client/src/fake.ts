@@ -15,7 +15,7 @@ import { assetUrls as assetUrlsSchema } from './schemas'
 type Calls = {
   initAsset: InitAssetRequest[]
   getAssetUrls: { assetId: string; familyId: string }[]
-  getAssetUrlsBatch: { familyId: string; assetIds: string[]; tiers?: AssetUrlTier[] }[]
+  getAssetUrlsBatch: { familyId: string; assetIds: string[]; tiers?: readonly AssetUrlTier[] }[]
   setBabyTags: { assetId: string; input: SetBabyTagsRequest }[]
   deleteAsset: { assetId: string; familyId: string }[]
   purgeAsset: { assetId: string; familyId: string }[]
@@ -38,7 +38,7 @@ function emptyUrls(): AssetUrls {
   }
 }
 
-function restrictToTiers(urls: AssetUrls, tiers: AssetUrlTier[] | undefined): AssetUrls {
+function restrictToTiers(urls: AssetUrls, tiers: readonly AssetUrlTier[] | undefined): AssetUrls {
   if (!tiers) return urls
   const want = (t: AssetUrlTier) => tiers.includes(t)
   // 서버와 같은 규칙 — 파생물이 하나도 없는(레거시·처리중) 자산은 원본이 유일한 표시

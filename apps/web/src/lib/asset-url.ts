@@ -1,4 +1,10 @@
-import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
+import type { AssetUrlTier, AssetUrls, DerivativeTrio } from '@bebe/media-client'
+
+/**
+ * 그리드가 미디어에 요청하는 티어. 썸네일 2티어(srcset)와 영상 포스터 — 레거시 영상은
+ * 썸네일 없이 포스터만 있어서 'video' 가 빠지면 빈 타일이 된다.
+ */
+export const GRID_URL_TIERS: readonly AssetUrlTier[] = ['thumb', 'video']
 
 /**
  * 그리드가 실제로 그리는 것만 담은 좁힌 URL 묶음 — 썸네일 2티어(srcset 이 256/512 를

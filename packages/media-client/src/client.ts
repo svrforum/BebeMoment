@@ -26,7 +26,7 @@ export type FetchLike = (input: string, init?: RequestInit) => Promise<Response>
 export type BatchUrlsOptions = {
   includeDeleted?: boolean
   /** 필요한 티어만. 생략하면 전 티어(기존 동작). 지정한 티어 외에는 서명되지 않고 null. */
-  tiers?: AssetUrlTier[]
+  tiers?: readonly AssetUrlTier[]
 }
 
 export type MediaClientConfig = {

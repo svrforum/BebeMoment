@@ -1,4 +1,5 @@
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
+import { type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
 import { formatDDay, groupAssetsByDay } from './group-by-day'
 import type { TimelineItem, TimelineSort } from './merged-list'
 
@@ -12,7 +13,7 @@ export type TimelineBucketGroup = {
     publicNo: number
     status: 'uploading' | 'processing' | 'ready' | 'failed'
     kind: 'image' | 'video'
-    urls: import('@bebe/media-client').AssetUrls | null
+    urls: GridAssetUrls | null
     ts: Date
     durationMs: number | null
   }[]
@@ -65,7 +66,9 @@ export function buildTimelineGroups(args: {
       publicNo: a.publicNo,
       status: a.status,
       kind: a.kind,
-      urls: a.urls,
+      // 그리드 카드가 쓰는 것만 실어 보낸다 — merged-list 가 이미 썸네일 티어만
+      // 받아오지만, 캐시에 남은 전 티어 응답이 그대로 나가는 것도 여기서 막힌다.
+      urls: toGridUrls(a.urls),
       ts: a.ts,
       durationMs: a.durationMs ?? null,
     })),

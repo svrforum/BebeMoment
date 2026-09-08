@@ -3,7 +3,8 @@ import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { type MemoryInterval, intervalLabel, intervalMonths, memoryInterval } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
-import type { AssetUrls, MediaClient } from '@bebe/media-client'
+import { GRID_URL_TIERS } from '@/lib/asset-url'
+import type { AssetUrlTier, AssetUrls, MediaClient } from '@bebe/media-client'
 
 export type MemoryStory = Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
 
@@ -24,6 +25,9 @@ type MemoryArgs = {
    *  위젯은 10장만 그리므로 후보 전부를 서명하면 낭비다. 생략 시 전부(추억 페이지). 제한
    *  모드에선 스토리 사진도 서명하지 않는다(카드·위젯이 안 씀). */
   signLimit?: number
+  /** 어느 티어를 서명받을지. 기본은 그리드용 썸네일 — 추억 카드·타임라인 스트립이
+   *  썸네일만 그린다. 위젯은 큰 사진을 내려받으므로 `['display']` 로 부른다. */
+  tiers?: readonly AssetUrlTier[]
 }
 
 type DayWindow = { gte: Date; lt: Date }
@@ -194,7 +198,9 @@ export async function listMemories(
 ): Promise<MemoryGroup[]> {
   const groups = buildMemoryGroups(await collectMemoryData(args, prismaMedia, prismaPublic))
   const ids = signTargets(groups, args.signLimit)
-  const urls = ids.length ? await media.getAssetUrlsBatch(args.familyId, ids) : {}
+  const urls = ids.length
+    ? await media.getAssetUrlsBatch(args.familyId, ids, { tiers: args.tiers ?? GRID_URL_TIERS })
+    : {}
   return attachUrls(groups, urls)
 }
 
