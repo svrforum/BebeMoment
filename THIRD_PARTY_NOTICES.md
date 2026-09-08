@@ -9,6 +9,22 @@ depends on third-party components with their own licenses:
   Bundled as the official dynamic subsets at `apps/web/public/fonts/pretendard/`; full
   license at [`apps/web/public/fonts/OFL.txt`](apps/web/public/fonts/OFL.txt).
 
+## Bundled programs (app container image)
+
+- **FFmpeg** 8.1.2 (`ffmpeg` and `ffprobe` at `/usr/local/bin/`) — **GPL-3.0-or-later**.
+  The app image ships the prebuilt static binaries from
+  [`mwader/static-ffmpeg`](https://github.com/wader/static-ffmpeg), pinned by version
+  tag **and** digest in [`docker/app.Dockerfile`](docker/app.Dockerfile)
+  (`mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585`,
+  a multi-arch index covering linux/amd64 and linux/arm64). That build is configured
+  with `--enable-gpl --enable-version3` and **without** `--enable-nonfree`, so it is
+  redistributable; run `ffmpeg -version` in the container for the full configure line
+  and the list of bundled codec libraries.
+  Bebe Moment does not link against FFmpeg — the media service executes `ffmpeg` and
+  `ffprobe` as separate programs (`apps/media/src/lib/ffmpeg.ts`). FFmpeg's source is
+  available from [ffmpeg.org](https://ffmpeg.org/download.html) and the build recipe
+  from the `static-ffmpeg` repository above.
+
 ## Optional, downloaded at runtime
 
 - **InsightFace `buffalo_l` model pack** — used only when the optional face

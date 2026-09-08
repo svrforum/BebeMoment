@@ -53,12 +53,23 @@ RUN --mount=type=cache,id=next-build,target=/repo/apps/web/.next/cache \
 # CI=true: 설정이 바뀐 modules 디렉터리 재생성 확인을 TTY 없이 통과시킨다.
 # pnpm 은 제거된 devDependency 의 optionalDependencies(biome CLI 바이너리, e2e 의 옛 sharp 등
 # 110MB)를 store 에 남긴다 — prune-store.mjs 가 어느 패키지에서도 닿지 않는 store 디렉터리를 지운다.
-# 그 뒤 런타임이 읽지 않는 것 둘을 더 걷어낸다:
+# 그 뒤 런타임이 읽지 않는 것들을 더 걷어낸다. 아래는 전부 이미지를 띄워 확인한 목록이다
+# (부팅 → migrate deploy → /api/health?deep=1 → 페이지 렌더가 제거 전후로 동일):
 #   - .next/server 의 소스맵 — next start 는 소스맵을 켜지 않는다(스택 트레이스는 지금도 청크 기준)
 #   - @next/swc — next build/dev 전용 네이티브 바이너리(125MB), next start 는 로드하지 않는다
 #   - typescript — prisma 의 optional peer. migrate deploy 는 없이도 돈다(오프라인 부팅으로 확인)
-# ⚠️ @prisma/dev·@prisma/studio-core·pglite 는 prisma CLI 가 시작하자마자 require 한다 —
-#    지우면 migrate deploy 가 MODULE_NOT_FOUND 로 죽는다(직접 확인). 100MB 지만 그대로 둔다.
+#   - lucide-react(39MB) — Turbopack 이 아이콘을 클라이언트 청크에 인라인한다. .next 어디에도
+#     `require("lucide-react")` 가 없고(client-reference-manifest 에 남는 건 모듈 경로 문자열뿐)
+#     제거 전후 /login·/signup 응답이 바이트까지 같다
+#   - lightningcss(20MB) — Tailwind/Next 의 빌드 타임 CSS 컴파일러. CSS 는 이미 .next/static 에 있다
+#   - playwright(16MB) — e2e 러너가 next 의 peer 로 딸려온 것
+#   - pglite(24MB)·rolldown(23MB) — `prisma dev`(로컬 임베디드 DB) 전용. migrate deploy 는 안 탄다
+# ⚠️ 반대로 이것들은 **지우면 부팅이 죽는다**(전부 실제로 깨뜨려 확인):
+#   - @prisma/studio-core·@prisma/dev — prisma CLI 의 build/index.js 가 top-level 에서
+#     `@prisma/studio-core/data/bff`·`@prisma/dev/internal/state` 를 require 한다
+#   - effect — @prisma/config 이 require 한다(위 둘의 부속이 아니라 별도 경로)
+#   - @swc/core(27MB) — next start 가 next.config.mjs 를 읽고, 그게 next-intl/plugin →
+#     MessageExtractor → @swc/core 로 이어진다. 빌드 전용처럼 보이지만 런타임 의존이다
 # .next/cache 는 런타임에 Next 가 unstable_cache 항목을 쓰는 곳 — 비워 두되 존재해야 한다.
 RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     CI=true pnpm install --prod --frozen-lockfile --ignore-scripts --offline \
@@ -66,20 +77,43 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     && rm -rf apps/web/.next/cache e2e \
     && find apps/web/.next/server -name '*.map' -type f -delete \
     && rm -rf node_modules/.pnpm/@next+swc-linux-x64-gnu@* node_modules/.pnpm/typescript@* \
+    && rm -rf node_modules/.pnpm/lucide-react@* \
+       node_modules/.pnpm/lightningcss-linux-x64-gnu@* \
+       node_modules/.pnpm/playwright@* node_modules/.pnpm/playwright-core@* \
+       node_modules/.pnpm/@playwright+* \
+       node_modules/.pnpm/@electric-sql+pglite* \
+       node_modules/.pnpm/rolldown@* node_modules/.pnpm/@rolldown+* \
     && mkdir -p apps/web/.next/cache
+
+# -------- ffmpeg --------
+# 영상 파이프라인(apps/media)이 spawn 하는 ffmpeg·ffprobe. Debian 의 `ffmpeg` 패키지는
+# libavdevice→SDL→Mesa→libLLVM-15 사슬 때문에 러너 apt 레이어의 543MB 중 ~480MB 를 혼자
+# 차지했다(LLVM 112MB·Mesa 25MB·libz3 23MB·Intel media SDK 26MB…). 정적 바이너리 두 개면
+# 280MB 로 끝나고, 배포판 ffmpeg 5.1 대신 8.x 를 쓴다.
+#
+# 출처: mwader/static-ffmpeg — 버전 태그 + 다이제스트로 고정한다(floating latest 금지).
+# 다이제스트는 멀티아치 인덱스라 이 스테이지가 빌드 대상 플랫폼(amd64/arm64)의 바이너리를
+# 알아서 고른다 — 릴리즈가 지금은 amd64 만 만들지만 arm64 를 켜도 이 줄은 그대로다.
+# 왜 이걸 골랐나: ① 8.x 정식 버전 태그가 있고(BtbN 의 GitHub 릴리즈는 파일명이 git-describe
+# 라 매일 바뀌고 오래된 autobuild 는 지워진다), ② johnvansickle 빌드는 7.0.2 에서 멈췄고,
+# ③ 완전 정적(musl static)이라 bookworm-slim 에 추가 apt 패키지가 필요 없다.
+# 라이선스: configure 에 --enable-gpl --enable-version3 가 있고 --enable-nonfree 는 없다
+# → GPL-3.0-or-later, 재배포 가능. 별도 프로그램으로 실행할 뿐 AGPL 본체와 링크되지 않는다.
+# 자세한 내역은 THIRD_PARTY_NOTICES.md.
+FROM mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585 AS ffmpeg
 
 # -------- runner --------
 FROM node:22-bookworm-slim AS runner
 WORKDIR /repo
 
-# ffmpeg(영상 파이프라인) + 운영 유틸. sharp 는 자체 prebuilt libvips(@img/sharp-libvips-*)를
-# 쓰므로 시스템 libvips 는 필요 없다. libjemalloc2 는 media 프로세스에만 LD_PRELOAD 된다
+# 운영 유틸. sharp 는 자체 prebuilt libvips(@img/sharp-libvips-*)를 쓰므로 시스템 libvips 는
+# 필요 없다. libjemalloc2 는 media 프로세스에만 LD_PRELOAD 된다
 # (sharp/libvips 의 glibc malloc 단편화 완화). 런타임에 pnpm/corepack 은 없다 — 세 프로세스와
 # 마이그레이션 모두 node 로 직접 실행한다(run-app.sh·entrypoint.sh).
 # postgresql-client-17: 백업 pg_dump/pg_restore 는 서버(pg17)와 major 가 같거나 높아야
 # 한다. bookworm 기본은 15 라 PGDG 저장소에서 17 을 받는다. zstd: 백업 번들 압축.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini curl openssl ca-certificates gosu bash ffmpeg zstd libjemalloc2 gnupg \
+    tini curl openssl ca-certificates gosu bash zstd libjemalloc2 gnupg \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
@@ -92,6 +126,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && (groupdel node 2>/dev/null || true) \
     && groupadd -g 1000 bebe \
     && useradd -u 1000 -g bebe -s /bin/bash -m bebe
+
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
