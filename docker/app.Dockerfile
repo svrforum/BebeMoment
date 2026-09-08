@@ -68,18 +68,35 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
     && rm -rf node_modules/.pnpm/@next+swc-linux-x64-gnu@* node_modules/.pnpm/typescript@* \
     && mkdir -p apps/web/.next/cache
 
+# -------- ffmpeg --------
+# 영상 파이프라인(apps/media)이 spawn 하는 ffmpeg·ffprobe. Debian 의 `ffmpeg` 패키지는
+# libavdevice→SDL→Mesa→libLLVM-15 사슬 때문에 러너 apt 레이어의 543MB 중 ~480MB 를 혼자
+# 차지했다(LLVM 112MB·Mesa 25MB·libz3 23MB·Intel media SDK 26MB…). 정적 바이너리 두 개면
+# 280MB 로 끝나고, 배포판 ffmpeg 5.1 대신 8.x 를 쓴다.
+#
+# 출처: mwader/static-ffmpeg — 버전 태그 + 다이제스트로 고정한다(floating latest 금지).
+# 다이제스트는 멀티아치 인덱스라 이 스테이지가 빌드 대상 플랫폼(amd64/arm64)의 바이너리를
+# 알아서 고른다 — 릴리즈가 지금은 amd64 만 만들지만 arm64 를 켜도 이 줄은 그대로다.
+# 왜 이걸 골랐나: ① 8.x 정식 버전 태그가 있고(BtbN 의 GitHub 릴리즈는 파일명이 git-describe
+# 라 매일 바뀌고 오래된 autobuild 는 지워진다), ② johnvansickle 빌드는 7.0.2 에서 멈췄고,
+# ③ 완전 정적(musl static)이라 bookworm-slim 에 추가 apt 패키지가 필요 없다.
+# 라이선스: configure 에 --enable-gpl --enable-version3 가 있고 --enable-nonfree 는 없다
+# → GPL-3.0-or-later, 재배포 가능. 별도 프로그램으로 실행할 뿐 AGPL 본체와 링크되지 않는다.
+# 자세한 내역은 THIRD_PARTY_NOTICES.md.
+FROM mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585 AS ffmpeg
+
 # -------- runner --------
 FROM node:22-bookworm-slim AS runner
 WORKDIR /repo
 
-# ffmpeg(영상 파이프라인) + 운영 유틸. sharp 는 자체 prebuilt libvips(@img/sharp-libvips-*)를
-# 쓰므로 시스템 libvips 는 필요 없다. libjemalloc2 는 media 프로세스에만 LD_PRELOAD 된다
+# 운영 유틸. sharp 는 자체 prebuilt libvips(@img/sharp-libvips-*)를 쓰므로 시스템 libvips 는
+# 필요 없다. libjemalloc2 는 media 프로세스에만 LD_PRELOAD 된다
 # (sharp/libvips 의 glibc malloc 단편화 완화). 런타임에 pnpm/corepack 은 없다 — 세 프로세스와
 # 마이그레이션 모두 node 로 직접 실행한다(run-app.sh·entrypoint.sh).
 # postgresql-client-17: 백업 pg_dump/pg_restore 는 서버(pg17)와 major 가 같거나 높아야
 # 한다. bookworm 기본은 15 라 PGDG 저장소에서 17 을 받는다. zstd: 백업 번들 압축.
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    tini curl openssl ca-certificates gosu bash ffmpeg zstd libjemalloc2 gnupg \
+    tini curl openssl ca-certificates gosu bash zstd libjemalloc2 gnupg \
     && install -d /usr/share/postgresql-common/pgdg \
     && curl -fsSL https://www.postgresql.org/media/keys/ACCC4CF8.asc \
        -o /usr/share/postgresql-common/pgdg/apt.postgresql.org.asc \
@@ -92,6 +109,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && (groupdel node 2>/dev/null || true) \
     && groupadd -g 1000 bebe \
     && useradd -u 1000 -g bebe -s /bin/bash -m bebe
+
+COPY --from=ffmpeg /ffmpeg /ffprobe /usr/local/bin/
 
 ENV NODE_ENV=production
 ENV NEXT_TELEMETRY_DISABLED=1
