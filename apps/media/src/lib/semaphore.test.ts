@@ -47,6 +47,17 @@ describe('Semaphore', () => {
     await expect(sem.run(async () => 42)).resolves.toBe(42)
   })
 
+  it('tryAcquire hands out a slot without waiting, or null when busy', async () => {
+    const sem = new Semaphore(1)
+    const release = sem.tryAcquire()
+    expect(release).not.toBeNull()
+    expect(sem.active).toBe(1)
+    expect(sem.tryAcquire()).toBeNull()
+    release?.()
+    release?.()
+    expect(sem.active).toBe(0)
+  })
+
   it('tryRun returns null instead of queueing when every slot is busy', async () => {
     const sem = new Semaphore(1)
     const gate = deferred()

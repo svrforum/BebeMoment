@@ -1,5 +1,5 @@
 import { parseDerivativesV2 } from '@/domain/derivatives-v2'
-import { signDownloadToken } from '@/lib/jwt'
+import { type DownloadTokenPayload, signDownloadToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
 import { mintDownloadRequest, mintDownloadResponse } from '@bebe/media-client'
 import type { FastifyPluginAsync } from 'fastify'
@@ -15,13 +15,18 @@ function replaceExt(filename: string, newExt: string): string {
   return `${stem}${newExt}`
 }
 
+type EffectiveQuality = DownloadTokenPayload['quality']
+
 function deriveFilename(
   original: string,
   kind: 'image' | 'video',
-  quality: 'original' | 'compat' | 'hd' | 'sd',
+  quality: EffectiveQuality,
 ): { filename: string; mimeType: string } {
   if (quality === 'original') {
     return { filename: original, mimeType: '' }
+  }
+  if (quality === 'gallery') {
+    return { filename: original, mimeType: 'image/jpeg' }
   }
   if (kind === 'video') {
     return { filename: replaceExt(original, '.mp4'), mimeType: 'video/mp4' }
@@ -53,7 +58,7 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
     // 그대로 주고(화질 유지), 아니면 워커가 이미 만들어 둔 호환본으로 보낸다. 판정
     // 이전에 처리된 자산은 originalPlayable 이 없는데, 그때는 지금까지처럼 원본을 준다
     // — 멀쩡한 자산을 조용히 1080p 로 떨구지 않기 위해서다(백필로 판정을 채운다).
-    let effective: 'original' | 'compat' | 'hd' | 'sd' = quality === 'auto' ? 'original' : quality
+    let effective: EffectiveQuality = quality === 'auto' ? 'original' : quality
     let videoCompatKey: string | undefined
     if (
       quality === 'auto' &&
@@ -63,6 +68,11 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
     ) {
       effective = 'compat'
       videoCompatKey = derivatives.videoCompat
+    }
+    // JPEG 사진의 기본 저장은 갤러리용(회전 굽기·EXIF 제거 — 저장한 사진이 갤러리 맨 위에
+    // 보이게). 명시적 original 만 바이트 그대로.
+    if (quality === 'auto' && kind === 'image' && asset.mimeType.toLowerCase() === 'image/jpeg') {
+      effective = 'gallery'
     }
 
     const { filename: derivedName, mimeType: derivedMime } = deriveFilename(

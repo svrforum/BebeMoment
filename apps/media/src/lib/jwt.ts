@@ -133,7 +133,8 @@ export type DownloadTokenPayload = {
   hdImageKey?: string
   videoCompatKey?: string
   kind: 'image' | 'video'
-  quality: 'original' | 'compat' | 'hd' | 'sd'
+  // gallery = JPEG 를 회전 굽기·EXIF 제거로 재인코딩(auto 저장의 기본). original 은 바이트 그대로.
+  quality: 'original' | 'gallery' | 'compat' | 'hd' | 'sd'
   filename: string
   mimeType: string
 }
