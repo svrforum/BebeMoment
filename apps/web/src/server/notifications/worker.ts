@@ -1,5 +1,5 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
-import type { Locale } from '@/i18n/request'
+import type { Locale } from '@/i18n/locales'
 import { logger } from '@/lib/logger'
 import { type ServerT, getServerTranslator } from '@/i18n/translator'
 import { resolveRecipients } from './recipients'

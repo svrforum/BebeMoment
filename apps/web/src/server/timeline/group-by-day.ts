@@ -1,4 +1,4 @@
-import { DEFAULT_LOCALE } from '@/i18n/request'
+import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { type LabelT, formatAgeBucket } from '@/i18n/labels'
 import { getServerTranslator } from '@/i18n/translator'
 import { ageBucket } from '@bebe/core'
