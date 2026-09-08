@@ -11,8 +11,8 @@ COPY requirements.txt requirements-insightface.txt ./
 RUN pip install --no-cache-dir -r requirements.txt \
  && pip install --no-cache-dir --no-deps -r requirements-insightface.txt
 
-COPY main.py entrypoint.sh ./
-RUN chmod +x entrypoint.sh
+COPY main.py ./
+COPY --chmod=755 entrypoint.sh ./
 
 EXPOSE 8000
 ENTRYPOINT ["/app/entrypoint.sh"]
