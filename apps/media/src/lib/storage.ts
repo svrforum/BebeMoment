@@ -3,10 +3,10 @@ import { mkdtemp, rm } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import { type StorageAdapter, createAdapter } from '@bebe/storage'
+import { type StorageAdapter, type StorageConfig, createAdapter } from '@bebe/storage'
 import { getEnv } from './env'
 
-export function getStorage(): StorageAdapter {
+function storageConfig(): StorageConfig {
   const env = getEnv()
   if (env.STORAGE_MODE === 's3') {
     if (
@@ -17,7 +17,7 @@ export function getStorage(): StorageAdapter {
     ) {
       throw new Error('STORAGE_MODE=s3 requires all STORAGE_S3_* env vars')
     }
-    return createAdapter({
+    return {
       mode: 's3',
       endpoint: env.STORAGE_S3_ENDPOINT,
       bucket: env.STORAGE_S3_BUCKET,
@@ -25,9 +25,22 @@ export function getStorage(): StorageAdapter {
       secretKey: env.STORAGE_S3_SECRET_KEY,
       region: env.STORAGE_S3_REGION,
       forcePathStyle: true,
-    })
+    }
   }
-  return createAdapter({ mode: 'local', path: env.STORAGE_PATH })
+  return { mode: 'local', path: env.STORAGE_PATH }
+}
+
+// 요청마다 어댑터(S3 면 S3Client 까지)를 새로 만들지 않는다. 설정이 바뀌면(테스트가
+// STORAGE_PATH 를 바꾸는 경우) 그때만 다시 만든다.
+let cached: { fingerprint: string; adapter: StorageAdapter } | undefined
+
+export function getStorage(): StorageAdapter {
+  const cfg = storageConfig()
+  const fingerprint = JSON.stringify(cfg)
+  if (cached?.fingerprint !== fingerprint) {
+    cached = { fingerprint, adapter: createAdapter(cfg) }
+  }
+  return cached.adapter
 }
 
 /** 파일 경로를 요구하는 외부 도구(ffprobe 등)용 — 로컬이면 제자리, 원격이면 임시 복사 후 정리. */
