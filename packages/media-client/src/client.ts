@@ -1,5 +1,6 @@
 import {
   type AssetUrls,
+  BATCH_URLS_MAX_IDS,
   type HealthResponse,
   type InitAssetRequest,
   type InitAssetResponse,
@@ -46,6 +47,26 @@ export interface MediaClient {
   retryAsset(assetId: string, familyId: string): Promise<void>
   mintDownloadUrl(input: MintDownloadRequest): Promise<string>
   health(): Promise<HealthResponse>
+}
+
+const BATCH_URLS_CONCURRENCY = 4
+
+async function mapConcurrent<T, R>(
+  items: T[],
+  limit: number,
+  fn: (item: T) => Promise<R>,
+): Promise<R[]> {
+  const out = new Array<R>(items.length)
+  let next = 0
+  const workers = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (next < items.length) {
+      const i = next
+      next += 1
+      out[i] = await fn(items[i] as T)
+    }
+  })
+  await Promise.all(workers)
+  return out
 }
 
 export class MediaError extends Error {
@@ -128,19 +149,37 @@ export class HttpMediaClient implements MediaClient {
     )
   }
 
+  // 서버 스키마는 한 요청에 BATCH_URLS_MAX_IDS 개까지만 받는데 호출부(뷰어 이웃 500·인물
+  // 500·추억/날짜 공유 무제한)는 그보다 많이 보냈다 — ZodError 400 → MediaError → 페이지
+  // 500. 여기서 잘라 병렬(최대 4)로 묻고 입력 순서대로 합친다. 중복 id 는 한 번만.
   async getAssetUrlsBatch(
     familyId: string,
     assetIds: string[],
     opts?: { includeDeleted?: boolean },
   ): Promise<Record<string, AssetUrls>> {
-    return this.request(
-      '/media/v1/assets/urls:batch',
-      {
-        method: 'POST',
-        body: JSON.stringify({ familyId, assetIds, includeDeleted: opts?.includeDeleted }),
-      },
-      (b) => batchUrlsResponse.parse(b).urls,
+    const ids = Array.from(new Set(assetIds))
+    if (ids.length === 0) return {}
+    const chunks: string[][] = []
+    for (let i = 0; i < ids.length; i += BATCH_URLS_MAX_IDS) {
+      chunks.push(ids.slice(i, i + BATCH_URLS_MAX_IDS))
+    }
+    const parts = await mapConcurrent(chunks, BATCH_URLS_CONCURRENCY, (chunk) =>
+      this.request(
+        '/media/v1/assets/urls:batch',
+        {
+          method: 'POST',
+          body: JSON.stringify({
+            familyId,
+            assetIds: chunk,
+            includeDeleted: opts?.includeDeleted,
+          }),
+        },
+        (b) => batchUrlsResponse.parse(b).urls,
+      ),
     )
+    const out: Record<string, AssetUrls> = {}
+    for (const part of parts) Object.assign(out, part)
+    return out
   }
 
   async setBabyTags(assetId: string, input: SetBabyTagsRequest): Promise<void> {

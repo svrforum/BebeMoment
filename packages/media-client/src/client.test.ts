@@ -149,6 +149,78 @@ describe('HttpMediaClient', () => {
   })
 })
 
+describe('getAssetUrlsBatch 청킹', () => {
+  const familyId = '22222222-2222-4222-8222-222222222222'
+  const uuidAt = (i: number) => `00000000-0000-4000-8000-${String(i).padStart(12, '0')}`
+  const urlsFor = () => ({
+    blurhash: null,
+    dominantColor: null,
+    aspectRatio: null,
+    thumb256: null,
+    thumb512: null,
+    display1080: null,
+    original: null,
+    videoPoster: null,
+    videoCompat: null,
+    expiresAt: '2026-04-24T12:00:00Z',
+  })
+
+  function batchServer(opts: { delayMs?: number } = {}) {
+    const requests: string[][] = []
+    let inflight = 0
+    let maxInflight = 0
+    const fetchSpy = vi.fn(async (_url: string, init?: RequestInit) => {
+      const body = JSON.parse(String(init?.body)) as { assetIds: string[] }
+      requests.push(body.assetIds)
+      inflight += 1
+      maxInflight = Math.max(maxInflight, inflight)
+      if (opts.delayMs) await new Promise((r) => setTimeout(r, opts.delayMs))
+      inflight -= 1
+      return new Response(
+        JSON.stringify({
+          v: 1,
+          urls: Object.fromEntries(body.assetIds.map((id) => [id, urlsFor()])),
+        }),
+        { status: 200, headers: { 'content-type': 'application/json' } },
+      )
+    })
+    const client = new HttpMediaClient({
+      baseUrl: 'https://media.test',
+      serviceToken: 's',
+      fetch: fetchSpy,
+    })
+    return { client, requests, maxInflight: () => maxInflight }
+  }
+
+  // 서버 스키마가 200개로 자르는데 호출부는 500개(뷰어 이웃·인물)나 무제한(추억·날짜
+  // 공유)을 보냈다 — ZodError 400 → MediaError → 페이지 500.
+  test('450개 → 200/200/50 세 요청, 결과는 입력 순서대로 합쳐진다', async () => {
+    const ids = Array.from({ length: 450 }, (_, i) => uuidAt(i))
+    const { client, requests } = batchServer()
+    const out = await client.getAssetUrlsBatch(familyId, ids)
+    expect(requests.map((r) => r.length)).toEqual([200, 200, 50])
+    expect(requests.flat()).toEqual(ids)
+    expect(Object.keys(out)).toEqual(ids)
+  })
+
+  test('동시 요청은 4개까지', async () => {
+    const ids = Array.from({ length: 1800 }, (_, i) => uuidAt(i))
+    const { client, requests, maxInflight } = batchServer({ delayMs: 5 })
+    await client.getAssetUrlsBatch(familyId, ids)
+    expect(requests).toHaveLength(9)
+    expect(maxInflight()).toBe(4)
+  })
+
+  test('중복 id 는 한 번만 묻고, 빈 목록은 요청하지 않는다', async () => {
+    const { client, requests } = batchServer()
+    const out = await client.getAssetUrlsBatch(familyId, [uuidAt(1), uuidAt(1), uuidAt(2)])
+    expect(requests).toEqual([[uuidAt(1), uuidAt(2)]])
+    expect(Object.keys(out)).toEqual([uuidAt(1), uuidAt(2)])
+    expect(await client.getAssetUrlsBatch(familyId, [])).toEqual({})
+    expect(requests).toHaveLength(1)
+  })
+})
+
 describe('본문 없는 요청의 content-type', () => {
   function spyClient() {
     const fetchSpy = vi.fn(
