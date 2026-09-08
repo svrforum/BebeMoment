@@ -104,16 +104,18 @@ export async function signFileServeToken(
     .sign(getSecret())
 }
 
-export async function verifyFileServeToken(token: string): Promise<FileServeTokenPayload> {
+export type VerifiedFileServeToken = FileServeTokenPayload & { exp: number }
+
+export async function verifyFileServeToken(token: string): Promise<VerifiedFileServeToken> {
   const { payload } = await jwtVerify(token, getSecret(), {
     algorithms: ['HS256'],
     audience: 'media',
     issuer: 'media',
   })
-  if (payload.scope !== 'file-serve' || payload.v !== 1) {
+  if (payload.scope !== 'file-serve' || payload.v !== 1 || typeof payload.exp !== 'number') {
     throw new Error('invalid file-serve token shape')
   }
-  return payload as unknown as FileServeTokenPayload
+  return payload as unknown as VerifiedFileServeToken
 }
 
 // ─── Download Token ──────────────────────────────────────────

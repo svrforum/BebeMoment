@@ -106,4 +106,121 @@ describe('GET /media/v1/files/:signed', () => {
     expect(res.statusCode).toBe(404)
     await app.close()
   })
+
+  async function tokenFor(key: string): Promise<string> {
+    const { signFileServeToken } = await import('@/lib/jwt')
+    return signFileServeToken({ familyId: 'fam', assetId: 'asset', key })
+  }
+  const ORIGINAL = 'families/fam/assets/asset/original'
+  const DERIVATIVE = 'derivatives/asset/display1080.jpeg'
+
+  test('sends Content-Length and Accept-Ranges from the stat', async () => {
+    const app = buildApp()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/media/v1/files/${await tokenFor(ORIGINAL)}`,
+    })
+    expect(res.statusCode).toBe(200)
+    expect(res.headers['content-length']).toBe('10')
+    expect(res.headers['accept-ranges']).toBe('bytes')
+    await app.close()
+  })
+
+  test('answers If-None-Match with 304 when the ETag matches', async () => {
+    const app = buildApp()
+    const url = `/media/v1/files/${await tokenFor(ORIGINAL)}`
+    const first = await app.inject({ method: 'GET', url })
+    const etag = first.headers.etag as string
+    expect(etag).toMatch(/^"[0-9a-f]+"$/)
+    const second = await app.inject({ method: 'GET', url, headers: { 'if-none-match': etag } })
+    expect(second.statusCode).toBe(304)
+    expect(second.body).toBe('')
+    expect(second.headers.etag).toBe(etag)
+    const other = await app.inject({ method: 'GET', url, headers: { 'if-none-match': '"nope"' } })
+    expect(other.statusCode).toBe(200)
+    await app.close()
+  })
+
+  test('the ETag differs between keys of the same size', async () => {
+    const app = buildApp()
+    const a = await app.inject({
+      method: 'GET',
+      url: `/media/v1/files/${await tokenFor(ORIGINAL)}`,
+    })
+    const b = await app.inject({
+      method: 'GET',
+      url: `/media/v1/files/${await tokenFor(DERIVATIVE)}`,
+    })
+    expect(a.headers.etag).not.toBe(b.headers.etag)
+    await app.close()
+  })
+
+  test('honours a single byte range with 206 + Content-Range', async () => {
+    const app = buildApp()
+    const url = `/media/v1/files/${await tokenFor(ORIGINAL)}`
+    const mid = await app.inject({ method: 'GET', url, headers: { range: 'bytes=2-4' } })
+    expect(mid.statusCode).toBe(206)
+    expect(mid.body).toBe('llo')
+    expect(mid.headers['content-range']).toBe('bytes 2-4/10')
+    expect(mid.headers['content-length']).toBe('3')
+    const tail = await app.inject({ method: 'GET', url, headers: { range: 'bytes=7-' } })
+    expect(tail.statusCode).toBe(206)
+    expect(tail.body).toBe('ebe')
+    expect(tail.headers['content-range']).toBe('bytes 7-9/10')
+    const suffix = await app.inject({ method: 'GET', url, headers: { range: 'bytes=-4' } })
+    expect(suffix.statusCode).toBe(206)
+    expect(suffix.body).toBe('bebe')
+    expect(suffix.headers['content-range']).toBe('bytes 6-9/10')
+    // end past EOF is clamped, as RFC 9110 requires.
+    const clamped = await app.inject({ method: 'GET', url, headers: { range: 'bytes=8-500' } })
+    expect(clamped.statusCode).toBe(206)
+    expect(clamped.body).toBe('be')
+    expect(clamped.headers['content-range']).toBe('bytes 8-9/10')
+    await app.close()
+  })
+
+  test('416 with Content-Range */size when the range is unsatisfiable', async () => {
+    const app = buildApp()
+    const url = `/media/v1/files/${await tokenFor(ORIGINAL)}`
+    const res = await app.inject({ method: 'GET', url, headers: { range: 'bytes=100-200' } })
+    expect(res.statusCode).toBe(416)
+    expect(res.headers['content-range']).toBe('bytes */10')
+    await app.close()
+  })
+
+  test('ignores multi-range and malformed Range headers and serves the whole file', async () => {
+    const app = buildApp()
+    const url = `/media/v1/files/${await tokenFor(ORIGINAL)}`
+    const multi = await app.inject({ method: 'GET', url, headers: { range: 'bytes=0-1,3-4' } })
+    expect(multi.statusCode).toBe(200)
+    expect(multi.body).toBe('hello-bebe')
+    const junk = await app.inject({ method: 'GET', url, headers: { range: 'lines=1-2' } })
+    expect(junk.statusCode).toBe(200)
+    await app.close()
+  })
+
+  test('derivative keys are cached immutably until the token expires', async () => {
+    const app = buildApp()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/media/v1/files/${await tokenFor(DERIVATIVE)}`,
+    })
+    const m = /^private, max-age=(\d+), immutable$/.exec(res.headers['cache-control'] as string)
+    expect(m).not.toBeNull()
+    const maxAge = Number(m?.[1])
+    // token exp = window start + 1h + 15min, so between 1h and 1h15 remain right after signing.
+    expect(maxAge).toBeGreaterThanOrEqual(60 * 60)
+    expect(maxAge).toBeLessThanOrEqual(75 * 60)
+    await app.close()
+  })
+
+  test('originals keep the short private cache', async () => {
+    const app = buildApp()
+    const res = await app.inject({
+      method: 'GET',
+      url: `/media/v1/files/${await tokenFor(ORIGINAL)}`,
+    })
+    expect(res.headers['cache-control']).toBe('private, max-age=600')
+    await app.close()
+  })
 })
