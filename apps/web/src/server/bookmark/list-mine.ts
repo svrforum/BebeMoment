@@ -24,17 +24,24 @@ export async function listMyBookmarks(
   const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
-  // family 가 북마크해 둔 사진이라도 비밀 스토리로 들어갔으면 저장됨에서 제외한다.
-  const hidden = new Set(
-    await hiddenAssetIdsForViewer(params.viewerRole ?? 'family', prismaPublic, familyId),
+  // family 가 북마크해 둔 사진이라도 비밀 스토리로 들어갔으면 저장됨에서 제외한다. 페이지를
+  // 받은 뒤 JS 로 거르면 hasMore 가 거르기 전 개수로 계산돼 목록이 일찍 끝나므로 where 로 내린다.
+  const hidden = await hiddenAssetIdsForViewer(
+    params.viewerRole ?? 'family',
+    prismaPublic,
+    familyId,
   )
 
-  const fetched = await prismaPublic.assetBookmark.findMany({
+  const items = await prismaPublic.assetBookmark.findMany({
     where: {
       familyId,
       userId,
+      ...(hidden.length ? { assetId: { notIn: hidden } } : {}),
+      // 키셋 커서 — lte 상한이 (familyId, userId, createdAt) 인덱스의 시작점을 주고, OR 이
+      // 같은 시각 안의 순서를 가른다.
       ...(cursorTs
         ? {
+            createdAt: { lte: cursorTs },
             OR: [
               { createdAt: { lt: cursorTs } },
               { createdAt: cursorTs, assetId: { lt: cur!.assetId } },
@@ -45,7 +52,6 @@ export async function listMyBookmarks(
     orderBy: [{ createdAt: 'desc' }, { assetId: 'desc' }],
     take: limit + 1,
   })
-  const items = hidden.size ? fetched.filter((b) => !hidden.has(b.assetId)) : fetched
 
   const hasMore = items.length > limit
   const page = items.slice(0, limit)
