@@ -73,4 +73,23 @@ describe('S3Adapter', () => {
     const s = await adapter.readRange('range.bin', 2, 4)
     expect((await collect(s)).toString()).toBe('234')
   })
+
+  it('stat returns size and last-modified, null when missing', async () => {
+    await adapter.writeBuffer('stat.bin', Buffer.from('0123456789'))
+    const s = await adapter.stat('stat.bin')
+    expect(s?.size).toBe(10)
+    expect(s?.mtimeMs).toBeGreaterThan(0)
+    expect(await adapter.stat('missing.bin')).toBeNull()
+  })
+
+  it('has no local path', () => {
+    expect(adapter.localPath('stat.bin')).toBeNull()
+  })
+
+  it('write counts bytes while streaming (no HeadObject round trip)', async () => {
+    const chunks = ['a'.repeat(1000), 'b'.repeat(2345)]
+    const r = await adapter.write('counted.bin', Readable.from(chunks))
+    expect(r.size).toBe(3345)
+    expect(await adapter.size('counted.bin')).toBe(3345)
+  })
 })

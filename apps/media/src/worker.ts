@@ -1,11 +1,11 @@
 import { ASSET_QUEUE, FACES_QUEUE, type FaceDetectJob } from '@bebe/core'
-import { parseEnv } from '@bebe/config'
 import { type Job, Worker } from 'bullmq'
 import { faceDetect } from './jobs/face-detect'
 import { processAsset } from './jobs/process-asset'
 import { reapStaleTusTmp } from './jobs/reap-stale-tus'
 import { reapStaleUploads, reapStuckProcessing } from './jobs/reap-stale-uploads'
 import type { ProcessAssetJob } from './jobs/types'
+import { getEnv } from './lib/env'
 import { logger } from './lib/logger'
 import { prisma } from './lib/prisma'
 import { createRedisConnection } from './lib/redis'
@@ -13,9 +13,9 @@ import { getStorage } from './lib/storage'
 import { createProgressPublisher } from './progress/publisher'
 
 export async function startWorker(): Promise<() => Promise<void>> {
-  const redisUrl = process.env.REDIS_URL ?? 'redis://localhost:6379'
-  const connection = createRedisConnection(redisUrl)
-  const publisher = createRedisConnection(redisUrl)
+  const env = getEnv()
+  const connection = createRedisConnection(env.REDIS_URL)
+  const publisher = createRedisConnection(env.REDIS_URL)
   const progress = createProgressPublisher(publisher)
   const storage = getStorage()
 
@@ -63,7 +63,7 @@ export async function startWorker(): Promise<() => Promise<void>> {
     },
     {
       connection,
-      concurrency: Number(process.env.MEDIA_CONCURRENCY_THUMBNAIL ?? 3),
+      concurrency: env.MEDIA_CONCURRENCY_THUMBNAIL,
     },
   )
 
@@ -78,14 +78,14 @@ export async function startWorker(): Promise<() => Promise<void>> {
         assetId: job.data.assetId,
         prisma,
         storage,
-        mlUrl: process.env.FACE_ML_URL ?? 'http://ml:8000',
+        mlUrl: env.FACE_ML_URL,
         logger,
         ...(job.data.clusterDistance !== undefined
           ? { clusterDistance: job.data.clusterDistance }
           : {}),
       })
     },
-    { connection, concurrency: Number(process.env.MEDIA_FACES_CONCURRENCY ?? 1) },
+    { connection, concurrency: env.MEDIA_FACES_CONCURRENCY },
   )
   facesWorker.on('failed', (job, err) => {
     logger.error({ id: job?.id, error: err.message }, 'face-detect job failed')
@@ -100,20 +100,12 @@ export async function startWorker(): Promise<() => Promise<void>> {
 
   // 중단된 업로드 정리 — 부팅 직후 1회 + 매시간. (media 엔 BullMQ 반복잡 인프라가 없어
   // 경량 setInterval 로; reapStaleUploads 는 멱등하고 raw SQL 한 방이라 cheap.)
-  const storagePath = parseEnv(process.env as Record<string, string | undefined>).STORAGE_PATH
+  const storagePath = env.STORAGE_PATH
   // 중단된 업로드를 failed 로 마킹하는 기준 시간(시간). 기본 6h — 낮추면 stuck 업로드가
   // 빨리 정리되지만, 느린 망의 대용량 영상이 아직 업로드 중인데도 죽일 수 있으니 주의.
-  const staleHours = Number(process.env.MEDIA_STALE_UPLOAD_HOURS ?? '6')
-  const staleMs = (Number.isFinite(staleHours) && staleHours > 0 ? staleHours : 6) * 60 * 60 * 1000
+  const staleMs = env.MEDIA_STALE_UPLOAD_HOURS * 60 * 60 * 1000
   // 처리 중 갇힌 것도 같이 본다 — 기준은 더 길게(큰 영상 트랜스코딩이 정상적으로 오래 걸린다).
-  const processingStaleHours = Number(process.env.MEDIA_STALE_PROCESSING_HOURS ?? '12')
-  const processingStaleMs =
-    (Number.isFinite(processingStaleHours) && processingStaleHours > 0
-      ? processingStaleHours
-      : 12) *
-    60 *
-    60 *
-    1000
+  const processingStaleMs = env.MEDIA_STALE_PROCESSING_HOURS * 60 * 60 * 1000
   const reap = (): void => {
     void reapStaleUploads(prisma, logger, staleMs).catch((e) =>
       logger.error({ err: (e as Error).message }, 'reapStaleUploads failed'),

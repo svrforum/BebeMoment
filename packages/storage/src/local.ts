@@ -2,7 +2,7 @@ import { createReadStream, createWriteStream } from 'node:fs'
 import { mkdir, stat, unlink } from 'node:fs/promises'
 import path from 'node:path'
 import { pipeline } from 'node:stream/promises'
-import type { StorageAdapter, StorageConfig, WriteResult } from './types'
+import type { StorageAdapter, StorageConfig, StorageStat, WriteResult } from './types'
 
 export class LocalAdapter implements StorageAdapter {
   private readonly root: string
@@ -52,15 +52,23 @@ export class LocalAdapter implements StorageAdapter {
     return createReadStream(this.resolve(key), { start, end })
   }
 
-  async exists(key: string): Promise<boolean> {
+  async stat(key: string): Promise<StorageStat | null> {
     try {
-      await stat(this.resolve(key))
-      return true
+      const s = await stat(this.resolve(key))
+      return { size: s.size, mtimeMs: s.mtimeMs }
     } catch (e) {
       const err = e as NodeJS.ErrnoException
-      if (err.code === 'ENOENT') return false
+      if (err.code === 'ENOENT') return null
       throw e
     }
+  }
+
+  async exists(key: string): Promise<boolean> {
+    return (await this.stat(key)) !== null
+  }
+
+  localPath(key: string): string {
+    return this.resolve(key)
   }
 
   async delete(key: string): Promise<void> {

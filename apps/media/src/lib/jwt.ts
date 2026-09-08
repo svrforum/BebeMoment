@@ -74,11 +74,19 @@ export type FileServeTokenPayload = {
 // 서명 URL 이 브라우저에 박힌 채(클라이언트 라우터 캐시·오래 열어둔 앱·bfcache·지연로딩)
 // 만료돼 썸네일이 401 로 깨지던 걸 줄이려 1시간으로 둔다. 페이지는 동적 렌더라 매 요청 새로
 // 발급되고, 잔여 만료는 PictureImage 의 onError 자동 재조회가 복구한다.
-const FILE_SERVE_TTL_SEC = 60 * 60
+export const FILE_SERVE_TTL_SEC = 60 * 60
+// iat 를 15분 창 시작으로 내림해 같은 창 안에서 서명한 키는 글자까지 같은 URL 이 된다 —
+// 초 단위 iat 는 URL 을 매초 바꿔 브라우저 캐시를 무력화했다(업로드 뒤 격자 전체 재요청,
+// 뷰어 스와이프마다 1080px 재다운로드). exp 는 창 시작 + TTL + 창 길이라 창의 마지막 초에
+// 서명해도 TTL 만큼은 유효하다.
+export const FILE_SERVE_WINDOW_SEC = 15 * 60
 
 export type SignFileServeArgs = Omit<FileServeTokenPayload, 'iss' | 'aud' | 'scope' | 'v'>
 
-export async function signFileServeToken(args: SignFileServeArgs): Promise<string> {
+export async function signFileServeToken(
+  args: SignFileServeArgs,
+  nowSec: number = Math.floor(Date.now() / 1000),
+): Promise<string> {
   const payload: FileServeTokenPayload = {
     iss: 'media',
     aud: 'media',
@@ -88,23 +96,26 @@ export async function signFileServeToken(args: SignFileServeArgs): Promise<strin
     assetId: args.assetId,
     key: args.key,
   }
+  const iat = Math.floor(nowSec / FILE_SERVE_WINDOW_SEC) * FILE_SERVE_WINDOW_SEC
   return await new SignJWT(payload as unknown as Record<string, unknown>)
     .setProtectedHeader({ alg: 'HS256' })
-    .setIssuedAt()
-    .setExpirationTime(`${FILE_SERVE_TTL_SEC}s`)
+    .setIssuedAt(iat)
+    .setExpirationTime(iat + FILE_SERVE_TTL_SEC + FILE_SERVE_WINDOW_SEC)
     .sign(getSecret())
 }
 
-export async function verifyFileServeToken(token: string): Promise<FileServeTokenPayload> {
+export type VerifiedFileServeToken = FileServeTokenPayload & { exp: number }
+
+export async function verifyFileServeToken(token: string): Promise<VerifiedFileServeToken> {
   const { payload } = await jwtVerify(token, getSecret(), {
     algorithms: ['HS256'],
     audience: 'media',
     issuer: 'media',
   })
-  if (payload.scope !== 'file-serve' || payload.v !== 1) {
+  if (payload.scope !== 'file-serve' || payload.v !== 1 || typeof payload.exp !== 'number') {
     throw new Error('invalid file-serve token shape')
   }
-  return payload as unknown as FileServeTokenPayload
+  return payload as unknown as VerifiedFileServeToken
 }
 
 // ─── Download Token ──────────────────────────────────────────
@@ -122,7 +133,8 @@ export type DownloadTokenPayload = {
   hdImageKey?: string
   videoCompatKey?: string
   kind: 'image' | 'video'
-  quality: 'original' | 'compat' | 'hd' | 'sd'
+  // gallery = JPEG 를 회전 굽기·EXIF 제거로 재인코딩(auto 저장의 기본). original 은 바이트 그대로.
+  quality: 'original' | 'gallery' | 'compat' | 'hd' | 'sd'
   filename: string
   mimeType: string
 }

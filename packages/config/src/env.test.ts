@@ -162,3 +162,94 @@ describe('parseEnv', () => {
     ).toThrow(/MEDIA_JWT_SECRET/)
   })
 })
+
+describe('media knobs', () => {
+  const base = {
+    DATABASE_URL: 'postgres://localhost:5432/bebe',
+    REDIS_URL: 'redis://localhost:6379',
+    SECRET_KEY: STRONG,
+    PUBLIC_URL: 'http://localhost:3000',
+  }
+
+  it('applies the documented defaults when unset', () => {
+    const env = parseEnv(base)
+    expect(env.MEDIA_ROLE).toBe('both')
+    expect(env.MEDIA_HOST).toBe('0.0.0.0')
+    expect(env.MEDIA_PORT).toBe(3001)
+    expect(env.MEDIA_CONCURRENCY_THUMBNAIL).toBe(3)
+    expect(env.MEDIA_CONCURRENCY_VIDEO).toBe(1)
+    expect(env.MEDIA_FACES_CONCURRENCY).toBe(1)
+    expect(env.MEDIA_SHUTDOWN_GRACE_MS).toBe(30_000)
+    expect(env.MEDIA_MAX_UPLOAD_BYTES).toBe(5 * 1024 * 1024 * 1024)
+    expect(env.MEDIA_FAMILY_QUOTA_BYTES).toBe(0)
+    expect(env.MEDIA_MAX_INPUT_PIXELS).toBe(64_000_000)
+    expect(env.MEDIA_STALE_UPLOAD_HOURS).toBe(6)
+    expect(env.MEDIA_STALE_PROCESSING_HOURS).toBe(12)
+    expect(env.MEDIA_DERIVATIVES_INCLUDE_AVIF).toBe(true)
+    expect(env.MEDIA_AVIF_EFFORT).toBe(3)
+    expect(env.MEDIA_VIPS_THREADS).toBeUndefined()
+    expect(env.MEDIA_FFMPEG_THREADS).toBeUndefined()
+    expect(env.MEDIA_URL_CACHE).toBe('on')
+    expect(env.FACE_ML_URL).toBe('http://ml:8000')
+  })
+
+  it('coerces numeric strings and reads the enum/bool forms', () => {
+    const env = parseEnv({
+      ...base,
+      MEDIA_ROLE: 'worker',
+      MEDIA_PORT: '3101',
+      MEDIA_CONCURRENCY_THUMBNAIL: '2',
+      MEDIA_CONCURRENCY_VIDEO: '2',
+      MEDIA_FACES_CONCURRENCY: '4',
+      MEDIA_SHUTDOWN_GRACE_MS: '5000',
+      MEDIA_MAX_UPLOAD_BYTES: '1048576',
+      MEDIA_FAMILY_QUOTA_BYTES: '2048',
+      MEDIA_MAX_INPUT_PIXELS: '32000000',
+      MEDIA_STALE_UPLOAD_HOURS: '1',
+      MEDIA_STALE_PROCESSING_HOURS: '2',
+      MEDIA_DERIVATIVES_INCLUDE_AVIF: 'false',
+      MEDIA_AVIF_EFFORT: '6',
+      MEDIA_VIPS_THREADS: '2',
+      MEDIA_FFMPEG_THREADS: '3',
+      MEDIA_URL_CACHE: 'off',
+      FACE_ML_URL: 'http://faces.internal:8000',
+    })
+    expect(env.MEDIA_ROLE).toBe('worker')
+    expect(env.MEDIA_PORT).toBe(3101)
+    expect(env.MEDIA_CONCURRENCY_THUMBNAIL).toBe(2)
+    expect(env.MEDIA_CONCURRENCY_VIDEO).toBe(2)
+    expect(env.MEDIA_FACES_CONCURRENCY).toBe(4)
+    expect(env.MEDIA_SHUTDOWN_GRACE_MS).toBe(5000)
+    expect(env.MEDIA_MAX_UPLOAD_BYTES).toBe(1_048_576)
+    expect(env.MEDIA_FAMILY_QUOTA_BYTES).toBe(2048)
+    expect(env.MEDIA_MAX_INPUT_PIXELS).toBe(32_000_000)
+    expect(env.MEDIA_STALE_UPLOAD_HOURS).toBe(1)
+    expect(env.MEDIA_STALE_PROCESSING_HOURS).toBe(2)
+    expect(env.MEDIA_DERIVATIVES_INCLUDE_AVIF).toBe(false)
+    expect(env.MEDIA_AVIF_EFFORT).toBe(6)
+    expect(env.MEDIA_VIPS_THREADS).toBe(2)
+    expect(env.MEDIA_FFMPEG_THREADS).toBe(3)
+    expect(env.MEDIA_URL_CACHE).toBe('off')
+    expect(env.FACE_ML_URL).toBe('http://faces.internal:8000')
+  })
+
+  it('treats empty strings as unset for the media knobs too', () => {
+    const env = parseEnv({ ...base, MEDIA_CONCURRENCY_THUMBNAIL: '', MEDIA_ROLE: '' })
+    expect(env.MEDIA_CONCURRENCY_THUMBNAIL).toBe(3)
+    expect(env.MEDIA_ROLE).toBe('both')
+  })
+
+  it('rejects values that would silently misconfigure the media service', () => {
+    expect(() => parseEnv({ ...base, MEDIA_ROLE: 'bogus' })).toThrow(/MEDIA_ROLE/)
+    expect(() => parseEnv({ ...base, MEDIA_CONCURRENCY_VIDEO: '0' })).toThrow(
+      /MEDIA_CONCURRENCY_VIDEO/,
+    )
+    expect(() => parseEnv({ ...base, MEDIA_CONCURRENCY_THUMBNAIL: 'abc' })).toThrow(
+      /MEDIA_CONCURRENCY_THUMBNAIL/,
+    )
+    expect(() => parseEnv({ ...base, MEDIA_AVIF_EFFORT: '10' })).toThrow(/MEDIA_AVIF_EFFORT/)
+    expect(() => parseEnv({ ...base, MEDIA_FAMILY_QUOTA_BYTES: '-1' })).toThrow(
+      /MEDIA_FAMILY_QUOTA_BYTES/,
+    )
+  })
+})

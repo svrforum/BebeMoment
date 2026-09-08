@@ -12,30 +12,16 @@
  *
  * 사용자가 직접 고친 촬영일(source=manual)은 건드리지 않는다.
  */
-import { mkdtemp, rm, writeFile } from 'node:fs/promises'
-import { tmpdir } from 'node:os'
-import path from 'node:path'
-import ffmpeg from 'fluent-ffmpeg'
+import type { StorageAdapter } from '@bebe/storage'
 import { videoCreatedAt } from '../jobs/video-created-at'
+import { ffprobeJson } from '../lib/ffmpeg'
 import { logger } from '../lib/logger'
 import { prisma } from '../lib/prisma'
-import { getStorage } from '../lib/storage'
+import { getStorage, withLocalFile } from '../lib/storage'
 
-async function probeCreatedAt(bytes: Buffer): Promise<Date | undefined> {
-  const work = await mkdtemp(path.join(tmpdir(), 'bebe-backfill-'))
-  const local = path.join(work, 'input')
-  try {
-    await writeFile(local, bytes)
-    const meta = await new Promise<ffmpeg.FfprobeData>((resolve, reject) => {
-      ffmpeg.ffprobe(local, (err, data) => (err ? reject(err) : resolve(data)))
-    })
-    return videoCreatedAt(
-      meta.format.tags as Record<string, unknown> | undefined,
-      process.env.TZ || 'UTC',
-    )
-  } finally {
-    await rm(work, { recursive: true, force: true })
-  }
+async function probeCreatedAt(storage: StorageAdapter, key: string): Promise<Date | undefined> {
+  const meta = await withLocalFile(storage, key, ffprobeJson)
+  return videoCreatedAt(meta.format.tags, process.env.TZ || 'UTC')
 }
 
 async function main(): Promise<void> {
@@ -73,9 +59,7 @@ async function main(): Promise<void> {
 
   for (const a of videos) {
     try {
-      const chunks: Buffer[] = []
-      for await (const c of await storage.read(a.originalKey)) chunks.push(c as Buffer)
-      const createdAt = await probeCreatedAt(Buffer.concat(chunks))
+      const createdAt = await probeCreatedAt(storage, a.originalKey)
       if (!createdAt) {
         noMeta += 1
         continue

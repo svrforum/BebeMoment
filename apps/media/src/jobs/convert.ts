@@ -7,12 +7,16 @@ export type ConvertResult = {
   newMimeType: string
   newSizeBytes: bigint
   originalMimeType: string
+  /** 변환된 JPEG 바이트 — 파생물 파이프라인이 새 키를 다시 읽지 않게 넘긴다. */
+  converted: Buffer
 } | null
 
 export type ConvertInput = {
   originalKey: string
   mimeType: string
   assetId: string
+  /** 이미 읽어 둔 원본 바이트. 없으면 스토리지에서 읽는다. */
+  buffer?: Buffer
 }
 
 async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -27,7 +31,7 @@ export async function convertImageIfNeeded(
 ): Promise<ConvertResult> {
   if (!needsConvert(input.mimeType) || !input.mimeType.startsWith('image/')) return null
 
-  const buf = await collect(await storage.read(input.originalKey))
+  const buf = input.buffer ?? (await collect(await storage.read(input.originalKey)))
   const converted = await decodeSharp(buf).rotate().jpeg({ quality: 90 }).toBuffer()
 
   const newKey = `${input.originalKey}.converted.jpg`
@@ -41,5 +45,6 @@ export async function convertImageIfNeeded(
     newMimeType: 'image/jpeg',
     newSizeBytes: BigInt(converted.length),
     originalMimeType: input.mimeType,
+    converted,
   }
 }

@@ -112,7 +112,7 @@ describe('POST /media/v1/download/mint — auto quality', () => {
     expect(payload.filename).toBe('C0012.mp4')
   })
 
-  test('사진은 auto 여도 원본 경로 그대로다', async () => {
+  async function createImage(mimeType: string, filename: string) {
     await db.prisma.asset.create({
       data: {
         id: ASSET,
@@ -120,8 +120,8 @@ describe('POST /media/v1/download/mint — auto quality', () => {
         uploadedByUserId: USER,
         kind: 'image',
         originalKey: `families/${FAMILY}/assets/${ASSET}/original`,
-        originalFilename: 'a.jpg',
-        mimeType: 'image/jpeg',
+        originalFilename: filename,
+        mimeType,
         sizeBytes: BigInt(100),
         sha256: ''.padEnd(64, '0'),
         takenAt: new Date(),
@@ -130,8 +130,27 @@ describe('POST /media/v1/download/mint — auto quality', () => {
         derivatives: { v: 2 },
       },
     })
+  }
+
+  test('JPEG 사진의 auto 는 갤러리용 재인코드(회전 굽기·EXIF 제거)다', async () => {
+    await createImage('image/jpeg', 'a.jpg')
     const payload = await verifyDownloadToken(tokenFrom((await mint('auto')).body))
+    expect(payload.quality).toBe('gallery')
+    expect(payload.mimeType).toBe('image/jpeg')
+    expect(payload.filename).toBe('a.jpg')
+  })
+
+  test('사진의 original 은 저장된 바이트 그대로다', async () => {
+    await createImage('image/jpeg', 'a.jpg')
+    const payload = await verifyDownloadToken(tokenFrom((await mint('original')).body))
     expect(payload.quality).toBe('original')
     expect(payload.mimeType).toBe('image/jpeg')
+  })
+
+  test('JPEG 가 아닌 사진은 auto 여도 원본이다', async () => {
+    await createImage('image/png', 'a.png')
+    const payload = await verifyDownloadToken(tokenFrom((await mint('auto')).body))
+    expect(payload.quality).toBe('original')
+    expect(payload.mimeType).toBe('image/png')
   })
 })

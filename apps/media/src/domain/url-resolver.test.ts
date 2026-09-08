@@ -1,6 +1,12 @@
 import type { Asset } from '@bebe/db-media'
-import { beforeAll, describe, expect, test } from 'vitest'
+import { beforeAll, describe, expect, test, vi } from 'vitest'
+import { buildSignedUrl } from './signed-url'
 import { resolveAssetUrls } from './url-resolver'
+
+vi.mock('./signed-url', async (importOriginal) => {
+  const mod = await importOriginal<typeof import('./signed-url')>()
+  return { ...mod, buildSignedUrl: vi.fn(mod.buildSignedUrl) }
+})
 
 const mkAsset = (overrides: Partial<Asset> = {}): Asset =>
   ({
@@ -89,6 +95,27 @@ describe('resolveAssetUrls', () => {
     expect(urls.thumb256?.jpeg).toContain('/media/v1/files/')
     expect(urls.thumb512?.jpeg).toContain('/media/v1/files/')
     expect(urls.display1080?.avif).toContain('/media/v1/files/')
+  })
+
+  test('signs each distinct key once and reuses it for the avif slot when AVIF is disabled', async () => {
+    // With MEDIA_DERIVATIVES_INCLUDE_AVIF=false the worker stores the webp key in the
+    // avif slot; the resolver used to sign that key a second time for every tier.
+    vi.mocked(buildSignedUrl).mockClear()
+    const urls = await resolveAssetUrls(
+      mkAsset({
+        derivatives: {
+          v: 2,
+          thumb256: { avif: 'w256', webp: 'w256', jpeg: 'j256' },
+          thumb512: { avif: 'w512', webp: 'w512', jpeg: 'j512' },
+          display1080: { avif: 'w1080', webp: 'w1080', jpeg: 'j1080' },
+        },
+      } as unknown as Partial<Asset>),
+    )
+    expect(urls.thumb256?.avif).toBe(urls.thumb256?.webp)
+    expect(urls.display1080?.avif).toBe(urls.display1080?.webp)
+    const signedKeys = vi.mocked(buildSignedUrl).mock.calls.map(([args]) => args.key)
+    expect(signedKeys.length).toBe(new Set(signedKeys).size)
+    expect(signedKeys.length).toBe(7)
   })
 
   test('blurhash and dominantColor flow through from asset row', async () => {

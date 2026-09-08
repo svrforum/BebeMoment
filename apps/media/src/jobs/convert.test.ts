@@ -60,4 +60,29 @@ describe('convertImageIfNeeded', () => {
     const original = await collect(await storage.read('originals/h.heic'))
     expect(original.length).toBeGreaterThan(0)
   })
+
+  it('uses the buffer it is handed instead of re-reading storage, and returns the converted bytes', async () => {
+    const sample = await sharp({
+      create: { width: 40, height: 30, channels: 3, background: '#336699' },
+    })
+      .png()
+      .toBuffer()
+    // Nothing is stored under this key: a read would fail, so success proves the buffer was used.
+    const result = await convertImageIfNeeded(
+      {
+        originalKey: 'originals/not-stored.heic',
+        mimeType: 'image/heic',
+        assetId: 'a',
+        buffer: sample,
+      },
+      storage,
+    )
+    expect(result).not.toBeNull()
+    const stored = await collect(await storage.read('originals/not-stored.heic.converted.jpg'))
+    expect(result?.converted.equals(stored)).toBe(true)
+    expect(Number(result?.newSizeBytes)).toBe(stored.length)
+    const meta = await sharp(stored).metadata()
+    expect(meta.format).toBe('jpeg')
+    expect(meta.width).toBe(40)
+  })
 })

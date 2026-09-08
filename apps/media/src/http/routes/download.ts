@@ -1,11 +1,40 @@
 import { spawn } from 'node:child_process'
 import { keyBelongsToAsset } from '@/domain/asset-key'
+import { getEnv } from '@/lib/env'
 import { type DownloadTokenPayload, verifyDownloadToken } from '@/lib/jwt'
-import { getStorage } from '@/lib/storage'
-import { parseEnv } from '@bebe/config'
-import type { FastifyPluginAsync, FastifyReply } from 'fastify'
+import { Semaphore } from '@/lib/semaphore'
 import { decodeSharp } from '@/lib/sharp'
+import { getStorage } from '@/lib/storage'
+import type { FastifyPluginAsync, FastifyReply } from 'fastify'
 import { MediaHttpError } from '../middleware/error-handler'
+
+// 요청 시점 변환(라이브 ffmpeg·sharp 리사이즈·갤러리 재인코드)은 동시에 2개까지. 넘치면
+// 503 retriable — 워커의 파생물 생성과 CPU 를 다투다 NAS 전체가 느려지는 걸 막는다.
+const LIVE_SLOTS = new Semaphore(2)
+
+function busy(): MediaHttpError {
+  return new MediaHttpError({
+    code: 'RATE_LIMITED',
+    status: 503,
+    message: '지금 변환 중인 파일이 많아요. 잠시 후 다시 시도해 주세요',
+    retriable: true,
+  })
+}
+
+function withLiveSlot<T>(fn: () => Promise<T>): Promise<T> {
+  const running = LIVE_SLOTS.tryRun(fn)
+  if (!running) throw busy()
+  return running
+}
+
+function notFound(): MediaHttpError {
+  return new MediaHttpError({
+    code: 'ASSET_NOT_FOUND',
+    status: 404,
+    message: '파일을 찾을 수 없어요',
+    retriable: false,
+  })
+}
 
 async function streamToBuffer(s: NodeJS.ReadableStream): Promise<Buffer> {
   const chunks: Buffer[] = []
@@ -29,11 +58,12 @@ function contentDisposition(filename: string): string {
   return `attachment; filename="${ascii}"; filename*=UTF-8''${encodeURIComponent(filename)}`
 }
 
-// JPEG 다운로드 시 EXIF(촬영일 포함)를 제거하면 휴대폰 갤러리가 파일 시각(=다운로드
-// 시점) 기준 최신으로 정렬한다. sharp 는 기본적으로 metadata 를 보존하지 않으므로
-// 재인코딩하며 EXIF 를 떨어뜨리고, `.rotate()` 가 EXIF Orientation 을 픽셀에 구워
-// (회전 손실 방지) Orientation 태그 없이도 바로 선다. (무손실 마커-스트립은 Orientation
-// 까지 같이 날려 ≠1 사진이 돌아가 보이는 문제가 있어 sharp 재인코딩으로 교체.)
+// 갤러리용 JPEG: EXIF(촬영일 포함)를 떨어뜨리면 휴대폰 갤러리가 파일 시각(=저장 시점)
+// 기준으로 맨 위에 보여준다. sharp 는 기본적으로 metadata 를 보존하지 않으므로 재인코딩하며
+// EXIF 를 떨어뜨리고, `.rotate()` 가 EXIF Orientation 을 픽셀에 구워(회전 손실 방지)
+// Orientation 태그 없이도 바로 선다. (무손실 마커-스트립은 Orientation 까지 같이 날려 ≠1
+// 사진이 돌아가 보이는 문제가 있어 sharp 재인코딩으로 교체.) 기본 저장(auto)이 이 경로다;
+// 사용자가 '원본'을 고르면 재인코딩 없이 저장된 바이트 그대로 준다.
 async function stripJpegMetadata(buf: Buffer): Promise<Buffer> {
   return decodeSharp(buf).rotate().jpeg({ quality: 95, mozjpeg: true }).toBuffer()
 }
@@ -45,37 +75,40 @@ function setDownloadHeaders(reply: FastifyReply, payload: DownloadTokenPayload):
   reply.header('x-content-type-options', 'nosniff')
 }
 
+async function redirectIfS3(reply: FastifyReply, key: string): Promise<boolean> {
+  if (getEnv().STORAGE_MODE !== 's3') return false
+  const url = await getStorage().publicUrl(key, { expiresIn: 600 })
+  reply.redirect(url, 302)
+  return true
+}
+
+// 원본은 원본 — 저장된 바이트를 실제 content-type 으로 그대로 스트리밍한다(재인코딩·EXIF
+// 제거·버퍼링 없음).
 async function serveOriginal(
   reply: FastifyReply,
   payload: DownloadTokenPayload,
 ): Promise<FastifyReply> {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  if (await redirectIfS3(reply, payload.originalKey)) return reply
   const storage = getStorage()
-  if (env.STORAGE_MODE === 's3') {
-    const url = await storage.publicUrl(payload.originalKey, { expiresIn: 600 })
-    reply.redirect(url, 302)
-    return reply
-  }
-  const exists = await storage.exists(payload.originalKey)
-  if (!exists) {
-    throw new MediaHttpError({
-      code: 'ASSET_NOT_FOUND',
-      status: 404,
-      message: '파일을 찾을 수 없어요',
-      retriable: false,
-    })
-  }
-  const stream = await storage.read(payload.originalKey)
-  // JPEG 원본은 EXIF 제거 + 회전 굽기해 내려준다(갤러리 최신 정렬, 회전 보존). 그 외
-  // (영상·HEIC·PNG 등)는 바이트 그대로 스트리밍.
-  if ((payload.mimeType || '').toLowerCase() === 'image/jpeg') {
-    const out = await stripJpegMetadata(await streamToBuffer(stream))
-    reply.header('content-type', 'image/jpeg')
-    reply.header('content-length', String(out.length))
-    return reply.status(200).send(out)
-  }
+  const st = await storage.stat(payload.originalKey)
+  if (!st) throw notFound()
   reply.header('content-type', payload.mimeType || 'application/octet-stream')
-  return reply.status(200).send(stream)
+  reply.header('content-length', String(st.size))
+  return reply.status(200).send(await storage.read(payload.originalKey))
+}
+
+async function serveGalleryJpeg(
+  reply: FastifyReply,
+  payload: DownloadTokenPayload,
+): Promise<FastifyReply> {
+  if (await redirectIfS3(reply, payload.originalKey)) return reply
+  const storage = getStorage()
+  if (!(await storage.exists(payload.originalKey))) throw notFound()
+  const buf = await streamToBuffer(await storage.read(payload.originalKey))
+  const out = await withLiveSlot(() => stripJpegMetadata(buf))
+  reply.header('content-type', 'image/jpeg')
+  reply.header('content-length', String(out.length))
+  return reply.status(200).send(out)
 }
 
 async function serveHdImageDerivative(
@@ -83,13 +116,8 @@ async function serveHdImageDerivative(
   payload: DownloadTokenPayload,
   hdImageKey: string,
 ): Promise<FastifyReply> {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  if (await redirectIfS3(reply, hdImageKey)) return reply
   const storage = getStorage()
-  if (env.STORAGE_MODE === 's3') {
-    const url = await storage.publicUrl(hdImageKey, { expiresIn: 600 })
-    reply.redirect(url, 302)
-    return reply
-  }
   const exists = await storage.exists(hdImageKey)
   if (!exists) return await serveLiveResizedImage(reply, payload)
   const stream = await storage.read(hdImageKey)
@@ -102,21 +130,15 @@ async function serveVideoCompat(
   payload: DownloadTokenPayload,
   videoCompatKey: string,
 ): Promise<FastifyReply> {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  if (await redirectIfS3(reply, videoCompatKey)) return reply
   const storage = getStorage()
-  if (env.STORAGE_MODE === 's3') {
-    const url = await storage.publicUrl(videoCompatKey, { expiresIn: 600 })
-    reply.redirect(url, 302)
-    return reply
-  }
   // 파생물이 사라졌으면(정리·부분 복구) 실시간 변환으로 떨어뜨린다 — 저장이 실패하는
   // 것보다 느리게라도 되는 편이 낫다.
-  if (!(await storage.exists(videoCompatKey))) {
-    return await serveLiveTranscodedVideo(reply, payload)
-  }
+  const st = await storage.stat(videoCompatKey)
+  if (!st) return await serveLiveTranscodedVideo(reply, payload)
   const stream = await storage.read(videoCompatKey)
   reply.header('content-type', 'video/mp4')
-  reply.header('content-length', String(await storage.size(videoCompatKey)))
+  reply.header('content-length', String(st.size))
   return reply.status(200).send(stream)
 }
 
@@ -125,23 +147,16 @@ async function serveLiveResizedImage(
   payload: DownloadTokenPayload,
 ): Promise<FastifyReply> {
   const storage = getStorage()
-  const exists = await storage.exists(payload.originalKey)
-  if (!exists) {
-    throw new MediaHttpError({
-      code: 'ASSET_NOT_FOUND',
-      status: 404,
-      message: '파일을 찾을 수 없어요',
-      retriable: false,
-    })
-  }
+  if (!(await storage.exists(payload.originalKey))) throw notFound()
   const target = payload.quality === 'hd' ? 1080 : 720
-  const input = await storage.read(payload.originalKey)
-  const buf = await streamToBuffer(input)
-  const out = await decodeSharp(buf)
-    .rotate()
-    .resize({ height: target, withoutEnlargement: true })
-    .jpeg({ quality: 88, mozjpeg: true })
-    .toBuffer()
+  const buf = await streamToBuffer(await storage.read(payload.originalKey))
+  const out = await withLiveSlot(() =>
+    decodeSharp(buf)
+      .rotate()
+      .resize({ height: target, withoutEnlargement: true })
+      .jpeg({ quality: 88, mozjpeg: true })
+      .toBuffer(),
+  )
   reply.header('content-type', 'image/jpeg')
   reply.header('content-length', String(out.length))
   return reply.status(200).send(out)
@@ -152,15 +167,11 @@ async function serveLiveTranscodedVideo(
   payload: DownloadTokenPayload,
 ): Promise<FastifyReply> {
   const storage = getStorage()
-  const exists = await storage.exists(payload.originalKey)
-  if (!exists) {
-    throw new MediaHttpError({
-      code: 'ASSET_NOT_FOUND',
-      status: 404,
-      message: '파일을 찾을 수 없어요',
-      retriable: false,
-    })
-  }
+  if (!(await storage.exists(payload.originalKey))) throw notFound()
+  // 슬롯은 ffmpeg 가 끝날 때까지 쥔다 — 응답은 스트리밍이라 send() 가 곧 반환된다.
+  const release = LIVE_SLOTS.tryAcquire()
+  if (!release) throw busy()
+
   const height = payload.quality === 'hd' ? 1080 : 720
   // libx264 는 짝수 width 가 필요 — trunc(oh*a/2)*2.
   // fragmented MP4 — content-length 알 수 없음 → 스트리밍.
@@ -186,6 +197,8 @@ async function serveLiveTranscodedVideo(
     'pipe:1',
   ]
   const ff = spawn('ffmpeg', ffArgs, { stdio: ['pipe', 'pipe', 'pipe'] })
+  ff.once('close', release)
+  ff.once('error', release)
   const stderrChunks: Buffer[] = []
   ff.stderr.on('data', (c: Buffer) => {
     // 진단용 — 평소엔 버린다. 종료 코드 비정상이면 로그로 흘려보낼 수 있게 보관.
@@ -211,11 +224,9 @@ async function serveLiveTranscodedVideo(
     if (!ff.killed) ff.kill('SIGKILL')
   })
 
-  // 비정상 종료 처리 — 헤더 전 송출이면 500, 송출 후엔 raw 종료.
-  let hadError = false
+  // 비정상 종료는 로그로만 — 응답 헤더는 이미 나갔다.
   ff.on('exit', (code) => {
     if (code !== 0 && code !== null) {
-      hadError = true
       const tail = Buffer.concat(stderrChunks).toString('utf8').slice(-2000)
       reply.log.warn({ code, stderr: tail }, 'ffmpeg transcode failed')
     }
@@ -224,10 +235,6 @@ async function serveLiveTranscodedVideo(
   reply.header('content-type', 'video/mp4')
   // 응답 시작 — stdout 스트림을 그대로 흘려보낸다.
   reply.status(200).send(ff.stdout)
-
-  // 동기적으로 reply 를 반환해 fastify 가 send 를 마무리하게 둔다.
-  // hadError 는 위 'exit' 콜백에서 로깅용으로만 쓰임 — 응답 헤더는 이미 나갔다.
-  void hadError
   return reply
 }
 
@@ -268,6 +275,10 @@ export const downloadRoute: FastifyPluginAsync = async (app) => {
 
     if (payload.quality === 'original') {
       return await serveOriginal(reply, payload)
+    }
+
+    if (payload.quality === 'gallery') {
+      return await serveGalleryJpeg(reply, payload)
     }
 
     if (payload.quality === 'compat') {

@@ -1,9 +1,10 @@
 import { randomBytes, randomUUID } from 'node:crypto'
-import { statfs } from 'node:fs/promises'
+import { getEnv } from '@/lib/env'
 import { signUploadToken } from '@/lib/jwt'
-import { getTusStore } from '@/lib/tus-store'
+import { getTusStore, tusTmpDir } from '@/lib/tus-store'
 import type { PrismaClient } from '@bebe/db-media'
 import { Upload } from '@tus/server'
+import { assertDiskSpaceForUpload } from './preflight'
 
 export type InitAssetInput = {
   familyId: string
@@ -38,10 +39,11 @@ export async function initAsset(
   const assetId = randomUUID()
   const convertToCompatible = input.convertToCompatible ?? false
   const notify = input.notify ?? true
+  const env = getEnv()
 
   // 가족 단위 저장 쿼터(env, 기본 무제한) — 설정 시 기존 비삭제 자산 합계 + 이번 크기가
   // 한도를 넘으면 init 에서 거부해 tus-tmp 점유 전에 막는다.
-  const quotaBytes = Number(process.env.MEDIA_FAMILY_QUOTA_BYTES ?? 0)
+  const quotaBytes = env.MEDIA_FAMILY_QUOTA_BYTES
   if (quotaBytes > 0) {
     const agg = await prismaMedia.asset.aggregate({
       where: { familyId: input.familyId, deletedAt: null },
@@ -53,19 +55,11 @@ export async function initAsset(
     }
   }
 
-  // 로컬 스토리지 디스크 여유공간 프리플라이트 — 꽉 찬 디스크에서 업로드를 시작하면
-  // tus-tmp·파생물·DB 가 깨진다. 이번 파일(+파생물 여유 ~1.5x)+256MB 마진보다 적으면 거부.
-  // statfs 미지원/오류는 가용성 우선으로 무시.
-  if ((process.env.STORAGE_MODE ?? 'local') === 'local') {
-    try {
-      const fsStat = await statfs(process.env.STORAGE_PATH ?? '/data')
-      const free = BigInt(fsStat.bavail) * BigInt(fsStat.bsize)
-      const needed = (BigInt(input.sizeBytes) * 3n) / 2n + 256n * 1024n * 1024n
-      if (free < needed) throw new Error('insufficient disk space for upload')
-    } catch (e) {
-      if ((e as Error).message === 'insufficient disk space for upload') throw e
-    }
-  }
+  await assertDiskSpaceForUpload({
+    sizeBytes: input.sizeBytes,
+    mode: env.STORAGE_MODE,
+    tusTmpDir: tusTmpDir(),
+  })
 
   await prismaMedia.asset.create({
     data: {

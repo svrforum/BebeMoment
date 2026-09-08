@@ -1,10 +1,15 @@
+import type { Env } from '@bebe/config'
+import { getEnv } from './lib/env'
 import { logger } from './lib/logger'
 
-const role = (process.env.MEDIA_ROLE ?? 'both').toLowerCase()
-if (!['server', 'worker', 'both'].includes(role)) {
-  logger.fatal({ role }, 'MEDIA_ROLE must be one of: server | worker | both')
+let env: Env
+try {
+  env = getEnv()
+} catch (err) {
+  logger.fatal({ err }, 'invalid environment')
   process.exit(1)
 }
+const role = env.MEDIA_ROLE
 
 logger.info({ role }, 'bebe-media starting')
 
@@ -30,11 +35,10 @@ async function main(): Promise<void> {
     // 진행 중인 ffmpeg 트랜스코드/파생물 생성이 끝날 시간을 준다 — 10s 는 영상 처리엔
     // 짧아 잡이 잘렸다. 기본 30s, MEDIA_SHUTDOWN_GRACE_MS 로 조정(compose stop_grace_period
     // 도 함께 늘려야 Docker 가 그 전에 SIGKILL 하지 않는다).
-    const graceMs = Number(process.env.MEDIA_SHUTDOWN_GRACE_MS ?? 30_000)
     const force = setTimeout(() => {
       logger.warn('graceful shutdown timed out — forcing exit')
       process.exit(1)
-    }, graceMs)
+    }, env.MEDIA_SHUTDOWN_GRACE_MS)
     force.unref()
     await Promise.all(
       closers.map((c) => c().catch((err) => logger.error({ err }, 'shutdown closer failed'))),
