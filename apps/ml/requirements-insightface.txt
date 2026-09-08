@@ -1,0 +1,6 @@
+# --no-deps 로 설치한다(Dockerfile). insightface 는 opencv-python(GUI 빌드)을 요구해
+# headless 와 나란히 두 벌이 깔리고, 추론에 한 번도 닿지 않는 matplotlib·albumentations·
+# scikit-learn·Cython 까지 끌고 온다. 실제 런타임 의존은 requirements.txt 에 직접 적어둔다
+# (numpy·onnx·onnxruntime·opencv-headless·scikit-image·requests·tqdm).
+# 별도 파일인 이유: Dockerfile 안에 버전을 박으면 Dependabot 이 못 본다.
+insightface==1.0.1

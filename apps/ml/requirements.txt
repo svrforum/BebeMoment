@@ -1,7 +1,11 @@
-fastapi==0.115.6
-uvicorn[standard]==0.34.0
-python-multipart==0.0.20
-numpy==1.26.4
-opencv-python-headless==4.10.0.84
-onnxruntime==1.20.1
-insightface==0.7.3
+fastapi==0.141.1
+uvicorn[standard]==0.52.4
+python-multipart==0.0.32
+numpy==2.5.3
+opencv-python-headless==5.0.0.93
+onnxruntime==1.29.0
+# insightface 가 실제로 쓰는 것들 — requirements-insightface.txt 참조.
+onnx==1.22.0
+scikit-image==0.26.0
+requests==2.34.2
+tqdm==4.70.0
