@@ -75,7 +75,11 @@ export async function listCooccurringPeople(
   for (const r of rows) {
     const person = summary[rank.get(r.person_id) ?? -1]
     if (!person) continue
-    const list = (byAsset[r.asset_id] ??= [])
+    let list = byAsset[r.asset_id]
+    if (!list) {
+      list = []
+      byAsset[r.asset_id] = list
+    }
     if (!list.some((p) => p.id === person.id)) list.push(person)
   }
   for (const list of Object.values(byAsset)) {
