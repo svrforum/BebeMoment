@@ -38,8 +38,9 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     // tus 가 413 으로 끊는다(완료 후 검사라 5GB 까지 tus-tmp 를 점유하던 갭 해소). 토큰이
     // 없으면 전역 상한(env 조정)으로 폴백.
     maxSize: (req) => {
-      const token = (req as unknown as NodeReqWithToken).__bebeUploadToken
-      return token?.maxBytes ?? globalMaxBytes
+      // 웹표준 Request 가 아니라 그 아래 node req 에 토큰이 붙어 있다(namingFunction 과 같은 경로).
+      const nodeReq = req.runtime?.node?.req as unknown as NodeReqWithToken | undefined
+      return nodeReq?.__bebeUploadToken?.maxBytes ?? globalMaxBytes
     },
     // POST 생성 응답의 Location 을 상대경로(/media/v1/tus/<id>)로 — 컨테이너 내부에선
     // Host 가 localhost:3001 이라 절대 Location 을 주면 클라가 도달 못 해 PATCH 가
@@ -93,8 +94,14 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
     // 우회 — POST + X-HTTP-Method-Override: PATCH. 토큰 검증 뒤 raw 메서드를 바꿔 tus 가
     // 올바른 핸들러로 보내게 한다.
     const override = (req.headers['x-http-method-override'] as string | undefined)?.toUpperCase()
+    const raw = req.raw as unknown as { method: string }
     if (override === 'PATCH' || override === 'HEAD' || override === 'DELETE') {
-      ;(req.raw as unknown as { method: string }).method = override
+      raw.method = override
+    } else if (raw.method === 'GET' && req.headers['tus-resumable']) {
+      // 앞단 리버스 프록시가 HEAD 를 GET 으로 바꿔 보낸다 — 라이브 로그의 resume 요청이 전부
+      // GET /media/v1/tus/<id> 로 도착해 404 였고 이어올리기가 한 번도 되지 않았다. tus
+      // 클라이언트는 GET 을 쓰지 않으므로 Tus-Resumable 을 단 GET 은 HEAD(offset 조회)다.
+      raw.method = 'HEAD'
     }
 
     reply.hijack()
