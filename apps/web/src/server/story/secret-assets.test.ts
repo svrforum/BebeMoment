@@ -177,4 +177,60 @@ describe('isAssetHiddenFromViewer', () => {
       false,
     )
   })
+
+  it('집합을 만들지 않고 존재 여부만 한 번 묻는다', async () => {
+    const { user, family } = await setup()
+    const secretAsset = await makeReadyAsset(family.id, user.id)
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [secretAsset.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const ops: string[] = []
+    const counting = db.prismaPublic.$extends({
+      query: {
+        $allModels: {
+          async $allOperations({ model, operation, args, query }) {
+            ops.push(`${model}.${operation}`)
+            return query(args)
+          },
+        },
+      },
+    }) as unknown as typeof db.prismaPublic
+    expect(await isAssetHiddenFromViewer('family', secretAsset.id, counting, family.id)).toBe(true)
+    expect(ops).toEqual(['StoryAsset.findFirst'])
+  })
+
+  it('소프트 삭제된 비밀 스토리의 사진은 숨기지 않는다', async () => {
+    const { user, family } = await setup()
+    const asset = await makeReadyAsset(family.id, user.id)
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-02',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [asset.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    await db.prismaPublic.story.update({
+      where: { id: entry.id },
+      data: { deletedAt: new Date() },
+    })
+    expect(await isAssetHiddenFromViewer('family', asset.id, db.prismaPublic, family.id)).toBe(
+      false,
+    )
+  })
 })

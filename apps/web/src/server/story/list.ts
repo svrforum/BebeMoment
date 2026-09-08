@@ -25,16 +25,16 @@ function textFilter(qRaw: string) {
  * Date filter — narrows entryDate to a single UTC day (entryDate is stored as
  * wall-clock-as-UTC; see CLAUDE.md §17). Accepts `YYYY-MM-DD`.
  */
-function dateFilter(dateRaw: string) {
+function dateFilter(dateRaw: string): { gte: Date; lt: Date } | null {
   const m = dateRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)
-  if (!m) return {}
+  if (!m) return null
   const year = Number(m[1])
   const month = Number(m[2]) - 1
   const day = Number(m[3])
   const start = new Date(Date.UTC(year, month, day))
   const end = new Date(Date.UTC(year, month, day + 1))
-  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return {}
-  return { entryDate: { gte: start, lt: end } }
+  if (Number.isNaN(start.getTime()) || Number.isNaN(end.getTime())) return null
+  return { gte: start, lt: end }
 }
 
 export async function listStoryEntries(
@@ -58,6 +58,13 @@ export async function listStoryEntries(
   const cur = params.cursor ? decodeCursor(params.cursor, isCursor) : null
   const cursorTs = cur ? new Date(cur.ts) : null
 
+  // 키셋 커서: OR 가 정확한 경계, 옆의 lte 는 플래너가 인덱스 시작점으로 쓰는 중복 상한
+  // (OR 만으로는 범위를 못 잡는다). 날짜 필터의 entryDate 범위와 같은 키라 합쳐 넣는다.
+  const dateRange = params.date ? dateFilter(params.date) : null
+  const cursorBound = cursorTs ? { lte: cursorTs } : null
+  const entryDateFilter =
+    dateRange || cursorBound ? { entryDate: { ...dateRange, ...cursorBound } } : {}
+
   const items = await prismaPublic.story.findMany({
     where: {
       familyId,
@@ -66,7 +73,7 @@ export async function listStoryEntries(
       ...(params.viewerRole === 'family' ? { visibility: 'family' } : {}),
       ...(params.babyId !== undefined ? { babyId: params.babyId } : {}),
       ...(params.q ? textFilter(params.q) : {}),
-      ...(params.date ? dateFilter(params.date) : {}),
+      ...entryDateFilter,
       ...(cursorTs && cur
         ? {
             OR: [{ entryDate: { lt: cursorTs } }, { entryDate: cursorTs, id: { lt: cur.id } }],

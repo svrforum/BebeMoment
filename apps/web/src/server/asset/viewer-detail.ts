@@ -1,6 +1,7 @@
 import { likersForAsset } from '@/server/like/list-for-asset'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { findAssetRow } from './get'
 
 type AssetRow = NonNullable<Awaited<ReturnType<PrismaMedia['asset']['findFirst']>>>
 type Likers = Awaited<ReturnType<typeof likersForAsset>>
@@ -22,16 +23,21 @@ export type ViewerDetail = {
  * (위젯 담김 여부가 API 에서 빠져 스와이프 후 메뉴가 반대로 동작했다).
  *
  * 댓글은 소비자마다 필요한 모양이 달라(상세는 목록, API 는 개수) 여기서 다루지 않는다.
+ *
+ * `asset` 에 이미 읽은 행(같은 id·가족·미삭제)을 넘기면 다시 읽지 않는다. 안 넘기면 번들과
+ * 공유하는 요청 스코프 캐시(`findAssetRow`)를 거친다.
  */
 export async function loadViewerDetail(
-  args: { assetId: string; familyId: string; userId: string },
+  args: { assetId: string; familyId: string; userId: string; asset?: AssetRow },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
 ): Promise<ViewerDetail | null> {
   const { assetId, familyId, userId } = args
-  const asset = await prismaMedia.asset.findFirst({
-    where: { id: assetId, familyId, deletedAt: null },
-  })
+  const given = args.asset
+  const asset =
+    given && given.id === assetId && given.familyId === familyId && given.deletedAt === null
+      ? given
+      : await findAssetRow(prismaMedia, assetId, familyId)
   if (!asset) return null
 
   const [likers, myLike, myBookmark, myWidgetPhoto, assetBabyLinks] = await Promise.all([

@@ -93,4 +93,49 @@ describe('previewAttachmentsByAlbum', () => {
     )
     expect(noExclude.get(album.id)?.sort()).toEqual([normalAsset, secretAsset].sort())
   })
+
+  it('앨범마다 최근 추가순 perAlbum 개까지만, 빈 앨범은 항목 없음', async () => {
+    const { user } = await signup(
+      { email: `t-${Date.now()}@b.com`, password: 'password123', displayName: 'T' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
+    const big = await createAlbum(
+      { familyId: family.id, byUserId: user.id, name: 'Big' },
+      db.prismaPublic,
+    )
+    const small = await createAlbum(
+      { familyId: family.id, byUserId: user.id, name: 'Small' },
+      db.prismaPublic,
+    )
+    const empty = await createAlbum(
+      { familyId: family.id, byUserId: user.id, name: 'Empty' },
+      db.prismaPublic,
+    )
+    const attach = async (albumId: string, day: number) => {
+      const assetId = await makeReadyAsset(family.id, user.id)
+      await db.prismaPublic.albumAsset.create({
+        data: {
+          albumId,
+          familyId: family.id,
+          assetId,
+          sortIndex: day,
+          addedByUserId: user.id,
+          addedAt: new Date(Date.UTC(2026, 3, day)),
+        },
+      })
+      return assetId
+    }
+    const bigIds = []
+    for (let d = 1; d <= 6; d += 1) bigIds.push(await attach(big.id, d))
+    const smallIds = [await attach(small.id, 1), await attach(small.id, 2)]
+
+    const map = await previewAttachmentsByAlbum(
+      { familyId: family.id, albumIds: [big.id, small.id, empty.id], perAlbum: 4 },
+      db.prismaPublic,
+    )
+    expect(map.get(big.id)).toEqual(bigIds.slice(2).reverse())
+    expect(map.get(small.id)).toEqual(smallIds.slice().reverse())
+    expect(map.has(empty.id)).toBe(false)
+  })
 })

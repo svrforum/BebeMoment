@@ -16,14 +16,15 @@ export type PersonSummary = {
   cover: PersonCover | null
 }
 
-type LiveFaceRow = {
+type PersonAggRow = {
   person_id: string
+  name: string | null
+  photo_count: number
   asset_id: string
   bbox_x: number
   bbox_y: number
   bbox_w: number
   bbox_h: number
-  det_score: number
 }
 
 /**
@@ -31,6 +32,10 @@ type LiveFaceRow = {
  * 그래서 사진을 지우면 그 사람의 장수가 줄고, 마지막 사진까지 지우면 목록에서 사라진다
  * (얼굴 행 자체는 남겨 둬 사진을 복원하면 다시 나타난다). 대표 얼굴은 살아있는 얼굴 중
  * 점수가 가장 높은 것을 골라 thumb URL + bbox 로 — bbox 중심 CSS 크롭에 쓴다.
+ *
+ * 집계는 SQL 에서 — 사진 수는 고유 asset 기준(count DISTINCT, 상세 getPersonAssets 와
+ * 일치. face 행 수로 세면 한 사진에 같은 얼굴이 여러 번 검출됐을 때 어긋난다), 대표 얼굴은
+ * DISTINCT ON + det_score DESC. 예전엔 가족의 얼굴 행 전부를 Node 로 끌어와 줄였다.
  */
 export async function listPeople(
   args: { familyId: string; viewerRole?: Role },
@@ -40,55 +45,51 @@ export async function listPeople(
 ): Promise<PersonSummary[]> {
   const { familyId } = args
 
-  const rowsRaw = await prismaMedia.$queryRawUnsafe<LiveFaceRow[]>(
-    `SELECT f.person_id, f.asset_id, f.bbox_x, f.bbox_y, f.bbox_w, f.bbox_h, f.det_score
-       FROM media.faces f
-       JOIN media.assets a ON a.id = f.asset_id
-      WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
-        AND a.deleted_at IS NULL AND a.status = 'ready'
-        AND a.duplicate_of IS NULL`,
-    familyId,
-  )
   // family 에게는 비밀 스토리 사진의 얼굴을 인물 집계에서 제외(사진까지 숨김 일관).
   const hidden =
     args.viewerRole === 'family' && prismaPublic
-      ? new Set(await hiddenAssetIdsForViewer('family', prismaPublic, familyId))
-      : new Set<string>()
-  const rows = hidden.size ? rowsRaw.filter((r) => !hidden.has(r.asset_id)) : rowsRaw
+      ? await hiddenAssetIdsForViewer('family', prismaPublic, familyId)
+      : []
+
+  const rows = await prismaMedia.$queryRawUnsafe<PersonAggRow[]>(
+    `WITH live AS (
+       SELECT f.person_id, f.asset_id, f.bbox_x, f.bbox_y, f.bbox_w, f.bbox_h, f.det_score
+         FROM media.faces f
+         JOIN media.assets a ON a.id = f.asset_id
+        WHERE f.family_id = $1::uuid AND f.person_id IS NOT NULL
+          AND a.deleted_at IS NULL AND a.status = 'ready' AND a.duplicate_of IS NULL
+          AND f.asset_id <> ALL($2::uuid[])
+     ),
+     counts AS (
+       SELECT person_id, count(DISTINCT asset_id)::int AS photo_count
+         FROM live GROUP BY person_id
+     ),
+     covers AS (
+       SELECT DISTINCT ON (person_id) person_id, asset_id, bbox_x, bbox_y, bbox_w, bbox_h
+         FROM live ORDER BY person_id, det_score DESC, asset_id
+     )
+     SELECT c.person_id, p.name, c.photo_count,
+            v.asset_id, v.bbox_x, v.bbox_y, v.bbox_w, v.bbox_h
+       FROM counts c
+       JOIN covers v ON v.person_id = c.person_id
+       LEFT JOIN media.persons p ON p.id = c.person_id AND p.family_id = $1::uuid`,
+    familyId,
+    hidden,
+  )
   if (rows.length === 0) return []
 
-  // 사진 수는 고유 asset 기준 — 상세(getPersonAssets)와 일치시킨다. face 행 수로 세면
-  // 한 사진에 같은 얼굴이 여러 번 검출됐을 때 목록("사진 N장")과 상세 장수가 어긋난다.
-  type Agg = { assets: Set<string>; best: LiveFaceRow }
-  const byPerson = new Map<string, Agg>()
-  for (const r of rows) {
-    const cur = byPerson.get(r.person_id)
-    if (!cur) byPerson.set(r.person_id, { assets: new Set([r.asset_id]), best: r })
-    else {
-      cur.assets.add(r.asset_id)
-      if (r.det_score > cur.best.det_score) cur.best = r
-    }
-  }
+  const coverAssetIds = Array.from(new Set(rows.map((r) => r.asset_id)))
+  const urls = await media.getAssetUrlsBatch(familyId, coverAssetIds)
 
-  const personIds = [...byPerson.keys()]
-  const persons = await prismaMedia.person.findMany({
-    where: { id: { in: personIds }, familyId },
-    select: { id: true, name: true },
-  })
-  const nameById = new Map(persons.map((p) => [p.id, p.name]))
-
-  const coverAssetIds = Array.from(new Set([...byPerson.values()].map((a) => a.best.asset_id)))
-  const urls = coverAssetIds.length ? await media.getAssetUrlsBatch(familyId, coverAssetIds) : {}
-
-  return [...byPerson.entries()]
-    .map(([personId, agg]) => ({
-      id: personId,
-      name: nameById.get(personId) ?? null,
-      photoCount: agg.assets.size,
+  return rows
+    .map((r) => ({
+      id: r.person_id,
+      name: r.name,
+      photoCount: r.photo_count,
       cover: {
-        assetId: agg.best.asset_id,
-        urls: urls[agg.best.asset_id] ?? null,
-        bbox: { x: agg.best.bbox_x, y: agg.best.bbox_y, w: agg.best.bbox_w, h: agg.best.bbox_h },
+        assetId: r.asset_id,
+        urls: urls[r.asset_id] ?? null,
+        bbox: { x: r.bbox_x, y: r.bbox_y, w: r.bbox_w, h: r.bbox_h },
       } satisfies PersonCover,
     }))
     .sort((a, b) => b.photoCount - a.photoCount || a.id.localeCompare(b.id))

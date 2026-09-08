@@ -49,17 +49,17 @@ async function makeReadyAsset(familyId: string, userId: string) {
   return asset.id
 }
 
-async function addFace(familyId: string, assetId: string, personId: string) {
+async function addFace(familyId: string, assetId: string, personId: string, detScore = 0.9) {
   await db.prismaMedia.face.create({
     data: {
       familyId,
       assetId,
       personId,
-      bboxX: 0.1,
+      bboxX: detScore,
       bboxY: 0.1,
       bboxW: 0.2,
       bboxH: 0.2,
-      detScore: 0.9,
+      detScore,
     },
   })
 }
@@ -101,6 +101,67 @@ describe('people photo count', () => {
     expect(people).toHaveLength(1)
     expect(people[0]?.photoCount).toBe(2)
     expect(people[0]?.photoCount).toBe(detail.assets.length)
+  })
+
+  it('사진 수 내림차순, 대표 얼굴은 최고 점수; family 에겐 비밀 사진이 집계에서 빠진다', async () => {
+    const { user } = await signup(
+      { email: `t-${Date.now()}@b.com`, password: 'password123', displayName: 'T' },
+      db.prismaPublic,
+    )
+    const { family } = await createFamily({ name: 'F', userId: user.id }, db.prismaPublic)
+    const a1 = await makeReadyAsset(family.id, user.id)
+    const a2 = await makeReadyAsset(family.id, user.id)
+    const a3 = await makeReadyAsset(family.id, user.id)
+    const many = await db.prismaMedia.person.create({ data: { familyId: family.id, name: '아기' } })
+    const few = await db.prismaMedia.person.create({ data: { familyId: family.id, name: null } })
+    await addFace(family.id, a1, many.id, 0.5)
+    await addFace(family.id, a2, many.id, 0.9)
+    await addFace(family.id, a3, many.id, 0.7)
+    await addFace(family.id, a1, few.id, 0.8)
+
+    const owner = await listPeople(
+      { familyId: family.id, viewerRole: 'owner' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+      db.prismaPublic,
+    )
+    expect(owner.map((p) => [p.id, p.name, p.photoCount])).toEqual([
+      [many.id, '아기', 3],
+      [few.id, null, 1],
+    ])
+    expect(owner[0]?.cover).toEqual({
+      assetId: a2,
+      urls: expect.anything(),
+      bbox: { x: 0.9, y: 0.1, w: 0.2, h: 0.2 },
+    })
+    expect(owner[1]?.cover?.assetId).toBe(a1)
+
+    // a2 를 비밀 스토리에 넣으면 family 에겐 그 얼굴이 빠진다 → 2장, 대표는 다음 점수(a3).
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: null,
+        entryDate: '2026-04-01',
+        body: 'secret',
+        visibility: 'guardians',
+        assetIds: [a2],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    const fam = await listPeople(
+      { familyId: family.id, viewerRole: 'family' },
+      db.prismaMedia,
+      new FakeMediaClient(),
+      db.prismaPublic,
+    )
+    expect(fam.map((p) => [p.id, p.photoCount])).toEqual([
+      [many.id, 2],
+      [few.id, 1],
+    ])
+    expect(fam[0]?.cover?.assetId).toBe(a3)
+    expect(fam[0]?.cover?.bbox.x).toBe(0.7)
   })
 })
 

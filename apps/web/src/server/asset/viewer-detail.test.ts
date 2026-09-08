@@ -78,6 +78,48 @@ describe('loadViewerDetail', () => {
     expect(out?.likers.count).toBe(1)
   })
 
+  it('자산 행을 미리 넘기면 다시 읽지 않는다', async () => {
+    const { user, family } = await setup()
+    const a = await makeAsset(family.id, user.id)
+    const row = await db.prismaMedia.asset.findFirstOrThrow({
+      where: { id: a.id, familyId: family.id },
+    })
+    const ops: string[] = []
+    const counting = db.prismaMedia.$extends({
+      query: {
+        $allModels: {
+          async $allOperations({ model, operation, args, query }) {
+            ops.push(`${model}.${operation}`)
+            return query(args)
+          },
+        },
+      },
+    }) as unknown as typeof db.prismaMedia
+    const out = await loadViewerDetail(
+      { assetId: a.id, familyId: family.id, userId: user.id, asset: row },
+      db.prismaPublic,
+      counting,
+    )
+    expect(out?.asset.id).toBe(a.id)
+    expect(ops).toEqual(['AssetBaby.findMany'])
+  })
+
+  it('미리 넘긴 행이 요청과 안 맞으면 무시하고 직접 읽는다', async () => {
+    const { user, family } = await setup()
+    const { family: other } = await setup('G')
+    const a = await makeAsset(family.id, user.id)
+    const row = await db.prismaMedia.asset.findFirstOrThrow({
+      where: { id: a.id, familyId: family.id },
+    })
+    // 다른 가족 id 로 물으면 넘긴 행은 무관 — 그 가족엔 없으니 null.
+    const out = await loadViewerDetail(
+      { assetId: a.id, familyId: other.id, userId: user.id, asset: row },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(out).toBeNull()
+  })
+
   it('다른 가족의 자산은 못 읽는다', async () => {
     const mine = await setup('A')
     const other = await setup('B')

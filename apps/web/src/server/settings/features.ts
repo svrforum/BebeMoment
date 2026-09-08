@@ -1,30 +1,23 @@
-import {
-  DEFAULT_FEATURE_FLAGS,
-  FEATURE_FLAGS,
-  type FeatureFlag,
-  type FeatureFlags,
-  resolveFeatureFlags,
-} from '@bebe/core'
+import { FEATURE_FLAGS, type FeatureFlag, type FeatureFlags, resolveFeatureFlags } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-public'
-import { z } from 'zod'
-import { getSetting } from './get'
+import { cache } from 'react'
 
-/** Single-flag check (defaults to the flag's default when unset). For API gating. */
+const FLAG_KEYS = FEATURE_FLAGS.map((k) => `features.${k}`)
+
+/**
+ * 인스턴스 기능 플래그 — 키 7개를 findMany 한 번으로 읽고, 안 정해진(또는 boolean 이 아닌)
+ * 값은 기본값. 레이아웃·페이지·API 게이트가 한 요청에서 여러 번 부르므로 요청 스코프
+ * `cache()`(요청 밖에선 no-op).
+ */
+export const getFeatureFlags = cache(async (prisma: PrismaClient): Promise<FeatureFlags> => {
+  const rows = await prisma.appSetting.findMany({
+    where: { key: { in: FLAG_KEYS } },
+    select: { key: true, value: true },
+  })
+  return resolveFeatureFlags(Object.fromEntries(rows.map((r) => [r.key, r.value])))
+})
+
+/** Single-flag check for API gating — same cached read as getFeatureFlags. */
 export async function isFeatureEnabled(flag: FeatureFlag, prisma: PrismaClient): Promise<boolean> {
-  return getSetting(`features.${flag}`, z.boolean(), DEFAULT_FEATURE_FLAGS[flag], prisma)
-}
-
-/** Instance-wide feature flags, defaulting any unset key to its default. */
-export async function getFeatureFlags(prisma: PrismaClient): Promise<FeatureFlags> {
-  const bool = z.boolean()
-  const entries = await Promise.all(
-    FEATURE_FLAGS.map(
-      async (k) =>
-        [
-          `features.${k}`,
-          await getSetting(`features.${k}`, bool, DEFAULT_FEATURE_FLAGS[k], prisma),
-        ] as const,
-    ),
-  )
-  return resolveFeatureFlags(Object.fromEntries(entries))
+  return (await getFeatureFlags(prisma))[flag]
 }

@@ -81,6 +81,13 @@ export async function listTimeline(
   // 먼저 페이징한 뒤, 그 페이지 자산을 소유한 스토리를 역으로 찾아 같이 싣는다.
   // (StoryAsset 은 cross-schema 라 한 쿼리 조인 불가 — assetId in 으로 멤버십만
   // 끌어와 storyId 해석.)
+  // 키셋 커서: OR 가 정확한 경계(같은 시각은 id 로 가른다)이고, 그 옆의 단순 상한(lte)은
+  // 플래너가 인덱스 시작점으로 쓸 수 있는 중복 조건이다 — OR 만으로는 인덱스 범위를 못
+  // 잡아 깊은 페이지마다 가족 전체를 앞에서부터 훑었다. 의미는 lte 가 OR 를 포함하므로 동일.
+  const cursorBound = cursorTs && cur ? { lte: cursorTs } : null
+  const takenRange = dayStart && dayEnd ? { gte: dayStart, lt: dayEnd } : null
+  const takenBound = sort === 'taken' ? cursorBound : null
+  const takenFilter = takenRange || takenBound ? { takenAt: { ...takenRange, ...takenBound } } : {}
   const assetRows = await prismaMedia.asset.findMany({
     where: {
       familyId,
@@ -91,7 +98,8 @@ export async function listTimeline(
       deletedAt: null,
       duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
       ...(hidden.length ? { id: { notIn: hidden } } : {}),
-      ...(dayStart && dayEnd ? { takenAt: { gte: dayStart, lt: dayEnd } } : {}),
+      ...takenFilter,
+      ...(sort === 'uploaded' && cursorBound ? { createdAt: cursorBound } : {}),
       ...(cursorTs && cur
         ? sort === 'uploaded'
           ? { OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }] }

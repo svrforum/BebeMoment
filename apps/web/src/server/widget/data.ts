@@ -135,7 +135,7 @@ export async function getWidgetData(
   // 추억은 소스와 무관하게 항상 실어 보낸다 — 네이티브가 스타일을 바꿀 때 네트워크를
   // 타지 않고 캐시에서 즉시 그릴 수 있어야 한다. 가장 먼 간격("1년 전 오늘")이 앞에 온다.
   const memoryGroups = await listMemories(
-    { familyId, today: new Date(), viewerRole: membership.role },
+    { familyId, today: new Date(), viewerRole: membership.role, signLimit: WIDGET_PHOTO_POOL },
     prismaMedia,
     prismaPublic,
     media,

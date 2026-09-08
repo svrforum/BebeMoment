@@ -73,9 +73,13 @@ export const getAssetUrlsResponse = z.object({
 export type GetAssetUrlsResponse = z.infer<typeof getAssetUrlsResponse>
 
 // ─── Batch URLs ──────────────────────────────────────────────────
+// 서버가 한 요청에 받는 id 상한. 클라이언트(HttpMediaClient.getAssetUrlsBatch)는 이 크기로
+// 잘라 보내므로 호출부는 개수를 신경 쓰지 않는다.
+export const BATCH_URLS_MAX_IDS = 200
+
 export const batchUrlsRequest = z.object({
   familyId: z.string().uuid(),
-  assetIds: z.array(z.string().uuid()).max(200),
+  assetIds: z.array(z.string().uuid()).max(BATCH_URLS_MAX_IDS),
   // Trash view needs URLs for soft-deleted assets; default keeps them excluded.
   includeDeleted: z.boolean().optional(),
 })

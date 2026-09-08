@@ -1,3 +1,4 @@
+import { logger } from '@/lib/logger'
 import { listAlbumAssets } from '@/server/album/list-assets'
 import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { listMemories } from '@/server/memories/list'
@@ -33,8 +34,9 @@ export async function resolveNeighborIds(
   const LIMIT = 500
   try {
     if (kind === 'memories') {
+      // id 순서만 필요하다 — signed URL 은 받지 않는다.
       const groups = await listMemories(
-        { familyId: v.familyId, today: new Date(), viewerRole: v.viewerRole },
+        { familyId: v.familyId, today: new Date(), viewerRole: v.viewerRole, signLimit: 0 },
         prismaMedia,
         prismaPublic,
         media,
@@ -81,7 +83,10 @@ export async function resolveNeighborIds(
       )
       return entry?.assets.map((ea) => ea.asset?.id).filter((x): x is string => Boolean(x))
     }
-  } catch {
+  } catch (e) {
+    // 컬렉션 해석 실패는 전역 타임라인 이웃으로 폴백하되 흔적은 남긴다 — 조용히 삼키면
+    // "스와이프가 앨범을 벗어난다"는 보고를 재현해야만 원인을 알 수 있다.
+    logger.warn({ ctx, familyId: v.familyId, err: (e as Error).message }, 'viewer ctx fallback')
     return undefined
   }
   return undefined

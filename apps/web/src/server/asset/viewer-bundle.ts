@@ -110,12 +110,15 @@ export async function loadViewerBundle(
     prevAsset = prevId ? (byId.get(prevId) ?? null) : null
     nextAsset = nextId ? (byId.get(nextId) ?? null) : null
   } else {
+    // 키셋 이웃: OR 가 정확한 경계이고, 옆의 lte/gte 는 플래너가 인덱스 시작점으로 쓰는
+    // 중복 상·하한이다(OR 만으로는 가족 전체를 앞에서부터 훑는다). 의미는 동일.
     ;[prevAsset, nextAsset] =
       args.sort === 'uploaded'
         ? await Promise.all([
             prismaMedia.asset.findFirst({
               where: {
                 ...baseWhere,
+                createdAt: { lte: asset.createdAt },
                 OR: [
                   { createdAt: { lt: asset.createdAt } },
                   { createdAt: asset.createdAt, id: { lt: asset.id } },
@@ -127,6 +130,7 @@ export async function loadViewerBundle(
             prismaMedia.asset.findFirst({
               where: {
                 ...baseWhere,
+                createdAt: { gte: asset.createdAt },
                 OR: [
                   { createdAt: { gt: asset.createdAt } },
                   { createdAt: asset.createdAt, id: { gt: asset.id } },
@@ -140,6 +144,7 @@ export async function loadViewerBundle(
             prismaMedia.asset.findFirst({
               where: {
                 ...baseWhere,
+                takenAt: { lte: asset.takenAt },
                 OR: [
                   { takenAt: { lt: asset.takenAt } },
                   { takenAt: asset.takenAt, id: { lt: asset.id } },
@@ -151,6 +156,7 @@ export async function loadViewerBundle(
             prismaMedia.asset.findFirst({
               where: {
                 ...baseWhere,
+                takenAt: { gte: asset.takenAt },
                 OR: [
                   { takenAt: { gt: asset.takenAt } },
                   { takenAt: asset.takenAt, id: { gt: asset.id } },
