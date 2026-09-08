@@ -219,7 +219,14 @@ jobs:
           docker stop -t 60 smoke-app
           code="$(docker inspect -f '{{.State.ExitCode}}' smoke-app)"
           echo "exit code: $code"
-          docker logs smoke-app 2>&1 | grep -q 'bebe-media shutting down' \
+          # `docker stop` 이 돌아온 직후엔 마지막 로그가 아직 안 모여 있을 수 있다 —
+          # 종료 줄이 나타날 때까지 잠깐 기다린다(없으면 정말 전달이 안 된 것).
+          seen=""
+          for _ in $(seq 1 20); do
+            if docker logs smoke-app 2>&1 | grep -q 'bebe-media shutting down'; then seen=1; break; fi
+            sleep 1
+          done
+          [ -n "$seen" ] \
             || { echo "::error::media never logged its shutdown — SIGTERM did not reach it"; exit 1; }
           [ "$code" = "0" ] || { echo "::error::container exited $code on stop"; exit 1; }
       - name: app logs
