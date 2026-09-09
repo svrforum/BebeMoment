@@ -527,6 +527,7 @@
     },
     "video": {
       "processing": "Processing…",
+      "uploadIncomplete": "This file never finished uploading. Please upload it again.",
       "unsupportedFormat": "This format can't be played on this device.",
       "play": "Play"
     }
@@ -662,6 +663,8 @@
       "storyFallback": "Story",
       "guardiansOnly": "Guardians only",
       "photoFailed": "Processing failed",
+      "photoUploading": "Still uploading",
+      "photoProcessing": "Still processing",
       "photoRetry": "Retry",
       "photoRetrying": "Retrying…",
       "photoRetryFailed": "Couldn't retry",

@@ -1,3 +1,4 @@
+import { touchUploadProgress } from '@/domain/upload/progress'
 import { onUploadFinishMedia } from '@/domain/upload/tus-hooks'
 import type { UploadTokenPayload } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
@@ -55,6 +56,17 @@ export const tusRoute: FastifyPluginAsync = async (app) => {
       const token = nodeReq?.__bebeUploadToken
       if (!token?.assetId) throw new Error('upload token required')
       return token.assetId
+    },
+    // 청크가 도착할 때마다 자산 행을 밀어 "아직 올라오는 중"과 "죽은 업로드"를 구분
+    // 가능하게 한다 — 이게 없으면 정리 기준을 몇 시간까지 늘려야 하고, 그동안 미완성
+    // 자산이 정상 사진처럼 보인다. DB 가 흔들려도 업로드는 계속돼야 하므로 삼킨다.
+    async onIncomingRequest(req, uploadId) {
+      if (req.method !== 'PATCH' || !uploadId) return
+      try {
+        await touchUploadProgress(uploadId, prisma)
+      } catch (err) {
+        logger.debug({ uploadId, err: (err as Error).message }, 'upload heartbeat skipped')
+      }
     },
     async onUploadFinish(req, upload: Upload) {
       const nodeReq = req.runtime?.node?.req as unknown as NodeReqWithToken | undefined

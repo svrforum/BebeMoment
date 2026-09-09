@@ -10,6 +10,8 @@ export type AssetSlim = {
   id: string
   publicNo: number
   kind: 'image' | 'video'
+  /** 뷰어가 "왜 안 보이는지"를 말할 수 있게 — 실패한 자산에 '처리 중'이라고 하면 안 된다. */
+  status: 'uploading' | 'processing' | 'ready' | 'failed'
   urls: AssetUrls | null
   videoSrc: string | null
   posterUrl: string | undefined
@@ -86,8 +88,13 @@ export async function loadViewerBundle(
     duplicateOf: null,
     ...(hidden.length ? { id: { notIn: hidden } } : {}),
   }
-  const select = { id: true, publicNo: true, kind: true } as const
-  type Slim = { id: string; publicNo: number; kind: 'image' | 'video' }
+  const select = { id: true, publicNo: true, kind: true, status: true } as const
+  type Slim = {
+    id: string
+    publicNo: number
+    kind: 'image' | 'video'
+    status: 'uploading' | 'processing' | 'ready' | 'failed'
+  }
   let prevAsset: Slim | null = null
   let nextAsset: Slim | null = null
 
@@ -172,15 +179,14 @@ export async function loadViewerBundle(
   const adjIds = [prevAsset?.id, nextAsset?.id].filter((x): x is string => Boolean(x))
   const adjUrls = adjIds.length ? await media.getAssetUrlsBatch(args.familyId, adjIds) : {}
 
-  function buildSlim(
-    a: { id: string; publicNo: number; kind: 'image' | 'video' } | null,
-  ): AssetSlim | null {
+  function buildSlim(a: Slim | null): AssetSlim | null {
     if (!a) return null
     const u = adjUrls[a.id] ?? null
     return {
       id: a.id,
       publicNo: a.publicNo,
       kind: a.kind,
+      status: a.status,
       urls: u,
       videoSrc: a.kind === 'video' ? pickVideoUrl(u) : null,
       posterUrl: pickVideoPosterUrl(u) ?? undefined,
@@ -191,6 +197,7 @@ export async function loadViewerBundle(
     id: asset.id,
     publicNo: asset.publicNo,
     kind: asset.kind,
+    status: asset.status,
     urls: asset.urls,
     videoSrc: asset.kind === 'video' ? pickVideoUrl(asset.urls) : null,
     posterUrl: pickVideoPosterUrl(asset.urls) ?? undefined,

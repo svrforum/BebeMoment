@@ -98,11 +98,12 @@ export async function startWorker(): Promise<() => Promise<void>> {
     logger.error({ id: job?.id, error: err.message }, 'job failed')
   })
 
-  // 중단된 업로드 정리 — 부팅 직후 1회 + 매시간. (media 엔 BullMQ 반복잡 인프라가 없어
+  // 중단된 업로드 정리 — 부팅 직후 1회 + 10분마다. (media 엔 BullMQ 반복잡 인프라가 없어
   // 경량 setInterval 로; reapStaleUploads 는 멱등하고 raw SQL 한 방이라 cheap.)
   const storagePath = env.STORAGE_PATH
-  // 중단된 업로드를 failed 로 마킹하는 기준 시간(시간). 기본 6h — 낮추면 stuck 업로드가
-  // 빨리 정리되지만, 느린 망의 대용량 영상이 아직 업로드 중인데도 죽일 수 있으니 주의.
+  // 중단된 업로드를 failed 로 마킹하는 기준 시간(시간). 기본 0.5h — tus PATCH 하트비트가
+  // 진행 중인 업로드의 updated_at 을 계속 밀어 주므로(§progress.ts) 짧아도 살아 있는
+  // 업로드를 죽이지 않는다. 대신 죽은 업로드가 몇 시간씩 정상 사진 행세를 하지 못한다.
   const staleMs = env.MEDIA_STALE_UPLOAD_HOURS * 60 * 60 * 1000
   // 처리 중 갇힌 것도 같이 본다 — 기준은 더 길게(큰 영상 트랜스코딩이 정상적으로 오래 걸린다).
   const processingStaleMs = env.MEDIA_STALE_PROCESSING_HOURS * 60 * 60 * 1000
@@ -119,7 +120,7 @@ export async function startWorker(): Promise<() => Promise<void>> {
       })
       .catch((e) => logger.error({ err: (e as Error).message }, 'reapStaleTusTmp failed'))
   }
-  const reapTimer = setInterval(reap, 60 * 60 * 1000)
+  const reapTimer = setInterval(reap, 10 * 60 * 1000)
   reap()
 
   logger.info('bebe-media worker consumer started')

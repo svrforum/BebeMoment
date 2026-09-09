@@ -372,7 +372,7 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `MEDIA_MAX_UPLOAD_BYTES` | `5368709120` (5 GiB) | media | Per-file upload limit. |
 | `MEDIA_FAMILY_QUOTA_BYTES` | `0` (unlimited) | media | Total storage allowed for the family. |
 | `MEDIA_MAX_INPUT_PIXELS` | `64000000` | media | Images larger than this are rejected instead of decoded (memory guard). |
-| `MEDIA_STALE_UPLOAD_HOURS` | `6` | media | An upload with no progress for this long is marked failed. |
+| `MEDIA_STALE_UPLOAD_HOURS` | `0.5` | media | An upload with no progress for this long is marked failed. Each tus chunk refreshes the row, so a slow but live upload is never cut. |
 | `MEDIA_STALE_PROCESSING_HOURS` | `12` | media | An asset stuck in `processing` this long is marked failed. |
 | `MEDIA_ROLE` | `both` | media | `server`, `worker` or `both` — for running the media service split across containers. |
 | `MEDIA_PORT` / `MEDIA_HOST` | `3001` / `0.0.0.0` | media | Internal listen address (the web rewrite targets `MEDIA_INTERNAL_URL`). |

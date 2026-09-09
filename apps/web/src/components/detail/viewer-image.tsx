@@ -16,6 +16,7 @@ type AssetSlim = {
   id: string
   publicNo: number
   kind: 'image' | 'video'
+  status: 'uploading' | 'processing' | 'ready' | 'failed'
   urls: AssetUrls | null
   videoSrc: string | null
   posterUrl: string | undefined
@@ -81,9 +82,11 @@ export function ViewerImage({
   const noMedia = isVideo ? current.videoSrc === null : trio === null && fallbackUrl === null
 
   if (noMedia) {
+    // 왜 못 보여주는지 구분해서 말한다 — 업로드가 끊긴 자산에 영원히 '처리 중'이라고
+    // 하면 사용자는 "영상이 재생 안 된다"로 겪고 기다릴 수도, 고칠 수도 없다(§6).
     return (
-      <div className="flex h-screen w-full items-center justify-center text-sm text-base-400">
-        {t('video.processing')}
+      <div className="flex h-screen w-full items-center justify-center px-8 text-center text-sm text-base-400">
+        {current.status === 'failed' ? t('video.uploadIncomplete') : t('video.processing')}
       </div>
     )
   }

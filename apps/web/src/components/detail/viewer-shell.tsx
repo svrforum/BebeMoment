@@ -22,6 +22,7 @@ type AssetSlim = {
   id: string
   publicNo: number
   kind: 'image' | 'video'
+  status: 'uploading' | 'processing' | 'ready' | 'failed'
   urls: AssetUrls | null
   videoSrc: string | null
   posterUrl: string | undefined

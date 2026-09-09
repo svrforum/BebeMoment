@@ -232,8 +232,8 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                     >
                       {/* 탭하면 격자와 동일하게 전체화면 뷰어로(영상은 거기서 클릭 재생).
                           스와이프(드래그)는 Swiper 가 클릭과 구분해 처리. */}
-                      {link.asset?.status === 'failed' ? (
-                        <StoryFailedPhoto assetId={link.assetId} />
+                      {link.asset && link.asset.status !== 'ready' ? (
+                        <StoryPendingPhoto assetId={link.assetId} status={link.asset.status} />
                       ) : (
                         <Link
                           href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
@@ -270,10 +270,14 @@ export function StoryDetail({ entry }: { entry: Entry }) {
             <div className="grid grid-cols-3 gap-0.5">
               {sortedAssets.map((link) => {
                 const isVid = link.asset?.kind === 'video'
-                if (link.asset?.status === 'failed') {
+                if (link.asset && link.asset.status !== 'ready') {
                   return (
                     <div key={link.assetId} className="relative aspect-square">
-                      <StoryFailedPhoto assetId={link.assetId} compact />
+                      <StoryPendingPhoto
+                        assetId={link.assetId}
+                        status={link.asset.status}
+                        compact
+                      />
                     </div>
                   )
                 }
@@ -310,9 +314,23 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   )
 }
 
-/** 처리 실패한 스토리 사진 — 빈 슬라이드 대신 상태를 보여주고 그 자리에서 재처리. 상세
- *  뷰어엔 재시도가 없어(스토리에서 직접) 같은 /api/asset/:id/retry 를 호출한다. */
-function StoryFailedPhoto({ assetId, compact }: { assetId: string; compact?: boolean }) {
+/**
+ * 아직 볼 수 없는 스토리 사진 — 실패·업로드중·처리중.
+ *
+ * 예전엔 `failed` 만 걸러서, 업로드가 끊긴 영상이 **빈 타일 + 재생 버튼**으로 나왔다.
+ * 재생될 리 없는 걸 재생 가능한 것처럼 보여준 셈이라(§6 조용한 실패 금지) 사용자는
+ * "영상이 재생 안 된다"고 겪는다. ready 가 아니면 무엇이든 상태를 말해 준다.
+ * 실패한 것만 그 자리에서 재처리(상세 뷰어엔 재시도가 없어 같은 /api/asset/:id/retry).
+ */
+function StoryPendingPhoto({
+  assetId,
+  status,
+  compact,
+}: {
+  assetId: string
+  status: 'uploading' | 'processing' | 'ready' | 'failed'
+  compact?: boolean
+}) {
   const t = useTranslations('story')
   const router = useRouter()
   const toast = useToast()
@@ -322,7 +340,14 @@ function StoryFailedPhoto({ assetId, compact }: { assetId: string; compact?: boo
     setBusy(true)
     try {
       const res = await fetch(`/api/asset/${assetId}/retry`, { method: 'POST' })
-      if (!res.ok) throw new Error()
+      if (!res.ok) {
+        // 원본이 없으면 몇 번을 눌러도 같은 결과다 — 서버가 준 이유("다시 올려주세요")를
+        // 그대로 보여준다. 타임라인 타일과 같은 처리.
+        const body = (await res.json().catch(() => null)) as { error?: string } | null
+        toast({ title: body?.error ?? t('detail.photoRetryFailed'), variant: 'danger' })
+        setBusy(false)
+        return
+      }
       toast({ title: t('detail.photoRetrying'), variant: 'success' })
       router.refresh()
     } catch {
@@ -330,21 +355,27 @@ function StoryFailedPhoto({ assetId, compact }: { assetId: string; compact?: boo
       setBusy(false)
     }
   }
+  const label =
+    status === 'failed'
+      ? t('detail.photoFailed')
+      : status === 'uploading'
+        ? t('detail.photoUploading')
+        : t('detail.photoProcessing')
   return (
     <div className="flex aspect-square w-full flex-col items-center justify-center gap-2 bg-base-100 px-3 text-center dark:bg-base-800">
-      <span className={`text-base-500 ${compact ? 'text-[11px]' : 'text-sm'}`}>
-        {t('detail.photoFailed')}
-      </span>
-      <button
-        type="button"
-        onClick={retry}
-        disabled={busy}
-        className={`rounded-full bg-base-900 font-medium text-base-50 transition active:scale-95 disabled:opacity-50 dark:bg-base-50 dark:text-base-900 ${
-          compact ? 'px-2.5 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
-        }`}
-      >
-        {busy ? t('detail.photoRetrying') : t('detail.photoRetry')}
-      </button>
+      <span className={`text-base-500 ${compact ? 'text-[11px]' : 'text-sm'}`}>{label}</span>
+      {status === 'failed' && (
+        <button
+          type="button"
+          onClick={retry}
+          disabled={busy}
+          className={`rounded-full bg-base-900 font-medium text-base-50 transition active:scale-95 disabled:opacity-50 dark:bg-base-50 dark:text-base-900 ${
+            compact ? 'px-2.5 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
+          }`}
+        >
+          {busy ? t('detail.photoRetrying') : t('detail.photoRetry')}
+        </button>
+      )}
     </div>
   )
 }

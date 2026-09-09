@@ -183,7 +183,7 @@ describe('media knobs', () => {
     expect(env.MEDIA_MAX_UPLOAD_BYTES).toBe(5 * 1024 * 1024 * 1024)
     expect(env.MEDIA_FAMILY_QUOTA_BYTES).toBe(0)
     expect(env.MEDIA_MAX_INPUT_PIXELS).toBe(64_000_000)
-    expect(env.MEDIA_STALE_UPLOAD_HOURS).toBe(6)
+    expect(env.MEDIA_STALE_UPLOAD_HOURS).toBe(0.5)
     expect(env.MEDIA_STALE_PROCESSING_HOURS).toBe(12)
     expect(env.MEDIA_DERIVATIVES_INCLUDE_AVIF).toBe(true)
     expect(env.MEDIA_AVIF_EFFORT).toBe(3)

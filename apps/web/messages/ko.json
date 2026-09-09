@@ -527,6 +527,7 @@
     },
     "video": {
       "processing": "처리 중…",
+      "uploadIncomplete": "업로드가 끝나지 않은 파일이에요 — 다시 올려주세요",
       "unsupportedFormat": "이 기기에서 재생할 수 없는 형식이에요.",
       "play": "재생"
     }
@@ -662,6 +663,8 @@
       "storyFallback": "스토리",
       "guardiansOnly": "보호자만",
       "photoFailed": "처리 실패",
+      "photoUploading": "올라오는 중이에요",
+      "photoProcessing": "처리 중이에요",
       "photoRetry": "다시 시도",
       "photoRetrying": "다시 시도 중…",
       "photoRetryFailed": "다시 시도하지 못했어요",

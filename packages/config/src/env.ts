@@ -85,7 +85,10 @@ const EnvSchema = z
     MEDIA_MAX_UPLOAD_BYTES: positiveInt.default(5 * 1024 * 1024 * 1024),
     MEDIA_FAMILY_QUOTA_BYTES: z.coerce.number().int().nonnegative().default(0),
     MEDIA_MAX_INPUT_PIXELS: positiveInt.default(64_000_000),
-    MEDIA_STALE_UPLOAD_HOURS: z.coerce.number().positive().default(6),
+    // 기본 30분. 청크마다 자산 행을 미는 하트비트(domain/upload/progress.ts)가 생겨
+    // "느린 망에서 아직 올라오는 중"과 "죽은 업로드"를 구분할 수 있으므로 짧게 잡는다 —
+    // 업로드 토큰 TTL(15분)보다 길어 대기 중인 파일도 안전하다.
+    MEDIA_STALE_UPLOAD_HOURS: z.coerce.number().positive().default(0.5),
     MEDIA_STALE_PROCESSING_HOURS: z.coerce.number().positive().default(12),
     MEDIA_DERIVATIVES_INCLUDE_AVIF: envBool(true),
     MEDIA_AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(3),
