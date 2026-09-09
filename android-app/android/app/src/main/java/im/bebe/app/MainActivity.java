@@ -37,6 +37,7 @@ public class MainActivity extends BridgeActivity {
     private final ShareIntake shareIntake = new ShareIntake();
     private ApkUpdater apkUpdater;
     private ShellWebViewClient webViewClient;
+    private ShellWebChromeClient webChromeClient;
     private long lastBackPressMs = 0;
 
     private final ShellHost host = new ShellHost() {
@@ -131,6 +132,10 @@ public class MainActivity extends BridgeActivity {
         wv.addJavascriptInterface(new StatusBarBridge(), "BebeStatusBar");
         webViewClient = new ShellWebViewClient(getBridge(), this, host, shareIntake, apkUpdater);
         wv.setWebViewClient(webViewClient);
+        // 영상 전체화면을 살린다 — Capacitor 가 설치한 기본 클라이언트는 전체화면을 즉시
+        // 취소한다(ShellWebChromeClient 주석 참조). 상속본이라 파일 선택기·권한은 그대로.
+        webChromeClient = new ShellWebChromeClient(getBridge(), this, wv);
+        wv.setWebChromeClient(webChromeClient);
     }
 
     /** 웹 테마(.dark)를 상태바에 전달하는 창구 — 원격 페이지에도 주입된다. */
@@ -142,14 +147,22 @@ public class MainActivity extends BridgeActivity {
     }
 
     /**
-     * 하드웨어 BACK: WebView 히스토리가 있으면 한 단계 뒤로(앨범·상세에서 위로), 루트면
-     * 더블탭으로 종료. Capacitor 기본 동작(브리지로 라우팅 → 원격 페이지엔 리스너가 없어
-     * 곧장 종료)을 대체한다. super.onCreate 뒤에 콜백을 추가해 브리지 콜백보다 우선.
+     * 하드웨어 BACK: 영상 전체화면 중이면 전체화면만 닫고, 아니면 WebView 히스토리가 있을 때
+     * 한 단계 뒤로(앨범·상세에서 위로), 루트면 더블탭으로 종료. Capacitor 기본 동작(브리지로
+     * 라우팅 → 원격 페이지엔 리스너가 없어 곧장 종료)을 대체한다. super.onCreate 뒤에
+     * 콜백을 추가해 브리지 콜백보다 우선.
+     *
+     * ⚠️ 전체화면 검사가 맨 앞이어야 한다 — 뒤로 밀면 전체화면으로 영상을 보다 뒤로가기를
+     * 눌렀을 때 전체화면이 닫히는 대신 보던 페이지를 벗어난다.
      */
     private void setupBackHandler() {
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
+                if (webChromeClient != null && webChromeClient.isInCustomView()) {
+                    webChromeClient.exitCustomView();
+                    return;
+                }
                 final WebView wv = host.webView();
                 if (wv != null && wv.canGoBack()) {
                     wv.goBack();
