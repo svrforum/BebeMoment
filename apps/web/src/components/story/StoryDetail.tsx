@@ -7,16 +7,19 @@ import {
   pickThumbTrio,
   pickThumbUrl,
   pickVideoPosterUrl,
+  pickVideoUrl,
 } from '@/lib/asset-url'
+import { recallStorySlide, rememberStorySlide } from '@/lib/story-slide-memory'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
-import { LayoutGrid, Play, ShieldCheck, Square } from 'lucide-react'
+import { LayoutGrid, Maximize2, Play, ShieldCheck, Square } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
+import type { Swiper as SwiperClass } from 'swiper'
 import { Pagination } from 'swiper/modules'
 import { Swiper, SwiperSlide } from 'swiper/react'
 import 'swiper/css'
@@ -28,8 +31,93 @@ type Entry = Story & {
   baby: Baby | null
 }
 
-// 영상 썸네일/포스터 위 중앙 재생 아이콘 — 영상임을 알리고 탭(→ 전체화면 뷰어에서
-// 클릭 재생)을 유도. 자동재생은 안 한다.
+/**
+ * 스토리 카드 안에서 바로 재생하는 영상 슬라이드.
+ *
+ * 예전엔 탭이 전체화면 뷰어로 넘어가기만 해서, 짧은 클립 하나 보려고 화면을 옮겨야 했다.
+ * 가운데 재생 버튼은 그 자리에서 재생하고, 전체화면은 옆의 버튼으로 연다. 재생이 시작되면
+ * 네이티브 컨트롤(자체 전체화면 포함)이 그 자리를 대신하므로 우리 버튼은 물러난다.
+ */
+function StoryVideoSlide({
+  src,
+  poster,
+  href,
+  isActive,
+  playLabel,
+  fullscreenLabel,
+  onStartedChange,
+}: {
+  src: string
+  poster: string | undefined
+  href: string
+  isActive: boolean
+  playLabel: string
+  fullscreenLabel: string
+  onStartedChange: (started: boolean) => void
+}) {
+  const [started, setStarted] = useState(false)
+  const ref = useRef<HTMLVideoElement>(null)
+
+  const setBoth = useCallback(
+    (v: boolean) => {
+      setStarted(v)
+      onStartedChange(v)
+    },
+    [onStartedChange],
+  )
+
+  // 다른 사진으로 넘어가면 소리가 따라다니지 않게 멈춘다.
+  useEffect(() => {
+    if (isActive) return
+    ref.current?.pause()
+    setBoth(false)
+  }, [isActive, setBoth])
+
+  return (
+    <div className="relative flex aspect-square w-full items-center justify-center bg-black">
+      <video
+        ref={ref}
+        src={src}
+        {...(poster ? { poster } : {})}
+        controls={started}
+        playsInline
+        preload="metadata"
+        onPlay={() => setBoth(true)}
+        // 재생 중에는 가로 드래그가 seek 바를 위한 것이다 — Swiper 가 가져가지 않게.
+        className={`h-full w-full object-contain ${started ? 'swiper-no-swiping' : ''}`}
+        style={{ touchAction: 'pan-y' }}
+      >
+        <track kind="captions" />
+      </video>
+      {!started && (
+        <>
+          <button
+            type="button"
+            onClick={() => {
+              void ref.current?.play()
+            }}
+            aria-label={playLabel}
+            className="absolute inset-0 flex items-center justify-center"
+          >
+            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
+              <Play size={24} className="ml-0.5 fill-white text-white" strokeWidth={0} />
+            </span>
+          </button>
+          <Link
+            href={href}
+            aria-label={fullscreenLabel}
+            // Swiper 의 페이지네이션 바(z-10)가 아래쪽 띠 전체를 덮어 클릭을 가로챈다 — 그 위로.
+            className="absolute right-2.5 bottom-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-95"
+          >
+            <Maximize2 size={15} strokeWidth={2.2} />
+          </Link>
+        </>
+      )}
+    </div>
+  )
+}
+
+// 격자 썸네일 위 중앙 재생 아이콘 — 영상임을 알리고 탭(→ 전체화면 뷰어)을 유도.
 function VideoPlayOverlay({ size = 'lg' }: { size?: 'lg' | 'sm' }) {
   const box = size === 'lg' ? 'h-14 w-14' : 'h-8 w-8'
   const icon = size === 'lg' ? 24 : 15
@@ -57,6 +145,10 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   const day = t(`detail.weekday.${weekdayKey}`)
   const trimmed = entry.body.trim()
   const [activeIdx, setActiveIdx] = useState(0)
+  const swiperRef = useRef<SwiperClass | null>(null)
+  // 재생이 시작되면 네이티브 컨트롤이 슬라이드 아래를 차지한다 — seek 바와 페이지 점이
+  // 손가락 하나 폭 안에서 겹쳐 오탭이 난다. 재생 중에는 점을 접어 둔다.
+  const [videoStarted, setVideoStarted] = useState(false)
 
   // 사진 보기 모드: 슬라이드(캐러셀) ↔ 격자(갤러리). 마지막 선택을 localStorage 에 기억.
   const [view, setView] = useState<'slide' | 'grid'>('slide')
@@ -216,11 +308,29 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                 pagination={sortedAssets.length > 1 ? { clickable: true } : false}
                 spaceBetween={0}
                 slidesPerView={1}
-                onSlideChange={(s) => setActiveIdx(s.activeIndex)}
-                className="story-carousel aspect-square w-full"
+                // 전체화면에 다녀오면 이 컴포넌트는 새로 마운트된다 — 마지막으로 보던
+                // 사진으로 되돌려 놓지 않으면 항상 첫 장으로 튕긴다. 뷰어도 스와이프할
+                // 때마다 같은 자리에 기록하므로, 거기서 넘긴 사진으로 돌아온다.
+                onSwiper={(s) => {
+                  swiperRef.current = s
+                  const last = recallStorySlide(entry.id)
+                  if (!last) return
+                  const idx = sortedAssets.findIndex((a) => a.assetId === last)
+                  if (idx > 0) {
+                    s.slideTo(idx, 0)
+                    setActiveIdx(idx)
+                  }
+                }}
+                onSlideChange={(s) => {
+                  setActiveIdx(s.activeIndex)
+                  const id = sortedAssets[s.activeIndex]?.assetId
+                  if (id) rememberStorySlide(entry.id, id)
+                }}
+                className={`story-carousel aspect-square w-full ${videoStarted ? 'is-playing' : ''}`}
               >
-                {sortedAssets.map((link) => {
+                {sortedAssets.map((link, i) => {
                   const isVid = link.asset?.kind === 'video'
+                  const videoSrc = isVid ? pickVideoUrl(link.asset?.urls ?? null) : null
                   const trio = isVid ? null : pickDisplayTrio(link.asset?.urls ?? null)
                   const fallbackUrl = isVid
                     ? pickVideoPosterUrl(link.asset?.urls ?? null)
@@ -230,10 +340,20 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                       key={link.assetId}
                       style={{ display: 'flex', alignItems: 'center', justifyContent: 'center' }}
                     >
-                      {/* 탭하면 격자와 동일하게 전체화면 뷰어로(영상은 거기서 클릭 재생).
+                      {/* 사진은 탭하면 전체화면 뷰어로, 영상은 그 자리에서 재생.
                           스와이프(드래그)는 Swiper 가 클릭과 구분해 처리. */}
                       {link.asset && link.asset.status !== 'ready' ? (
                         <StoryPendingPhoto assetId={link.assetId} status={link.asset.status} />
+                      ) : isVid && videoSrc ? (
+                        <StoryVideoSlide
+                          src={videoSrc}
+                          poster={pickVideoPosterUrl(link.asset?.urls ?? null) ?? undefined}
+                          href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
+                          isActive={activeIdx === i}
+                          playLabel={t('detail.videoPlay')}
+                          fullscreenLabel={t('detail.videoFullscreen')}
+                          onStartedChange={setVideoStarted}
+                        />
                       ) : (
                         <Link
                           href={`/detail/${link.asset?.publicNo}?ctx=story:${entry.id}`}
@@ -261,7 +381,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
                 })}
               </Swiper>
               {sortedAssets.length > 1 && (
-                <span className="pointer-events-none absolute left-2.5 top-2.5 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold tabular-nums text-white backdrop-blur-sm">
+                <span className="pointer-events-none absolute top-2.5 left-2.5 z-10 rounded-full bg-black/55 px-2 py-0.5 text-[11px] font-semibold text-white tabular-nums backdrop-blur-sm">
                   {activeIdx + 1}/{sortedAssets.length}
                 </span>
               )}

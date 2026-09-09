@@ -674,6 +674,8 @@
       "photoMetaWithRange": "{n} photos · {range}",
       "viewSlide": "Slide view",
       "viewGrid": "Grid view",
+      "videoPlay": "Play video",
+      "videoFullscreen": "View fullscreen",
       "addToAlbum": "Add to album",
       "retryLater": "Please try again in a moment",
       "bookmark": "Bookmark",

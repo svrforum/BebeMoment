@@ -13,6 +13,7 @@ import { ViewerBottomSheet } from './viewer-bottom-sheet'
 import { ViewerImage } from './viewer-image'
 import { ViewerInfoPanel } from './viewer-info-panel'
 import { ViewerTopBar } from './viewer-top-bar'
+import { rememberStorySlide, storyEntryIdFromCtx } from '@/lib/story-slide-memory'
 import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 
 type Member = { id: string; displayName: string }
@@ -135,6 +136,9 @@ export function ViewerShell({
     async (assetId, direction) => {
       if (lastNavRef.current === assetId) return
       lastNavRef.current = assetId
+      // 스토리에서 열렸으면 넘긴 사진을 그 스토리 자리에 기록 — 뒤로가기로 스토리에
+      // 돌아왔을 때 첫 장이 아니라 보던 사진이 나온다.
+      rememberStorySlide(storyEntryIdFromCtx(viewerCtx), assetId)
       // 정렬 모드 + 컬렉션 ctx 를 URL·이웃 fetch 에 보존 — 스와이프가 같은 컬렉션·정렬을
       // 유지하도록(추억/앨범/북마크 등에서 열어도 그 안에서만 이동).
       const qp = new URLSearchParams()

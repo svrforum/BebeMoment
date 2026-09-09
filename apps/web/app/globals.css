@@ -1310,26 +1310,6 @@
       0 1px 0 color-mix(in srgb, #000 30%, transparent),
       0 20px 40px -24px color-mix(in srgb, #000 60%, transparent);
   }
-  /* 다이어리 캐러셀(.story-carousel) 의 swiper 페이지네이션 — 흰 점, 활성 시 또렷.
-     절제된 도트 인디케이터. Swiper 기본 파란 점을 덮어쓴다. */
-  .story-carousel .swiper-pagination {
-    bottom: 8px !important;
-  }
-  .story-carousel .swiper-pagination-bullet {
-    background: #ffffff;
-    opacity: 0.55;
-    width: 6px;
-    height: 6px;
-    margin: 0 3px !important;
-    transition:
-      opacity 160ms ease,
-      transform 160ms ease;
-  }
-  .story-carousel .swiper-pagination-bullet-active {
-    opacity: 1;
-    transform: scale(1.15);
-  }
-
   /* 사진 편집기의 슬라이더(밝기 등) — 검은 배경 위에서 트랙·썸이 확실히 보이도록.
      기본 input[range] 는 OS 색을 따라가서 다크 배경에서 거의 안 보임.
      높이 36px 의 hit-target 안에 4px 트랙과 22px 썸 (모바일 손가락 친화). */
@@ -1421,3 +1401,38 @@
    둔다 — `@view-transition` 룰 없이는 자동 트리거가 안 되므로 무해하고, 추후 명시
    `document.startViewTransition(() => router.push(...))` 로 timeline 썸네일 → detail
    morph 를 살리고 싶을 때 그대로 활용 가능. */
+
+/* 스토리 캐러셀(.story-carousel)의 페이지네이션 — 사진·영상 위에 얹히는 흰 점.
+   ⚠️ 이 블록은 반드시 `@layer` **밖**에 있어야 한다. Swiper 의 CSS 는 컴포넌트에서
+   `import 'swiper/css/pagination'` 으로 들어와 레이어가 없는데, 레이어 없는 규칙은
+   특이도와 무관하게 레이어 안의 규칙을 이긴다. 예전엔 이 규칙이 @layer utilities 안에
+   있어서 한 번도 적용된 적이 없고, Swiper 기본값(검정 20%)이 그대로 나왔다 — 밝은
+   사진에선 그럭저럭 보였지만 검은 영상 슬라이드에선 점이 통째로 사라졌다. */
+.story-carousel .swiper-pagination {
+  bottom: 8px;
+  /* 이 컨테이너는 슬라이드 아래쪽 띠 전체를 덮는다 — 그대로 두면 그 위의 버튼(전체화면
+     등)도, 슬라이드 탭도 클릭이 여기서 먹힌다. `.swiper-wrapper` 가 z-index 를 가두므로
+     슬라이드 안에서 z-index 로는 못 이긴다. 컨테이너는 통과시키고 점만 받는다. */
+  pointer-events: none;
+}
+.story-carousel .swiper-pagination-bullet {
+  pointer-events: auto;
+  background: #ffffff;
+  opacity: 0.55;
+  width: 6px;
+  height: 6px;
+  margin: 0 3px;
+  /* 밝은 사진 위에서도 흰 점이 뭉개지지 않게 아주 옅은 그림자. */
+  box-shadow: 0 0 3px rgb(0 0 0 / 0.35);
+  transition:
+    opacity 160ms ease,
+    transform 160ms ease;
+}
+.story-carousel .swiper-pagination-bullet-active {
+  opacity: 1;
+  transform: scale(1.15);
+}
+/* 영상 재생 중에는 네이티브 컨트롤의 seek 바가 점 바로 위에 온다 — 접어 둔다. */
+.story-carousel.is-playing .swiper-pagination {
+  opacity: 0;
+}

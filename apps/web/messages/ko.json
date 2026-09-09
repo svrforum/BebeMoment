@@ -674,6 +674,8 @@
       "photoMetaWithRange": "사진 {n}장 · {range}",
       "viewSlide": "슬라이드 보기",
       "viewGrid": "격자 보기",
+      "videoPlay": "영상 재생",
+      "videoFullscreen": "전체화면으로 보기",
       "addToAlbum": "앨범에 추가",
       "retryLater": "잠시 후 다시 시도해주세요",
       "bookmark": "북마크",
