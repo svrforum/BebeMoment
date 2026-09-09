@@ -82,11 +82,11 @@ function StoryVideoSlide({
         controls={started}
         playsInline
         preload="metadata"
-        // 네이티브 컨트롤의 전체화면 버튼은 앱의 WebView 에서 죽은 버튼이다 — Capacitor 의
-        // BridgeWebChromeClient 가 onShowCustomView 에서 곧바로 취소해 버려서, 눌러도
-        // 전체화면에 들어갔다 즉시 되돌아온다. 전체화면은 옆의 버튼(우리 뷰어)으로만 연다.
-        // noremoteplayback 도 함께 — 안드로이드 WebView 는 disablePictureInPicture 를
-        // 무시하지만 controlsList 는 따른다.
+        // best-effort 힌트다. `noremoteplayback` 은 캐스트 버튼을 지우지만, `nofullscreen`
+        // 은 최신 Chromium 에서 무시된다 — 섀도우 DOM 을 직접 재보면 전체화면 버튼이
+        // 48×48 로 그대로 렌더된다(2026-09 확인). 그러니 "네이티브 전체화면은 못 쓴다"에
+        // 기대지 말 것. 전체화면 뒤의 뒤로가기는 FullscreenBackGuard 가 책임지고, 앱에서
+        // 전체화면이 실제로 열리는 것은 ShellWebChromeClient(1.0.50+)가 책임진다.
         controlsList="nofullscreen noremoteplayback"
         disablePictureInPicture
         onPlay={() => setBoth(true)}
