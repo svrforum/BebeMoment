@@ -1,5 +1,6 @@
 'use client'
 import { FAB } from '@/components/shell/fab'
+import { FullscreenBackGuard } from '@/components/shell/fullscreen-back-guard'
 import { Sheet, useIsDesktop } from '@/components/ui/sheet'
 import { ToastProvider, ToastViewport } from '@/components/ui/toast'
 import { useUploadManager } from '@/components/upload/upload-manager'
@@ -217,6 +218,8 @@ export function AppShellClient({
   const canUpload = capabilities.includes('asset.upload')
   return (
     <ToastProvider swipeDirection="down">
+      {/* 영상 전체화면 중의 뒤로가기가 페이지를 떠나지 않게 — 앱 셸 전체에 한 번만. */}
+      <FullscreenBackGuard />
       <ToastEmitterProvider>
         <FamilySSEProvider>
           <UploadSheetProvider canCreateStory={canCreateStory} storyBabyId={storyBabyId}>

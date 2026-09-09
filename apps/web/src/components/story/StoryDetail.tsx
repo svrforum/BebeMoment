@@ -82,6 +82,13 @@ function StoryVideoSlide({
         controls={started}
         playsInline
         preload="metadata"
+        // 네이티브 컨트롤의 전체화면 버튼은 앱의 WebView 에서 죽은 버튼이다 — Capacitor 의
+        // BridgeWebChromeClient 가 onShowCustomView 에서 곧바로 취소해 버려서, 눌러도
+        // 전체화면에 들어갔다 즉시 되돌아온다. 전체화면은 옆의 버튼(우리 뷰어)으로만 연다.
+        // noremoteplayback 도 함께 — 안드로이드 WebView 는 disablePictureInPicture 를
+        // 무시하지만 controlsList 는 따른다.
+        controlsList="nofullscreen noremoteplayback"
+        disablePictureInPicture
         onPlay={() => setBoth(true)}
         // 재생 중에는 가로 드래그가 seek 바를 위한 것이다 — Swiper 가 가져가지 않게.
         className={`h-full w-full object-contain ${started ? 'swiper-no-swiping' : ''}`}
@@ -90,29 +97,29 @@ function StoryVideoSlide({
         <track kind="captions" />
       </video>
       {!started && (
-        <>
-          <button
-            type="button"
-            onClick={() => {
-              void ref.current?.play()
-            }}
-            aria-label={playLabel}
-            className="absolute inset-0 flex items-center justify-center"
-          >
-            <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
-              <Play size={24} className="ml-0.5 fill-white text-white" strokeWidth={0} />
-            </span>
-          </button>
-          <Link
-            href={href}
-            aria-label={fullscreenLabel}
-            // Swiper 의 페이지네이션 바(z-10)가 아래쪽 띠 전체를 덮어 클릭을 가로챈다 — 그 위로.
-            className="absolute right-2.5 bottom-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-95"
-          >
-            <Maximize2 size={15} strokeWidth={2.2} />
-          </Link>
-        </>
+        <button
+          type="button"
+          onClick={() => {
+            void ref.current?.play()
+          }}
+          aria-label={playLabel}
+          className="absolute inset-0 flex items-center justify-center"
+        >
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
+            <Play size={24} className="ml-0.5 fill-white text-white" strokeWidth={0} />
+          </span>
+        </button>
       )}
+      {/* 전체화면은 재생 중에도 갈 수 있어야 한다 — 네이티브 전체화면을 없앴으므로 이게
+          유일한 길이다. 오른쪽 가장자리 세로 가운데: 위의 사진 번호·보기 토글과도, 아래의
+          네이티브 컨트롤 바(높이가 브라우저마다 다르다)와도 겹치지 않는 유일한 자리다. */}
+      <Link
+        href={href}
+        aria-label={fullscreenLabel}
+        className="-translate-y-1/2 absolute top-1/2 right-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-95"
+      >
+        <Maximize2 size={15} strokeWidth={2.2} />
+      </Link>
     </div>
   )
 }
