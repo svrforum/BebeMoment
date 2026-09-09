@@ -192,7 +192,10 @@ export function UploadManagerProvider({ children }: { children: ReactNode }) {
         // 멀티플렉싱된다 → 대량 배치 처리량을 위해 6으로 상향(PATCH 스트림만 점유,
         // 서버 파생물 처리는 BullMQ 로 분리돼 영향 없음).
         limit: 6,
-        retryDelays: [0, 1000, 3000, 5000],
+        // 모바일 업로드는 끊긴다 — 엘리베이터·지하철·기지국 전환. 예전 상한(총 9초)은
+        // 잠깐의 끊김도 못 넘겨 대용량 영상이 영영 죽었다. 총 ~70초까지 물고 늘어진다
+        // (업로드 토큰 TTL 15분 안이라 재개 시 토큰이 살아 있다).
+        retryDelays: [0, 1000, 3000, 5000, 10000, 20000, 30000],
         // We always create a fresh upload via startUpload server action.
         // localStorage-based resume of a previous session's URL has caused
         // 403s when the partial upload had been cleaned up server-side
