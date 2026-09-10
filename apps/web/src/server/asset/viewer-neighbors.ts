@@ -4,8 +4,8 @@ import { listMyBookmarks } from '@/server/bookmark/list-mine'
 import { listMemories } from '@/server/memories/list'
 import { getPersonAssets } from '@/server/people/list'
 import { getStoryEntry } from '@/server/story/get'
-import { buildTimelineGroups } from '@/server/timeline/build-groups'
-import { type TimelineSort, listTimeline } from '@/server/timeline/merged-list'
+import type { TimelineSort } from '@/server/timeline/merged-list'
+import { timelineNeighborIds } from './timeline-neighbors'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -18,9 +18,17 @@ export type ViewerContext = {
   sort?: TimelineSort
 }
 
-/** 타임라인 ctx 가 이웃으로 삼는 최근 항목 수. 이 창 밖에서 연 사진은
- *  loadViewerBundle 이 전역(시간순) 이웃으로 폴백한다. */
-export const TIMELINE_NEIGHBOR_WINDOW = 500
+export type NeighborList = {
+  ids: string[]
+  /**
+   * 목록에서 대상을 못 찾았을 때 전역(시간순) 이웃으로 넘어가도 되는지.
+   *
+   * 타임라인은 무한 목록의 일부만 보므로 밖으로 나가는 게 자연스럽다. 앨범·인물·스토리
+   * 처럼 경계가 있는 컬렉션은 반대다 — 나가면 "앨범을 벗어난다"는 계약이 깨지므로,
+   * 못 찾으면 이웃 없이 두는 편이 낫다.
+   */
+  fallbackToGlobal: boolean
+}
 
 /**
  * 상세 뷰어가 "어느 컬렉션에서 열렸는지"(ctx)에 따라, 그 컬렉션의 표시 순서대로의 자산
@@ -36,35 +44,33 @@ export async function resolveNeighborIds(
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
-): Promise<string[] | undefined> {
+  /** 현재 보고 있는 자산의 UUID — 타임라인은 이걸 찾을 때까지 페이지를 넘긴다. */
+  currentAssetId?: string,
+): Promise<NeighborList | undefined> {
   if (!ctx) return undefined
   const [kind, id] = ctx.split(':')
   const LIMIT = 500
+  const contained = (ids: string[] | undefined): NeighborList | undefined =>
+    ids && ids.length > 0 ? { ids, fallbackToGlobal: false } : undefined
   try {
     if (kind === 'timeline') {
       // 그리드는 시간순으로 뽑은 뒤 스토리 사진을 사용자가 담은 순서로 되돌린다
       // (merged-list 의 applyStoryOrder + group-by-day). 뷰어가 시간순만 보고 걸으면
-      // 스토리 사진 구간에서 그리드와 정확히 반대 방향으로 넘어간다. 화면이 쓰는
-      // 변환을 그대로 써서 같은 순서를 얻는다.
-      const { items } = await listTimeline(
-        v.familyId,
+      // 스토리 사진 구간에서 그리드와 정확히 반대 방향으로 넘어간다.
+      if (!currentAssetId) return undefined
+      const ids = await timelineNeighborIds(
         {
-          limit: TIMELINE_NEIGHBOR_WINDOW,
+          assetId: currentAssetId,
+          familyId: v.familyId,
           viewerRole: v.viewerRole,
           sort: v.sort ?? 'taken',
-          signUrls: false,
           ...(id ? { date: id } : {}),
         },
         prismaPublic,
         prismaMedia,
         media,
       )
-      return buildTimelineGroups({
-        items,
-        birthDate: null,
-        sortMode: v.sort ?? 'taken',
-        includeStories: false,
-      }).flatMap((g) => g.assets.map((a) => a.id))
+      return ids ? { ids, fallbackToGlobal: true } : undefined
     }
     if (kind === 'memories') {
       // id 순서만 필요하다 — signed URL 은 받지 않는다.
@@ -74,7 +80,7 @@ export async function resolveNeighborIds(
         prismaPublic,
         media,
       )
-      return groups.flatMap((g) => g.assets.map((a) => a.id))
+      return contained(groups.flatMap((g) => g.assets.map((a) => a.id)))
     }
     if (kind === 'saved') {
       const { items } = await listMyBookmarks(
@@ -85,7 +91,7 @@ export async function resolveNeighborIds(
         prismaMedia,
         media,
       )
-      return items.map((i) => i.asset?.id).filter((x): x is string => Boolean(x))
+      return contained(items.map((i) => i.asset?.id).filter((x): x is string => Boolean(x)))
     }
     if (kind === 'album' && id) {
       const { assets } = await listAlbumAssets(
@@ -94,7 +100,7 @@ export async function resolveNeighborIds(
         prismaMedia,
         media,
       )
-      return assets.map((a) => a.id)
+      return contained(assets.map((a) => a.id))
     }
     if (kind === 'person' && id) {
       const { assets } = await getPersonAssets(
@@ -103,7 +109,7 @@ export async function resolveNeighborIds(
         media,
         prismaPublic,
       )
-      return assets.map((a) => a.id)
+      return contained(assets.map((a) => a.id))
     }
     if (kind === 'story' && id) {
       const entry = await getStoryEntry(
@@ -114,7 +120,9 @@ export async function resolveNeighborIds(
         media,
         v.viewerRole,
       )
-      return entry?.assets.map((ea) => ea.asset?.id).filter((x): x is string => Boolean(x))
+      return contained(
+        entry?.assets.map((ea) => ea.asset?.id).filter((x): x is string => Boolean(x)),
+      )
     }
   } catch (e) {
     // 컬렉션 해석 실패는 전역 타임라인 이웃으로 폴백하되 흔적은 남긴다 — 조용히 삼키면

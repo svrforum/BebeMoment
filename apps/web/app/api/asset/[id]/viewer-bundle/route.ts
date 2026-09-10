@@ -5,6 +5,7 @@ import { resolveContext } from '@/server/context'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { loadViewerDetail } from '@/server/asset/viewer-detail'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
+import { resolveAssetUuid } from '@/server/asset/resolve-uuid'
 import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
@@ -22,7 +23,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     const sp = new URL(req.url).searchParams
     const sort = sp.get('sort') === 'uploaded' ? 'uploaded' : 'taken'
     const ctxParam = sp.get('ctx') ?? undefined
-    const neighborIds = await resolveNeighborIds(
+    const neighbors = await resolveNeighborIds(
       ctxParam,
       {
         familyId: ctx.family.id,
@@ -33,7 +34,9 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       prismaPublic,
       prismaMedia,
       getMediaClient(),
+      await resolveAssetUuid(id, ctx.family.id, prismaMedia),
     )
+    const neighborIds = neighbors?.ids
     const viewerRole = ctx.membership?.role ?? 'family'
     const bundle = await loadViewerBundle(
       {
@@ -42,6 +45,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         sort,
         viewerRole,
         ...(neighborIds ? { neighborIds } : {}),
+        ...(neighbors ? { neighborFallbackToGlobal: neighbors.fallbackToGlobal } : {}),
       },
       prismaMedia,
       getMediaClient(),

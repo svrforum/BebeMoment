@@ -41,6 +41,9 @@ export async function loadViewerBundle(
     /** 추억·앨범 등 특정 컬렉션에서 열렸으면 그 순서대로의 자산 UUID 목록. 주어지면
      *  prev/next 를 전역 타임라인이 아니라 이 목록 안에서 찾는다(컬렉션 이탈 방지). */
     neighborIds?: string[]
+    /** 목록에서 대상을 못 찾았을 때 전역(시간순) 이웃으로 넘어갈지. 타임라인처럼 무한
+     *  목록의 일부만 받은 경우에만 true — 앨범·스토리는 경계를 지켜야 하므로 false. */
+    neighborFallbackToGlobal?: boolean
     /** 뷰어 역할 — family 면 비밀 스토리 사진을 현재 자산(404)·전역 prev/next 에서 제외.
      *  prismaPublic 과 함께 주어져야 동작(없으면 비밀 필터 미적용). */
     viewerRole?: Role
@@ -98,22 +101,32 @@ export async function loadViewerBundle(
   let prevAsset: Slim | null = null
   let nextAsset: Slim | null = null
 
-  // 목록이 있어도 **현재 자산이 그 안에 있을 때만** 쓴다. 타임라인처럼 유한한 창을 넘기는
-  // 컬렉션에서는 깊이 스크롤해 연 사진이 창 밖일 수 있는데, 그때 목록만 믿으면 prev/next 가
-  // 둘 다 비어 스와이프가 통째로 죽는다. 못 찾으면 전역 이웃으로 되돌아간다.
+  // 목록이 있어도 **현재 자산이 그 안에 있을 때만** 쓴다. 타임라인처럼 무한 목록의 일부만
+  // 받은 경우 깊이 스크롤해 연 사진이 목록 밖일 수 있는데, 그때 목록만 믿으면 prev/next 가
+  // 둘 다 비어 스와이프가 통째로 죽는다 → 전역 이웃으로 되돌아간다. 반대로 앨범·인물·
+  // 스토리는 경계가 계약이라 되돌아가지 않는다(이탈 방지). 그래서 호출부가 정한다.
+  const hasList = !!args.neighborIds && args.neighborIds.length > 0
   const listIndex = args.neighborIds?.indexOf(asset.id) ?? -1
-  if (args.neighborIds && args.neighborIds.length > 0 && listIndex >= 0) {
+  const useList = hasList && (listIndex >= 0 || !args.neighborFallbackToGlobal)
+  if (args.neighborIds && useList) {
     // 컬렉션 내 이동 — 전역 타임라인과 같은 스와이프 방향을 맞춘다. 전역은 nextId=그리드
     // 상 앞(이전 인덱스)·prevId=그리드상 뒤(다음 인덱스)로 매핑되므로(viewer-image 의
     // 슬라이드 배열 [next,current,prev] 기준), 목록에서도 동일하게: nextId=list[i-1],
     // prevId=list[i+1]. (반대로 하면 좌우 스와이프가 뒤집힌다.)
     const i = listIndex
     const nextId = i > 0 ? args.neighborIds[i - 1] : undefined
-    const prevId = i < args.neighborIds.length - 1 ? args.neighborIds[i + 1] : undefined
+    const prevId = i >= 0 && i < args.neighborIds.length - 1 ? args.neighborIds[i + 1] : undefined
     const ids = [prevId, nextId].filter((x): x is string => Boolean(x))
     const rows = ids.length
       ? await prismaMedia.asset.findMany({
-          where: { id: { in: ids }, familyId: args.familyId, deletedAt: null },
+          // 전역 경로와 같은 조건 — 아직 못 볼 자산(처리 중·실패)으로 넘어가면 뷰어가
+          // 스와이프 없는 안내 화면을 띄워 막다른 길이 된다.
+          where: {
+            id: { in: ids },
+            familyId: args.familyId,
+            deletedAt: null,
+            status: 'ready',
+          },
           select,
         })
       : []

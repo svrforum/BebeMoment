@@ -4,6 +4,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { loadViewerDetail } from '@/server/asset/viewer-detail'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
+import { resolveAssetUuid } from '@/server/asset/resolve-uuid'
 import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
@@ -29,7 +30,7 @@ export default async function DetailPage({
 
   const media = getMediaClient()
   // 컬렉션(추억·앨범·북마크·스토리·사람)에서 열렸으면 그 컬렉션 순서로 prev/next 를 돈다.
-  const neighborIds = await resolveNeighborIds(
+  const neighbors = await resolveNeighborIds(
     ctxParam,
     {
       familyId: ctx.family.id,
@@ -40,7 +41,9 @@ export default async function DetailPage({
     prismaPublic,
     prismaMedia,
     media,
+    await resolveAssetUuid(id, ctx.family.id, prismaMedia),
   )
+  const neighborIds = neighbors?.ids
   // loadViewerBundle = current asset + adjacent prev/next slims (shared with
   // /api/asset/[id]/viewer-bundle so client-side swipe gets identical shape).
   // sort 는 타임라인의 정렬 모드와 일치시켜 prev/next 이웃이 그리드와 어긋나지 않게.
@@ -51,6 +54,7 @@ export default async function DetailPage({
       sort,
       viewerRole: ctx.membership?.role ?? 'family',
       ...(neighborIds ? { neighborIds } : {}),
+      ...(neighbors ? { neighborFallbackToGlobal: neighbors.fallbackToGlobal } : {}),
     },
     prismaMedia,
     media,

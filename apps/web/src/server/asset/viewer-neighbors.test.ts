@@ -91,10 +91,12 @@ describe('resolveNeighborIds — timeline', () => {
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
+      second,
     )
 
     // 스토리에 담은 순서 그대로 — 시간 역순(third, second, first)이 아니다.
-    expect(ids).toEqual([first, second, third])
+    expect(ids?.ids).toEqual([first, second, third])
+    expect(ids?.fallbackToGlobal).toBe(true)
   })
 
   it('화면이 쓰는 변환과 글자 그대로 같은 순서다', async () => {
@@ -135,10 +137,11 @@ describe('resolveNeighborIds — timeline', () => {
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
+      a,
     )
-    expect(ids).toEqual(fromScreen)
+    expect(ids?.ids).toEqual(fromScreen)
     // 최신 날이 먼저, 그 날 안에서는 스토리 순서.
-    expect(ids).toEqual([loose, a, b])
+    expect(ids?.ids).toEqual([loose, a, b])
   })
 
   it('날짜 스코프 ctx 는 그 날 사진만 준다', async () => {
@@ -156,9 +159,10 @@ describe('resolveNeighborIds — timeline', () => {
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
+      onDay,
     )
-    expect(ids).toEqual([onDay])
-    expect(ids).not.toContain(otherDay)
+    expect(ids?.ids).toEqual([onDay])
+    expect(ids?.ids).not.toContain(otherDay)
   })
 
   it('알 수 없는 ctx 는 전역 이웃(undefined)으로 둔다', async () => {

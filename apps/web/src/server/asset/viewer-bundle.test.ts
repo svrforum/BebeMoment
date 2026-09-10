@@ -196,11 +196,32 @@ describe('loadViewerBundle', () => {
     // 타임라인 이웃 목록은 유한한 창이라, 깊이 스크롤해서 연 사진은 창 밖일 수 있다.
     // 그때 목록만 믿으면 prev/next 가 둘 다 사라져 스와이프가 죽는다 — 전역으로 폴백한다.
     const bundle = await loadViewerBundle(
-      { assetId: a, familyId: family.id, neighborIds: [c, b] },
+      {
+        assetId: a,
+        familyId: family.id,
+        neighborIds: [c, b],
+        neighborFallbackToGlobal: true,
+      },
       db.prismaMedia,
       new FakeMediaClient(),
     )
     expect(bundle?.nextId).toBe(b)
+    expect(bundle?.prevId).toBeUndefined()
+  })
+
+  it('경계가 있는 컬렉션은 목록 밖 자산에서 밖으로 나가지 않는다', async () => {
+    const { user, family } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'ca', new Date('2026-04-01'))
+    const b = await makeReadyAsset(family.id, user.id, 'cb', new Date('2026-04-02'))
+    const c = await makeReadyAsset(family.id, user.id, 'cc', new Date('2026-04-03'))
+    // 앨범·스토리처럼 경계가 계약인 컬렉션(fallback 미허용)에서 목록에 없는 사진을 열면
+    // 이웃 없이 둔다 — 전역으로 새면 "앨범을 벗어난다"가 된다.
+    const bundle = await loadViewerBundle(
+      { assetId: a, familyId: family.id, neighborIds: [c, b] },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(bundle?.nextId).toBeUndefined()
     expect(bundle?.prevId).toBeUndefined()
   })
 
