@@ -42,9 +42,11 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
     // Click first thumb in a bucket section → detail page
     const detailLink = page.locator('main a[href^="/detail/"]').first()
     const detailHref = await detailLink.getAttribute('href')
-    expect(detailHref).toMatch(/^\/detail\/[0-9a-f-]+$/)
+    // 타임라인 링크는 컬렉션 컨텍스트를 싣는다(?ctx=timeline) — 뷰어가 그리드와 같은
+    // 순서로 스와이프하기 위한 것. 순번 뒤에 쿼리가 붙을 수 있다.
+    expect(detailHref).toMatch(/^\/detail\/[0-9a-f-]+(\?|$)/)
     await Promise.all([
-      page.waitForURL(/\/detail\/[0-9a-f-]+$/, { timeout: 10_000 }),
+      page.waitForURL(/\/detail\/[0-9a-f-]+(\?|$)/, { timeout: 10_000 }),
       detailLink.click(),
     ])
 

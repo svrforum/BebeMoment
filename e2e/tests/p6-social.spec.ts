@@ -29,7 +29,8 @@ test.describe('P6 social smoke', () => {
 
     const detailLink = page.locator('main a[href^="/detail/"]').first()
     const href = await detailLink.getAttribute('href')
-    expect(href).toMatch(/^\/detail\/[0-9a-f-]+$/)
+    // 타임라인 링크에는 ?ctx=timeline 이 붙는다(뷰어 스와이프 순서용).
+    expect(href).toMatch(/^\/detail\/[0-9a-f-]+(\?|$)/)
     if (!href) throw new Error('detail link href missing')
     await detailLink.click()
     await page.waitForURL(/\/detail\//)
