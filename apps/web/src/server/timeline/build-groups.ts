@@ -86,12 +86,19 @@ export function buildTimelineGroups(args: {
   for (const it of storyItems) {
     if (it.kind !== 'story') continue
     const e = it.entry
-    const days = new Set(e.assets.flatMap((ea) => (ea.asset ? [dayOfAsset(ea.asset)] : [])))
-    for (const dk of days) {
-      const dayMap = storiesByDate.get(dk) ?? new Map<string, StoryCardData>()
-      if (!dayMap.has(e.id)) dayMap.set(e.id, storyCardDataFromEntry(e))
-      storiesByDate.set(dk, dayMap)
-    }
+    // 사진이 여러 날에 걸친 스토리는 **한 날에만** 얹는다. 예전엔 사진이 있는 날마다
+    // 카드를 붙여서, 이틀에 걸친 스토리가 타임라인에 같은 카드로 두 번 보였다.
+    // 기준은 사용자가 정한 스토리 날짜 — 그 날에 이 스토리 사진이 하나도 없으면
+    // (스토리 날짜만 따로 잡은 경우) 사진이 있는 가장 최근 날로 떨어뜨린다.
+    // 그러지 않으면 그 날 그룹 자체가 없어 카드가 통째로 사라진다.
+    const days = e.assets.flatMap((ea) => (ea.asset ? [dayOfAsset(ea.asset)] : []))
+    if (days.length === 0) continue
+    const entryKey = utcDayKey(e.entryDate)
+    const dk = days.includes(entryKey) ? entryKey : days.sort().at(-1)
+    if (!dk) continue
+    const dayMap = storiesByDate.get(dk) ?? new Map<string, StoryCardData>()
+    if (!dayMap.has(e.id)) dayMap.set(e.id, storyCardDataFromEntry(e))
+    storiesByDate.set(dk, dayMap)
   }
   return groups.map((g) => ({
     ...g,
