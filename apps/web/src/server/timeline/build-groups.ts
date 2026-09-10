@@ -1,4 +1,4 @@
-import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card'
+import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card-data'
 import { type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
 import type { LabelT } from '@/i18n/labels'
 import { formatDDay, groupAssetsByDay } from './group-by-day'

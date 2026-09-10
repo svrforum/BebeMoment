@@ -1,46 +1,17 @@
 import { PictureImage } from '@/components/ui/picture-image'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
-import type { AssetWithUrls } from '@/server/asset/types'
-import type { Story, StoryAsset } from '@bebe/db-public'
-import type { AssetUrls } from '@bebe/media-client'
 import { ChevronRight, ShieldCheck } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { MOODS, isMood } from './mood'
+import type { StoryCardData } from './story-card-data'
 
 // 모든 화면(타임라인·캘린더 진입·북마크·스토리목록·추억)에서 쓰는 단일 스토리 카드.
 // 대표 썸네일 1장(첫 사진) + 제목/본문 한·두 줄. 여러 썸네일은 쓰지 않는다.
-export type StoryCardData = {
-  id: string
-  publicNo: number
-  title: string | null
-  body: string
-  mood: string | null
-  visibility: string
-  /** 대표 썸네일 = 스토리의 첫 사진(order 0). 없으면 무드 이모지 폴백. */
-  cover: AssetUrls | null
-}
-
-type StoryEntryLike = Story & {
-  assets: (StoryAsset & { asset: AssetWithUrls | null })[]
-}
-
-export function storyCardDataFromEntry(entry: StoryEntryLike): StoryCardData {
-  const cover =
-    entry.assets
-      .slice()
-      .sort((a, b) => a.order - b.order)
-      .find((ea) => ea.asset)?.asset?.urls ?? null
-  return {
-    id: entry.id,
-    publicNo: entry.publicNo,
-    title: entry.title ?? null,
-    body: entry.body,
-    mood: entry.mood ?? null,
-    visibility: entry.visibility,
-    cover,
-  }
-}
+// 데이터 매퍼는 story-card-data.ts 에 있다 — 서버 모듈이 카드 하나 때문에 React 를
+// 끌고 오지 않게(타임라인 그룹 빌더가 그 매퍼만 쓴다).
+export type { StoryCardData } from './story-card-data'
+export { storyCardDataFromEntry } from './story-card-data'
 
 export function StoryCard({ data }: { data: StoryCardData }) {
   const t = useTranslations('story')

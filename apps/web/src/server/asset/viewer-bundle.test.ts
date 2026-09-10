@@ -188,6 +188,22 @@ describe('loadViewerBundle', () => {
     expect(bundle?.prevId).toBeUndefined()
   })
 
+  it('목록 창 밖에서 열린 자산은 전역 이웃으로 되돌아간다', async () => {
+    const { user, family } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'wa', new Date('2026-04-01'))
+    const b = await makeReadyAsset(family.id, user.id, 'wb', new Date('2026-04-02'))
+    const c = await makeReadyAsset(family.id, user.id, 'wc', new Date('2026-04-03'))
+    // 타임라인 이웃 목록은 유한한 창이라, 깊이 스크롤해서 연 사진은 창 밖일 수 있다.
+    // 그때 목록만 믿으면 prev/next 가 둘 다 사라져 스와이프가 죽는다 — 전역으로 폴백한다.
+    const bundle = await loadViewerBundle(
+      { assetId: a, familyId: family.id, neighborIds: [c, b] },
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(bundle?.nextId).toBe(b)
+    expect(bundle?.prevId).toBeUndefined()
+  })
+
   it('family viewer cannot open a secret-story asset, and it is excluded from global neighbors', async () => {
     const { user, family } = await setup()
     const aId = await makeReadyAsset(family.id, user.id, 'sec-a', new Date('2026-04-01'))

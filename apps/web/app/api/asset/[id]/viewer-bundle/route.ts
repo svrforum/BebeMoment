@@ -28,6 +28,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         familyId: ctx.family.id,
         userId: ctx.user.id,
         viewerRole: ctx.membership?.role ?? 'family',
+        sort,
       },
       prismaPublic,
       prismaMedia,

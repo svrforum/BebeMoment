@@ -165,6 +165,8 @@ export default async function TimelinePage({
             canDeleteSelection={canDeleteSelection}
             canAddAlbum={canAddAlbum}
             sort={sortMode}
+            // 뷰어가 이 화면과 같은 순서로 스와이프하도록 — 날짜 필터는 그 날로 스코프.
+            viewerCtx={`timeline:${dateFilter}`}
           />
         ) : null}
       </>
@@ -286,6 +288,7 @@ export default async function TimelinePage({
         canDeleteSelection={canDeleteSelection}
         canAddAlbum={canAddAlbum}
         sort={sortMode}
+        viewerCtx="timeline"
       />
     </>
   )

@@ -49,6 +49,9 @@ export async function listTimeline(
      *  `createdAt` desc — groups reflect when the item was added to the
      *  app. Cursor is mode-aware. */
     sort?: TimelineSort
+    /** false 면 signed URL 을 받지 않는다(urls=null). 순서만 필요한 호출부(뷰어 이웃
+     *  해석)가 media 왕복과 수백 건 서명을 건너뛰게 — 화면용 호출은 기본값 그대로. */
+    signUrls?: boolean
   },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
@@ -165,9 +168,11 @@ export async function listTimeline(
   )
   // 타임라인은 격자 썸네일과 스토리 카드 표지만 그린다 — display1080·원본까지 서명해
   // 내려보내면 한 페이지에 URL 텍스트만 수백 KB 다(§signed-url tiers).
-  const urlsMap = allIds.length
-    ? await media.getAssetUrlsBatch(familyId, allIds, { tiers: GRID_URL_TIERS })
-    : {}
+  const signUrls = params.signUrls ?? true
+  const urlsMap =
+    signUrls && allIds.length
+      ? await media.getAssetUrlsBatch(familyId, allIds, { tiers: GRID_URL_TIERS })
+      : {}
 
   const withUrls = (a: (typeof pageAssets)[number]): AssetWithUrls => ({
     ...a,

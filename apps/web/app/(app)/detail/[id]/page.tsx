@@ -31,7 +31,12 @@ export default async function DetailPage({
   // 컬렉션(추억·앨범·북마크·스토리·사람)에서 열렸으면 그 컬렉션 순서로 prev/next 를 돈다.
   const neighborIds = await resolveNeighborIds(
     ctxParam,
-    { familyId: ctx.family.id, userId: ctx.user.id, viewerRole: ctx.membership?.role ?? 'family' },
+    {
+      familyId: ctx.family.id,
+      userId: ctx.user.id,
+      viewerRole: ctx.membership?.role ?? 'family',
+      sort,
+    },
     prismaPublic,
     prismaMedia,
     media,
