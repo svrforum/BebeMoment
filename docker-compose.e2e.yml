@@ -1,3 +1,11 @@
+# ⚠️ 프로젝트 이름을 **파일에 박는다**. 없으면 compose 는 디렉터리 이름(bebe-moment)을
+# 프로젝트로 쓰는데, 그건 dev/라이브 스택과 같은 이름이다. 그래서 `-p` 없이
+# `docker compose -f docker-compose.e2e.yml down` 을 한 번 치면 e2e 가 아니라 **라이브
+# postgres 컨테이너**가 내려간다(2026-09-10 실제로 그렇게 내렸다. 데이터는 바인드
+# 마운트라 살았지만 인스턴스는 멈췄다). run-smoke.sh 는 `-p bebe-e2e` 를 넘기지만,
+# 사람이 직접 치는 명령까지 지켜 주지는 못한다.
+name: bebe-e2e
+
 services:
   postgres:
     image: pgvector/pgvector:pg17
