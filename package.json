@@ -23,8 +23,8 @@
     "db:studio": "pnpm --filter @bebe/db-public studio"
   },
   "devDependencies": {
-    "@biomejs/biome": "^2.4.15",
-    "typescript": "^6.0.3",
-    "vitest": "^4.1.4"
+    "@biomejs/biome": "^2.5.12",
+    "typescript": "^7.0.2",
+    "vitest": "^5.0.0"
   }
 }
