@@ -3,4 +3,4 @@
 # scikit-learn·Cython 까지 끌고 온다. 실제 런타임 의존은 requirements.txt 에 직접 적어둔다
 # (numpy·onnx·onnxruntime·opencv-headless·scikit-image·requests·tqdm).
 # 별도 파일인 이유: Dockerfile 안에 버전을 박으면 Dependabot 이 못 본다.
-insightface==1.0.1
+insightface==2.0
