@@ -3,7 +3,7 @@ uvicorn[standard]==0.52.4
 python-multipart==0.0.32
 numpy==2.5.3
 opencv-python-headless==5.0.0.93
-onnxruntime==1.29.0
+onnxruntime==1.30.0
 # insightface 가 실제로 쓰는 것들 — requirements-insightface.txt 참조.
 onnx==1.22.0
 scikit-image==0.26.0
