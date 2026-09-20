@@ -13,6 +13,7 @@ import { recallStorySlide, rememberStorySlide } from '@/lib/story-slide-memory'
 import type { AssetWithUrls } from '@/server/asset/types'
 import type { Baby, Story, StoryAsset } from '@bebe/db-public'
 import { useFamilySSE } from '@/lib/sse'
+import { utcDayKey } from '@/lib/day-key'
 import { useToast } from '@/lib/toast'
 import { LayoutGrid, Maximize2, Play, ShieldCheck, Square } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -148,7 +149,9 @@ export function StoryDetail({ entry }: { entry: Entry }) {
     .sort((a, b) => a.order - b.order)
     .filter((a) => a.asset !== null)
   const d = entry.entryDate
-  const weekdayKey = WEEKDAY_KEYS[d.getDay()] ?? 'sun'
+  // entryDate 는 UTC 자정으로 저장된다(wall-clock-as-UTC) — 로컬 getter 로 읽으면
+  // UTC 서쪽에서 하루 전으로 보인다. 리포의 다른 읽기 지점과 같이 UTC 로 읽는다.
+  const weekdayKey = WEEKDAY_KEYS[d.getUTCDay()] ?? 'sun'
   const day = t(`detail.weekday.${weekdayKey}`)
   const trimmed = entry.body.trim()
   const [activeIdx, setActiveIdx] = useState(0)
@@ -196,7 +199,7 @@ export function StoryDetail({ entry }: { entry: Entry }) {
   // 아바타 — 아기 이름의 첫 글자를 point 컬러 그라데이션 원에. 아기가 없으면
   // bullet 점. 추후 아기 프로필 사진이 생기면 여기서 보여줄 수 있음.
   const initial = entry.baby?.name?.charAt(0) ?? '·'
-  const dateLabel = `${d.getFullYear()}.${String(d.getMonth() + 1).padStart(2, '0')}.${String(d.getDate()).padStart(2, '0')}`
+  const dateLabel = utcDayKey(d).replace(/-/g, '.')
 
   // 모델 B — 스토리 사진은 여러 날에 걸칠 수 있다. 올린 날짜 아래에 "사진 N장 ·
   // 언제~언제"를 깔끔하게(takenAt 의 UTC 일자 기준).

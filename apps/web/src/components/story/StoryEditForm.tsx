@@ -7,10 +7,13 @@ import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useOrderedKeys } from '@/components/upload/use-ordered-keys'
+import { Input, Label } from '@/components/ui/input'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
+import { isSubmittableDayKey, localDayKey } from '@/lib/day-key'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import {
+  CalendarDays,
   ChevronDown,
   FolderOpen,
   Globe,
@@ -45,9 +48,12 @@ type NewAttachment = {
 }
 
 /**
- * 스토리 편집 폼 — 내용 + 사진(기기에서 직접 업로드)만. 타임라인 컴포저와 동일한
- * 업로드 메커니즘(useUploadManager + UploadEditor)을 쓴다. 제목·기분·날짜·아기 선택은
- * 노출하지 않으며, PATCH 는 body + assetIds 만 보내 기존 값(있다면)은 보존한다.
+ * 스토리 편집 폼 — 내용 + 사진(기기에서 직접 업로드) + 날짜. 타임라인 컴포저와 동일한
+ * 업로드 메커니즘(useUploadManager + UploadEditor)을 쓴다. 제목·기분·아기 선택은 여전히
+ * 노출하지 않으며, PATCH 는 바뀐 필드만 보내 기존 값(있다면)은 보존한다.
+ *
+ * 컴포저와 달리 촬영일 제안 시트는 띄우지 않는다 — 편집 화면은 사용자가 날짜를 고치러
+ * 들어오는 곳이라 되묻는 게 방해다.
  */
 export function StoryEditForm({
   entryId,
@@ -56,6 +62,7 @@ export function StoryEditForm({
   canUpload,
   viewerRole,
   defaultVisibility,
+  defaultEntryDate,
 }: {
   entryId: string
   defaultBody: string
@@ -63,6 +70,8 @@ export function StoryEditForm({
   canUpload: boolean
   viewerRole: 'owner' | 'guardian' | 'family'
   defaultVisibility: Visibility
+  /** 'YYYY-MM-DD' (UTC) — 저장된 스토리 날짜. */
+  defaultEntryDate: string
 }) {
   const router = useRouter()
   const toast = useToast()
@@ -85,6 +94,7 @@ export function StoryEditForm({
   const [body, setBody] = useState(defaultBody)
   const [visibility, setVisibility] = useState<Visibility>(defaultVisibility)
   const [visMenuOpen, setVisMenuOpen] = useState(false)
+  const [entryDate, setEntryDate] = useState(defaultEntryDate)
   const tu = useTranslations('upload')
   const [kept, setKept] = useState<ExistingAsset[]>(existingAssets)
   const [attachments, setAttachments] = useState<NewAttachment[]>([])
@@ -212,6 +222,11 @@ export function StoryEditForm({
     pauseAutoDismiss(true)
     try {
       // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
+      // 컴포저와 같은 이유 — 올린 뒤 서버가 날짜를 거절하면 실패 처리가 방금 올린
+      // 사진을 휴지통으로 되돌린다. 보내기 전에 막는다.
+      if (!isSubmittableDayKey(entryDate)) {
+        throw new Error(t('edit.entryDateInvalid'))
+      }
       if (attachments.length > 0) startStagedUploads({ notify: false })
       // 통합 순서(order)에서 신규(n:fileId)만 추려 assetId 를 모으고, 그 순서대로
       // 기존(e:assetId)과 섞어 최종 assetIds 를 만든다 — 드래그한 순서 그대로 저장.
@@ -233,6 +248,7 @@ export function StoryEditForm({
           body: trimmed || ' ',
           assetIds,
           ...(visibility !== defaultVisibility ? { visibility } : {}),
+          ...(entryDate !== defaultEntryDate ? { entryDate } : {}),
         }),
       })
       if (!res.ok) {
@@ -284,6 +300,8 @@ export function StoryEditForm({
     entryId,
     visibility,
     defaultVisibility,
+    entryDate,
+    defaultEntryDate,
     submitting,
     startStagedUploads,
     abortUploads,
@@ -394,6 +412,21 @@ export function StoryEditForm({
           onClose={() => setEditing(null)}
         />
       )}
+
+      <div className="mt-3 flex items-center gap-2">
+        <CalendarDays size={15} strokeWidth={2} className="shrink-0 text-base-400" />
+        <Label htmlFor="story-entry-date" className="mb-0 min-w-0 truncate">
+          {t('edit.entryDate')}
+        </Label>
+        <Input
+          id="story-entry-date"
+          type="date"
+          max={localDayKey()}
+          value={entryDate}
+          onChange={(e) => setEntryDate(e.target.value)}
+          className="h-9 w-auto shrink-0 rounded-xl px-3 text-[13px]"
+        />
+      </div>
 
       <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
         <div className="flex items-center gap-1">

@@ -7,8 +7,11 @@ import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
+import { Input, Label } from '@/components/ui/input'
+import { isSubmittableDayKey, localDayKey } from '@/lib/day-key'
 import { useToast } from '@/lib/toast'
 import {
+  CalendarDays,
   ChevronDown,
   FolderOpen,
   Globe,
@@ -61,7 +64,8 @@ type Attachment = {
 
 /**
  * SNS-style top-of-timeline post composer. One submit creates:
- *   1) diary entry (body + entryDate = today)
+ *   1) diary entry (body + entryDate — 기본은 오늘, 사용자가 고르거나 사진 촬영일
+ *      제안을 받아들이면 그 날짜)
  *   2) attached photos as regular media uploads (visible in the timeline
  *      grid like any other upload)
  *   3) the journal entry references those uploads via StoryAsset,
@@ -106,6 +110,7 @@ export function TimelineComposer({
   const [expanded, setExpanded] = useState(false)
   const [visibility, setVisibility] = useState<Visibility>('family')
   const [visMenuOpen, setVisMenuOpen] = useState(false)
+  const [entryDate, setEntryDate] = useState(localDayKey)
   const [editing, setEditing] = useState<{ fileId: string; dataUrl: string } | null>(null)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const anyFileInputRef = useRef<HTMLInputElement>(null)
@@ -261,6 +266,7 @@ export function TimelineComposer({
       return []
     })
     setBody('')
+    setEntryDate(localDayKey())
     setExpanded(false)
   }, [clearStaged])
 
@@ -291,6 +297,11 @@ export function TimelineComposer({
     try {
       // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다. notify:false 로 올려
       // 개별 '사진 추가' 푸시를 막는다 — 스토리 생성이 보내는 푸시 하나로 갈음(중복 방지).
+      // 사진을 올리기 전에 날짜부터 본다. 올린 뒤 서버가 거절하면 실패 처리가 이미
+      // 올라간 사진을 전부 휴지통으로 되돌린다 — 날짜 오타의 대가로는 너무 크다.
+      if (!isSubmittableDayKey(entryDate)) {
+        throw new Error(t('composer.entryDateInvalid'))
+      }
       if (attachments.length > 0) startStagedUploads({ notify: false })
       const fileIds = attachments.map((a) => a.fileId)
       // assetId 는 매니저 files 의 meta 로 들어온다. 닫힌 attachments 가 아니라
@@ -300,13 +311,12 @@ export function TimelineComposer({
         throw new Error(t('composer.uploadNotReady'))
       }
 
-      const today = new Date().toISOString().slice(0, 10)
       const res = await fetch('/api/story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           babyId,
-          entryDate: today,
+          entryDate: entryDate,
           body: trimmed || ' ',
           ...(visibility !== 'family' ? { visibility } : {}),
           ...(finalAssetIds.length > 0 ? { assetIds: finalAssetIds } : {}),
@@ -363,6 +373,7 @@ export function TimelineComposer({
     attachments,
     babyId,
     visibility,
+    entryDate,
     reset,
     router,
     toast,
@@ -512,6 +523,23 @@ export function TimelineComposer({
           onClose={() => setEditing(null)}
         />
       )}
+
+      {/* 좁은 화면(360px)에서 라벨과 날짜 컨트롤이 겹치지 않게 — 아바타 들여쓰기를 빼고
+          라벨은 줄어들 수 있게 둔다. max 는 렌더마다 계산해 자정을 넘겨도 늙지 않는다. */}
+      <div className="mt-3 flex items-center gap-2">
+        <CalendarDays size={15} strokeWidth={2} className="shrink-0 text-base-400" />
+        <Label htmlFor="composer-entry-date" className="mb-0 min-w-0 truncate">
+          {t('composer.entryDate')}
+        </Label>
+        <Input
+          id="composer-entry-date"
+          type="date"
+          max={localDayKey()}
+          value={entryDate}
+          onChange={(e) => setEntryDate(e.target.value)}
+          className="h-9 w-auto shrink-0 rounded-xl px-3 text-[13px]"
+        />
+      </div>
 
       <div className="mt-3 flex items-center justify-between border-t border-base-100 pt-3 dark:border-base-800/60">
         <div className="flex items-center gap-1">

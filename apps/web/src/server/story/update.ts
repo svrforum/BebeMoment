@@ -2,6 +2,7 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { parseEntryDate } from './entry-date'
 import { assertCanSetStoryVisibility } from './visibility-guard'
 import { z } from 'zod'
 
@@ -77,7 +78,7 @@ export async function updateStoryEntry(
 
   const data: Record<string, unknown> = {}
   if (input.patch.babyId !== undefined) data.babyId = input.patch.babyId
-  if (input.patch.entryDate) data.entryDate = new Date(`${input.patch.entryDate}T00:00:00Z`)
+  if (input.patch.entryDate) data.entryDate = parseEntryDate(input.patch.entryDate)
   if (input.patch.title !== undefined) data.title = input.patch.title
   if (input.patch.body !== undefined) data.body = input.patch.body
   if (input.patch.mood !== undefined) data.mood = input.patch.mood

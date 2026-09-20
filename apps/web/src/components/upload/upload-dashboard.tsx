@@ -1,5 +1,6 @@
 'use client'
 import { type OptimizeMode, getOptimizeMode, setOptimizeMode } from '@/lib/image-optimize'
+import { localDayKey } from '@/lib/day-key'
 import { useToast } from '@/lib/toast'
 import { ImagePlus, Images, Pencil, PencilLine, Plus, X, ZoomIn } from 'lucide-react'
 import { useTranslations } from 'next-intl'
@@ -133,7 +134,8 @@ export function UploadDashboard({
       const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
       if (assetIds.length !== fileIds.length) throw new Error(t('uploadNotFinished'))
 
-      const today = new Date().toISOString().slice(0, 10)
+      // 타임라인 컴포저와 같은 규칙 — toISOString 은 UTC 라 KST 새벽엔 어제가 된다.
+      const today = localDayKey()
       const res = await fetch('/api/story', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },

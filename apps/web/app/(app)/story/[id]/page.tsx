@@ -6,6 +6,7 @@ import { StoryEditForm } from '@/components/story/StoryEditForm'
 import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
 import { StoryShareButton } from '@/components/detail/story-share-button'
 import { getAuth } from '@/lib/auth'
+import { utcDayKey } from '@/lib/day-key'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
@@ -83,6 +84,7 @@ export default async function StoryDetailPage({
             canUpload={ctx.capabilities.includes('asset.upload')}
             viewerRole={ctx.membership?.role ?? 'family'}
             defaultVisibility={entry.visibility}
+            defaultEntryDate={utcDayKey(entry.entryDate)}
           />
         </div>
       </>

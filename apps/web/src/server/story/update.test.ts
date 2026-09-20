@@ -315,4 +315,51 @@ describe('updateStoryEntry', () => {
       ),
     ).rejects.toThrow('story.visibilityGuardianOnly')
   })
+  it('미래 entryDate 는 거절하고, 지난 날짜는 저장한다', async () => {
+    const { user, family, baby } = await setup()
+    const a = await makeReadyAsset(family.id, user.id, 'e'.repeat(64), 'upd-ed1')
+    const entry = await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        entryDate: '2026-04-01',
+        body: '본문',
+        assetIds: [a.id],
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const future = new Date(Date.now() + 5 * 86400_000).toISOString().slice(0, 10)
+    await expect(
+      updateStoryEntry(
+        {
+          id: entry.id,
+          familyId: family.id,
+          byUserId: user.id,
+          patch: { entryDate: future },
+        },
+        db.prismaPublic,
+        db.prismaMedia,
+      ),
+    ).rejects.toThrow('story.entryDateFuture')
+
+    const updated = await updateStoryEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { entryDate: '2026-03-20' },
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    expect(updated.entryDate.toISOString().slice(0, 10)).toBe('2026-03-20')
+
+    const reread = await db.prismaPublic.story.findFirst({
+      where: { id: entry.id, familyId: family.id },
+    })
+    expect(reread?.entryDate.toISOString().slice(0, 10)).toBe('2026-03-20')
+  })
 })

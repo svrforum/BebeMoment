@@ -2,6 +2,7 @@ import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import { parseEntryDate } from './entry-date'
 import { assertCanSetStoryVisibility } from './visibility-guard'
 import { z } from 'zod'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
@@ -54,10 +55,7 @@ export async function createStoryEntry(
     }
   }
 
-  const entryDate = new Date(`${input.entryDate}T00:00:00Z`)
-  if (entryDate.getTime() > Date.now() + 86400_000) {
-    throw new Error('entry_date cannot be in the future')
-  }
+  const entryDate = parseEntryDate(input.entryDate)
 
   if (input.assetIds && input.assetIds.length > 0) {
     // Status check is intentionally relaxed: composer-style flows attach

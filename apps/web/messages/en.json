@@ -393,7 +393,13 @@
       "attachFiles": "Pick from files",
       "rolledBack": "Couldn't post the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
       "rolledBackPartly": "Couldn't post the story — {count} photo(s) could not be undone. ({error})",
-      "reattach": "Please add the photos again — {count} were cleared and cannot be re-sent. ({error})"
+      "reattach": "Please add the photos again — {count} were cleared and cannot be re-sent. ({error})",
+      "entryDate": "Story date",
+      "entryDateInvalid": "Check the date — it must be today or earlier",
+      "takenDayTitle": "These photos are from {date}",
+      "takenDayBody": "{matched} of {total} photos were taken that day. Date the story then, too?",
+      "takenDayUse": "Use {date}",
+      "takenDayKeep": "Keep today"
     },
     "sort": {
       "ariaLabel": "Timeline sort",
@@ -712,7 +718,9 @@
       "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
       "attachFiles": "Pick from files",
       "rolledBack": "Couldn't save — the {count} newly uploaded photo(s) were moved to the trash. ({error})",
-      "rolledBackPartly": "Couldn't save — {count} photo(s) could not be undone. ({error})"
+      "rolledBackPartly": "Couldn't save — {count} photo(s) could not be undone. ({error})",
+      "entryDate": "Story date",
+      "entryDateInvalid": "Check the date — it must be today or earlier"
     },
     "delete": {
       "trigger": "Delete",
@@ -1848,7 +1856,9 @@
     "protectedSetting": "That setting key is protected",
     "story": {
       "visibilityGuardianOnly": "Only guardians can change story visibility",
-      "photoRequired": "Add at least one photo"
+      "photoRequired": "Add at least one photo",
+      "entryDateFuture": "A story date cannot be in the future",
+      "entryDateInvalid": "That date is not valid"
     },
     "baby": {
       "birthDateTooFar": "A birth date can't be more than a year from now"

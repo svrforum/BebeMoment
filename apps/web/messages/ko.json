@@ -393,7 +393,13 @@
       "attachFiles": "파일에서 선택",
       "rolledBack": "스토리를 올리지 못했어요 — 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
       "rolledBackPartly": "스토리를 올리지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",
-      "reattach": "사진을 다시 담아주세요 — {count}장이 정리돼 다시 올릴 수 없어요. ({error})"
+      "reattach": "사진을 다시 담아주세요 — {count}장이 정리돼 다시 올릴 수 없어요. ({error})",
+      "entryDate": "이야기 날짜",
+      "entryDateInvalid": "날짜를 확인해주세요 — 오늘까지의 날짜만 고를 수 있어요",
+      "takenDayTitle": "이 사진들, {date}에 찍었네요",
+      "takenDayBody": "사진 {total}장 중 {matched}장이 그날 찍혔어요. 스토리 날짜도 그날로 바꿀까요?",
+      "takenDayUse": "{date}로 바꾸기",
+      "takenDayKeep": "오늘로 두기"
     },
     "sort": {
       "ariaLabel": "타임라인 정렬",
@@ -712,7 +718,9 @@
       "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요",
       "attachFiles": "파일에서 선택",
       "rolledBack": "저장하지 못했어요 — 새로 올린 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
-      "rolledBackPartly": "저장하지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})"
+      "rolledBackPartly": "저장하지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",
+      "entryDate": "이야기 날짜",
+      "entryDateInvalid": "날짜를 확인해주세요 — 오늘까지의 날짜만 고를 수 있어요"
     },
     "delete": {
       "trigger": "삭제",
@@ -1848,7 +1856,9 @@
     "protectedSetting": "보호된 설정 키예요",
     "story": {
       "visibilityGuardianOnly": "비밀 스토리 설정은 보호자만 바꿀 수 있어요",
-      "photoRequired": "사진을 최소 1장 추가해주세요"
+      "photoRequired": "사진을 최소 1장 추가해주세요",
+      "entryDateFuture": "스토리 날짜는 미래로 정할 수 없어요",
+      "entryDateInvalid": "날짜가 올바르지 않아요"
     },
     "baby": {
       "birthDateTooFar": "생년월일이 1년 이후일 수 없어요"
