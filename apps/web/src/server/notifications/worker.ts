@@ -83,21 +83,28 @@ export function buildNotification(
       }
     case 'diary.created':
       return { title, body: t('diaryCreated'), url: `/story/${job.payload.entryId}` }
-    case 'growth.created':
+    case 'growth.created': {
+      // 성장기록은 타임라인에 없다 — 타임라인으로 보내면 알림을 눌러도 그 기록을 찾을 수
+      // 없다. 잡 페이로드에 babyId·recordId 가 이미 실려 있으니 그 화면으로 바로 보낸다.
+      // (이 변경 전에 큐에 들어간 잡에는 없을 수 있어 타임라인 폴백을 남긴다.)
+      const { babyId, recordId } = job.payload
       return {
         title,
         body: t('growthCreated', { baby: ctx.babyName ? `${ctx.babyName} ` : '' }),
-        url: '/timeline',
+        url: babyId && recordId ? `/babies/${babyId}/growth/${recordId}` : '/timeline',
       }
-    case 'milestone.created':
+    }
+    case 'milestone.created': {
+      const { babyId, milestoneId } = job.payload
       return {
         title,
         body: t('milestoneCreated', {
           baby: ctx.babyName ? `${ctx.babyName} ` : '',
           label: ctx.milestoneLabel ? ` · ${ctx.milestoneLabel}` : '',
         }),
-        url: '/timeline',
+        url: babyId && milestoneId ? `/babies/${babyId}/milestones/${milestoneId}` : '/timeline',
       }
+    }
     case 'memory.yearly':
     case 'memory.monthly': {
       // 잡 페이로드는 로케일을 모른다 — 간격을 구조(kind·n)로 싣고 여기서 문장으로 만든다.

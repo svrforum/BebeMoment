@@ -50,6 +50,53 @@ it('제목은 가족명, 본문은 구체 정보로 채운다', () => {
   expect(ms.body).toContain('첫 웃음')
 })
 
+it('성장기록·마일스톤 알림은 그 기록으로 데려간다', () => {
+  const fam = { familyName: 'F' }
+  const growth = buildNotification(
+    {
+      familyId: 'f',
+      actorUserId: 'a',
+      type: 'growth.created',
+      payload: { recordId: 'r1', babyId: 'b1' },
+    },
+    fam,
+    tKo,
+  )
+  // 타임라인으로 보내면 알림을 눌러도 그 기록을 찾을 수 없다(성장기록은 타임라인에 없다).
+  expect(growth.url).toBe('/babies/b1/growth/r1')
+
+  const ms = buildNotification(
+    {
+      familyId: 'f',
+      actorUserId: 'a',
+      type: 'milestone.created',
+      payload: { milestoneId: 'm1', babyId: 'b1' },
+    },
+    fam,
+    tKo,
+  )
+  expect(ms.url).toBe('/babies/b1/milestones/m1')
+})
+
+it('옛 잡처럼 id 가 없으면 타임라인으로 떨어뜨린다', () => {
+  const fam = { familyName: 'F' }
+  // 이 변경 전에 큐에 들어간 잡에는 babyId 가 없을 수 있다 — 깨진 링크보다 타임라인이 낫다.
+  expect(
+    buildNotification(
+      { familyId: 'f', actorUserId: 'a', type: 'growth.created', payload: { recordId: 'r1' } },
+      fam,
+      tKo,
+    ).url,
+  ).toBe('/timeline')
+  expect(
+    buildNotification(
+      { familyId: 'f', actorUserId: 'a', type: 'milestone.created', payload: { babyId: 'b1' } },
+      fam,
+      tKo,
+    ).url,
+  ).toBe('/timeline')
+})
+
 it('마스터 off 면 발송 안 함', async () => {
   const send = vi.fn()
   await handleNotificationJob(
