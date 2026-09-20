@@ -13,7 +13,10 @@ async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
 }
 
 beforeAll(async () => {
-  container = await new GenericContainer('minio/minio:RELEASE.2024-09-13T20-26-02Z')
+  // quay.io 에서 받는다 — MinIO 가 Docker Hub 에서 이미지를 내려 `minio/minio` 는
+  // "pull access denied ... repository does not exist" 로 거절된다(2026-09-20 CI 가
+  // 이걸로 막혔다). 같은 릴리스 태그가 quay.io 에는 그대로 있다.
+  container = await new GenericContainer('quay.io/minio/minio:RELEASE.2024-09-13T20-26-02Z')
     .withCommand(['server', '/data'])
     .withEnvironment({
       MINIO_ROOT_USER: 'minioadmin',
