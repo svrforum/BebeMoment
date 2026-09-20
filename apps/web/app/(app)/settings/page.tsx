@@ -8,7 +8,9 @@ import { ThemeToggle } from '@/components/settings/theme-toggle'
 import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { isInstanceAdminUser } from '@/lib/admin'
+import { prismaPublic } from '@/lib/db-init'
 import { getContext } from '@/server/context'
+import { growthSettingsRows } from '@/server/growth/settings-rows'
 import { parseEnv } from '@bebe/config'
 import {
   Baby,
@@ -17,6 +19,7 @@ import {
   Coffee,
   LayoutGrid,
   type LucideIcon,
+  Ruler,
   SlidersHorizontal,
   Trash2,
   Users,
@@ -69,10 +72,27 @@ export default async function SettingsPage() {
       env.ADMIN_USER_EMAILS,
     )
 
+  const babies =
+    ctx.family && ctx.capabilities.includes('record.read')
+      ? await prismaPublic.baby.findMany({
+          where: { familyId: ctx.family.id, deletedAt: null },
+          orderBy: { birthDate: 'asc' },
+          select: { id: true, name: true },
+        })
+      : []
+
   const familyRows: Row[] = [
     { href: '/family', label: t('rows.members'), sublabel: t('rows.membersSub'), icon: Users },
     { href: '/babies', label: t('rows.babies'), icon: Baby },
   ]
+
+  // 성장 기록은 '가족' 섹션에 두지 않는다 — 그 섹션은 관리자 전용이라, 기록을 볼 수 있는
+  // 나머지 구성원(record.read 는 family 역할 기본값)에게는 지름길이 생기지 않는다.
+  // 접근성을 높이려던 것이므로 권한만 보고 별도 섹션으로 낸다.
+  const growthRows: Row[] = growthSettingsRows(babies, {
+    label: () => t('rows.growth'),
+    labelForBaby: (name) => t('rows.growthForBaby', { name }),
+  }).map((row) => ({ ...row, icon: Ruler }))
 
   return (
     <>
@@ -104,6 +124,14 @@ export default async function SettingsPage() {
             </div>
           </div>
         </div>
+
+        {/* 기록 — 권한(record.read)만 보면 되므로 관리자 게이트 밖에 둔다. */}
+        {growthRows.length > 0 && (
+          <section className="space-y-2">
+            <SectionTitle>{t('sections.records')}</SectionTitle>
+            <LinkRows rows={growthRows} />
+          </section>
+        )}
 
         {/* 로그인 연동 */}
         <section className="space-y-2">

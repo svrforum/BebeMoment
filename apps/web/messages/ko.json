@@ -42,6 +42,7 @@
     "logout": "로그아웃",
     "sections": {
       "sns": "SNS 계정 연동",
+      "records": "기록",
       "family": "가족",
       "notifications": "알림",
       "display": "화면",
@@ -57,6 +58,8 @@
       "members": "가족 멤버",
       "membersSub": "구성원·초대",
       "babies": "아기 관리",
+      "growth": "성장 기록",
+      "growthForBaby": "성장 기록 · {name}",
       "push": "푸시 알림",
       "pushSub": "기기 등록 · 테스트 · 받을 알림 설정",
       "widget": "홈 위젯",
