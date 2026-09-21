@@ -61,6 +61,34 @@ describe('updateGrowthRecord', () => {
     expect(updated.note).toBe('업데이트')
   })
 
+  // 머리둘레 입력은 제거했지만 컬럼은 남겨 뒀다(옛 인스턴스의 데이터를 파괴하지 않으려고).
+  // 그 값이 다른 필드를 고치는 동안 조용히 사라지지 않는지 고정한다.
+  it('keeps a legacy head measurement when another field is edited', async () => {
+    const { user, family, baby } = await setup()
+    const rec = await createGrowthRecord(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        measuredAt: '2026-04-15',
+        weightKg: 7,
+        byUserId: user.id,
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.growthRecord.updateMany({
+      where: { id: rec.id, familyId: family.id },
+      data: { headCm: 43.1 },
+    })
+
+    const updated = await updateGrowthRecord(
+      { id: rec.id, familyId: family.id, patch: { weightKg: 7.5 }, byUserId: user.id },
+      db.prismaPublic,
+    )
+
+    expect(Number(updated.weightKg)).toBe(7.5)
+    expect(updated.headCm == null ? null : Number(updated.headCm)).toBe(43.1)
+  })
+
   it('rejects editing a record created by another user without edit.any', async () => {
     const { user, family, baby } = await setup()
     const rec = await createGrowthRecord(

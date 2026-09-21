@@ -36,7 +36,7 @@ async function setup() {
 }
 
 describe('createGrowthRecord', () => {
-  it('creates a record with all three measurements', async () => {
+  it('creates a record with both measurements', async () => {
     const { user, family, baby } = await setup()
     const rec = await createGrowthRecord(
       {
@@ -45,7 +45,6 @@ describe('createGrowthRecord', () => {
         measuredAt: '2026-04-15',
         heightCm: 65.5,
         weightKg: 7.2,
-        headCm: 43.1,
         note: '정기검진',
         byUserId: user.id,
       },
@@ -54,7 +53,6 @@ describe('createGrowthRecord', () => {
     expect(rec.familyId).toBe(family.id)
     expect(Number(rec.heightCm)).toBe(65.5)
     expect(Number(rec.weightKg)).toBe(7.2)
-    expect(Number(rec.headCm)).toBe(43.1)
   })
 
   it('allows only one measurement present', async () => {

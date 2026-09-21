@@ -27,7 +27,6 @@ export default async function NewGrowthPage({ params }: { params: Promise<{ id: 
     ? {
         heightCm: last.heightCm != null ? Number(last.heightCm) : null,
         weightKg: last.weightKg != null ? Number(last.weightKg) : null,
-        headCm: last.headCm != null ? Number(last.headCm) : null,
         measuredAt: last.measuredAt,
       }
     : null

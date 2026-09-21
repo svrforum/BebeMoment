@@ -11,12 +11,11 @@ const Input = z
     measuredAt: z.string().regex(/^\d{4}-\d{2}-\d{2}$/),
     heightCm: z.number().positive().max(200).optional(),
     weightKg: z.number().positive().max(50).optional(),
-    headCm: z.number().positive().max(80).optional(),
     note: z.string().max(500).optional(),
     byUserId: z.string().uuid(),
   })
-  .refine((v) => v.heightCm != null || v.weightKg != null || v.headCm != null, {
-    message: 'at least one measurement (heightCm / weightKg / headCm) is required',
+  .refine((v) => v.heightCm != null || v.weightKg != null, {
+    message: 'at least one measurement (heightCm / weightKg) is required',
   })
 
 export async function createGrowthRecord(
@@ -57,7 +56,6 @@ export async function createGrowthRecord(
       measuredAt: measured,
       ...(input.heightCm !== undefined ? { heightCm: input.heightCm } : {}),
       ...(input.weightKg !== undefined ? { weightKg: input.weightKg } : {}),
-      ...(input.headCm !== undefined ? { headCm: input.headCm } : {}),
       ...(input.note !== undefined ? { note: input.note } : {}),
       createdByUserId: input.byUserId,
     },

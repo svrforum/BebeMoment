@@ -16,7 +16,6 @@ type Point = {
   date: string
   height: number | null
   weight: number | null
-  head: number | null
 }
 
 function toPoints(records: GrowthRecord[]): Point[] {
@@ -24,7 +23,6 @@ function toPoints(records: GrowthRecord[]): Point[] {
     date: r.measuredAt.toISOString().slice(0, 10),
     height: r.heightCm != null ? Number(r.heightCm) : null,
     weight: r.weightKg != null ? Number(r.weightKg) : null,
-    head: r.headCm != null ? Number(r.headCm) : null,
   }))
 }
 
@@ -59,13 +57,6 @@ export function GrowthChart({ records }: { records: GrowthRecord[] }) {
             dataKey="weight"
             name={t('growth.weightKg')}
             stroke="#16a34a"
-            connectNulls
-          />
-          <Line
-            type="monotone"
-            dataKey="head"
-            name={t('growth.headCircumferenceCm')}
-            stroke="#dc2626"
             connectNulls
           />
         </LineChart>

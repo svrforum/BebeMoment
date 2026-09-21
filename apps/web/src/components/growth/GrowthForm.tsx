@@ -5,19 +5,18 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { type FormActionState, actionErrorText } from '@/lib/action-result'
 import { formatLastValue } from '@/lib/growth-format'
+import { canSubmitGrowth } from '@/lib/growth-submittable'
 
 type Defaults = {
   measuredAt?: string
   heightCm?: number | null
   weightKg?: number | null
-  headCm?: number | null
   note?: string | null
 }
 
 type LastRecord = {
   heightCm: number | null
   weightKg: number | null
-  headCm: number | null
   measuredAt: Date
 }
 
@@ -26,11 +25,14 @@ export function GrowthForm({
   defaults,
   submitLabel,
   lastRecord,
+  hasHiddenMeasurement = false,
 }: {
   action: (prev: FormActionState, fd: FormData) => Promise<FormActionState>
   defaults?: Defaults
   submitLabel?: string
   lastRecord?: LastRecord | null
+  /** 이 폼이 더는 보여주지 않는 측정값(머리둘레)을 가진 옛 기록인지. 수정 잠김 방지용. */
+  hasHiddenMeasurement?: boolean
 }) {
   const t = useTranslations('misc')
   const tRoot = useTranslations()
@@ -41,19 +43,14 @@ export function GrowthForm({
 
   const [height, setHeight] = useState(d.heightCm != null ? String(d.heightCm) : '')
   const [weight, setWeight] = useState(d.weightKg != null ? String(d.weightKg) : '')
-  const [head, setHead] = useState(d.headCm != null ? String(d.headCm) : '')
-  const [showHead, setShowHead] = useState(d.headCm != null)
 
-  const hasAny = height.trim() !== '' || weight.trim() !== '' || head.trim() !== ''
+  const hasAny = canSubmitGrowth({ height, weight, hasHiddenMeasurement })
 
   const heightHint = lastRecord
     ? formatLastValue(lastRecord.heightCm, lastRecord.measuredAt, 'cm')
     : null
   const weightHint = lastRecord
     ? formatLastValue(lastRecord.weightKg, lastRecord.measuredAt, 'kg')
-    : null
-  const headHint = lastRecord
-    ? formatLastValue(lastRecord.headCm, lastRecord.measuredAt, 'cm')
     : null
 
   return (
@@ -114,31 +111,6 @@ export function GrowthForm({
             </p>
           )}
         </div>
-      </div>
-
-      {!showHead && (
-        <Button type="button" variant="ghost" size="sm" onClick={() => setShowHead(true)}>
-          {t('growth.addHead')}
-        </Button>
-      )}
-      <div className={showHead ? '' : 'hidden'}>
-        <Label htmlFor="headCm">{t('growth.headCircumferenceCm')}</Label>
-        <Input
-          id="headCm"
-          name="headCm"
-          type="number"
-          step="0.1"
-          min="0"
-          max="80"
-          inputMode="decimal"
-          value={head}
-          onChange={(e) => setHead(e.target.value)}
-        />
-        {headHint && (
-          <p className="mt-1.5 text-xs text-base-400">
-            {t('growth.lastRecordPrefix')} · {headHint}
-          </p>
-        )}
       </div>
 
       <div>

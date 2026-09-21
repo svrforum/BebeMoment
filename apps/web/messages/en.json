@@ -977,7 +977,7 @@
       "name": "Name",
       "birthDate": "Date of birth",
       "growth": "Growth records",
-      "growthSubtitle": "Height · Weight · Head circumference",
+      "growthSubtitle": "Height · weight",
       "milestones": "Milestones",
       "milestonesSubtitle": "Development checklist",
       "addRecord": "Add record",
@@ -1601,15 +1601,11 @@
       "empty": "Add your first growth record.",
       "heightCm": "Height (cm)",
       "weightKg": "Weight (kg)",
-      "headCm": "Head (cm)",
-      "headCircumferenceCm": "Head circumference (cm)",
-      "headValue": "Head {value}cm",
       "measuredAt": "Measured on",
       "noteOptional": "Note (optional)",
       "save": "Save",
-      "addHead": "+ Add head circumference",
       "lastRecordPrefix": "Last",
-      "atLeastOne": "Enter at least one measurement"
+      "atLeastOne": "Enter at least one of height or weight"
     },
     "milestone": {
       "categoryMotor": "Motor",

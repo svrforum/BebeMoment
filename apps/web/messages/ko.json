@@ -977,7 +977,7 @@
       "name": "이름",
       "birthDate": "생년월일",
       "growth": "성장 기록",
-      "growthSubtitle": "키 · 몸무게 · 머리둘레",
+      "growthSubtitle": "키 · 몸무게",
       "milestones": "마일스톤",
       "milestonesSubtitle": "발달 체크리스트",
       "addRecord": "기록 추가",
@@ -1601,15 +1601,11 @@
       "empty": "첫 성장 기록을 남겨보세요.",
       "heightCm": "키 (cm)",
       "weightKg": "몸무게 (kg)",
-      "headCm": "머리 (cm)",
-      "headCircumferenceCm": "머리둘레 (cm)",
-      "headValue": "머리 {value}cm",
       "measuredAt": "측정일",
       "noteOptional": "메모 (선택)",
       "save": "저장",
-      "addHead": "+ 머리둘레 입력",
       "lastRecordPrefix": "지난 기록",
-      "atLeastOne": "키·몸무게·머리둘레 중 하나는 입력해주세요"
+      "atLeastOne": "키·몸무게 중 하나는 입력해주세요"
     },
     "milestone": {
       "categoryMotor": "운동",

@@ -42,9 +42,9 @@ export default async function EditGrowthPage({
                 measuredAt: rec.measuredAt.toISOString().slice(0, 10),
                 heightCm: rec.heightCm != null ? Number(rec.heightCm) : null,
                 weightKg: rec.weightKg != null ? Number(rec.weightKg) : null,
-                headCm: rec.headCm != null ? Number(rec.headCm) : null,
                 note: rec.note,
               }}
+              hasHiddenMeasurement={rec.headCm != null}
             />
           </CardBody>
         </Card>

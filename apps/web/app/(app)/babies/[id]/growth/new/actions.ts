@@ -44,7 +44,6 @@ export async function createGrowthAction(
         measuredAt: String(formData.get('measuredAt') ?? ''),
         heightCm: parseOptionalNumber(formData.get('heightCm')),
         weightKg: parseOptionalNumber(formData.get('weightKg')),
-        headCm: parseOptionalNumber(formData.get('headCm')),
         note: parseOptionalString(formData.get('note')),
         byUserId: user.id,
       },

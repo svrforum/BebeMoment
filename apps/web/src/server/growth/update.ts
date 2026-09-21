@@ -10,7 +10,6 @@ const Patch = z.object({
     .optional(),
   heightCm: z.number().positive().max(200).nullable().optional(),
   weightKg: z.number().positive().max(50).nullable().optional(),
-  headCm: z.number().positive().max(80).nullable().optional(),
   note: z.string().max(500).nullable().optional(),
 })
 
@@ -56,7 +55,7 @@ export async function updateGrowthRecord(
   const data: Record<string, unknown> = {}
   if (input.patch.measuredAt !== undefined)
     data.measuredAt = new Date(`${input.patch.measuredAt}T00:00:00Z`)
-  for (const k of ['heightCm', 'weightKg', 'headCm', 'note'] as const) {
+  for (const k of ['heightCm', 'weightKg', 'note'] as const) {
     if (input.patch[k] !== undefined) data[k] = input.patch[k]
   }
 
