@@ -497,7 +497,20 @@
       "dow4": "Thu",
       "dow5": "Fri",
       "dow6": "Sat",
-      "hasStory": "Has a story"
+      "hasStory": "Has a story",
+      "scheduleCount": "{count, plural, =1 {1 schedule} other {# schedules}}"
+    }
+  },
+  "schedule": {
+    "allDay": "All day",
+    "done": "Done",
+    "checklistProgress": "{done}/{total}",
+    "daySheet": {
+      "entries": "Schedule",
+      "noEntries": "Nothing scheduled on this day",
+      "photos": "Photos",
+      "viewAllPhotos": "See all photos",
+      "addEntry": "Add a schedule"
     }
   },
   "viewer": {

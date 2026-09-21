@@ -497,7 +497,20 @@
       "dow4": "목",
       "dow5": "금",
       "dow6": "토",
-      "hasStory": "스토리 있음"
+      "hasStory": "스토리 있음",
+      "scheduleCount": "일정 {count}건"
+    }
+  },
+  "schedule": {
+    "allDay": "종일",
+    "done": "완료",
+    "checklistProgress": "{done}/{total}",
+    "daySheet": {
+      "entries": "일정",
+      "noEntries": "이 날은 일정이 없어요",
+      "photos": "사진",
+      "viewAllPhotos": "사진 전체 보기",
+      "addEntry": "일정 추가"
     }
   },
   "viewer": {

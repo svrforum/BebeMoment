@@ -1,4 +1,5 @@
 'use client'
+import { DaySheet } from '@/components/schedule/day-sheet'
 import { cn } from '@/lib/cn'
 import { useFamilySSE } from '@/lib/sse'
 import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
@@ -48,7 +49,19 @@ function daysInMonth(year: number, month: number): Date[] {
   return days
 }
 
-export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }: Props) {
+/** 사진 버킷 키(`${y}-${m0}-${d}`)와 일정 키(`YYYY-MM-DD`)는 형식이 다르다. */
+function bucketKeyOf(day: string): string {
+  return `${Number(day.slice(0, 4))}-${Number(day.slice(5, 7)) - 1}-${Number(day.slice(8, 10))}`
+}
+
+export function MonthGrid({
+  initialYear,
+  initialMonth,
+  assets,
+  storyDays = [],
+  scheduleDays = [],
+  scheduleEntries = [],
+}: Props) {
   const t = useTranslations('timeline')
   const locale = useLocale()
   const router = useRouter()
@@ -81,6 +94,25 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
 
   const viewAssets = assets
   const storySet = useMemo(() => new Set(storyDays), [storyDays])
+  const scheduleByDay = useMemo(() => new Map(scheduleDays.map((s) => [s.day, s])), [scheduleDays])
+  const entriesByDay = useMemo(() => {
+    const m = new Map<string, ScheduleEntryView[]>()
+    for (const entry of scheduleEntries) {
+      if (!entry.onDate) continue
+      const list = m.get(entry.onDate) ?? []
+      list.push(entry)
+      m.set(entry.onDate, list)
+    }
+    return m
+  }, [scheduleEntries])
+
+  // 날짜 시트. 닫히는 애니메이션 동안 내용이 비지 않도록 날짜는 그대로 두고 open 만 내린다.
+  const [sheetDay, setSheetDay] = useState<string | null>(null)
+  const [sheetOpen, setSheetOpen] = useState(false)
+  const openDay = useCallback((day: string) => {
+    setSheetDay(day)
+    setSheetOpen(true)
+  }, [])
   // 년·월 빠른 선택 picker
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerYear, setPickerYear] = useState(initialYear)
@@ -304,6 +336,8 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
             d.getUTCFullYear() === today.getUTCFullYear() &&
             d.getUTCMonth() === today.getUTCMonth() &&
             d.getUTCDate() === today.getUTCDate()
+          const day = d.toISOString().slice(0, 10)
+          const summary = scheduleByDay.get(day)
           return (
             <DayCell
               key={d.toISOString()}
@@ -312,10 +346,24 @@ export function MonthGrid({ initialYear, initialMonth, assets, storyDays = [] }:
               isCurrentMonth={d.getUTCMonth() === month}
               isToday={isTodayCell}
               hasStory={storySet.has(key)}
+              scheduleTotal={summary?.total ?? 0}
+              scheduleRemaining={summary?.remaining ?? 0}
+              onSelect={() => openDay(day)}
             />
           )
         })}
       </div>
+      <DaySheet
+        open={sheetOpen}
+        onOpenChange={setSheetOpen}
+        day={sheetDay}
+        assets={
+          sheetDay
+            ? (byDate.get(bucketKeyOf(sheetDay)) ?? []).map((a) => ({ id: a.id, urls: a.urls }))
+            : []
+        }
+        entries={sheetDay ? (entriesByDay.get(sheetDay) ?? []) : []}
+      />
     </div>
   )
 }
