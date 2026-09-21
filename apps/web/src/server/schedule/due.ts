@@ -27,6 +27,7 @@ export type DueReminder = {
   fireAt: Date
 }
 
+/** 선점할 때 쓰는 상태. 'failed' 는 선점이 아니라 되돌림이라 markReminderFireFailed 가 쓴다. */
 export type FireState = 'sent' | 'skipped_past'
 
 function dayKeyUtc(date: Date): string {
@@ -77,9 +78,10 @@ export async function findDueReminders(
     where: {
       familyId: { in: familyIds },
       deletedAt: null,
-      doneAt: null,
+      // 완료 필터는 **날짜 한 번짜리 일정에만** 건다(§2.4). 매년 반복에 걸면 올해 회차를
+      // 체크한 순간 내년부터의 생일 알림이 영구히 죽는다 — 회차별 완료 상태가 없어서.
       OR: [
-        { onDate: { gte: utcMidnight(fromDate), lte: utcMidnight(toDate) } },
+        { onDate: { gte: utcMidnight(fromDate), lte: utcMidnight(toDate) }, doneAt: null },
         { repeatYearly: true },
       ],
     },
@@ -104,6 +106,9 @@ export async function findDueReminders(
       const spec = specOf(reminder)
       if (!spec) continue
       for (const occurrenceOn of occurrences) {
+        // 매년 반복만 완료된 채로 여기까지 온다. 완료 표시는 그 시점의 회차를 가리키므로
+        // 그날까지의 회차만 조용히 넘기고 다음 회차는 정상으로 되돌린다.
+        if (entry.doneAt && occurrenceOn <= localDayKey(entry.doneAt)) continue
         const fireAt = wallClockToInstant(reminderWallClock(occurrenceOn, entry.startMinute, spec))
         const elapsed = now.getTime() - fireAt.getTime()
         if (elapsed < 0 || elapsed > REMINDER_SKIP_MARK_MS) continue
@@ -124,10 +129,13 @@ export async function findDueReminders(
   const candidates = [...due, ...skipped]
   if (candidates.length === 0) return { due, skipped }
 
+  // 'failed' 는 선점만 하고 발송에 실패한 회차라 다시 후보다 — 그대로 걸러내면 큐가 한 번
+  // 흔들린 알림이 영영 사라진다.
   const fired = await prisma.scheduleReminderFire.findMany({
     where: {
       familyId: { in: familyIds },
       reminderId: { in: [...new Set(candidates.map((c) => c.reminderId))] },
+      state: { not: 'failed' },
     },
     select: { reminderId: true, occurrenceOn: true },
   })
@@ -149,6 +157,23 @@ export async function claimReminderFire(
   const inserted = await prisma.$executeRaw`
     INSERT INTO public.schedule_reminder_fires (reminder_id, occurrence_on, family_id, state)
     VALUES (${r.reminderId}::uuid, ${r.occurrenceOn}::date, ${r.familyId}::uuid, ${state})
-    ON CONFLICT DO NOTHING`
+    ON CONFLICT (reminder_id, occurrence_on) DO UPDATE
+      SET state = EXCLUDED.state, fired_at = CURRENT_TIMESTAMP
+      WHERE schedule_reminder_fires.state = 'failed'`
   return inserted > 0
+}
+
+/**
+ * 선점해 놓고 발송에 실패했을 때 되돌린다. 'sent' 로 남겨 두면 다음 틱이 그 회차를 영영
+ * 건너뛰어, 사용자가 직접 고른 알림이 원장·로그 양쪽에서 '보냈다'고 주장하며 사라진다.
+ */
+export async function markReminderFireFailed(r: DueReminder, prisma: PrismaClient): Promise<void> {
+  await prisma.scheduleReminderFire.updateMany({
+    where: {
+      familyId: r.familyId,
+      reminderId: r.reminderId,
+      occurrenceOn: utcMidnight(r.occurrenceOn),
+    },
+    data: { state: 'failed' },
+  })
 }

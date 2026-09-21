@@ -1,1 +1,5 @@
-export { type EnqueueNotification, enqueueNotification } from '@bebe/queue'
+export {
+  type EnqueueNotification,
+  enqueueNotification,
+  enqueueNotificationOrThrow,
+} from '@bebe/queue'

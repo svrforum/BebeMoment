@@ -143,10 +143,27 @@ export function buildNotification(
   }
 }
 
+/**
+ * 잡이 발송까지 못 간 이유를 남긴다. 조용히 return 하면 '보냈는데 안 왔다'와 '아예 안 보냈다'를
+ * 구분할 수 없고, 일정 알림은 원장이 이미 '보냄'으로 굳은 뒤라 재현 말고는 방법이 없다(§6.5.1).
+ */
+function logDrop(job: NotificationJob, reason: string, extra?: Record<string, unknown>): void {
+  logger.info(
+    { type: job.type, familyId: job.familyId, reason, ...extra },
+    'notifications: dropped',
+  )
+}
+
 export async function handleNotificationJob(job: NotificationJob, deps: Deps): Promise<void> {
-  if ((await deps.settingsGet('push.enabled')) === 'false') return
+  if ((await deps.settingsGet('push.enabled')) === 'false') {
+    logDrop(job, 'push disabled')
+    return
+  }
   const category = categoryForEvent(job.type)
-  if ((await deps.settingsGet(`push.categories.${category}.enabled`)) === 'false') return
+  if ((await deps.settingsGet(`push.categories.${category}.enabled`)) === 'false') {
+    logDrop(job, 'category disabled', { category })
+    return
+  }
 
   const { members, visibility } = await deps.loadFamily(job.familyId)
   const mentionedUserIds = parseMentionedUserIds(job.payload.mentionedUserIds)
@@ -176,7 +193,10 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
     // No pref dep wired — default enabled.
     recipients = candidates
   }
-  if (recipients.length === 0) return
+  if (recipients.length === 0) {
+    logDrop(job, 'no recipients', { category, candidates: candidates.length })
+    return
+  }
 
   const ctx = deps.enrich ? await deps.enrich(job) : { familyName: '' }
   const locale: Locale =
@@ -191,15 +211,23 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
       } catch (e) {
         const code = (e as { statusCode?: number }).statusCode
         // endpoint+userId 로 스코프 — 그 사이 다른 유저에 재등록된 endpoint 를 지우지 않게.
-        if (code === 404 || code === 410)
+        if (code === 404 || code === 410) {
           await deps.deleteSub({ endpoint: s.endpoint, userId: s.userId })
+          return
+        }
+        // 죽은 구독이 아니면 살아 있는 기기에 못 보낸 것이다 — VAPID 불일치(403)나 푸시
+        // 서비스 장애는 전원에게 같은 영향을 주는데, 로그가 없으면 흔적이 아예 남지 않는다.
+        // endpoint 는 그 자체가 비밀이라 싣지 않는다.
+        logger.error({ err: e, code, type: job.type }, 'notifications: web push send failed')
       }
     }),
   )
 
+  let tokenCount = 0
   const { deviceTokensFor, sendFcm, deleteDeviceToken } = deps
   if (deviceTokensFor && sendFcm && deleteDeviceToken) {
     const tokens = await deviceTokensFor(recipients)
+    tokenCount = tokens.length
     await Promise.all(
       tokens.map(async (t) => {
         try {
@@ -211,6 +239,15 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
           logger.error({ err: e }, 'notifications: FCM send failed')
         }
       }),
+    )
+  }
+
+  if (subs.length === 0 && tokenCount === 0) {
+    // 받을 사람은 있는데 등록된 기기가 하나도 없다 — 사용자 눈에는 '알림이 안 온다'로 보이고
+    // 일정 알림은 원장이 '보냄'으로 남아 재시도도 없다. 진단의 유일한 단서다.
+    logger.warn(
+      { type: job.type, familyId: job.familyId, recipients: recipients.length },
+      'notifications: nothing delivered — no push subscriptions',
     )
   }
 }

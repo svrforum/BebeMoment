@@ -1,6 +1,88 @@
-import { expect, it, vi } from 'vitest'
+import { afterEach, expect, it, vi } from 'vitest'
 import { getServerTranslator } from '@/i18n/translator'
+import { logger } from '@/lib/logger'
 import { buildNotification, handleNotificationJob } from './worker'
+
+afterEach(() => {
+  vi.restoreAllMocks()
+})
+
+const scheduleJob = {
+  familyId: 'f',
+  actorUserId: '',
+  type: 'schedule.reminder',
+  payload: { entryId: 'e1', title: '접종', occurrenceOn: '2026-09-24' },
+} as const
+
+const oneMember = {
+  loadFamily: async () => ({
+    members: [{ userId: 'a', role: 'owner' as const }],
+    visibility: 'family' as const,
+  }),
+  prefEnabled: async () => true,
+  send: vi.fn(),
+  deleteSub: vi.fn(),
+}
+
+it('마스터 스위치로 버린 잡은 이유를 남긴다', async () => {
+  const info = vi.spyOn(logger, 'info').mockImplementation(() => {})
+  await handleNotificationJob(scheduleJob, {
+    ...oneMember,
+    settingsGet: async (k) => (k === 'push.enabled' ? 'false' : 'true'),
+    subscriptionsFor: async () => [],
+  })
+  expect(info).toHaveBeenCalled()
+})
+
+it('카테고리가 꺼져 있어 버린 잡도 이유를 남긴다', async () => {
+  const info = vi.spyOn(logger, 'info').mockImplementation(() => {})
+  await handleNotificationJob(scheduleJob, {
+    ...oneMember,
+    settingsGet: async (k) => (k.startsWith('push.categories.') ? 'false' : 'true'),
+    subscriptionsFor: async () => [],
+  })
+  expect(info).toHaveBeenCalled()
+})
+
+it('받을 사람이 없으면 이유를 남긴다', async () => {
+  const info = vi.spyOn(logger, 'info').mockImplementation(() => {})
+  await handleNotificationJob(scheduleJob, {
+    ...oneMember,
+    settingsGet: async () => 'true',
+    prefEnabled: async () => false,
+    subscriptionsFor: async () => [],
+  })
+  expect(info).toHaveBeenCalled()
+})
+
+it('구독이 하나도 없으면 아무 것도 못 보냈다고 남긴다', async () => {
+  const warn = vi.spyOn(logger, 'warn').mockImplementation(() => {})
+  await handleNotificationJob(scheduleJob, {
+    ...oneMember,
+    settingsGet: async () => 'true',
+    subscriptionsFor: async () => [],
+  })
+  expect(warn).toHaveBeenCalled()
+})
+
+it('404·410 이 아닌 웹푸시 실패는 로그로 남긴다', async () => {
+  const error = vi.spyOn(logger, 'error').mockImplementation(() => {})
+  const deleteSub = vi.fn()
+  await handleNotificationJob(scheduleJob, {
+    ...oneMember,
+    settingsGet: async () => 'true',
+    subscriptionsFor: async () => [{ endpoint: 'ok', p256dh: 'x', auth: 'y', userId: 'a' }],
+    send: async () => {
+      // VAPID 키가 어긋나면 모든 발송이 403 으로 떨어진다 — 유일한 단서가 이 로그다.
+      const e = new Error('forbidden') as Error & { statusCode?: number }
+      e.statusCode = 403
+      throw e
+    },
+    deleteSub,
+  })
+  expect(error).toHaveBeenCalled()
+  expect(deleteSub).not.toHaveBeenCalled()
+})
 
 const tKo = getServerTranslator('ko', 'push')
 const tEn = getServerTranslator('en', 'push')

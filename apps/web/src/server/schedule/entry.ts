@@ -116,22 +116,47 @@ export async function updateScheduleEntry(
   prisma: PrismaClient,
 ): Promise<ScheduleEntry> {
   const input = UpdateInput.parse(raw)
-  await assertCanEditEntry(input.id, input.familyId, input.byUserId, prisma)
+  const before = await assertCanEditEntry(input.id, input.familyId, input.byUserId, prisma)
   const p = input.patch
+  const onDate = dateOrNull(p.onDate)
+  const startMinute = p.startMinute ?? null
   const updated = await prisma.scheduleEntry.updateMany({
     where: { id: input.id, familyId: input.familyId, deletedAt: null },
     data: {
       title: p.title,
       memo: p.memo ?? null,
-      onDate: dateOrNull(p.onDate),
-      startMinute: p.startMinute ?? null,
+      onDate,
+      startMinute,
       repeatYearly: p.repeatYearly ?? false,
       repeatUntil: dateOrNull(p.repeatUntil),
       babyId: p.babyId ?? null,
     },
   })
   if (updated.count === 0) throw new ServiceError(404, 'schedule.notFound')
+  const moved = before.onDate?.getTime() !== onDate?.getTime() || before.startMinute !== startMinute
+  if (moved) {
+    // 회차 키는 시작 날짜뿐이라, 같은 날 안에서 시간만 옮기면 이미 보낸 기록이 새 시각까지
+    // 덮어 버린다 — 그러면 미룬 일정은 영영 안 울린다. 시각이 움직였으면 기록을 비운다.
+    await clearReminderFires(input.id, input.familyId, prisma)
+  }
+  if (onDate === null) {
+    // 날짜가 사라지면 울릴 회차도 사라진다. 알림 행을 남겨 두면 화면에는 걸려 있는데 발송
+    // 경로는 그 일정을 건너뛴다(조용한 실패 금지). 원장은 cascade 로 함께 사라진다.
+    await prisma.scheduleReminder.deleteMany({
+      where: { familyId: input.familyId, entryId: input.id },
+    })
+  }
   return reload(input.id, input.familyId, prisma)
+}
+
+async function clearReminderFires(
+  entryId: string,
+  familyId: string,
+  prisma: PrismaClient,
+): Promise<void> {
+  await prisma.scheduleReminderFire.deleteMany({
+    where: { familyId, reminder: { entryId } },
+  })
 }
 
 const IdInput = z.object({

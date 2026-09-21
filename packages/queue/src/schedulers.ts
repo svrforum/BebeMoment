@@ -28,7 +28,13 @@ export type SchedulerQueue = Pick<
 export async function syncJobSchedulers(
   queue: SchedulerQueue,
   specs: readonly JobSchedulerSpec[],
-): Promise<{ upserted: string[]; removed: string[] }> {
+): Promise<{ upserted: string[]; removed: string[]; restored: string[] }> {
+  // 스케줄러는 Redis 에만 산다(이 인스턴스의 Redis 는 일회용 설정이다). 어떤 spec 이 실제로
+  // 없었는지 upsert 전에 봐 둬야, 부르는 쪽이 '조용히 사라졌다가 되살아남'을 로그로 남긴다.
+  const before = new Set(
+    (await queue.getJobSchedulers()).map((s) => s?.key).filter((k): k is string => !!k),
+  )
+  const restored = specs.filter((s) => !before.has(s.id)).map((s) => s.id)
   for (const spec of specs) {
     await queue.upsertJobScheduler(
       spec.id,
@@ -46,5 +52,5 @@ export async function syncJobSchedulers(
     await queue.removeJobScheduler(key)
     removed.push(key)
   }
-  return { upserted: specs.map((s) => s.id), removed }
+  return { upserted: specs.map((s) => s.id), removed, restored }
 }

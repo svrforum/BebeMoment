@@ -13,7 +13,7 @@ import {
   isDigestSlot,
   shouldSendImmediate,
 } from '@/server/notifications/digest'
-import { enqueueNotification } from '@/server/notifications/enqueue'
+import { enqueueNotification, enqueueNotificationOrThrow } from '@/server/notifications/enqueue'
 import {
   type FcmServiceAccount,
   getFcmAccessToken,
@@ -55,6 +55,8 @@ import webpush from 'web-push'
 import { z } from 'zod'
 
 const stringSetting = z.string()
+/** 틱 스케줄러가 Redis 에 살아 있는지 다시 보는 주기. */
+const SCHEDULER_RECHECK_MS = 5 * 60 * 1000
 // diary.created 푸시 지연 — 스토리 사진/영상이 모두 처리될 때까지 5초 간격으로 재시도하며
 // 미룬다. 영상 트랜스코딩은 사진보다 오래 걸려 3분으론 부족할 수 있어 5분(60회)까지 기다린
 // 뒤, 그래도 안 끝나면 처리가 멈췄다고 보고 그냥 발송(푸시 유실 방지).
@@ -595,11 +597,17 @@ async function main(): Promise<void> {
       if (job.name !== SCHEDULE_REMINDER_TICK_JOB) {
         throw new Error(`unknown reminder job: ${job.name}`)
       }
-      const { sent, skipped } = await runReminderTick(new Date(), prismaPublic, enqueueNotification)
+      // 실패를 삼키지 않는 enqueue 를 쓴다 — 틱은 보내기 전에 원장을 선점하므로, 큐에 못
+      // 넣은 사실이 돌아와야 그 회차를 되돌려 다음 틱에 다시 시도할 수 있다.
+      const { sent, skipped, failed } = await runReminderTick(
+        new Date(),
+        prismaPublic,
+        enqueueNotificationOrThrow,
+      )
       // 유휴 틱은 조용히 — 분당 한 줄이면 로그가 쓸모없어진다. 보낸 것과 구간을 지나
-      // 건너뛴 것은 남긴다(조용한 실패 금지 §2#6).
-      if (sent > 0 || skipped > 0) {
-        console.log(`[reminder-tick] sent=${sent} skipped_past=${skipped}`)
+      // 건너뛴 것, 큐에 못 넣은 것은 남긴다(조용한 실패 금지 §2#6).
+      if (sent > 0 || skipped > 0 || failed > 0) {
+        console.log(`[reminder-tick] sent=${sent} skipped_past=${skipped} failed=${failed}`)
       }
     },
     { connection, concurrency: 1 },
@@ -628,13 +636,30 @@ async function main(): Promise<void> {
   const notificationSync = await syncJobSchedulers(notificationQueue, [])
   // 1분마다 [now-60분, now] 구간을 훑는다. 스펙 배열에서 빠지면 다음 부팅 때 지워진다.
   const remindersQueue = new Queue(REMINDERS_QUEUE, { connection })
-  const reminderSync = await syncJobSchedulers(remindersQueue, [
+  const reminderSpecs = [
     { id: SCHEDULE_REMINDER_TICK_JOB, pattern: '* * * * *', opts: { removeOnComplete: true } },
-  ])
+  ]
+  const reminderSync = await syncJobSchedulers(remindersQueue, reminderSpecs)
   const removed = [...synced.removed, ...notificationSync.removed, ...reminderSync.removed]
   if (removed.length > 0) {
     console.log(`[notifications-worker] removed stale repeat entries: ${removed.join(', ')}`)
   }
+
+  // 틱 스케줄러는 Redis 에만 산다. 이 인스턴스의 Redis 는 일회용 설정(스냅샷만, AOF 없음)이고
+  // 업그레이드 절차는 볼륨을 비우라고 안내한다 — redis 만 새로 뜨면 앱 컨테이너는 그대로인데
+  // 알림이 통째로 멈추고, 유휴 틱은 원래 조용해서 아무도 모른다. 주기적으로 다시 맞춘다.
+  const schedulerRecheck = setInterval(() => {
+    void (async () => {
+      try {
+        const { restored } = await syncJobSchedulers(remindersQueue, reminderSpecs)
+        if (restored.length > 0) {
+          console.warn(`[reminder-tick] scheduler was missing — restored: ${restored.join(', ')}`)
+        }
+      } catch (e) {
+        console.error('[reminder-tick] scheduler recheck failed:', (e as Error).message)
+      }
+    })()
+  }, SCHEDULER_RECHECK_MS)
 
   // SIGTERM/SIGINT: 새 잡을 받지 않고 진행 중인 잡(백업은 분 단위)이 끝나길 상한까지 기다린다.
   // 예전엔 핸들러가 없어 docker stop 이 SIGKILL 로 끝냈고 잡이 반쯤 남았다.
@@ -642,6 +667,7 @@ async function main(): Promise<void> {
   const shutdown = async (signal: string): Promise<void> => {
     if (stopping) return
     stopping = true
+    clearInterval(schedulerRecheck)
     const graceMs = shutdownGraceMs(process.env.WORKER_SHUTDOWN_GRACE_MS)
     console.log(`[notifications-worker] ${signal} — closing workers (grace ${graceMs}ms)`)
     const result = await closeWithGrace(

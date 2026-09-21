@@ -175,6 +175,73 @@ describe('setScheduleReminders', () => {
     expect(fires).toBe(0)
   })
 
+  it('바뀌지 않은 알림은 id 를 지켜 발송 기록을 잃지 않는다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: 'x',
+        onDate: '2026-09-24',
+        startMinute: 600,
+      },
+      db.prismaPublic,
+    )
+    const [kept] = await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'lead', leadMinutes: 30 }],
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.scheduleReminderFire.create({
+      data: {
+        reminderId: kept?.id ?? '',
+        occurrenceOn: new Date('2026-09-24T00:00:00.000Z'),
+        familyId: family.id,
+        state: 'sent',
+      },
+    })
+    const after = await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [
+          { kind: 'lead', leadMinutes: 30 },
+          { kind: 'lead', leadMinutes: 1440 },
+        ],
+      },
+      db.prismaPublic,
+    )
+    expect(after.map((r) => r.id)).toContain(kept?.id)
+    const fires = await db.prismaPublic.scheduleReminderFire.count({
+      where: { familyId: family.id },
+    })
+    expect(fires).toBe(1)
+  })
+
+  it('날짜 없는 일정에는 알림을 걸 수 없다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '기저귀 주문' },
+      db.prismaPublic,
+    )
+    await expect(
+      setScheduleReminders(
+        {
+          entryId: entry.id,
+          familyId: family.id,
+          byUserId: user.id,
+          specs: [{ kind: 'lead', leadMinutes: 30 }],
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow('schedule.reminderNeedsDate')
+  })
+
   it('일정 수정 권한이 없으면 거절한다', async () => {
     const { user, family } = await setup()
     const viewer = await addViewer(family.id, 'v')

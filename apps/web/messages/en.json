@@ -1882,7 +1882,8 @@
       "notFound": "That schedule could not be found",
       "timeNeedsDate": "Pick a date before setting a time",
       "repeatNeedsDate": "Pick a date before turning on repeat",
-      "repeatUntilNeedsRepeat": "An end date only applies to yearly repeats"
+      "repeatUntilNeedsRepeat": "An end date only applies to yearly repeats",
+      "reminderNeedsDate": "A reminder needs the schedule to have a date"
     },
     "user": {
       "displayNameRequired": "Enter a name",

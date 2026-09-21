@@ -3,6 +3,7 @@ import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { setSetting } from '../settings/set'
+import { setScheduleReminders } from './reminders'
 import {
   createScheduleEntry,
   deleteScheduleEntry,
@@ -156,6 +157,117 @@ describe('updateScheduleEntry', () => {
         db.prismaPublic,
       ),
     ).rejects.toThrow()
+  })
+
+  it('시각을 옮기면 그 일정의 발송 기록을 지운다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: 'a',
+        onDate: '2026-09-24',
+        startMinute: 540,
+      },
+      db.prismaPublic,
+    )
+    const [reminder] = await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'lead', leadMinutes: 0 }],
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.scheduleReminderFire.create({
+      data: {
+        reminderId: reminder?.id ?? '',
+        occurrenceOn: new Date('2026-09-24T00:00:00.000Z'),
+        familyId: family.id,
+        state: 'sent',
+      },
+    })
+    // 같은 날 안에서 시간만 미뤘다 — 회차 키가 그대로라 기록을 남겨 두면 새 시각에 안 울린다.
+    await updateScheduleEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { title: 'a', onDate: '2026-09-24', startMinute: 1080 },
+      },
+      db.prismaPublic,
+    )
+    expect(
+      await db.prismaPublic.scheduleReminderFire.count({ where: { familyId: family.id } }),
+    ).toBe(0)
+    expect(await db.prismaPublic.scheduleReminder.count({ where: { familyId: family.id } })).toBe(1)
+  })
+
+  it('제목만 고치면 발송 기록은 그대로 둔다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: 'a',
+        onDate: '2026-09-24',
+        startMinute: 540,
+      },
+      db.prismaPublic,
+    )
+    const [reminder] = await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'lead', leadMinutes: 0 }],
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.scheduleReminderFire.create({
+      data: {
+        reminderId: reminder?.id ?? '',
+        occurrenceOn: new Date('2026-09-24T00:00:00.000Z'),
+        familyId: family.id,
+        state: 'sent',
+      },
+    })
+    await updateScheduleEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { title: '2차 접종', onDate: '2026-09-24', startMinute: 540 },
+      },
+      db.prismaPublic,
+    )
+    expect(
+      await db.prismaPublic.scheduleReminderFire.count({ where: { familyId: family.id } }),
+    ).toBe(1)
+  })
+
+  it('날짜를 지우면 울릴 수 없는 알림도 함께 지운다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: 'a', onDate: '2026-09-24' },
+      db.prismaPublic,
+    )
+    await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'dayBefore', daysBefore: 1, atMinute: 540 }],
+      },
+      db.prismaPublic,
+    )
+    const updated = await updateScheduleEntry(
+      { id: entry.id, familyId: family.id, byUserId: user.id, patch: { title: 'a' } },
+      db.prismaPublic,
+    )
+    expect(updated.onDate).toBeNull()
+    expect(await db.prismaPublic.scheduleReminder.count({ where: { familyId: family.id } })).toBe(0)
   })
 
   it('남의 일정은 .any 권한이 없으면 고칠 수 없다', async () => {

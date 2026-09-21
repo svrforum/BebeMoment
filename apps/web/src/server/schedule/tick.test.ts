@@ -65,7 +65,7 @@ describe('runReminderTick', () => {
     const result = await runReminderTick(NOW, db.prismaPublic, async (j) => {
       sent.push(j)
     })
-    expect(result).toEqual({ sent: 1, skipped: 0 })
+    expect(result).toEqual({ sent: 1, skipped: 0, failed: 0 })
     expect(sent).toHaveLength(1)
     expect(sent[0]?.type).toBe('schedule.reminder')
     expect(sent[0]?.familyId).toBe(family.id)
@@ -105,6 +105,58 @@ describe('runReminderTick', () => {
     expect(row?.state).toBe('skipped_past')
   })
 
+  it('큐에 넣지 못하면 보냈다고 세지 않고 실패로 남긴다', async () => {
+    const { family } = await timedSetup()
+    const result = await runReminderTick(NOW, db.prismaPublic, async () => {
+      throw new Error('redis down')
+    })
+    expect(result).toEqual({ sent: 0, skipped: 0, failed: 1 })
+    const row = await db.prismaPublic.scheduleReminderFire.findFirst({
+      where: { familyId: family.id },
+    })
+    expect(row?.state).toBe('failed')
+  })
+
+  it('실패한 회차는 다음 틱에서 다시 보낸다', async () => {
+    const { family } = await timedSetup()
+    await runReminderTick(NOW, db.prismaPublic, async () => {
+      throw new Error('redis down')
+    })
+    const sent: NotificationJob[] = []
+    const second = await runReminderTick(NOW, db.prismaPublic, async (j) => {
+      sent.push(j)
+    })
+    expect(second.sent).toBe(1)
+    expect(sent).toHaveLength(1)
+    const rows = await db.prismaPublic.scheduleReminderFire.findMany({
+      where: { familyId: family.id },
+    })
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.state).toBe('sent')
+  })
+
+  it('알림을 바꾸지 않고 일정을 다시 저장해도 두 번 보내지 않는다', async () => {
+    const { user, family, entry } = await timedSetup()
+    const sent: NotificationJob[] = []
+    const push = async (j: NotificationJob): Promise<void> => {
+      sent.push(j)
+    }
+    await runReminderTick(NOW, db.prismaPublic, push)
+    // 수정 시트는 알림 목록을 통째로 다시 보낸다 — 바뀐 게 없으면 발송 기록도 그대로여야 한다.
+    await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'lead', leadMinutes: 30 }],
+      },
+      db.prismaPublic,
+    )
+    const second = await runReminderTick(new Date(2026, 8, 24, 9, 37), db.prismaPublic, push)
+    expect(second.sent).toBe(0)
+    expect(sent).toHaveLength(1)
+  })
+
   it('보낼 것이 없으면 조용히 0을 돌려준다', async () => {
     await timedSetup()
     const sent: NotificationJob[] = []
@@ -115,7 +167,7 @@ describe('runReminderTick', () => {
         sent.push(j)
       },
     )
-    expect(result).toEqual({ sent: 0, skipped: 0 })
+    expect(result).toEqual({ sent: 0, skipped: 0, failed: 0 })
     expect(sent).toHaveLength(0)
     expect(await db.prismaPublic.scheduleReminderFire.count()).toBe(0)
   })

@@ -2,7 +2,7 @@ import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
-import { claimReminderFire, findDueReminders } from './due'
+import { claimReminderFire, findDueReminders, markReminderFireFailed } from './due'
 import { createScheduleEntry, deleteScheduleEntry, setScheduleEntryDone } from './entry'
 import { setScheduleReminders } from './reminders'
 
@@ -137,6 +137,52 @@ describe('findDueReminders', () => {
     expect(due[0]?.occurrenceOn).toBe('2026-03-05')
   })
 
+  /** 매년 반복 + 당일 오전 9시 알림. 회차는 매년 3월 5일 09:00(인스턴스 시간대). */
+  async function yearlySetup() {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: '생일',
+        onDate: '2020-03-05',
+        repeatYearly: true,
+      },
+      db.prismaPublic,
+    )
+    await setScheduleReminders(
+      {
+        entryId: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        specs: [{ kind: 'dayBefore', daysBefore: 0, atMinute: 540 }],
+      },
+      db.prismaPublic,
+    )
+    return { user, family, entry }
+  }
+
+  it('매년 반복은 올해 회차를 완료해도 내년에 다시 알린다', async () => {
+    const { user, family, entry } = await yearlySetup()
+    await db.prismaPublic.scheduleEntry.updateMany({
+      where: { id: entry.id, familyId: family.id },
+      data: { doneAt: new Date(2026, 2, 5, 20, 0), doneByUserId: user.id },
+    })
+    const { due } = await findDueReminders(new Date(2027, 2, 5, 9, 1), db.prismaPublic)
+    expect(due).toHaveLength(1)
+    expect(due[0]?.occurrenceOn).toBe('2027-03-05')
+  })
+
+  it('매년 반복에서 완료 표시한 회차는 알리지 않는다', async () => {
+    const { user, family, entry } = await yearlySetup()
+    await db.prismaPublic.scheduleEntry.updateMany({
+      where: { id: entry.id, familyId: family.id },
+      data: { doneAt: new Date(2026, 2, 5, 8, 0), doneByUserId: user.id },
+    })
+    const { due } = await findDueReminders(new Date(2026, 2, 5, 9, 1), db.prismaPublic)
+    expect(due).toHaveLength(0)
+  })
+
   it('다른 가족의 일정도 함께 찾는다', async () => {
     await timedSetup()
     await timedSetup()
@@ -162,6 +208,21 @@ describe('claimReminderFire', () => {
     await claimReminderFire(first.due[0]!, 'sent', db.prismaPublic)
     const second = await findDueReminders(now, db.prismaPublic)
     expect(second.due).toHaveLength(0)
+  })
+
+  it('발송에 실패해 failed 로 남은 회차는 다시 찾는다', async () => {
+    await timedSetup()
+    const now = new Date(2026, 8, 24, 9, 31)
+    const first = await findDueReminders(now, db.prismaPublic)
+    const target = first.due[0]!
+    expect(await claimReminderFire(target, 'sent', db.prismaPublic)).toBe(true)
+    await markReminderFireFailed(target, db.prismaPublic)
+    const second = await findDueReminders(now, db.prismaPublic)
+    expect(second.due).toHaveLength(1)
+    expect(await claimReminderFire(second.due[0]!, 'sent', db.prismaPublic)).toBe(true)
+    const rows = await db.prismaPublic.scheduleReminderFire.findMany()
+    expect(rows).toHaveLength(1)
+    expect(rows[0]?.state).toBe('sent')
   })
 
   it('건너뜀으로 기록한 회차도 다시 찾지 않는다', async () => {

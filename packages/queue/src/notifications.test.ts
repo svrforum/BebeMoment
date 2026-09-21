@@ -9,7 +9,7 @@ vi.mock('bullmq', () => ({
 }))
 vi.mock('./redis', () => ({ createRedisConnection: vi.fn(() => ({})) }))
 
-import { enqueueNotification } from './notifications'
+import { enqueueNotification, enqueueNotificationOrThrow } from './notifications'
 
 const job = {
   type: 'asset.uploaded',
@@ -29,6 +29,13 @@ describe('enqueueNotification', () => {
       job,
       expect.objectContaining({ removeOnComplete: true, removeOnFail: 100 }),
     )
+  })
+
+  it('실패를 알려야 하는 호출자는 throw 하는 변형을 쓴다', async () => {
+    // 일정 알림 틱은 보내기 전에 발송 원장을 '보냄'으로 선점한다 — enqueue 실패를 삼키면
+    // 그 회차가 영영 재시도되지 않으므로 실패가 호출자에게 닿아야 한다.
+    add.mockRejectedValueOnce(new Error('redis down'))
+    await expect(enqueueNotificationOrThrow(job)).rejects.toThrow('redis down')
   })
 
   it('enqueue 실패해도 throw 하지 않는다', async () => {

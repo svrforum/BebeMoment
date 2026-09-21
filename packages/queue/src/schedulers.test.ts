@@ -46,9 +46,24 @@ describe('syncJobSchedulers', () => {
     expect(remove.mock.calls).toEqual([['stale']])
   })
 
+  it('없던 스케줄러는 되살렸다고 보고한다', async () => {
+    // 스케줄러는 Redis 에만 산다 — 볼륨을 비우면 컨테이너가 도는 채로 조용히 사라진다.
+    // 되살아난 것을 보고해야 부르는 쪽이 로그를 남길 수 있다.
+    const { queue } = fakeQueue([{ key: 'memories-scan', name: 'memories-scan' }])
+    const result = await syncJobSchedulers(queue, [
+      { id: 'memories-scan', pattern: '0 9 * * *' },
+      { id: 'schedule-reminder-tick', pattern: '* * * * *' },
+    ])
+    expect(result.restored).toEqual(['schedule-reminder-tick'])
+  })
+
   it('키를 못 읽는 고아 항목은 건너뛴다', async () => {
     const { queue, remove } = fakeQueue([undefined])
-    await expect(syncJobSchedulers(queue, [])).resolves.toEqual({ upserted: [], removed: [] })
+    await expect(syncJobSchedulers(queue, [])).resolves.toEqual({
+      upserted: [],
+      removed: [],
+      restored: [],
+    })
     expect(remove).not.toHaveBeenCalled()
   })
 })

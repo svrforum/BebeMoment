@@ -1,5 +1,6 @@
 import type { PrismaClient, ScheduleReminder } from '@bebe/db-public'
 import { z } from 'zod'
+import { ServiceError } from '../error'
 import { assertCanEditEntry } from './entry'
 import type { ReminderSpec } from './reminder-time'
 
@@ -25,6 +26,13 @@ function specKey(spec: ReminderSpec): string {
     : `day:${spec.daysBefore}:${spec.atMinute}`
 }
 
+/** 저장된 행의 같은 키 — 유니크 인덱스가 이 셋을 알림의 정체로 취급한다. */
+function rowKey(row: Pick<ScheduleReminder, 'leadMinutes' | 'daysBefore' | 'atMinute'>): string {
+  return row.leadMinutes !== null
+    ? `lead:${row.leadMinutes}`
+    : `day:${row.daysBefore}:${row.atMinute}`
+}
+
 function dedupe(specs: ReminderSpec[]): ReminderSpec[] {
   const seen = new Set<string>()
   return specs.filter((spec) => {
@@ -36,8 +44,10 @@ function dedupe(specs: ReminderSpec[]): ReminderSpec[] {
 }
 
 /**
- * 일정의 알림 집합을 통째로 교체한다. 지워진 알림의 발송 원장은 FK cascade 로 함께 사라지는데,
- * 시각이 다른 알림은 다른 알림이므로 발송 기록이 초기화되는 게 맞다.
+ * 일정의 알림 집합을 요청한 모양으로 맞춘다. 폼이 목록 전체를 보내지만 **바뀐 것만** 건드린다 —
+ * 행을 지우면 발송 원장이 FK cascade 로 함께 사라지므로, 통째로 지우고 다시 만들면 메모 한 줄
+ * 고친 저장이 이미 보낸 알림의 기록까지 지워 같은 알림이 한 번 더 간다. 사라진 spec 만 지우고
+ * 그대로인 알림은 id 를 지켜 기록을 유지한다(시각이 다른 알림은 다른 알림이므로 그건 초기화가 맞다).
  * 중복 spec 은 삽입 전에 걸러낸다 — 유니크 인덱스에 기대면 createMany 가 통째로 실패한다.
  */
 export async function setScheduleReminders(
@@ -45,15 +55,31 @@ export async function setScheduleReminders(
   prisma: PrismaClient,
 ): Promise<ScheduleReminder[]> {
   const input = SetInput.parse(raw)
-  await assertCanEditEntry(input.entryId, input.familyId, input.byUserId, prisma)
+  const entry = await assertCanEditEntry(input.entryId, input.familyId, input.byUserId, prisma)
   const specs = dedupe(input.specs)
+  // 날짜 없는 일정에는 울릴 회차가 없다. 그냥 저장하면 화면에는 알림이 보이는데 발송 경로는
+  // 그 일정을 영영 건너뛴다 — 고장 난 걸 아무도 모르는 상태가 된다.
+  if (specs.length > 0 && !entry.onDate) {
+    throw new ServiceError(400, 'schedule.reminderNeedsDate')
+  }
+  const wanted = new Map(specs.map((spec) => [specKey(spec), spec]))
   return prisma.$transaction(async (tx) => {
-    await tx.scheduleReminder.deleteMany({
+    const existing = await tx.scheduleReminder.findMany({
       where: { familyId: input.familyId, entryId: input.entryId },
     })
-    if (specs.length > 0) {
+    const staleIds = existing.filter((row) => !wanted.has(rowKey(row))).map((row) => row.id)
+    if (staleIds.length > 0) {
+      await tx.scheduleReminder.deleteMany({
+        where: { familyId: input.familyId, id: { in: staleIds } },
+      })
+    }
+    const kept = new Set(
+      existing.filter((row) => wanted.has(rowKey(row))).map((row) => rowKey(row)),
+    )
+    const added = specs.filter((spec) => !kept.has(specKey(spec)))
+    if (added.length > 0) {
       await tx.scheduleReminder.createMany({
-        data: specs.map((spec) => ({
+        data: added.map((spec) => ({
           familyId: input.familyId,
           entryId: input.entryId,
           leadMinutes: spec.kind === 'lead' ? spec.leadMinutes : null,
