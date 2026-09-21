@@ -56,6 +56,9 @@ model User {
   issuedPasswordResets PasswordResetToken[] @relation("PasswordResetIssuedBy")
   widgetToken          WidgetToken?
   appAuthHandoffs      AppAuthHandoff[]
+  scheduleEntriesCreated ScheduleEntry[]         @relation("ScheduleEntryCreatedBy")
+  scheduleEntriesDone    ScheduleEntry[]         @relation("ScheduleEntryDoneBy")
+  scheduleChecklistDone  ScheduleChecklistItem[]
 
   @@map("users")
   @@schema("public")
@@ -215,6 +218,10 @@ model Family {
   albums         Album[]
   albumAssets    AlbumAsset[]
   albumEntries   AlbumStory[]
+  scheduleEntries        ScheduleEntry[]
+  scheduleChecklistItems ScheduleChecklistItem[]
+  scheduleReminders      ScheduleReminder[]
+  scheduleReminderFires  ScheduleReminderFire[]
 
   @@map("families")
   @@schema("public")
@@ -335,6 +342,7 @@ model Baby {
   growthRecords  GrowthRecord[]
   milestones     Milestone[]
   stories Story[]
+  scheduleEntries ScheduleEntry[]
 
   @@index([familyId])
   @@map("babies")
@@ -398,6 +406,92 @@ model GrowthRecord {
 
   @@index([familyId, babyId, measuredAt])
   @@map("growth_records")
+  @@schema("public")
+}
+
+model ScheduleEntry {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId        String    @map("family_id") @db.Uuid
+  babyId          String?   @map("baby_id") @db.Uuid
+  title           String
+  memo            String?
+  onDate          DateTime? @map("on_date") @db.Date
+  startMinute     Int?      @map("start_minute")
+  repeatYearly    Boolean   @default(false) @map("repeat_yearly")
+  repeatUntil     DateTime? @map("repeat_until") @db.Date
+  doneAt          DateTime? @map("done_at")
+  doneByUserId    String?   @map("done_by_user_id") @db.Uuid
+  createdByUserId String    @map("created_by_user_id") @db.Uuid
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+  deletedAt       DateTime? @map("deleted_at")
+
+  family    Family @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  baby      Baby?  @relation(fields: [babyId], references: [id], onDelete: SetNull)
+  createdBy User   @relation("ScheduleEntryCreatedBy", fields: [createdByUserId], references: [id])
+  doneBy    User?  @relation("ScheduleEntryDoneBy", fields: [doneByUserId], references: [id])
+
+  checklistItems ScheduleChecklistItem[]
+  reminders      ScheduleReminder[]
+
+  @@index([familyId, onDate])
+  @@index([familyId, doneAt])
+  @@index([familyId, repeatYearly])
+  @@map("schedule_entries")
+  @@schema("public")
+}
+
+model ScheduleChecklistItem {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId     String    @map("family_id") @db.Uuid
+  entryId      String    @map("entry_id") @db.Uuid
+  label        String
+  position     Int
+  doneAt       DateTime? @map("done_at")
+  doneByUserId String?   @map("done_by_user_id") @db.Uuid
+  createdAt    DateTime  @default(now()) @map("created_at")
+  updatedAt    DateTime  @updatedAt @map("updated_at")
+
+  family Family        @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  entry  ScheduleEntry @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  doneBy User?         @relation(fields: [doneByUserId], references: [id])
+
+  @@index([familyId, entryId, position])
+  @@map("schedule_checklist_items")
+  @@schema("public")
+}
+
+model ScheduleReminder {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  familyId    String   @map("family_id") @db.Uuid
+  entryId     String   @map("entry_id") @db.Uuid
+  leadMinutes Int?     @map("lead_minutes")
+  daysBefore  Int?     @map("days_before")
+  atMinute    Int?     @map("at_minute")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  family Family                @relation(fields: [familyId], references: [id], onDelete: Cascade)
+  entry  ScheduleEntry         @relation(fields: [entryId], references: [id], onDelete: Cascade)
+  fires  ScheduleReminderFire[]
+
+  @@index([familyId, entryId])
+  @@map("schedule_reminders")
+  @@schema("public")
+}
+
+model ScheduleReminderFire {
+  reminderId   String   @map("reminder_id") @db.Uuid
+  occurrenceOn DateTime @map("occurrence_on") @db.Date
+  familyId     String   @map("family_id") @db.Uuid
+  state        String
+  firedAt      DateTime @default(now()) @map("fired_at")
+
+  reminder ScheduleReminder @relation(fields: [reminderId], references: [id], onDelete: Cascade)
+  family   Family           @relation(fields: [familyId], references: [id], onDelete: Cascade)
+
+  @@id([reminderId, occurrenceOn])
+  @@index([familyId, firedAt])
+  @@map("schedule_reminder_fires")
   @@schema("public")
 }
 
