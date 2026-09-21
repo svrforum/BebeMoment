@@ -1,4 +1,5 @@
 'use client'
+import { CalendarTabs } from '@/components/calendar/calendar-tabs'
 import { DaySheet } from '@/components/schedule/day-sheet'
 import { useScheduleForm } from '@/components/schedule/entry-form-sheet'
 import { cn } from '@/lib/cn'
@@ -220,6 +221,9 @@ export function MonthGrid({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
+      <div className="mb-4">
+        <CalendarTabs current="month" />
+      </div>
       <div className="mb-5 flex items-center justify-between">
         <div className="relative flex items-baseline gap-2">
           <button

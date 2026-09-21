@@ -562,6 +562,45 @@
       "pushOff": "이 인스턴스에서 푸시 알림이 꺼져 있어 알림이 가지 않아요.",
       "pushDevice": "이 기기가 알림을 받도록 설정돼 있지 않아요.",
       "pushSettings": "알림 설정 열기"
+    },
+    "tabs": {
+      "month": "월",
+      "todo": "할 일"
+    },
+    "todo": {
+      "title": "할 일",
+      "empty": "아직 할 일이 없어요",
+      "emptyHint": "+ 를 눌러 일정이나 할 일을 만들어 보세요",
+      "noDate": "날짜 없음",
+      "markDone": "완료로 표시",
+      "markUndone": "완료 취소",
+      "saveFailed": "완료 표시를 저장하지 못했어요",
+      "group": {
+        "overdue": "지난",
+        "today": "오늘",
+        "upcoming": "예정",
+        "undated": "날짜 없음",
+        "done": "완료됨"
+      }
+    },
+    "detail": {
+      "back": "캘린더",
+      "noDate": "날짜 없음",
+      "repeatYearly": "매년 반복",
+      "repeatUntil": "{date}까지",
+      "memo": "메모",
+      "checklist": "체크리스트",
+      "checklistEmpty": "체크 항목이 없어요",
+      "reminders": "알림",
+      "remindersEmpty": "걸어 둔 알림이 없어요",
+      "markDone": "완료로 표시",
+      "markUndone": "완료 취소",
+      "doneBadge": "완료됨",
+      "edit": "수정",
+      "delete": "삭제",
+      "deleteConfirm": "이 일정을 삭제할까요?",
+      "deleteConfirmBody": "체크 항목과 걸어 둔 알림도 함께 사라져요.",
+      "saveFailed": "저장하지 못했어요"
     }
   },
   "viewer": {

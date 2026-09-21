@@ -10,6 +10,7 @@ export default function Loading() {
         </div>
       </div>
       <div className="mx-auto min-h-[68svh] max-w-md px-5 py-4 sm:max-w-lg md:max-w-xl">
+        <div className="mb-4 h-11 w-40 animate-pulse rounded-xl bg-base-100 dark:bg-base-800" />
         <div className="mb-5 flex items-center justify-between">
           <div className="h-7 w-40 animate-pulse rounded-lg bg-base-100 dark:bg-base-800" />
           <div className="flex items-center gap-1">

@@ -562,6 +562,45 @@
       "pushOff": "Push notifications are turned off on this instance, so nothing will be sent.",
       "pushDevice": "This device is not set up to receive notifications.",
       "pushSettings": "Open notification settings"
+    },
+    "tabs": {
+      "month": "Month",
+      "todo": "To-do"
+    },
+    "todo": {
+      "title": "To-do",
+      "empty": "Nothing to do yet",
+      "emptyHint": "Tap + to add a schedule or a to-do",
+      "noDate": "No date",
+      "markDone": "Mark as done",
+      "markUndone": "Mark as not done",
+      "saveFailed": "Couldn't save that change",
+      "group": {
+        "overdue": "Overdue",
+        "today": "Today",
+        "upcoming": "Upcoming",
+        "undated": "No date",
+        "done": "Done"
+      }
+    },
+    "detail": {
+      "back": "Calendar",
+      "noDate": "No date",
+      "repeatYearly": "Repeats every year",
+      "repeatUntil": "Until {date}",
+      "memo": "Memo",
+      "checklist": "Checklist",
+      "checklistEmpty": "No checklist items",
+      "reminders": "Reminders",
+      "remindersEmpty": "No reminders set",
+      "markDone": "Mark as done",
+      "markUndone": "Mark as not done",
+      "doneBadge": "Done",
+      "edit": "Edit",
+      "delete": "Delete",
+      "deleteConfirm": "Delete this schedule?",
+      "deleteConfirmBody": "Its checklist items and reminders go with it.",
+      "saveFailed": "Couldn't save"
     }
   },
   "viewer": {

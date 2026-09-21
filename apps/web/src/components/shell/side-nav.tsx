@@ -17,6 +17,7 @@ import {
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
+import { isNavActive } from './nav-active'
 
 const items: {
   href: string
@@ -89,7 +90,7 @@ export function SideNav({
       </div>
       <nav className="flex-1 space-y-1 px-3">
         {visible.map(({ href, labelKey, icon: Icon }) => {
-          const active = pathname === href || pathname?.startsWith(`${href}/`) === true
+          const active = isNavActive(pathname, href)
           return (
             <Link
               key={href}

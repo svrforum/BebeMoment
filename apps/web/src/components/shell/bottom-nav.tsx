@@ -6,6 +6,7 @@ import { Bookmark, Calendar, Clock4, FolderOpen, NotebookPen, Settings } from 'l
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { usePathname, useSearchParams } from 'next/navigation'
+import { isNavActive } from './nav-active'
 import { UnreadBadge } from './unread-badge'
 
 // 스토리를 가운데(5개 중 3번째)에. 기능 OFF 면 해당 항목이 빠지고 그리드 열수도
@@ -54,9 +55,7 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
       >
         {visible.map(({ href, labelKey, icon: Icon }) => {
-          const active = inDateView
-            ? href === '/calendar'
-            : pathname === href || pathname?.startsWith(`${href}/`) === true
+          const active = isNavActive(pathname, href, { inDateView })
           const unread = unreadCounts?.[href] ?? 0
           return (
             <Link
