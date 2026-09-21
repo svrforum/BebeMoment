@@ -294,7 +294,7 @@ it('일정 알림은 그 일정 상세로 데려간다', () => {
   ).toEqual({ title: '일정 알림', body: '접종', url: '/schedule/e1' })
 })
 
-it('일정 알림은 만든 사람을 포함해 가족 전원에게 간다', async () => {
+it('일정 알림은 만든 사람을 포함해 보호자 전원에게 간다', async () => {
   const subscriptionsFor = vi.fn(async (userIds: string[]) =>
     userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
   )
@@ -311,6 +311,7 @@ it('일정 알림은 만든 사람을 포함해 가족 전원에게 간다', asy
       loadFamily: async () => ({
         members: [
           { userId: 'a', role: 'owner' },
+          { userId: 'g', role: 'guardian' },
           { userId: 'b', role: 'family' },
         ],
         visibility: 'family',
@@ -321,10 +322,11 @@ it('일정 알림은 만든 사람을 포함해 가족 전원에게 간다', asy
       deleteSub: vi.fn(),
     },
   )
-  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'b'])
+  // 일정은 보호자 전용 기능이라, 볼 수도 없는 구성원에게 알림만 가면 안 된다.
+  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'g'])
 })
 
-it('비밀 스토리처럼 guardians 로 좁히는 가시성은 일정에 적용하지 않는다', async () => {
+it('일반 구성원은 가시성 설정과 무관하게 일정 알림을 받지 않는다', async () => {
   const subscriptionsFor = vi.fn(async (userIds: string[]) =>
     userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
   )
@@ -340,6 +342,7 @@ it('비밀 스토리처럼 guardians 로 좁히는 가시성은 일정에 적용
       loadFamily: async () => ({
         members: [
           { userId: 'a', role: 'owner' },
+          { userId: 'g', role: 'guardian' },
           { userId: 'b', role: 'family' },
         ],
         visibility: 'guardians',
@@ -350,5 +353,5 @@ it('비밀 스토리처럼 guardians 로 좁히는 가시성은 일정에 적용
       deleteSub: vi.fn(),
     },
   )
-  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'b'])
+  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'g'])
 })

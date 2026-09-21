@@ -1,4 +1,5 @@
 'use client'
+import { babyFieldMode, initialBabyId } from '@/lib/schedule-baby-field'
 import { createScheduleAction, updateScheduleAction } from '@/(app)/schedule/actions'
 import { Sheet } from '@/components/ui/sheet'
 import { Input, Label } from '@/components/ui/input'
@@ -75,7 +76,7 @@ type Draft = {
 
 // 아기를 미리 골라 두지 않는다 — 가족 일정은 아기 소속이 아니고, 자동으로 붙으면
 // 사용자가 고르지도 않은 연결이 생긴다.
-function blankDraft(day: string | null): Draft {
+function blankDraft(day: string | null, babies: ScheduleBabyOption[]): Draft {
   return {
     id: null,
     title: '',
@@ -85,13 +86,13 @@ function blankDraft(day: string | null): Draft {
     startMinute: MORNING_MINUTE,
     repeatYearly: false,
     repeatUntil: '',
-    babyId: '',
+    babyId: initialBabyId(babies, null),
     checklist: [],
     reminders: [],
   }
 }
 
-function draftOf(initial: ScheduleFormInitial): Draft {
+function draftOf(initial: ScheduleFormInitial, babies: ScheduleBabyOption[]): Draft {
   return {
     id: initial.id,
     title: initial.title,
@@ -101,7 +102,7 @@ function draftOf(initial: ScheduleFormInitial): Draft {
     startMinute: initial.startMinute ?? MORNING_MINUTE,
     repeatYearly: initial.repeatYearly,
     repeatUntil: initial.repeatUntil ?? '',
-    babyId: initial.babyId ?? '',
+    babyId: initialBabyId(babies, initial.babyId ?? null),
     checklist: initial.checklist.map((item) => ({
       key: item.id,
       id: item.id,
@@ -135,15 +136,18 @@ export function ScheduleFormProvider({
     () => ({
       canCreate,
       openCreate: (day) => {
-        setDraft((prev) => ({ serial: (prev?.serial ?? 0) + 1, value: blankDraft(day ?? null) }))
+        setDraft((prev) => ({
+          serial: (prev?.serial ?? 0) + 1,
+          value: blankDraft(day ?? null, babies),
+        }))
         setOpen(true)
       },
       openEdit: (initial) => {
-        setDraft((prev) => ({ serial: (prev?.serial ?? 0) + 1, value: draftOf(initial) }))
+        setDraft((prev) => ({ serial: (prev?.serial ?? 0) + 1, value: draftOf(initial, babies) }))
         setOpen(true)
       },
     }),
-    [canCreate],
+    [canCreate, babies],
   )
 
   return (
@@ -186,6 +190,7 @@ function EntryFormSheet({
   const [pending, startTransition] = useTransition()
 
   const patch = useCallback((next: Partial<Draft>) => setDraft((d) => ({ ...d, ...next })), [])
+  const babyMode = useMemo(() => babyFieldMode(babies), [babies])
 
   // 날짜가 사라지면 시각·반복·알림도 함께 사라진다. 남겨 두면 화면에는 걸려 있는데 발송
   // 경로는 그 일정을 영영 건너뛴다.
@@ -380,7 +385,20 @@ function EntryFormSheet({
           </div>
         )}
 
-        {babies.length > 0 && (
+        {babyMode.kind === 'fixed' && (
+          // 아기가 하나면 고를 것이 없다 — 이름만 보여주고 값은 고정한다.
+          <div>
+            <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
+            <p
+              id="schedule-baby"
+              className="flex h-12 w-full items-center rounded-2xl bg-base-100 px-4 text-[15px] text-base-900 dark:bg-base-800 dark:text-base-100"
+            >
+              {babyMode.name}
+            </p>
+          </div>
+        )}
+
+        {babyMode.kind === 'choose' && (
           <div>
             <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
             <select

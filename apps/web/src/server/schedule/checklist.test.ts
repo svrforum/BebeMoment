@@ -38,6 +38,19 @@ async function setup(name = 'F') {
   return { user, family }
 }
 
+async function addGuardian(familyId: string, tag: string) {
+  const { user } = await signup(
+    {
+      email: `${tag}-${Date.now()}-${Math.random()}@b.com`,
+      password: 'password123',
+      displayName: 'G',
+    },
+    db.prismaPublic,
+  )
+  await db.prismaPublic.membership.create({ data: { familyId, userId: user.id, role: 'guardian' } })
+  return user
+}
+
 async function addViewer(familyId: string, tag: string) {
   const { user } = await signup(
     {
@@ -176,7 +189,7 @@ describe('checklist', () => {
     expect(undone.doneByUserId).toBeNull()
   })
 
-  it('보기 권한만 있는 family 역할도 체크할 수 있다', async () => {
+  it('보호자가 아닌 구성원은 체크할 수 없다', async () => {
     const { user, family } = await setup()
     const viewer = await addViewer(family.id, 'v')
     const entry = await createScheduleEntry(
@@ -187,14 +200,33 @@ describe('checklist', () => {
       { entryId: entry.id, familyId: family.id, byUserId: user.id, label: 'a' },
       db.prismaPublic,
     )
-    const done = await setChecklistItemDone(
-      { id: item.id, familyId: family.id, byUserId: viewer.id, done: true },
-      db.prismaPublic,
-    )
-    expect(done.doneByUserId).toBe(viewer.id)
+    await expect(
+      setChecklistItemDone(
+        { id: item.id, familyId: family.id, byUserId: viewer.id, done: true },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow()
   })
 
-  it('보기 권한만 있는 family 역할은 항목을 추가할 수 없다', async () => {
+  it('만든 사람이 아닌 guardian 도 체크할 수 있다', async () => {
+    const { user, family } = await setup()
+    const guardian = await addGuardian(family.id, 'g')
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: 'x' },
+      db.prismaPublic,
+    )
+    const item = await addChecklistItem(
+      { entryId: entry.id, familyId: family.id, byUserId: user.id, label: 'a' },
+      db.prismaPublic,
+    )
+    const done = await setChecklistItemDone(
+      { id: item.id, familyId: family.id, byUserId: guardian.id, done: true },
+      db.prismaPublic,
+    )
+    expect(done.doneByUserId).toBe(guardian.id)
+  })
+
+  it('보호자가 아닌 구성원은 항목을 추가할 수 없다', async () => {
     const { user, family } = await setup()
     const viewer = await addViewer(family.id, 'v2')
     const entry = await createScheduleEntry(

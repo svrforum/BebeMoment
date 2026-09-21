@@ -167,12 +167,13 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
 
   const { members, visibility } = await deps.loadFamily(job.familyId)
   const mentionedUserIds = parseMentionedUserIds(job.payload.mentionedUserIds)
-  // 일정 알림만 기본 수신자 계산을 타지 않는다. resolveRecipients 는 작성자를 무조건 빼는데
-  // (남이 올린 사진을 알려주는 용도라서), 일정은 만든 사람이 그 일을 해야 하는 사람이다.
-  // loadFamily 가 이미 제외·정지 멤버를 걸러 주므로 남은 전원이 수신자다.
+  // 일정 알림만 기본 수신자 계산을 타지 않는다. 이유가 둘이다. resolveRecipients 는 작성자를
+  // 무조건 빼는데(남이 올린 사진을 알려주는 용도라서) 일정은 만든 사람이 그 일을 해야 하는
+  // 사람이고, 일정 자체가 보호자 전용이라 나머지 구성원은 볼 수도 없는 것을 알림으로 받으면
+  // 안 된다. loadFamily 가 제외·정지 멤버를 이미 걸러 준다.
   const candidates =
     job.type === 'schedule.reminder'
-      ? members.map((m) => m.userId)
+      ? members.filter((m) => m.role === 'owner' || m.role === 'guardian').map((m) => m.userId)
       : resolveRecipients({
           members,
           actorUserId: job.actorUserId,

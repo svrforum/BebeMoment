@@ -178,27 +178,43 @@ describe('social capabilities', () => {
 })
 
 describe('schedule capabilities', () => {
-  it('일정 보기는 family 기본 권한이다', () => {
-    expect(DEFAULT_FAMILY_CAPABILITIES).toContain('schedule.read')
+  const ALL_SCHEDULE = [
+    'schedule.read',
+    'schedule.create',
+    'schedule.edit.own',
+    'schedule.edit.any',
+    'schedule.delete.own',
+    'schedule.delete.any',
+  ] as const
+
+  it('보호자(owner·guardian)는 일정을 전부 쓸 수 있다', () => {
+    for (const cap of ALL_SCHEDULE) {
+      expect(can('owner', cap)).toBe(true)
+      expect(can('guardian', cap)).toBe(true)
+    }
   })
 
-  it('일정 작성·수정·삭제는 관리자가 family 에게 부여할 수 있다', () => {
-    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.create')
-    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.edit.own')
-    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.delete.own')
+  it('family 역할은 일정을 보지도 만들지도 못한다', () => {
+    for (const cap of ALL_SCHEDULE) {
+      expect(can('family', cap)).toBe(false)
+    }
   })
 
-  it('남의 일정 수정·삭제는 family 에게 부여할 수 없다', () => {
-    expect(GRANTABLE_FAMILY_CAPABILITIES).not.toContain('schedule.edit.any')
-    expect(GRANTABLE_FAMILY_CAPABILITIES).not.toContain('schedule.delete.any')
-    expect(can('owner', 'schedule.edit.any')).toBe(true)
-    expect(can('guardian', 'schedule.delete.any')).toBe(true)
-    expect(can('family', 'schedule.edit.any')).toBe(false)
+  it('일정은 family 기본 권한이 아니다', () => {
+    for (const cap of ALL_SCHEDULE) {
+      expect(DEFAULT_FAMILY_CAPABILITIES).not.toContain(cap)
+    }
   })
 
-  it('부여하지 않으면 family 는 일정을 만들 수 없다', () => {
-    const caps = effectiveFamilyCapabilities([])
-    expect(caps.has('schedule.read')).toBe(true)
+  it('관리자도 일정을 family 에게 부여할 수 없다 — 보호자 전용이다', () => {
+    for (const cap of ALL_SCHEDULE) {
+      expect(GRANTABLE_FAMILY_CAPABILITIES).not.toContain(cap)
+    }
+  })
+
+  it('설정에 일정 권한을 억지로 넣어도 family 에게 붙지 않는다', () => {
+    const caps = effectiveFamilyCapabilities(['schedule.read', 'schedule.create'])
+    expect(caps.has('schedule.read')).toBe(false)
     expect(caps.has('schedule.create')).toBe(false)
   })
 })

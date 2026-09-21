@@ -113,7 +113,7 @@ describe('createScheduleEntry', () => {
     ).rejects.toThrow()
   })
 
-  it('관리자가 권한을 부여하면 family 역할도 만들 수 있다', async () => {
+  it('관리자가 설정으로 권한을 줘도 family 역할은 만들 수 없다 — 보호자 전용이다', async () => {
     const { family } = await setup()
     const { user: other } = await signup(
       { email: `o2-${Date.now()}@b.com`, password: 'password123', displayName: 'O' },
@@ -122,9 +122,33 @@ describe('createScheduleEntry', () => {
     await db.prismaPublic.membership.create({
       data: { familyId: family.id, userId: other.id, role: 'family' },
     })
-    await setSetting('permissions.family', ['schedule.create'], null, db.prismaPublic)
+    // 설정 자체가 부여 가능 목록 밖의 값을 거부한다 — 저장될 길이 없다.
+    await expect(
+      setSetting('permissions.family', ['schedule.create'], null, db.prismaPublic),
+    ).rejects.toThrow()
+    await expect(
+      createScheduleEntry(
+        { familyId: family.id, byUserId: other.id, title: 'x', onDate: '2026-09-24' },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('guardian 은 일정을 만들 수 있다', async () => {
+    const { family } = await setup()
+    const { user: guardian } = await signup(
+      {
+        email: `g-${Date.now()}-${Math.random()}@b.com`,
+        password: 'password123',
+        displayName: 'G',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
     const entry = await createScheduleEntry(
-      { familyId: family.id, byUserId: other.id, title: 'x', onDate: '2026-09-24' },
+      { familyId: family.id, byUserId: guardian.id, title: 'x', onDate: '2026-09-24' },
       db.prismaPublic,
     )
     expect(entry.id).toBeTruthy()
@@ -354,7 +378,7 @@ describe('updateScheduleEntry', () => {
     expect(await db.prismaPublic.scheduleReminder.count({ where: { familyId: family.id } })).toBe(0)
   })
 
-  it('남의 일정은 .any 권한이 없으면 고칠 수 없다', async () => {
+  it('일반 구성원은 남의 일정은 물론 어떤 일정도 고칠 수 없다', async () => {
     const { user, family } = await setup()
     const entry = await createScheduleEntry(
       { familyId: family.id, byUserId: user.id, title: 'a', onDate: '2026-09-24' },
@@ -367,13 +391,36 @@ describe('updateScheduleEntry', () => {
     await db.prismaPublic.membership.create({
       data: { familyId: family.id, userId: other.id, role: 'family' },
     })
-    await setSetting('permissions.family', ['schedule.edit.own'], null, db.prismaPublic)
     await expect(
       updateScheduleEntry(
         { id: entry.id, familyId: family.id, byUserId: other.id, patch: { title: 'x' } },
         db.prismaPublic,
       ),
     ).rejects.toThrow()
+  })
+
+  it('guardian 은 남의 일정도 고칠 수 있다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: 'a', onDate: '2026-09-24' },
+      db.prismaPublic,
+    )
+    const { user: guardian } = await signup(
+      {
+        email: `g2-${Date.now()}-${Math.random()}@b.com`,
+        password: 'password123',
+        displayName: 'G',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    const updated = await updateScheduleEntry(
+      { id: entry.id, familyId: family.id, byUserId: guardian.id, patch: { title: 'x' } },
+      db.prismaPublic,
+    )
+    expect(updated.title).toBe('x')
   })
 })
 
@@ -410,7 +457,7 @@ describe('setScheduleEntryDone', () => {
     expect(undone.doneByUserId).toBeNull()
   })
 
-  it('보기 권한만 있는 family 역할도 완료할 수 있다', async () => {
+  it('일반 구성원은 완료 표시도 할 수 없다', async () => {
     const { user, family } = await setup()
     const entry = await createScheduleEntry(
       { familyId: family.id, byUserId: user.id, title: 'a' },
@@ -423,11 +470,36 @@ describe('setScheduleEntryDone', () => {
     await db.prismaPublic.membership.create({
       data: { familyId: family.id, userId: other.id, role: 'family' },
     })
-    const done = await setScheduleEntryDone(
-      { id: entry.id, familyId: family.id, byUserId: other.id, done: true },
+    await expect(
+      setScheduleEntryDone(
+        { id: entry.id, familyId: family.id, byUserId: other.id, done: true },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow()
+  })
+
+  it('guardian 은 완료 표시를 할 수 있다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: 'a' },
       db.prismaPublic,
     )
-    expect(done.doneByUserId).toBe(other.id)
+    const { user: guardian } = await signup(
+      {
+        email: `g3-${Date.now()}-${Math.random()}@b.com`,
+        password: 'password123',
+        displayName: 'G',
+      },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: guardian.id, role: 'guardian' },
+    })
+    const done = await setScheduleEntryDone(
+      { id: entry.id, familyId: family.id, byUserId: guardian.id, done: true },
+      db.prismaPublic,
+    )
+    expect(done.doneByUserId).toBe(guardian.id)
   })
 })
 
