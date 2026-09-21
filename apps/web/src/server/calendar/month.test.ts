@@ -5,6 +5,7 @@ import { createAsset } from '../asset/create'
 import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
+import { createScheduleEntry } from '../schedule/entry'
 import { createStoryEntry } from '../story/create'
 import { loadCalendarMonth } from './month'
 
@@ -16,6 +17,7 @@ afterAll(async () => {
   await db.stop()
 })
 beforeEach(async () => {
+  await db.prismaPublic.scheduleEntry.deleteMany()
   await db.prismaPublic.storyAsset.deleteMany()
   await db.prismaPublic.story.deleteMany()
   await db.prismaMedia.asset.deleteMany()
@@ -130,5 +132,21 @@ describe('loadCalendarMonth', () => {
     // 두 자산 모두 목록엔 있지만 signed URL batch 는 커버(1장)만
     expect(data.assets).toHaveLength(2)
     expect(media.calls.getAssetUrlsBatch[0]?.assetIds).toHaveLength(1)
+  })
+
+  it('그 달의 일정을 같은 페이로드에 싣는다', async () => {
+    const { user, family } = await setup()
+    await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '예방접종', onDate: '2026-05-10' },
+      db.prismaPublic,
+    )
+    const data = await loadCalendarMonth(
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(data.scheduleDays).toEqual([{ day: '2026-05-10', total: 1, remaining: 1 }])
+    expect(data.scheduleEntries.map((e) => e.title)).toEqual(['예방접종'])
   })
 })

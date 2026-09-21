@@ -1,16 +1,26 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
+import {
+  type ScheduleDaySummary,
+  type ScheduleEntryView,
+  listScheduleMonth,
+} from '@/server/schedule/list'
 import { GRID_URL_TIERS, type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
 import type { MediaClient } from '@bebe/media-client'
 
 export type CalendarAsset = { id: string; takenAtISO: string; urls: GridAssetUrls | null }
-export type CalendarMonth = { assets: CalendarAsset[]; storyDays: string[] }
+export type CalendarMonth = {
+  assets: CalendarAsset[]
+  storyDays: string[]
+  scheduleDays: ScheduleDaySummary[]
+  scheduleEntries: ScheduleEntryView[]
+}
 
 const dayKeyOf = (d: Date): string => `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
 
 /**
- * 한 달치 캘린더 데이터(날짜별 커버 1장 + 스토리 뱃지 일자)를 조달한다. takenAt 범위로
+ * 한 달치 캘린더 데이터(날짜별 커버 1장 + 스토리 뱃지 일자 + 그 달 일정)를 조달한다. takenAt 범위로
  * 스코프해 — 전역 take:500 으로 오래된 사진이 조용히 누락되던 문제 해결(가족이 사진을
  * 많이 쌓아도 보이는 달은 항상 완전). 커버 signed URL 도 그 달의 날짜 수로만 fan-out.
  * year/month 는 UTC 0-based month.
@@ -24,6 +34,9 @@ export async function loadCalendarMonth(
   const { familyId, year, month, viewerRole } = args
   const start = new Date(Date.UTC(year, month, 1))
   const end = new Date(Date.UTC(year, month + 1, 1))
+
+  // 일정은 이 SSR 페이로드에 함께 싣는다 — 이 화면에는 클라이언트 데이터 페칭이 없다.
+  const schedule = await listScheduleMonth({ familyId, year, month }, prismaPublic)
 
   // 비밀 스토리(guardians) 사진은 family 에게 커버·뱃지 모두에서 숨긴다.
   const hidden = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId)
@@ -93,5 +106,7 @@ export async function loadCalendarMonth(
       urls: toGridUrls(urlsMap[a.id]),
     })),
     storyDays: Array.from(storyDayKeys),
+    scheduleDays: schedule.days,
+    scheduleEntries: schedule.entries,
   }
 }

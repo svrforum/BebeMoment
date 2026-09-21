@@ -25,7 +25,7 @@ export default async function CalendarPage({
   const m = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : null
   const year = m ? Number(m.slice(0, 4)) : now.getUTCFullYear()
   const month = m ? Number(m.slice(5, 7)) - 1 : now.getUTCMonth()
-  const { assets, storyDays } = await loadCalendarMonth(
+  const { assets, storyDays, scheduleDays, scheduleEntries } = await loadCalendarMonth(
     { familyId: ctx.family.id, year, month, viewerRole: ctx.membership?.role ?? 'family' },
     prismaMedia,
     prismaPublic,
@@ -37,7 +37,14 @@ export default async function CalendarPage({
       <PullToRefresh />
       <AppHeader title={t('calendar.title')} />
       <div className="section-enter">
-        <MonthGrid initialYear={year} initialMonth={month} storyDays={storyDays} assets={assets} />
+        <MonthGrid
+          initialYear={year}
+          initialMonth={month}
+          storyDays={storyDays}
+          assets={assets}
+          scheduleDays={scheduleDays}
+          scheduleEntries={scheduleEntries}
+        />
       </div>
     </>
   )

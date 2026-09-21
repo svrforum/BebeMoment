@@ -1,6 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { useFamilySSE } from '@/lib/sse'
+import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
@@ -20,6 +21,10 @@ type Props = {
   assets: Asset[]
   /** 스토리가 있는 UTC 일자 키(`${y}-${m0}-${d}`, m0=0-based). 모델 B. */
   storyDays?: string[]
+  /** 그 달 일정의 날짜별 요약. 키는 `YYYY-MM-DD` — storyDays 와 형식이 다르다. */
+  scheduleDays?: ScheduleDaySummary[]
+  /** 그 달 일정의 회차 목록(매년 반복은 그 해 날짜로 전개된 상태). */
+  scheduleEntries?: ScheduleEntryView[]
 }
 
 // 날짜는 전부 UTC 로 다룬다 — takenAt 은 촬영 벽시계 시각을 UTC 로 저장하므로,
