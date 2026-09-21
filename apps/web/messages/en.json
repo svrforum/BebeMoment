@@ -1877,6 +1877,13 @@
     "milestone": {
       "duplicate": "That milestone is already recorded"
     },
+    "schedule": {
+      "forbidden": "You do not have permission to manage schedules",
+      "notFound": "That schedule could not be found",
+      "timeNeedsDate": "Pick a date before setting a time",
+      "repeatNeedsDate": "Pick a date before turning on repeat",
+      "repeatUntilNeedsRepeat": "An end date only applies to yearly repeats"
+    },
     "user": {
       "displayNameRequired": "Enter a name",
       "displayNameTooLong": "Your name must be 60 characters or fewer"
