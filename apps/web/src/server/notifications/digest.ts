@@ -1,3 +1,5 @@
+import type { NotificationEventType } from '@bebe/core'
+
 export type DeliverySettings = {
   mode: 'immediate' | 'digest'
   interval: 'hourly' | 'every3h' | 'daily'
@@ -45,4 +47,22 @@ export function isDigestSlot(
   if (s.interval === 'hourly') return true
   if (s.interval === 'every3h') return hour % 3 === 0
   return hour === s.dailyHour // daily
+}
+
+/**
+ * 발송 방식 게이트(다이제스트 모드·조용한 시간)를 면제하는 이벤트.
+ *
+ * - `digest.summary`·`memory.*` — 이미 예약/요약이라 다시 묶을 게 없다.
+ * - `comment.created` — 개인 멘션이라 브로드캐스트로 묶지 않는다(야간 보류는 호출부가 따로).
+ * - `schedule.reminder` — 사용자가 시각을 직접 고른 알림이라 늦게 오면 장애다. 면제하지 않으면
+ *   다이제스트 모드에서 **모든 시각에** 막히는데, 다이제스트 집계는 일정을 세지 않으므로
+ *   그 알림은 로그 한 줄 없이 영구히 사라진다.
+ */
+export function isDeliveryExempt(type: NotificationEventType): boolean {
+  return (
+    type === 'digest.summary' ||
+    type.startsWith('memory.') ||
+    type === 'comment.created' ||
+    type === 'schedule.reminder'
+  )
 }

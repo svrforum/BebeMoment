@@ -194,3 +194,79 @@ it('FCM 미설정(deps 없음)이면 FCM 발송 시도 안 함', async () => {
   // No FCM deps provided → no throw, job completes.
   expect(send).not.toHaveBeenCalled()
 })
+
+it('일정 알림은 그 일정 상세로 데려간다', () => {
+  // `/calendar` 로 보내면 서비스 워커가 열려 있는 캘린더 창을 찾아 포커스만 하고 이동하지
+  // 않아 엉뚱한 달을 보게 된다 — 반드시 상세 경로여야 한다.
+  expect(
+    buildNotification(
+      {
+        familyId: 'f',
+        actorUserId: '',
+        type: 'schedule.reminder',
+        payload: { entryId: 'e1', title: '접종', occurrenceOn: '2026-09-24' },
+      },
+      { familyName: 'F' },
+      tKo,
+    ),
+  ).toEqual({ title: '일정 알림', body: '접종', url: '/schedule/e1' })
+})
+
+it('일정 알림은 만든 사람을 포함해 가족 전원에게 간다', async () => {
+  const subscriptionsFor = vi.fn(async (userIds: string[]) =>
+    userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
+  )
+  await handleNotificationJob(
+    {
+      familyId: 'f',
+      // 일정을 만든 사람이 보통 그 일을 해야 하는 사람이다 — 기본 경로처럼 빼면 안 된다.
+      actorUserId: 'a',
+      type: 'schedule.reminder',
+      payload: { entryId: 'e1', title: '접종', occurrenceOn: '2026-09-24' },
+    },
+    {
+      settingsGet: async () => 'true',
+      loadFamily: async () => ({
+        members: [
+          { userId: 'a', role: 'owner' },
+          { userId: 'b', role: 'family' },
+        ],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor,
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+    },
+  )
+  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'b'])
+})
+
+it('비밀 스토리처럼 guardians 로 좁히는 가시성은 일정에 적용하지 않는다', async () => {
+  const subscriptionsFor = vi.fn(async (userIds: string[]) =>
+    userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
+  )
+  await handleNotificationJob(
+    {
+      familyId: 'f',
+      actorUserId: '',
+      type: 'schedule.reminder',
+      payload: { entryId: 'e1', title: '접종', occurrenceOn: '2026-09-24' },
+    },
+    {
+      settingsGet: async () => 'true',
+      loadFamily: async () => ({
+        members: [
+          { userId: 'a', role: 'owner' },
+          { userId: 'b', role: 'family' },
+        ],
+        visibility: 'guardians',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor,
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+    },
+  )
+  expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'b'])
+})

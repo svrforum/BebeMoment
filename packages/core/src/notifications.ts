@@ -38,6 +38,12 @@ export function categoryForEvent(t: NotificationEventType): NotificationCategory
 }
 
 export const NOTIFICATIONS_QUEUE = 'notifications'
+/**
+ * 일정 알림 틱 전용 큐. 유지보수 큐(concurrency 1)에 넣으면 몇 분씩 도는 백업 뒤에 틱이
+ * 줄을 서서, 사용자가 시각을 고른 알림이 늦는다.
+ */
+export const REMINDERS_QUEUE = 'reminders'
+export const SCHEDULE_REMINDER_TICK_JOB = 'schedule-reminder-tick'
 export type NotificationJob = {
   familyId: string
   actorUserId: string

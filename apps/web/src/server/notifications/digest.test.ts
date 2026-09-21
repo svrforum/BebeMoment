@@ -3,6 +3,7 @@ import {
   DEFAULT_DELIVERY,
   type DeliverySettings,
   inQuietHours,
+  isDeliveryExempt,
   isDigestSlot,
   shouldSendImmediate,
 } from './digest'
@@ -73,5 +74,26 @@ describe('isDigestSlot', () => {
       quietEnd: 8,
     })
     expect(isDigestSlot(d, 2, 'k', null)).toBe(false)
+  })
+})
+
+describe('isDeliveryExempt', () => {
+  it('이미 예약·요약된 알림은 발송 방식 게이트를 면제한다', () => {
+    expect(isDeliveryExempt('digest.summary')).toBe(true)
+    expect(isDeliveryExempt('memory.yearly')).toBe(true)
+    expect(isDeliveryExempt('memory.monthly')).toBe(true)
+    expect(isDeliveryExempt('comment.created')).toBe(true)
+  })
+
+  it('사용자가 시각을 직접 고른 일정 알림도 면제한다', () => {
+    // 면제하지 않으면 다이제스트 모드에서 모든 시각에 막히고, 다이제스트 집계는 일정을
+    // 세지 않아 알림이 영구히 사라진다.
+    expect(isDeliveryExempt('schedule.reminder')).toBe(true)
+  })
+
+  it('가족 콘텐츠 알림은 면제하지 않는다', () => {
+    expect(isDeliveryExempt('asset.uploaded')).toBe(false)
+    expect(isDeliveryExempt('diary.created')).toBe(false)
+    expect(isDeliveryExempt('growth.created')).toBe(false)
   })
 })

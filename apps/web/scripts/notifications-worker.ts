@@ -9,6 +9,7 @@ import {
   DEFAULT_DELIVERY,
   type DeliverySettings,
   inQuietHours,
+  isDeliveryExempt,
   isDigestSlot,
   shouldSendImmediate,
 } from '@/server/notifications/digest'
@@ -30,6 +31,7 @@ import { handleNotificationJob } from '@/server/notifications/worker'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
+import { runReminderTick } from '@/server/schedule/tick'
 import { purgeStaleWidgetTokens } from '@/server/widget/token'
 import {
   DEFAULT_FACE_CLUSTER_DISTANCE,
@@ -37,6 +39,8 @@ import {
   FACE_CLUSTER_DISTANCE_MIN,
   NOTIFICATIONS_QUEUE,
   type NotificationJob,
+  REMINDERS_QUEUE,
+  SCHEDULE_REMINDER_TICK_JOB,
 } from '@bebe/core'
 import type { NotifContext } from '@/server/notifications/worker'
 import { decideStoryPush } from '@/server/notifications/story-readiness'
@@ -453,8 +457,7 @@ async function main(): Promise<void> {
       // 멘션은 개인 대상이라 브로드캐스트로 묶지 않고 즉시 발송(야간 보류는 적용). 그 외
       // 가족 콘텐츠 이벤트는 다이제스트 모드면 즉시 발송 안 하고(스캔이 모아 보냄).
       const t = job.data.type
-      const digestExempt =
-        t === 'digest.summary' || t.startsWith('memory.') || t === 'comment.created'
+      const digestExempt = isDeliveryExempt(t)
       const delivery = await readDeliverySettings()
       const hour = new Date().getHours()
       if (t === 'comment.created') {
@@ -584,6 +587,27 @@ async function main(): Promise<void> {
     console.error(`[maintenance-worker] job ${job?.name} failed:`, err)
   })
 
+  // 일정 알림 틱은 전용 큐에서 돈다 — 유지보수 큐에 넣으면 concurrency 1 뒤에서 몇 분씩 도는
+  // 백업이 끝나길 기다리느라 사용자가 직접 고른 시각을 놓친다.
+  const reminders = new Worker(
+    REMINDERS_QUEUE,
+    async (job: Job) => {
+      if (job.name !== SCHEDULE_REMINDER_TICK_JOB) {
+        throw new Error(`unknown reminder job: ${job.name}`)
+      }
+      const { sent, skipped } = await runReminderTick(new Date(), prismaPublic, enqueueNotification)
+      // 유휴 틱은 조용히 — 분당 한 줄이면 로그가 쓸모없어진다. 보낸 것과 구간을 지나
+      // 건너뛴 것은 남긴다(조용한 실패 금지 §2#6).
+      if (sent > 0 || skipped > 0) {
+        console.log(`[reminder-tick] sent=${sent} skipped_past=${skipped}`)
+      }
+    },
+    { connection, concurrency: 1 },
+  )
+  reminders.on('failed', (job, err) => {
+    console.error(`[reminder-tick] job ${job?.name} failed:`, err)
+  })
+
   // 반복 작업은 스케줄러 id 고정 → 멱등(재기동해도 하나만). 크론은 컨테이너 로컬시각
   // 기준이라 TZ=Asia/Seoul 이 걸려 있어야 의도한 시각에 돈다(§16).
   const maintenanceQueue = new Queue(MAINTENANCE_QUEUE, { connection })
@@ -602,7 +626,12 @@ async function main(): Promise<void> {
   // 반복 잡이 하나도 없어야 하므로 통째로 걷어낸다(안 그러면 알림 워커가 모르는 잡을 받는다).
   const notificationQueue = new Queue(NOTIFICATIONS_QUEUE, { connection })
   const notificationSync = await syncJobSchedulers(notificationQueue, [])
-  const removed = [...synced.removed, ...notificationSync.removed]
+  // 1분마다 [now-60분, now] 구간을 훑는다. 스펙 배열에서 빠지면 다음 부팅 때 지워진다.
+  const remindersQueue = new Queue(REMINDERS_QUEUE, { connection })
+  const reminderSync = await syncJobSchedulers(remindersQueue, [
+    { id: SCHEDULE_REMINDER_TICK_JOB, pattern: '* * * * *', opts: { removeOnComplete: true } },
+  ])
+  const removed = [...synced.removed, ...notificationSync.removed, ...reminderSync.removed]
   if (removed.length > 0) {
     console.log(`[notifications-worker] removed stale repeat entries: ${removed.join(', ')}`)
   }
@@ -615,12 +644,19 @@ async function main(): Promise<void> {
     stopping = true
     const graceMs = shutdownGraceMs(process.env.WORKER_SHUTDOWN_GRACE_MS)
     console.log(`[notifications-worker] ${signal} — closing workers (grace ${graceMs}ms)`)
-    const result = await closeWithGrace([() => worker.close(), () => maintenance.close()], graceMs)
+    const result = await closeWithGrace(
+      [() => worker.close(), () => maintenance.close(), () => reminders.close()],
+      graceMs,
+    )
     if (result === 'timed-out') {
       console.error('[notifications-worker] grace period exceeded — forcing close')
-      await Promise.allSettled([worker.close(true), maintenance.close(true)])
+      await Promise.allSettled([worker.close(true), maintenance.close(true), reminders.close(true)])
     }
-    await Promise.allSettled([notificationQueue.close(), maintenanceQueue.close()])
+    await Promise.allSettled([
+      notificationQueue.close(),
+      maintenanceQueue.close(),
+      remindersQueue.close(),
+    ])
     connection.disconnect()
     process.exit(result === 'closed' ? 0 : 1)
   }
