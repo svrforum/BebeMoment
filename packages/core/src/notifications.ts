@@ -4,6 +4,7 @@ export const NOTIFICATION_CATEGORIES = [
   'album_add',
   'diary_growth_milestone',
   'memory',
+  'schedule_reminder',
 ] as const
 export type NotificationCategory = (typeof NOTIFICATION_CATEGORIES)[number]
 
@@ -17,6 +18,7 @@ export type NotificationEventType =
   | 'memory.yearly'
   | 'memory.monthly'
   | 'digest.summary'
+  | 'schedule.reminder'
 
 const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'asset.uploaded': 'asset_upload',
@@ -29,6 +31,7 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'memory.monthly': 'memory',
   // 다이제스트 요약 — 새 사진 묶음 알림이라 사진 카테고리로 게이팅.
   'digest.summary': 'asset_upload',
+  'schedule.reminder': 'schedule_reminder',
 }
 export function categoryForEvent(t: NotificationEventType): NotificationCategory {
   return EVENT_CATEGORY[t]

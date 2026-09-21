@@ -132,6 +132,14 @@ export function buildNotification(
       else body = t('digestEmpty')
       return { title, body, url: '/timeline' }
     }
+    case 'schedule.reminder':
+      // url 은 반드시 일정 상세다. `/calendar` 로 보내면 서비스 워커가 이미 열려 있는
+      // 캘린더 창을 url.includes() 로 찾아 포커스만 하고 이동하지 않아 엉뚱한 달을 보게 된다.
+      return {
+        title: t('scheduleReminder.title'),
+        body: job.payload.title ?? t('scheduleReminder.title'),
+        url: `/schedule/${job.payload.entryId}`,
+      }
   }
 }
 

@@ -56,3 +56,10 @@ describe('resolveFeatureFlags', () => {
     expect(input).toEqual({ 'features.likes': false })
   })
 })
+
+describe('schedule 플래그', () => {
+  it('일정 기능은 기본으로 켜져 있다', () => {
+    expect(FEATURE_FLAGS).toContain('schedule')
+    expect(DEFAULT_FEATURE_FLAGS.schedule).toBe(true)
+  })
+})

@@ -14,6 +14,7 @@ const CATEGORY_LABEL_KEYS: { category: NotificationCategory; key: string }[] = [
   { category: 'album_add', key: 'albumAdd' },
   { category: 'diary_growth_milestone', key: 'diaryGrowthMilestone' },
   { category: 'memory', key: 'memory' },
+  { category: 'schedule_reminder', key: 'scheduleReminder' },
 ]
 
 type Props = {

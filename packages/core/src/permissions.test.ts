@@ -1,5 +1,7 @@
 import { describe, expect, it } from 'vitest'
 import {
+  DEFAULT_FAMILY_CAPABILITIES,
+  GRANTABLE_FAMILY_CAPABILITIES,
   type Role,
   can,
   capabilitiesForRole,
@@ -172,5 +174,31 @@ describe('social capabilities', () => {
     ['family', 'social.comment.delete.any', false],
   ] as const)('%s can %s → %s', (role, cap, expected) => {
     expect(can(role, cap)).toBe(expected)
+  })
+})
+
+describe('schedule capabilities', () => {
+  it('일정 보기는 family 기본 권한이다', () => {
+    expect(DEFAULT_FAMILY_CAPABILITIES).toContain('schedule.read')
+  })
+
+  it('일정 작성·수정·삭제는 관리자가 family 에게 부여할 수 있다', () => {
+    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.create')
+    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.edit.own')
+    expect(GRANTABLE_FAMILY_CAPABILITIES).toContain('schedule.delete.own')
+  })
+
+  it('남의 일정 수정·삭제는 family 에게 부여할 수 없다', () => {
+    expect(GRANTABLE_FAMILY_CAPABILITIES).not.toContain('schedule.edit.any')
+    expect(GRANTABLE_FAMILY_CAPABILITIES).not.toContain('schedule.delete.any')
+    expect(can('owner', 'schedule.edit.any')).toBe(true)
+    expect(can('guardian', 'schedule.delete.any')).toBe(true)
+    expect(can('family', 'schedule.edit.any')).toBe(false)
+  })
+
+  it('부여하지 않으면 family 는 일정을 만들 수 없다', () => {
+    const caps = effectiveFamilyCapabilities([])
+    expect(caps.has('schedule.read')).toBe(true)
+    expect(caps.has('schedule.create')).toBe(false)
   })
 })

@@ -23,6 +23,7 @@ const CATEGORY_KEYS: Record<NotificationCategory, string> = {
   album_add: 'albumAdd',
   diary_growth_milestone: 'diaryGrowthMilestone',
   memory: 'memory',
+  schedule_reminder: 'scheduleReminder',
 }
 
 type Props = {

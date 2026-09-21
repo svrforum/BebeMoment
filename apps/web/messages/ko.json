@@ -1300,6 +1300,10 @@
         "faces": {
           "label": "얼굴 인식 (실험적)",
           "description": "사진에서 얼굴을 인식해 사람별로 모아줘요. 켜면 모델을 받고 CPU 로 처리해요."
+        },
+        "schedule": {
+          "label": "일정",
+          "description": "캘린더에 일정과 할 일을 적고 알림을 받을 수 있어요."
         }
       },
       "save": "저장",
@@ -1375,7 +1379,8 @@
         "commentMention": "댓글·멘션",
         "albumAdd": "앨범 추가",
         "diaryGrowthMilestone": "스토리·성장·마일스톤",
-        "memory": "추억"
+        "memory": "추억",
+        "scheduleReminder": "일정 알림"
       },
       "vapidHeading": "VAPID 키",
       "vapidConfigured": "키가 설정되어 있어요.",
@@ -1697,6 +1702,9 @@
     "intervalYear": "{n}년",
     "intervalMonth": "{n}개월",
     "intervalUnknown": "예전",
+    "scheduleReminder": {
+      "title": "일정 알림"
+    },
     "testTitle": "베베 모먼트",
     "testBody": "테스트 알림이 잘 도착했어요! 🎉"
   },

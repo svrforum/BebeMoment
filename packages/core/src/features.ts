@@ -10,6 +10,7 @@ export const FEATURE_FLAGS = [
   'albums',
   'share',
   'faces',
+  'schedule',
 ] as const
 
 export type FeatureFlag = (typeof FEATURE_FLAGS)[number]
@@ -24,6 +25,7 @@ export const DEFAULT_FEATURE_FLAGS: FeatureFlags = {
   albums: true,
   share: true,
   faces: false,
+  schedule: true,
 }
 
 /** 설정 맵(부분)을 받아 누락 키는 기본값(켜짐)으로 채운 완전한 플래그 집합을 만든다. */

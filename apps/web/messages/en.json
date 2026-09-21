@@ -1300,6 +1300,10 @@
         "faces": {
           "label": "Face recognition (experimental)",
           "description": "Groups photos by person. Downloads a model and processes on the CPU when on."
+        },
+        "schedule": {
+          "label": "Schedule",
+          "description": "Keep schedule entries and to-dos on a calendar and get reminders."
         }
       },
       "save": "Save",
@@ -1375,7 +1379,8 @@
         "commentMention": "Comments & mentions",
         "albumAdd": "Album additions",
         "diaryGrowthMilestone": "Stories, growth & milestones",
-        "memory": "Memories"
+        "memory": "Memories",
+        "scheduleReminder": "Schedule reminders"
       },
       "vapidHeading": "VAPID keys",
       "vapidConfigured": "Keys are configured.",
@@ -1697,6 +1702,9 @@
     "intervalYear": "{n, plural, one {# year} other {# years}}",
     "intervalMonth": "{n, plural, one {# month} other {# months}}",
     "intervalUnknown": "a while",
+    "scheduleReminder": {
+      "title": "Schedule reminder"
+    },
     "testTitle": "Bebe Moment",
     "testBody": "Your test notification arrived! 🎉"
   },
