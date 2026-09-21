@@ -18,6 +18,8 @@ type Props = {
   day: string | null
   assets: Asset[]
   entries: ScheduleEntryView[]
+  /** 일정 기능이 꺼져 있으면 섹션을 통째로 숨긴다. */
+  showEntries?: boolean
   /** 그 날짜가 채워진 작성 시트를 여는 훅. 없으면 '일정 추가' 를 그리지 않는다. */
   onAddEntry?: ((day: string) => void) | undefined
 }
@@ -30,7 +32,15 @@ function minuteLabel(minute: number, locale: string): string {
 }
 
 /** 그날의 일정과 사진을 한 화면에 모은 요약 시트. 날짜 칸을 누르면 열린다. */
-export function DaySheet({ open, onOpenChange, day, assets, entries, onAddEntry }: Props) {
+export function DaySheet({
+  open,
+  onOpenChange,
+  day,
+  assets,
+  entries,
+  showEntries = true,
+  onAddEntry,
+}: Props) {
   const t = useTranslations('schedule')
   const tc = useTranslations('timeline')
   const locale = useLocale()
@@ -49,54 +59,56 @@ export function DaySheet({ open, onOpenChange, day, assets, entries, onAddEntry 
     <Sheet open={open} onOpenChange={onOpenChange} title={title}>
       {day && (
         <div className="space-y-5 pb-2">
-          <section>
-            <h3 className="mb-2 text-[13px] font-semibold text-base-500 dark:text-base-400">
-              {t('daySheet.entries')}
-            </h3>
-            {entries.length === 0 ? (
-              <p className="py-3 text-[14px] text-base-400">{t('daySheet.noEntries')}</p>
-            ) : (
-              <ul className="space-y-1.5">
-                {entries.map((entry) => (
-                  <li
-                    key={entry.id}
-                    className="flex items-center gap-3 rounded-2xl bg-base-50 px-3 py-2.5 dark:bg-base-800/60"
-                  >
-                    <span className="w-[68px] shrink-0 text-[12px] font-medium tabular-nums text-base-500 dark:text-base-400">
-                      {entry.startMinute === null
-                        ? t('allDay')
-                        : minuteLabel(entry.startMinute, locale)}
-                    </span>
-                    <span
-                      className={cn(
-                        'min-w-0 flex-1 truncate text-[14px] font-medium text-base-900 dark:text-base-50',
-                        entry.doneAt !== null && 'text-base-400 line-through dark:text-base-500',
-                      )}
+          {showEntries && (
+            <section>
+              <h3 className="mb-2 text-[13px] font-semibold text-base-500 dark:text-base-400">
+                {t('daySheet.entries')}
+              </h3>
+              {entries.length === 0 ? (
+                <p className="py-3 text-[14px] text-base-400">{t('daySheet.noEntries')}</p>
+              ) : (
+                <ul className="space-y-1.5">
+                  {entries.map((entry) => (
+                    <li
+                      key={entry.id}
+                      className="flex items-center gap-3 rounded-2xl bg-base-50 px-3 py-2.5 dark:bg-base-800/60"
                     >
-                      {entry.title}
-                    </span>
-                    {entry.checklistTotal > 0 && (
-                      <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums text-base-500 dark:text-base-400">
-                        <ListChecks size={13} strokeWidth={2.2} aria-hidden />
-                        {t('checklistProgress', {
-                          done: entry.checklistDone,
-                          total: entry.checklistTotal,
-                        })}
+                      <span className="w-[68px] shrink-0 text-[12px] font-medium tabular-nums text-base-500 dark:text-base-400">
+                        {entry.startMinute === null
+                          ? t('allDay')
+                          : minuteLabel(entry.startMinute, locale)}
                       </span>
-                    )}
-                    {entry.doneAt !== null && (
                       <span
-                        aria-label={t('done')}
-                        className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-point-500"
+                        className={cn(
+                          'min-w-0 flex-1 truncate text-[14px] font-medium text-base-900 dark:text-base-50',
+                          entry.doneAt !== null && 'text-base-400 line-through dark:text-base-500',
+                        )}
                       >
-                        <Check size={12} strokeWidth={3} />
+                        {entry.title}
                       </span>
-                    )}
-                  </li>
-                ))}
-              </ul>
-            )}
-          </section>
+                      {entry.checklistTotal > 0 && (
+                        <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums text-base-500 dark:text-base-400">
+                          <ListChecks size={13} strokeWidth={2.2} aria-hidden />
+                          {t('checklistProgress', {
+                            done: entry.checklistDone,
+                            total: entry.checklistTotal,
+                          })}
+                        </span>
+                      )}
+                      {entry.doneAt !== null && (
+                        <span
+                          aria-label={t('done')}
+                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-point-500"
+                        >
+                          <Check size={12} strokeWidth={3} />
+                        </span>
+                      )}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </section>
+          )}
 
           {assets.length > 0 && (
             <section>

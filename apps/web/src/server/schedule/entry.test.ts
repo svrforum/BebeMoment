@@ -1,6 +1,7 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
+import { createBaby } from '../baby/create'
 import { createFamily } from '../family/create'
 import { setSetting } from '../settings/set'
 import { setScheduleReminders } from './reminders'
@@ -23,6 +24,7 @@ beforeEach(async () => {
   await db.prismaPublic.scheduleReminder.deleteMany()
   await db.prismaPublic.scheduleChecklistItem.deleteMany()
   await db.prismaPublic.scheduleEntry.deleteMany()
+  await db.prismaPublic.baby.deleteMany()
   await db.prismaPublic.settingHistory.deleteMany()
   await db.prismaPublic.appSetting.deleteMany()
   await db.prismaPublic.membership.deleteMany()
@@ -126,6 +128,88 @@ describe('createScheduleEntry', () => {
       db.prismaPublic,
     )
     expect(entry.id).toBeTruthy()
+  })
+})
+
+describe('아기 연결', () => {
+  it('우리 가족 아기는 연결할 수 있다', async () => {
+    const { user, family } = await setup()
+    const baby = await createBaby(
+      { familyId: family.id, name: 'B', birthDate: '2026-01-01', byUserId: user.id },
+      db.prismaPublic,
+    )
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: '접종',
+        onDate: '2026-09-24',
+        babyId: baby.id,
+      },
+      db.prismaPublic,
+    )
+    expect(entry.babyId).toBe(baby.id)
+  })
+
+  it('다른 가족의 아기는 연결할 수 없다', async () => {
+    const mine = await setup('A')
+    const theirs = await setup('B')
+    const theirBaby = await createBaby(
+      { familyId: theirs.family.id, name: 'B', birthDate: '2026-01-01', byUserId: theirs.user.id },
+      db.prismaPublic,
+    )
+    await expect(
+      createScheduleEntry(
+        {
+          familyId: mine.family.id,
+          byUserId: mine.user.id,
+          title: 'x',
+          onDate: '2026-09-24',
+          babyId: theirBaby.id,
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/babyNotFound/)
+  })
+
+  it('없는 아기 id 는 그 자리에서 거절한다', async () => {
+    const { user, family } = await setup()
+    await expect(
+      createScheduleEntry(
+        {
+          familyId: family.id,
+          byUserId: user.id,
+          title: 'x',
+          onDate: '2026-09-24',
+          babyId: '00000000-0000-0000-0000-000000000000',
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/babyNotFound/)
+  })
+
+  it('수정으로도 다른 가족의 아기를 붙일 수 없다', async () => {
+    const mine = await setup('A')
+    const theirs = await setup('B')
+    const theirBaby = await createBaby(
+      { familyId: theirs.family.id, name: 'B', birthDate: '2026-01-01', byUserId: theirs.user.id },
+      db.prismaPublic,
+    )
+    const entry = await createScheduleEntry(
+      { familyId: mine.family.id, byUserId: mine.user.id, title: 'x', onDate: '2026-09-24' },
+      db.prismaPublic,
+    )
+    await expect(
+      updateScheduleEntry(
+        {
+          id: entry.id,
+          familyId: mine.family.id,
+          byUserId: mine.user.id,
+          patch: { title: 'x', babyId: theirBaby.id },
+        },
+        db.prismaPublic,
+      ),
+    ).rejects.toThrow(/babyNotFound/)
   })
 })
 

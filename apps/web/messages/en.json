@@ -1987,7 +1987,8 @@
       "timeNeedsDate": "Pick a date before setting a time",
       "repeatNeedsDate": "Pick a date before turning on repeat",
       "repeatUntilNeedsRepeat": "An end date only applies to yearly repeats",
-      "reminderNeedsDate": "A reminder needs the schedule to have a date"
+      "reminderNeedsDate": "A reminder needs the schedule to have a date",
+      "babyNotFound": "That baby is not available"
     },
     "user": {
       "displayNameRequired": "Enter a name",

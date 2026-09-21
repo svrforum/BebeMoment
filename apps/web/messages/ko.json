@@ -1987,7 +1987,8 @@
       "timeNeedsDate": "시각을 정하려면 날짜가 필요해요",
       "repeatNeedsDate": "반복하려면 날짜가 필요해요",
       "repeatUntilNeedsRepeat": "반복 종료일은 매년 반복일 때만 정할 수 있어요",
-      "reminderNeedsDate": "날짜가 없는 일정에는 알림을 걸 수 없어요"
+      "reminderNeedsDate": "날짜가 없는 일정에는 알림을 걸 수 없어요",
+      "babyNotFound": "연결할 수 없는 아기예요"
     },
     "user": {
       "displayNameRequired": "이름을 입력해주세요.",

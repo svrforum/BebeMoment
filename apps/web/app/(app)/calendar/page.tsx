@@ -5,6 +5,7 @@ import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { loadCalendarMonth } from '@/server/calendar/month'
 import { getContext } from '@/server/context'
+import { getFeatureFlags } from '@/server/settings/features'
 import { getTranslations } from 'next-intl/server'
 
 export default async function CalendarPage({
@@ -15,6 +16,8 @@ export default async function CalendarPage({
   const ctx = await getContext()
   if (!ctx.family) return null
   const t = await getTranslations('timeline')
+  const features = await getFeatureFlags(prismaPublic)
+  const scheduleOn = features.schedule && ctx.capabilities.includes('schedule.read')
 
   // 보이는 달만 조달한다(전역 take:500 → 월 범위). 월은 URL(?month=YYYY-MM)에서 읽는다 —
   // MonthGrid 의 prev/next/picker 가 router.push 로 ?month 만 바꾸면 서버가 그 달을 다시
@@ -26,7 +29,13 @@ export default async function CalendarPage({
   const year = m ? Number(m.slice(0, 4)) : now.getUTCFullYear()
   const month = m ? Number(m.slice(5, 7)) - 1 : now.getUTCMonth()
   const { assets, storyDays, scheduleDays, scheduleEntries } = await loadCalendarMonth(
-    { familyId: ctx.family.id, year, month, viewerRole: ctx.membership?.role ?? 'family' },
+    {
+      familyId: ctx.family.id,
+      year,
+      month,
+      viewerRole: ctx.membership?.role ?? 'family',
+      schedule: scheduleOn,
+    },
     prismaMedia,
     prismaPublic,
     getMediaClient(),
@@ -44,6 +53,7 @@ export default async function CalendarPage({
           assets={assets}
           scheduleDays={scheduleDays}
           scheduleEntries={scheduleEntries}
+          scheduleEnabled={scheduleOn}
         />
       </div>
     </>

@@ -28,6 +28,8 @@ type Props = {
   scheduleDays?: ScheduleDaySummary[]
   /** 그 달 일정의 회차 목록(매년 반복은 그 해 날짜로 전개된 상태). */
   scheduleEntries?: ScheduleEntryView[]
+  /** 기능 플래그가 꺼지면 탭·시트의 일정 영역까지 사라져야 한다(데이터만 비우면 껍데기가 남는다). */
+  scheduleEnabled?: boolean
 }
 
 // 날짜는 전부 UTC 로 다룬다 — takenAt 은 촬영 벽시계 시각을 UTC 로 저장하므로,
@@ -63,6 +65,7 @@ export function MonthGrid({
   storyDays = [],
   scheduleDays = [],
   scheduleEntries = [],
+  scheduleEnabled = false,
 }: Props) {
   const t = useTranslations('timeline')
   const locale = useLocale()
@@ -221,9 +224,11 @@ export function MonthGrid({
       onTouchStart={onTouchStart}
       onTouchEnd={onTouchEnd}
     >
-      <div className="mb-4">
-        <CalendarTabs current="month" />
-      </div>
+      {scheduleEnabled && (
+        <div className="mb-4">
+          <CalendarTabs current="month" />
+        </div>
+      )}
       <div className="mb-5 flex items-center justify-between">
         <div className="relative flex items-baseline gap-2">
           <button
@@ -379,6 +384,7 @@ export function MonthGrid({
             : []
         }
         entries={sheetDay ? (entriesByDay.get(sheetDay) ?? []) : []}
+        showEntries={scheduleEnabled}
         onAddEntry={scheduleForm.canCreate ? addEntryOn : undefined}
       />
     </div>

@@ -64,7 +64,7 @@ describe('loadCalendarMonth', () => {
     await makeReady(family.id, user.id, 'jun', new Date('2026-06-10T12:00:00Z'))
 
     const data = await loadCalendarMonth(
-      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' }, // month 4 = May (0-based)
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: true }, // month 4 = May (0-based)
       db.prismaMedia,
       db.prismaPublic,
       new FakeMediaClient(),
@@ -101,7 +101,7 @@ describe('loadCalendarMonth', () => {
     )
 
     const familyView = await loadCalendarMonth(
-      { familyId: family.id, year: 2026, month: 4, viewerRole: 'family' },
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'family', schedule: true },
       db.prismaMedia,
       db.prismaPublic,
       new FakeMediaClient(),
@@ -110,7 +110,7 @@ describe('loadCalendarMonth', () => {
     expect(familyView.storyDays).toEqual([])
 
     const ownerView = await loadCalendarMonth(
-      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' },
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: true },
       db.prismaMedia,
       db.prismaPublic,
       new FakeMediaClient(),
@@ -124,7 +124,7 @@ describe('loadCalendarMonth', () => {
     await makeReady(family.id, user.id, 'd1b', new Date('2026-05-10T18:00:00Z'))
     const media = new FakeMediaClient()
     const data = await loadCalendarMonth(
-      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' },
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: true },
       db.prismaMedia,
       db.prismaPublic,
       media,
@@ -134,6 +134,22 @@ describe('loadCalendarMonth', () => {
     expect(media.calls.getAssetUrlsBatch[0]?.assetIds).toHaveLength(1)
   })
 
+  it('일정 기능이 꺼져 있으면 일정을 싣지 않는다', async () => {
+    const { user, family } = await setup()
+    await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '예방접종', onDate: '2026-05-10' },
+      db.prismaPublic,
+    )
+    const data = await loadCalendarMonth(
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: false },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+    expect(data.scheduleDays).toEqual([])
+    expect(data.scheduleEntries).toEqual([])
+  })
+
   it('그 달의 일정을 같은 페이로드에 싣는다', async () => {
     const { user, family } = await setup()
     await createScheduleEntry(
@@ -141,7 +157,7 @@ describe('loadCalendarMonth', () => {
       db.prismaPublic,
     )
     const data = await loadCalendarMonth(
-      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner' },
+      { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: true },
       db.prismaMedia,
       db.prismaPublic,
       new FakeMediaClient(),

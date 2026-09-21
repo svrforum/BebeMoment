@@ -26,7 +26,7 @@ const dayKeyOf = (d: Date): string => `${d.getUTCFullYear()}-${d.getUTCMonth()}-
  * year/month 는 UTC 0-based month.
  */
 export async function loadCalendarMonth(
-  args: { familyId: string; year: number; month: number; viewerRole: Role },
+  args: { familyId: string; year: number; month: number; viewerRole: Role; schedule: boolean },
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
   media: MediaClient,
@@ -36,7 +36,10 @@ export async function loadCalendarMonth(
   const end = new Date(Date.UTC(year, month + 1, 1))
 
   // 일정은 이 SSR 페이로드에 함께 싣는다 — 이 화면에는 클라이언트 데이터 페칭이 없다.
-  const schedule = await listScheduleMonth({ familyId, year, month }, prismaPublic)
+  // 기능이 꺼져 있으면 조회조차 하지 않는다(§5 — UI 와 서버 양쪽에서 막는다).
+  const schedule = args.schedule
+    ? await listScheduleMonth({ familyId, year, month }, prismaPublic)
+    : { days: [], entries: [] }
 
   // 비밀 스토리(guardians) 사진은 family 에게 커버·뱃지 모두에서 숨긴다.
   const hidden = await hiddenAssetIdsForViewer(viewerRole, prismaPublic, familyId)

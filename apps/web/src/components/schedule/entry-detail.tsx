@@ -18,7 +18,7 @@ import { Bell, Check, ChevronLeft, Pencil, Repeat, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useState, useTransition } from 'react'
+import { useEffect, useState, useTransition } from 'react'
 import { useScheduleForm } from './entry-form-sheet'
 import { formatMinuteOfDay, useReminderLabel } from './reminder-label'
 
@@ -46,6 +46,14 @@ export function EntryDetail({ entry, canEdit, canDelete }: Props) {
   const [items, setItems] = useState<ScheduleChecklistItemView[]>(entry.checklistItems)
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+
+  // 수정 시트가 저장 후 router.refresh() 를 부르면 이 컴포넌트는 새 props 로 다시 그려지지만
+  // useState 의 초기값은 그때 다시 읽히지 않는다 — 그대로 두면 지운 체크 항목이 화면에 남고,
+  // 그걸 누르면 없는 행을 토글해 404 가 난다. 서버가 준 값이 언제나 진실이다.
+  useEffect(() => {
+    setDoneAt(entry.doneAt)
+    setItems(entry.checklistItems)
+  }, [entry.doneAt, entry.checklistItems])
 
   const fail = (result: { ok: false; errorKey: string; message?: string; status: number }) => {
     toast({

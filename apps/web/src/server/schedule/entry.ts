@@ -50,12 +50,31 @@ function dateOrNull(day: string | null | undefined): Date | null {
   return day ? new Date(`${day}T00:00:00.000Z`) : null
 }
 
+/**
+ * 아기 id 는 클라이언트가 보낸 값이라 가족 경계를 넘을 수 있다. FK 는 babies(id) 만 보고
+ * family_id 는 보지 않으므로 여기서 막지 않으면 남의 가족 아기가 붙는다(§8). 없는 id 는
+ * FK 위반으로 터지는데, 그건 사용자에게 아무 말도 못 해 주는 실패라 미리 걸러 낸다.
+ */
+async function assertBabyInFamily(
+  babyId: string | null,
+  familyId: string,
+  prisma: PrismaClient,
+): Promise<void> {
+  if (!babyId) return
+  const baby = await prisma.baby.findFirst({
+    where: { id: babyId, familyId, deletedAt: null },
+    select: { id: true },
+  })
+  if (!baby) throw new ServiceError(400, 'schedule.babyNotFound')
+}
+
 export async function createScheduleEntry(
   raw: unknown,
   prisma: PrismaClient,
 ): Promise<ScheduleEntry> {
   const input = CreateInput.parse(raw)
   await assertScheduleCan(input.familyId, input.byUserId, 'schedule.create', prisma)
+  await assertBabyInFamily(input.babyId ?? null, input.familyId, prisma)
   return prisma.scheduleEntry.create({
     data: {
       familyId: input.familyId,
@@ -118,6 +137,7 @@ export async function updateScheduleEntry(
   const input = UpdateInput.parse(raw)
   const before = await assertCanEditEntry(input.id, input.familyId, input.byUserId, prisma)
   const p = input.patch
+  await assertBabyInFamily(p.babyId ?? null, input.familyId, prisma)
   const onDate = dateOrNull(p.onDate)
   const startMinute = p.startMinute ?? null
   const updated = await prisma.scheduleEntry.updateMany({

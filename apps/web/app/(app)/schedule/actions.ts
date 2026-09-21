@@ -39,17 +39,25 @@ const ReminderInput = z.discriminatedUnion('kind', [
   }),
 ])
 
-const FormPayload = z.object({
-  title: z.string().trim().min(1).max(200),
-  memo: z.string().max(2000).nullable(),
-  onDate: z.string().regex(DAY).nullable(),
-  startMinute: z.number().int().min(0).max(1439).nullable(),
-  repeatYearly: z.boolean(),
-  repeatUntil: z.string().regex(DAY).nullable(),
-  babyId: z.string().uuid().nullable(),
-  checklist: z.array(ChecklistDraft).max(50),
-  reminders: z.array(ReminderInput).max(20),
-})
+const FormPayload = z
+  .object({
+    title: z.string().trim().min(1).max(200),
+    memo: z.string().max(2000).nullable(),
+    onDate: z.string().regex(DAY).nullable(),
+    startMinute: z.number().int().min(0).max(1439).nullable(),
+    repeatYearly: z.boolean(),
+    repeatUntil: z.string().regex(DAY).nullable(),
+    babyId: z.string().uuid().nullable(),
+    checklist: z.array(ChecklistDraft).max(50),
+    reminders: z.array(ReminderInput).max(20),
+  })
+  // 저장은 일정 → 체크리스트 → 알림 세 번의 쓰기로 나뉘고 한 트랜잭션이 아니다. 알림 단계가
+  // 뒤늦게 거절하면 앞의 두 개는 이미 저장된 채 사용자는 실패만 본다 — "저장이 안 됐구나"
+  // 하고 다시 누르게 된다. 그래서 그 조합을 쓰기 전에 여기서 걸러 낸다.
+  .refine((v) => v.onDate !== null || v.reminders.length === 0, {
+    message: 'schedule.reminderNeedsDate',
+    path: ['reminders'],
+  })
 
 export type SchedulePayload = z.infer<typeof FormPayload>
 
