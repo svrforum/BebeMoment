@@ -1,5 +1,6 @@
 'use client'
 import { DaySheet } from '@/components/schedule/day-sheet'
+import { useScheduleForm } from '@/components/schedule/entry-form-sheet'
 import { cn } from '@/lib/cn'
 import { useFamilySSE } from '@/lib/sse'
 import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
@@ -113,6 +114,17 @@ export function MonthGrid({
     setSheetDay(day)
     setSheetOpen(true)
   }, [])
+
+  // 날짜 시트의 '일정 추가'. 시트 두 개가 겹쳐 있으면 뒤 시트가 닫히며 배경의 클릭을
+  // 막아 버리므로, 먼저 닫고 나가는 애니메이션이 끝난 뒤에 작성 시트를 연다.
+  const scheduleForm = useScheduleForm()
+  const addEntryOn = useCallback(
+    (day: string) => {
+      setSheetOpen(false)
+      setTimeout(() => scheduleForm.openCreate(day), 380)
+    },
+    [scheduleForm],
+  )
   // 년·월 빠른 선택 picker
   const [pickerOpen, setPickerOpen] = useState(false)
   const [pickerYear, setPickerYear] = useState(initialYear)
@@ -363,6 +375,7 @@ export function MonthGrid({
             : []
         }
         entries={sheetDay ? (entriesByDay.get(sheetDay) ?? []) : []}
+        onAddEntry={scheduleForm.canCreate ? addEntryOn : undefined}
       />
     </div>
   )

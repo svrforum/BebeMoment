@@ -1,14 +1,20 @@
 'use client'
 import { FAB } from '@/components/shell/fab'
 import { FullscreenBackGuard } from '@/components/shell/fullscreen-back-guard'
+import {
+  type ScheduleBabyOption,
+  ScheduleFormProvider,
+  useScheduleForm,
+} from '@/components/schedule/entry-form-sheet'
 import { Sheet, useIsDesktop } from '@/components/ui/sheet'
 import { ToastProvider, ToastViewport } from '@/components/ui/toast'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { UploadSheetProvider, useUploadSheet } from '@/components/upload/upload-sheet'
+import { useFeatures } from '@/lib/features'
 import { FamilySSEProvider } from '@/lib/sse'
 import { ToastEmitterProvider } from '@/lib/toast'
 import type { Capability } from '@bebe/core'
-import { FolderOpen, ImagePlus, PencilLine, Plus } from 'lucide-react'
+import { CalendarPlus, FolderOpen, ImagePlus, PencilLine, Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { usePathname, useRouter } from 'next/navigation'
 import { type ChangeEvent, type ReactNode, useCallback, useEffect, useRef, useState } from 'react'
@@ -16,17 +22,23 @@ import { type ChangeEvent, type ReactNode, useCallback, useEffect, useRef, useSt
 // FAB shows only on pages where adding content from the library makes sense.
 // Hidden on content creation / edit / detail screens to avoid confusion.
 // 스토리에는 자체 '쓰기' 액션이 있어 업로드 FAB 를 띄우지 않는다(중복·혼동 방지).
-const FAB_ROUTES = ['/timeline', '/calendar', '/saved', '/babies', '/trash']
+const FAB_ROUTES = ['/timeline', '/calendar', '/calendar/todo', '/saved', '/babies', '/trash']
+
+// 캘린더 계열 화면에서는 + 가 일정 추가다. 사진 업로드는 타임라인과 날짜 시트에 남는다.
+const SCHEDULE_ROUTES = ['/calendar', '/calendar/todo']
 
 function FabTrigger({
   canUpload,
   canCreateStory,
+  canCreateSchedule,
 }: {
   canUpload: boolean
   canCreateStory: boolean
+  canCreateSchedule: boolean
 }) {
   const t = useTranslations('shell')
   const { open } = useUploadSheet()
+  const { openCreate } = useScheduleForm()
   const { addFiles } = useUploadManager()
   const isDesktop = useIsDesktop()
   const pathname = usePathname()
@@ -61,14 +73,23 @@ function FabTrigger({
     anyInputRef.current?.click()
   }, [])
 
+  const goSchedule = useCallback(() => openCreate(null), [openCreate])
+
   // 업로드가 가능하면 항상 선택 시트를 띄운다 — 예전처럼 곧장 사진 선택기를 열면
-  // "파일에서 선택" 이 어디에도 보이지 않아 존재를 알 수 없다.
+  // "파일에서 선택" 이 어디에도 보이지 않아 존재를 알 수 없다. 업로드가 기본 동작이라는
+  // 가정은 걷어냈다 — 사진 권한 없이 일정만 만들 수 있는 구성원도 + 를 쓴다.
   const onPress = useCallback(() => {
-    if (!canUpload) return goStory()
+    const scheduleFirst = SCHEDULE_ROUTES.includes(pathname) && canCreateSchedule
+    if (scheduleFirst) return goSchedule()
+    if (!canUpload) {
+      if (canCreateStory) return goStory()
+      if (canCreateSchedule) return goSchedule()
+      return
+    }
     // 데스크탑 단독 업로드는 시트(드래그앤드롭)에 두 진입점이 다 있어 한 단계 생략.
-    if (isDesktop && !canCreateStory) return open()
+    if (isDesktop && !canCreateStory && !canCreateSchedule) return open()
     setChooserOpen(true)
-  }, [canUpload, canCreateStory, goStory, isDesktop, open])
+  }, [canUpload, canCreateStory, canCreateSchedule, goStory, goSchedule, isDesktop, open, pathname])
 
   const onPick = useCallback(
     async (e: ChangeEvent<HTMLInputElement>) => {
@@ -118,9 +139,26 @@ function FabTrigger({
 
   const show = FAB_ROUTES.some((r) => pathname === r)
   if (!show) return null
-  const both = canUpload && canCreateStory
-  const fabIcon = both ? Plus : canUpload ? ImagePlus : PencilLine
-  const fabLabel = both ? t('addFab') : canUpload ? t('uploadFab') : t('addStory')
+  const scheduleFirst = SCHEDULE_ROUTES.includes(pathname) && canCreateSchedule
+  const only = [canUpload, canCreateStory, canCreateSchedule].filter(Boolean).length === 1
+  const fabIcon = scheduleFirst
+    ? CalendarPlus
+    : !only
+      ? Plus
+      : canUpload
+        ? ImagePlus
+        : canCreateStory
+          ? PencilLine
+          : CalendarPlus
+  const fabLabel = scheduleFirst
+    ? t('addSchedule')
+    : !only
+      ? t('addFab')
+      : canUpload
+        ? t('uploadFab')
+        : canCreateStory
+          ? t('addStory')
+          : t('addSchedule')
   return (
     <>
       <FAB onPress={onPress} label={fabLabel} icon={fabIcon} />
@@ -133,41 +171,54 @@ function FabTrigger({
         className="hidden"
       />
       <input ref={anyInputRef} type="file" multiple onChange={onPick} className="hidden" />
-      {canUpload && (
-        <Sheet open={chooserOpen} onOpenChange={setChooserOpen} title={t('addTitle')}>
-          <div className="flex flex-col gap-2 px-4 pb-4">
-            {canCreateStory && (
+      <Sheet open={chooserOpen} onOpenChange={setChooserOpen} title={t('addTitle')}>
+        <div className="flex flex-col gap-2 px-4 pb-4">
+          {canCreateStory && (
+            <ChooserRow
+              icon={<PencilLine size={20} strokeWidth={2} />}
+              title={t('addStory')}
+              desc={t('addStoryDesc')}
+              onClick={() => {
+                setChooserOpen(false)
+                goStory()
+              }}
+            />
+          )}
+          {canCreateSchedule && (
+            <ChooserRow
+              icon={<CalendarPlus size={20} strokeWidth={2} />}
+              title={t('addSchedule')}
+              desc={t('addScheduleDesc')}
+              onClick={() => {
+                setChooserOpen(false)
+                goSchedule()
+              }}
+            />
+          )}
+          {canUpload && (
+            <>
               <ChooserRow
-                icon={<PencilLine size={20} strokeWidth={2} />}
-                title={t('addStory')}
-                desc={t('addStoryDesc')}
+                icon={<ImagePlus size={20} strokeWidth={2} />}
+                title={t('addUpload')}
+                desc={t('addUploadDesc')}
                 onClick={() => {
                   setChooserOpen(false)
-                  goStory()
+                  onUpload()
                 }}
               />
-            )}
-            <ChooserRow
-              icon={<ImagePlus size={20} strokeWidth={2} />}
-              title={t('addUpload')}
-              desc={t('addUploadDesc')}
-              onClick={() => {
-                setChooserOpen(false)
-                onUpload()
-              }}
-            />
-            <ChooserRow
-              icon={<FolderOpen size={20} strokeWidth={2} />}
-              title={t('addFiles')}
-              desc={t('addFilesDesc')}
-              onClick={() => {
-                setChooserOpen(false)
-                onUploadFiles()
-              }}
-            />
-          </div>
-        </Sheet>
-      )}
+              <ChooserRow
+                icon={<FolderOpen size={20} strokeWidth={2} />}
+                title={t('addFiles')}
+                desc={t('addFilesDesc')}
+                onClick={() => {
+                  setChooserOpen(false)
+                  onUploadFiles()
+                }}
+              />
+            </>
+          )}
+        </div>
+      </Sheet>
     </>
   )
 }
@@ -205,17 +256,22 @@ export function AppShellClient({
   capabilities,
   canCreateStory,
   storyBabyId,
+  scheduleBabies,
+  pushEnabled,
 }: {
   children: ReactNode
   capabilities: Capability[]
   canCreateStory: boolean
   storyBabyId: string | null
+  scheduleBabies: ScheduleBabyOption[]
+  pushEnabled: boolean
 }) {
-  // FAB adds content. Upload is the base action (a story requires attaching a
-  // photo, which itself needs asset.upload), so the FAB is gated on upload.
-  // When the viewer can also write stories, the FAB opens a story/upload
-  // chooser instead of going straight to the picker.
+  // FAB adds content. 업로드만으로 가리지 않는다 — 사진 권한이 없어도 스토리나 일정을
+  // 만들 수 있는 구성원에게는 버튼이 있어야 한다(예전엔 버튼 자체가 사라졌다).
+  const features = useFeatures()
   const canUpload = capabilities.includes('asset.upload')
+  const canCreateSchedule = features.schedule && capabilities.includes('schedule.create')
+  const showFab = canUpload || canCreateStory || canCreateSchedule
   return (
     <ToastProvider swipeDirection="down">
       {/* 영상 전체화면 중의 뒤로가기가 페이지를 떠나지 않게 — 앱 셸 전체에 한 번만. */}
@@ -223,8 +279,20 @@ export function AppShellClient({
       <ToastEmitterProvider>
         <FamilySSEProvider>
           <UploadSheetProvider canCreateStory={canCreateStory} storyBabyId={storyBabyId}>
-            {children}
-            {canUpload && <FabTrigger canUpload={canUpload} canCreateStory={canCreateStory} />}
+            <ScheduleFormProvider
+              babies={scheduleBabies}
+              pushEnabled={pushEnabled}
+              canCreate={canCreateSchedule}
+            >
+              {children}
+              {showFab && (
+                <FabTrigger
+                  canUpload={canUpload}
+                  canCreateStory={canCreateStory}
+                  canCreateSchedule={canCreateSchedule}
+                />
+              )}
+            </ScheduleFormProvider>
           </UploadSheetProvider>
         </FamilySSEProvider>
       </ToastEmitterProvider>

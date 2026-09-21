@@ -368,7 +368,9 @@
       "dismiss": "Close"
     },
     "addFiles": "Pick from files",
-    "addFilesDesc": "Camera files the gallery does not list"
+    "addFilesDesc": "Camera files the gallery does not list",
+    "addSchedule": "Add a schedule",
+    "addScheduleDesc": "Put a to-do and its reminders on the calendar"
   },
   "timeline": {
     "composer": {
@@ -511,6 +513,55 @@
       "photos": "Photos",
       "viewAllPhotos": "See all photos",
       "addEntry": "Add a schedule"
+    },
+    "form": {
+      "createTitle": "New schedule",
+      "editTitle": "Edit schedule",
+      "title": "Title",
+      "titlePlaceholder": "What is happening?",
+      "date": "Date",
+      "clearDate": "Clear date",
+      "noDateHint": "Without a date it only shows in the to-do list",
+      "timed": "At a time",
+      "time": "Start time",
+      "memo": "Memo",
+      "memoPlaceholder": "Anything worth remembering",
+      "checklist": "Checklist",
+      "checklistPlaceholder": "Type an item, press Enter",
+      "checklistAdd": "Add item",
+      "checklistRemove": "Remove item",
+      "reminders": "Reminders",
+      "remindersNeedDate": "Pick a date to set reminders",
+      "repeatYearly": "Repeat every year",
+      "repeatUntil": "Repeat until",
+      "baby": "Linked baby",
+      "babyNone": "Not linked",
+      "save": "Save",
+      "saving": "Saving…"
+    },
+    "reminder": {
+      "atTime": "At the time",
+      "minutesBefore": "{n} min before",
+      "hoursBefore": "{n} hr before",
+      "daysBefore": "{n} days before",
+      "morningOf": "Same day at {time}",
+      "daysBeforeAt": "{n} days before at {time}",
+      "remove": "Remove reminder",
+      "custom": "Enter your own",
+      "customAdd": "Add",
+      "customAmount": "Reminder offset",
+      "customUnit": "Offset unit",
+      "customDays": "Days before",
+      "customAt": "Reminder time",
+      "unit": {
+        "minute": "min before",
+        "hour": "hr before",
+        "day": "days before"
+      },
+      "converted": "Removed {count} reminder(s) that do not fit this shape. Please pick again",
+      "pushOff": "Push notifications are turned off on this instance, so nothing will be sent.",
+      "pushDevice": "This device is not set up to receive notifications.",
+      "pushSettings": "Open notification settings"
     }
   },
   "viewer": {
@@ -1871,7 +1922,8 @@
       "story": "Stories are turned off",
       "faces": "Face recognition is turned off",
       "bookmarks": "Saved is turned off",
-      "likes": "Likes are turned off"
+      "likes": "Likes are turned off",
+      "schedule": "Schedules are turned off"
     },
     "protectedSetting": "That setting key is protected",
     "story": {

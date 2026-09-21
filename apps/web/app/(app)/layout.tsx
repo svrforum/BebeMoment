@@ -78,12 +78,28 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       })
     : null
 
+  // 일정 작성 시트에 필요한 것 — 아기 목록(연결 선택)과 인스턴스 푸시 마스터 스위치
+  // (꺼져 있으면 알림을 걸어도 아무에게도 안 가므로 그 자리에서 알린다).
+  const canCreateSchedule = features.schedule && ctx.capabilities.includes('schedule.create')
+  const scheduleBabies = canCreateSchedule
+    ? await prismaPublic.baby.findMany({
+        where: { familyId: ctx.family.id, deletedAt: null },
+        orderBy: { birthDate: 'asc' },
+        select: { id: true, name: true },
+      })
+    : []
+  const pushEnabled = canCreateSchedule
+    ? (await getSetting('push.enabled', z.string(), 'true', prismaPublic)) !== 'false'
+    : true
+
   return (
     <FeaturesProvider value={features}>
       <AppShellClient
         capabilities={ctx.capabilities}
         canCreateStory={canCreateStory}
         storyBabyId={storyBaby?.id ?? null}
+        scheduleBabies={scheduleBabies}
+        pushEnabled={pushEnabled}
       >
         <SideNav
           familyName={ctx.family.name}

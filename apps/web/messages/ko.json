@@ -368,7 +368,9 @@
       "dismiss": "닫기"
     },
     "addFiles": "파일에서 선택",
-    "addFilesDesc": "갤러리에 안 뜨는 카메라 파일까지"
+    "addFilesDesc": "갤러리에 안 뜨는 카메라 파일까지",
+    "addSchedule": "일정 추가",
+    "addScheduleDesc": "할 일과 알림을 캘린더에 적어요"
   },
   "timeline": {
     "composer": {
@@ -511,6 +513,55 @@
       "photos": "사진",
       "viewAllPhotos": "사진 전체 보기",
       "addEntry": "일정 추가"
+    },
+    "form": {
+      "createTitle": "새 일정",
+      "editTitle": "일정 수정",
+      "title": "제목",
+      "titlePlaceholder": "무엇을 하나요?",
+      "date": "날짜",
+      "clearDate": "날짜 지우기",
+      "noDateHint": "날짜가 없으면 할 일 목록에만 나와요",
+      "timed": "시각",
+      "time": "시작 시각",
+      "memo": "메모",
+      "memoPlaceholder": "기억해 둘 것을 적어요",
+      "checklist": "체크리스트",
+      "checklistPlaceholder": "항목을 적고 엔터",
+      "checklistAdd": "항목 추가",
+      "checklistRemove": "항목 삭제",
+      "reminders": "알림",
+      "remindersNeedDate": "날짜를 정하면 알림을 걸 수 있어요",
+      "repeatYearly": "매년 반복",
+      "repeatUntil": "반복 종료일",
+      "baby": "아기 연결",
+      "babyNone": "연결 안 함",
+      "save": "저장",
+      "saving": "저장 중…"
+    },
+    "reminder": {
+      "atTime": "정각",
+      "minutesBefore": "{n}분 전",
+      "hoursBefore": "{n}시간 전",
+      "daysBefore": "{n}일 전",
+      "morningOf": "당일 {time}",
+      "daysBeforeAt": "{n}일 전 {time}",
+      "remove": "알림 삭제",
+      "custom": "직접 입력",
+      "customAdd": "추가",
+      "customAmount": "알림 간격",
+      "customUnit": "간격 단위",
+      "customDays": "며칠 전",
+      "customAt": "알림 시각",
+      "unit": {
+        "minute": "분 전",
+        "hour": "시간 전",
+        "day": "일 전"
+      },
+      "converted": "이 모양으로는 옮길 수 없는 알림 {count}개를 지웠어요. 다시 골라 주세요",
+      "pushOff": "이 인스턴스에서 푸시 알림이 꺼져 있어 알림이 가지 않아요.",
+      "pushDevice": "이 기기가 알림을 받도록 설정돼 있지 않아요.",
+      "pushSettings": "알림 설정 열기"
     }
   },
   "viewer": {
@@ -1871,7 +1922,8 @@
       "story": "스토리 기능이 꺼져 있어요",
       "faces": "얼굴 인식이 꺼져 있어요",
       "bookmarks": "저장함 기능이 꺼져 있어요",
-      "likes": "좋아요 기능이 꺼져 있어요"
+      "likes": "좋아요 기능이 꺼져 있어요",
+      "schedule": "일정 기능이 꺼져 있어요"
     },
     "protectedSetting": "보호된 설정 키예요",
     "story": {
