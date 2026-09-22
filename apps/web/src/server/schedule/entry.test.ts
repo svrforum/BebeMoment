@@ -1,3 +1,4 @@
+import { readFile } from 'node:fs/promises'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import type { NotificationJob } from '@bebe/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
@@ -617,35 +618,19 @@ describe('일정 생성 알림', () => {
     expect(user.id).not.toBe(other.user.id)
   })
 
-  it('수정·삭제·완료는 알리지 않는다 — 생성만 알린다', async () => {
-    const { user, family } = await setup()
-    const entry = await createScheduleEntry(
-      { familyId: family.id, byUserId: user.id, title: '접종', onDate: '2026-09-24' },
-      db.prismaPublic,
-      async () => {},
-    )
-    const jobs: NotificationJob[] = []
-    const spy = async (job: NotificationJob) => {
-      jobs.push(job)
-    }
-    await updateScheduleEntry(
-      {
-        id: entry.id,
-        familyId: family.id,
-        byUserId: user.id,
-        patch: { title: '접종 2차', onDate: '2026-09-25' },
-      },
-      db.prismaPublic,
-    )
-    await setScheduleEntryDone(
-      { id: entry.id, familyId: family.id, byUserId: user.id, done: true },
-      db.prismaPublic,
-    )
-    await deleteScheduleEntry(
-      { id: entry.id, familyId: family.id, byUserId: user.id },
-      db.prismaPublic,
-    )
-    expect(jobs).toEqual([])
-    expect(spy).toBeTypeOf('function')
+  /**
+   * 소스를 직접 본다. 수정·삭제·완료는 enqueue 인자를 아예 받지 않으므로 스파이를 꽂을 수가
+   * 없고, 스파이 없이 "아무것도 안 왔다"를 단언하면 언제나 참이라 누가 알림을 붙여도 초록으로
+   * 남는다. 알림이 createScheduleEntry 안에서만 나가는지를 소스로 고정한다.
+   */
+  it('알림을 보내는 곳은 생성 하나뿐이다', async () => {
+    const source = await readFile(new URL('./entry.ts', import.meta.url), 'utf8')
+    const calls = source.match(/\benqueue\(/g) ?? []
+    expect(calls).toHaveLength(1)
+
+    const createStart = source.indexOf('export async function createScheduleEntry')
+    const createEnd = source.indexOf('export async function', createStart + 1)
+    const createBody = source.slice(createStart, createEnd === -1 ? undefined : createEnd)
+    expect(createBody).toContain('enqueue(')
   })
 })

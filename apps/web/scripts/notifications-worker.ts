@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { decryptSecret } from '@/lib/crypto'
+import { logger } from '@/lib/logger'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
 import { listMemoryGroupsForCount } from '@/server/memories/list'
@@ -374,6 +375,11 @@ async function buildFcmDeps(): Promise<FcmDeps | null> {
   }
 }
 
+/** 배달 게이트에서 버린 잡의 이유를 남긴다 — 조용히 return 하면 '안 왔다'를 추적할 수 없다. */
+function logDeliveryDrop(job: NotificationJob, reason: string, hour: number): void {
+  logger.info({ type: job.type, familyId: job.familyId, reason, hour }, 'notifications: dropped')
+}
+
 async function main(): Promise<void> {
   const secretKey = process.env.SECRET_KEY
   if (!secretKey) throw new Error('SECRET_KEY required')
@@ -464,9 +470,21 @@ async function main(): Promise<void> {
       const hour = new Date().getHours()
       if (t === 'comment.created') {
         // 멘션도 야간(방해금지)엔 보류 — 다이제스트 모드라도 즉시 발송하되 야간만 막는다.
-        if (inQuietHours(delivery, hour)) return
+        if (inQuietHours(delivery, hour)) {
+          logDeliveryDrop(job.data, 'quiet hours', hour)
+          return
+        }
       } else if (!digestExempt) {
-        if (!shouldSendImmediate(delivery, hour)) return
+        if (!shouldSendImmediate(delivery, hour)) {
+          // 조용한 시간이면 버리고, 다이제스트 모드면 스캔이 모아 보낸다 — 다만 스캔이 세지
+          // 않는 종류(일정 등)는 여기서 영영 사라진다. 어느 쪽이든 흔적은 남긴다(§6.5.1).
+          logDeliveryDrop(
+            job.data,
+            inQuietHours(delivery, hour) ? 'quiet hours' : `delivery mode ${delivery.mode}`,
+            hour,
+          )
+          return
+        }
       }
       // diary.created: 스토리 사진이 아직 처리 중이면 모두 settle(ready/failed)될 때까지
       // 푸시를 미룬다 — 사진보다 푸시가 먼저 가던 문제. cap 초과 시엔 그냥 보낸다.
