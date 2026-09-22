@@ -46,8 +46,15 @@ export function MobileDrawerShell({
       node.style.height = ''
       node.style.bottom = ''
     }
+    // 두 이벤트를 다 듣는다. 레이아웃이 줄어드는 브라우저에서는 visualViewport 만 듣다가
+    // innerHeight 는 줄었는데 visualViewport 이벤트가 안 오는 프레임을 만나면, 잘못된 인라인
+    // 높이가 다음 이벤트까지 남아 시트가 반쪽으로 굳는다.
     vv.addEventListener('resize', releaseInlineSizing)
-    return () => vv.removeEventListener('resize', releaseInlineSizing)
+    window.addEventListener('resize', releaseInlineSizing)
+    return () => {
+      vv.removeEventListener('resize', releaseInlineSizing)
+      window.removeEventListener('resize', releaseInlineSizing)
+    }
   }, [open])
 
   return (
