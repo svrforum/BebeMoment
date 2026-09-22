@@ -5,6 +5,7 @@ import type { ScheduleEntryView } from '@/server/schedule/list'
 import { Check, ChevronRight, ListChecks } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { useMinuteOfDay } from '@/components/schedule/reminder-label'
 
 type Props = {
   /** 보고 있는 달의 회차 전부(SSR 페이로드 그대로). 추리는 일은 여기서 한다. */
@@ -15,12 +16,6 @@ type Props = {
 
 const MAX_ROWS = 5
 
-/** 분(0-1439)을 그 로케일의 시각으로. 날짜는 고정값이라 UTC 로 읽는다. */
-function timeLabel(minute: number, locale: string): string {
-  const at = new Date(Date.UTC(2000, 0, 1, Math.floor(minute / 60), minute % 60))
-  return at.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
-}
-
 /**
  * 달력 아래 절반은 비어 있었고, 칸의 점 하나로는 "오늘 뭐가 있지" 에 답할 수 없었다.
  * 그 자리에 오늘부터 가까운 순서로 몇 건을 편다. 이 화면에는 클라이언트 페칭이 없다 —
@@ -28,6 +23,7 @@ function timeLabel(minute: number, locale: string): string {
  */
 export function UpcomingSchedule({ entries, todayKey }: Props) {
   const t = useTranslations('schedule')
+  const minuteOfDay = useMinuteOfDay()
   const locale = useLocale()
   const { kind, entries: rows } = upcomingSchedule(entries, todayKey, MAX_ROWS)
 
@@ -65,7 +61,7 @@ export function UpcomingSchedule({ entries, todayKey }: Props) {
                     weekday: 'short',
                     timeZone: 'UTC',
                   }),
-              entry.startMinute === null ? t('allDay') : timeLabel(entry.startMinute, locale),
+              entry.startMinute === null ? t('allDay') : minuteOfDay(entry.startMinute),
             ].join(' · ')
             return (
               <li key={entry.id}>

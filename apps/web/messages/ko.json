@@ -610,6 +610,10 @@
       "deleteConfirm": "이 일정을 삭제할까요?",
       "deleteConfirmBody": "체크 항목과 걸어 둔 알림도 함께 사라져요.",
       "saveFailed": "저장하지 못했어요"
+    },
+    "time": {
+      "am": "오전 {time}",
+      "pm": "오후 {time}"
     }
   },
   "viewer": {

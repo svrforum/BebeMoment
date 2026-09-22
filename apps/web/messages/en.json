@@ -610,6 +610,10 @@
       "deleteConfirm": "Delete this schedule?",
       "deleteConfirmBody": "Its checklist items and reminders go with it.",
       "saveFailed": "Couldn't save"
+    },
+    "time": {
+      "am": "{time} AM",
+      "pm": "{time} PM"
     }
   },
   "viewer": {

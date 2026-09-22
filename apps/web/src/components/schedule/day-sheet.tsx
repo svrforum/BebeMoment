@@ -8,6 +8,7 @@ import type { AssetUrls } from '@bebe/media-client'
 import { Check, ChevronRight, ListChecks, Plus } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
+import { useMinuteOfDay } from './reminder-label'
 
 type Asset = { id: string; urls: AssetUrls | null }
 
@@ -26,11 +27,6 @@ type Props = {
 
 const MAX_THUMBS = 6
 
-function minuteLabel(minute: number, locale: string): string {
-  const at = new Date(Date.UTC(2000, 0, 1, Math.floor(minute / 60), minute % 60))
-  return at.toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit', timeZone: 'UTC' })
-}
-
 /** 그날의 일정과 사진을 한 화면에 모은 요약 시트. 날짜 칸을 누르면 열린다. */
 export function DaySheet({
   open,
@@ -42,6 +38,7 @@ export function DaySheet({
   onAddEntry,
 }: Props) {
   const t = useTranslations('schedule')
+  const minuteOfDay = useMinuteOfDay()
   const tc = useTranslations('timeline')
   const locale = useLocale()
 
@@ -74,9 +71,7 @@ export function DaySheet({
                       className="flex items-center gap-3 rounded-2xl bg-base-50 px-3 py-2.5 dark:bg-base-800/60"
                     >
                       <span className="w-[68px] shrink-0 text-[12px] font-medium tabular-nums text-base-500 dark:text-base-400">
-                        {entry.startMinute === null
-                          ? t('allDay')
-                          : minuteLabel(entry.startMinute, locale)}
+                        {entry.startMinute === null ? t('allDay') : minuteOfDay(entry.startMinute)}
                       </span>
                       <span
                         className={cn(

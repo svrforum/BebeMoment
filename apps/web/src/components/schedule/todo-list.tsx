@@ -10,7 +10,7 @@ import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
-import { formatMinuteOfDay } from './reminder-label'
+import { useMinuteOfDay } from './reminder-label'
 import {
   type TodoGroupKey,
   type TodoGroups,
@@ -166,6 +166,7 @@ function TodoRow({
   onToggle: () => void
 }) {
   const t = useTranslations('schedule')
+  const minuteOfDay = useMinuteOfDay()
   const done = entry.doneAt !== null
 
   const meta: string[] = []
@@ -178,9 +179,7 @@ function TodoRow({
         timeZone: 'UTC',
       }),
     )
-    meta.push(
-      entry.startMinute === null ? t('allDay') : formatMinuteOfDay(entry.startMinute, locale),
-    )
+    meta.push(entry.startMinute === null ? t('allDay') : minuteOfDay(entry.startMinute))
   } else {
     meta.push(t('todo.noDate'))
   }

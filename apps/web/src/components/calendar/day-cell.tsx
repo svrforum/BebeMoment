@@ -89,7 +89,7 @@ export function DayCell({
       )}
       {/* 날짜 줄과 표식 줄은 겹치지 않는 두 줄이다 — 한 줄에 두면 좁은 칸에서 두 자리
           날짜가 표식에 가려 잘린다(`dayCellMarkers` 주석). */}
-      <span aria-hidden className="relative z-10 flex h-full w-full flex-col justify-between p-1">
+      <span aria-hidden className="absolute inset-0 z-10 flex flex-col justify-between p-1">
         <span className="flex">
           {/* 사진 있는 날만 가독성 위해 알약 배경. 위치는 모든 칸에서 좌상단으로 같다. */}
           <span

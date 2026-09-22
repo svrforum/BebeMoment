@@ -25,7 +25,7 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { useScheduleForm } from './entry-form-sheet'
-import { formatMinuteOfDay, useReminderLabel } from './reminder-label'
+import { useMinuteOfDay, useReminderLabel } from './reminder-label'
 
 type Props = {
   entry: ScheduleEntryDetail
@@ -43,6 +43,7 @@ function toSpec(reminder: ScheduleReminderView): ReminderSpec {
 
 export function EntryDetail({ entry, canEdit, canDelete, viewerName }: Props) {
   const t = useTranslations('schedule')
+  const minuteOfDay = useMinuteOfDay()
   const tRoot = useTranslations()
   const locale = useLocale()
   const toast = useToast()
@@ -137,7 +138,7 @@ export function EntryDetail({ entry, canEdit, canDelete, viewerName }: Props) {
       ? null
       : entry.startMinute === null
         ? t('allDay')
-        : formatMinuteOfDay(entry.startMinute, locale)
+        : minuteOfDay(entry.startMinute)
 
   return (
     <>
