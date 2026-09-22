@@ -511,7 +511,9 @@
       "entries": "일정",
       "noEntries": "이 날은 일정이 없어요",
       "photos": "사진",
+      "noPhotos": "이 날은 사진이 없어요",
       "viewAllPhotos": "사진 전체 보기",
+      "openTimeline": "타임라인에서 보기",
       "addEntry": "일정 추가"
     },
     "form": {
@@ -565,6 +567,13 @@
     "tabs": {
       "month": "월",
       "todo": "할 일"
+    },
+    "upcoming": {
+      "title": "다가오는 일정",
+      "pastTitle": "지난 일정",
+      "viewAll": "전체 보기",
+      "today": "오늘",
+      "empty": "이 달에는 일정이 없어요"
     },
     "todo": {
       "title": "할 일",

@@ -1,8 +1,10 @@
 'use client'
 import { CalendarTabs } from '@/components/calendar/calendar-tabs'
+import { UpcomingSchedule } from '@/components/calendar/upcoming-schedule'
 import { DaySheet } from '@/components/schedule/day-sheet'
 import { useScheduleForm } from '@/components/schedule/entry-form-sheet'
 import { cn } from '@/lib/cn'
+import { localDayKey } from '@/lib/day-key'
 import { useFamilySSE } from '@/lib/sse'
 import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
 import type { AssetEvent } from '@bebe/core'
@@ -374,6 +376,9 @@ export function MonthGrid({
           )
         })}
       </div>
+      {scheduleEnabled && (
+        <UpcomingSchedule entries={scheduleEntries} todayKey={localDayKey(today)} />
+      )}
       <DaySheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}

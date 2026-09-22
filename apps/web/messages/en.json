@@ -511,7 +511,9 @@
       "entries": "Schedule",
       "noEntries": "Nothing scheduled on this day",
       "photos": "Photos",
+      "noPhotos": "No photos on this day",
       "viewAllPhotos": "See all photos",
+      "openTimeline": "Open in timeline",
       "addEntry": "Add a schedule"
     },
     "form": {
@@ -565,6 +567,13 @@
     "tabs": {
       "month": "Month",
       "todo": "To-do"
+    },
+    "upcoming": {
+      "title": "Coming up",
+      "pastTitle": "Earlier",
+      "viewAll": "See all",
+      "today": "Today",
+      "empty": "Nothing scheduled this month"
     },
     "todo": {
       "title": "To-do",

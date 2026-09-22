@@ -110,11 +110,13 @@ export function DaySheet({
             </section>
           )}
 
-          {assets.length > 0 && (
-            <section>
-              <h3 className="mb-2 text-[13px] font-semibold text-base-500 dark:text-base-400">
-                {t('daySheet.photos')}
-              </h3>
+          {/* 사진이 없는 날에도 사진 화면으로 가는 길은 남긴다 — 섹션째 숨기면 이 시트가
+              그날 사진으로 가는 유일한 길을 막아 버린다. */}
+          <section>
+            <h3 className="mb-2 text-[13px] font-semibold text-base-500 dark:text-base-400">
+              {t('daySheet.photos')}
+            </h3>
+            {assets.length > 0 ? (
               <div className="grid grid-cols-3 gap-1.5">
                 {assets.slice(0, MAX_THUMBS).map((asset) => (
                   <div
@@ -134,20 +136,24 @@ export function DaySheet({
                   </div>
                 ))}
               </div>
-              <Link
-                href={`/timeline?date=${day}`}
-                prefetch={false}
-                onClick={() => onOpenChange(false)}
-                className="focus-ring mt-2 flex items-center justify-between rounded-2xl px-1 py-2.5 text-[14px] font-medium text-base-700 transition active:opacity-70 dark:text-base-200"
-              >
-                <span>{t('daySheet.viewAllPhotos')}</span>
-                <span className="flex items-center gap-1 text-[13px] text-base-400">
-                  {tc('calendar.photoCount', { count: assets.length })}
-                  <ChevronRight size={16} />
-                </span>
-              </Link>
-            </section>
-          )}
+            ) : (
+              <p className="py-3 text-[14px] text-base-400">{t('daySheet.noPhotos')}</p>
+            )}
+            <Link
+              href={`/timeline?date=${day}`}
+              prefetch={false}
+              onClick={() => onOpenChange(false)}
+              className="focus-ring mt-2 flex items-center justify-between rounded-2xl px-1 py-2.5 text-[14px] font-medium text-base-700 transition active:opacity-70 dark:text-base-200"
+            >
+              <span>
+                {assets.length > 0 ? t('daySheet.viewAllPhotos') : t('daySheet.openTimeline')}
+              </span>
+              <span className="flex items-center gap-1 text-[13px] text-base-400">
+                {assets.length > 0 ? tc('calendar.photoCount', { count: assets.length }) : null}
+                <ChevronRight size={16} />
+              </span>
+            </Link>
+          </section>
 
           {onAddEntry && (
             <button
