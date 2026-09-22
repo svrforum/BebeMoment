@@ -1,5 +1,6 @@
 import { type NotificationJob, categoryForEvent } from '@bebe/core'
 import type { Locale } from '@/i18n/locales'
+import { clockParts } from '@/lib/clock'
 import { logger } from '@/lib/logger'
 import { type ServerT, getServerTranslator } from '@/i18n/translator'
 import { resolveRecipients } from './recipients'
@@ -17,6 +18,11 @@ function parseMentionedUserIds(raw: string | undefined): string[] | undefined {
   } catch {
     return undefined
   }
+}
+
+type Member = { userId: string; role: 'owner' | 'guardian' | 'family' }
+function guardianIds(members: Member[]): string[] {
+  return members.filter((m) => m.role === 'owner' || m.role === 'guardian').map((m) => m.userId)
 }
 
 type Sub = { endpoint: string; p256dh: string; auth: string }
@@ -140,7 +146,47 @@ export function buildNotification(
         body: job.payload.title ?? t('scheduleReminder.title'),
         url: `/schedule/${job.payload.entryId}`,
       }
+    case 'schedule.created': {
+      // 알람이 아니라 '누가 일정을 넣었다'는 소식이다. 무엇이 언제인지 본문에 담는다.
+      const what = job.payload.title ?? ''
+      const url = `/schedule/${job.payload.entryId}`
+      const when = scheduleWallClock(job.payload.onDate, job.payload.startMinute)
+      if (!when) return { title, body: t('scheduleCreated.noDate', { title: what }), url }
+      if (when.minute === null) {
+        return { title, body: t('scheduleCreated.allDay', { title: what, when: when.at }), url }
+      }
+      // 시각의 오전/오후 낱말은 카탈로그가 붙인다 — Intl 에 맡기면 ICU 판에 따라 한국어가
+      // "AM 10:00" 으로 나온다(`lib/clock.ts`).
+      const { period, hour12, minute2 } = clockParts(when.minute)
+      return {
+        title,
+        body: t('scheduleCreated.withTime', {
+          title: what,
+          when: when.at,
+          period,
+          time: `${hour12}:${minute2}`,
+        }),
+        url,
+      }
+    }
   }
+}
+
+/**
+ * 일정은 벽시계로 저장된다(`on_date` + 분). 번역기가 UTC 로 포맷하므로 벽시계를 UTC 자정에
+ * 얹어 넘긴다 — 컨테이너 시간대가 무엇이든 사용자가 고른 그 날짜·시각이 그대로 찍힌다.
+ * 큐에 남아 있던 옛 잡이나 깨진 값은 날짜 없는 문구로 접는다(잡 하나가 워커를 물고 늘어지지 않게).
+ */
+function scheduleWallClock(
+  onDate: string | undefined,
+  startMinute: string | undefined,
+): { at: Date; minute: number | null } | null {
+  if (!onDate) return null
+  const midnight = new Date(`${onDate}T00:00:00.000Z`)
+  if (Number.isNaN(midnight.getTime())) return null
+  const parsed = startMinute === undefined ? Number.NaN : Number(startMinute)
+  const minute = Number.isFinite(parsed) ? parsed : null
+  return { at: new Date(midnight.getTime() + (minute ?? 0) * 60_000), minute }
 }
 
 /**
@@ -167,20 +213,23 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
 
   const { members, visibility } = await deps.loadFamily(job.familyId)
   const mentionedUserIds = parseMentionedUserIds(job.payload.mentionedUserIds)
-  // 일정 알림만 기본 수신자 계산을 타지 않는다. 이유가 둘이다. resolveRecipients 는 작성자를
-  // 무조건 빼는데(남이 올린 사진을 알려주는 용도라서) 일정은 만든 사람이 그 일을 해야 하는
-  // 사람이고, 일정 자체가 보호자 전용이라 나머지 구성원은 볼 수도 없는 것을 알림으로 받으면
-  // 안 된다. loadFamily 가 제외·정지 멤버를 이미 걸러 준다.
+  // 일정 알림 둘은 기본 수신자 계산을 타지 않는다. 일정이 보호자 전용 기능이라 나머지
+  // 구성원은 볼 수도 없는 것을 알림으로 받으면 안 되고, 작성자 처리도 정반대이기 때문이다 —
+  // 알람(reminder)은 만든 사람이 그 일을 해야 하는 사람이라 포함하고, 추가 소식(created)은
+  // 만든 사람만 빼고 보낸다. loadFamily 가 제외·정지 멤버를 이미 걸러 준다.
   const candidates =
     job.type === 'schedule.reminder'
-      ? members.filter((m) => m.role === 'owner' || m.role === 'guardian').map((m) => m.userId)
-      : resolveRecipients({
-          members,
-          actorUserId: job.actorUserId,
-          category,
-          visibility,
-          ...(mentionedUserIds ? { mentionedUserIds } : {}),
-        })
+      ? guardianIds(members)
+      : job.type === 'schedule.created'
+        ? // 반대로 만든 사람은 뺀다 — 자기가 방금 넣은 일정을 다시 알려 줄 필요가 없다.
+          guardianIds(members).filter((uid) => uid !== job.actorUserId)
+        : resolveRecipients({
+            members,
+            actorUserId: job.actorUserId,
+            category,
+            visibility,
+            ...(mentionedUserIds ? { mentionedUserIds } : {}),
+          })
   let recipients: string[] = []
   if (deps.prefsEnabledFor) {
     if (candidates.length > 0) {

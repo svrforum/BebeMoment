@@ -355,3 +355,140 @@ it('일반 구성원은 가시성 설정과 무관하게 일정 알림을 받지
   )
   expect(subscriptionsFor).toHaveBeenCalledWith(['a', 'g'])
 })
+
+it('일정 추가 알림은 제목과 날짜·시각을 담고 그 일정 상세로 데려간다', () => {
+  const base = {
+    familyId: 'f',
+    actorUserId: 'a',
+    type: 'schedule.created',
+  } as const
+  const withTime = buildNotification(
+    {
+      ...base,
+      payload: { entryId: 'e1', title: '예방접종', onDate: '2026-09-24', startMinute: '600' },
+    },
+    { familyName: '우리집' },
+    tKo,
+  )
+  expect(withTime.title).toBe('우리집')
+  expect(withTime.url).toBe('/schedule/e1')
+  // 오전/오후는 카탈로그 낱말이다 — Intl 에 맡기면 ICU 판에 따라 "AM 10:00" 이 나온다.
+  expect(withTime.body).toBe('새 일정이 추가됐어요 🗓️ "예방접종" · 2026년 9월 24일 오전 10:00')
+
+  const allDay = buildNotification(
+    { ...base, payload: { entryId: 'e2', title: '돌잔치', onDate: '2026-09-24' } },
+    { familyName: '우리집' },
+    tKo,
+  )
+  expect(allDay.url).toBe('/schedule/e2')
+  expect(allDay.body).toBe('새 일정이 추가됐어요 🗓️ "돌잔치" · 2026년 9월 24일 종일')
+
+  const noDate = buildNotification(
+    { ...base, payload: { entryId: 'e3', title: '기저귀 주문' } },
+    { familyName: '우리집' },
+    tKo,
+  )
+  expect(noDate.url).toBe('/schedule/e3')
+  expect(noDate.body).toBe('새 할 일이 추가됐어요 🗓️ "기저귀 주문"')
+
+  const pm = buildNotification(
+    {
+      ...base,
+      payload: { entryId: 'e4', title: '검진', onDate: '2026-09-24', startMinute: '1170' },
+    },
+    { familyName: '우리집' },
+    tKo,
+  )
+  expect(pm.body).toBe('새 일정이 추가됐어요 🗓️ "검진" · 2026년 9월 24일 오후 7:30')
+
+  expect(
+    buildNotification(
+      {
+        ...base,
+        payload: { entryId: 'e5', title: 'Checkup', onDate: '2026-09-24', startMinute: '600' },
+      },
+      { familyName: 'Our family' },
+      tEn,
+    ).body,
+  ).toBe('A new schedule was added 🗓️ "Checkup" · September 24, 2026 at 10:00 AM')
+})
+
+it('일정 추가 알림의 날짜는 컨테이너 시간대와 무관하게 벽시계 그대로다', () => {
+  // on_date 는 벽시계 날짜다(§2.5). UTC 로 고정해 읽지 않으면 TZ 가 UTC 서쪽인 인스턴스에서
+  // 하루 전 날짜가 찍힌다.
+  const body = buildNotification(
+    {
+      familyId: 'f',
+      actorUserId: 'a',
+      type: 'schedule.created',
+      payload: { entryId: 'e1', title: '접종', onDate: '2026-01-01', startMinute: '0' },
+    },
+    { familyName: '우리집' },
+    tKo,
+  ).body
+  expect(body).toContain('2026년 1월 1일')
+})
+
+it('일정 추가 알림은 만든 사람을 빼고 다른 보호자에게만 간다', async () => {
+  const subscriptionsFor = vi.fn(async (userIds: string[]) =>
+    userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
+  )
+  await handleNotificationJob(
+    {
+      familyId: 'f',
+      // 만든 사람은 이미 안다 — 알람(schedule.reminder)과 정반대 모양이다.
+      actorUserId: 'a',
+      type: 'schedule.created',
+      payload: { entryId: 'e1', title: '접종', onDate: '2026-09-24' },
+    },
+    {
+      settingsGet: async () => 'true',
+      loadFamily: async () => ({
+        members: [
+          { userId: 'a', role: 'owner' },
+          { userId: 'g', role: 'guardian' },
+          { userId: 'b', role: 'family' },
+        ],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor,
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+    },
+  )
+  expect(subscriptionsFor).toHaveBeenCalledWith(['g'])
+})
+
+it('일정 추가 알림은 schedule_changed 카테고리로 게이팅된다', async () => {
+  const subscriptionsFor = vi.fn(async () => [])
+  const seen: string[] = []
+  await handleNotificationJob(
+    {
+      familyId: 'f',
+      actorUserId: 'a',
+      type: 'schedule.created',
+      payload: { entryId: 'e1', title: '접종' },
+    },
+    {
+      settingsGet: async (k) => {
+        seen.push(k)
+        // 알람 카테고리를 꺼도 일정 추가 소식은 살아 있어야 한다(그 반대도 마찬가지).
+        return k === 'push.categories.schedule_reminder.enabled' ? 'false' : 'true'
+      },
+      loadFamily: async () => ({
+        members: [
+          { userId: 'a', role: 'owner' },
+          { userId: 'g', role: 'guardian' },
+        ],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor,
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+    },
+  )
+  expect(seen).toContain('push.categories.schedule_changed.enabled')
+  expect(subscriptionsFor).toHaveBeenCalledWith(['g'])
+})

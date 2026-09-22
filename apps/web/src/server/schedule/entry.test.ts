@@ -1,4 +1,5 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import type { NotificationJob } from '@bebe/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createBaby } from '../baby/create'
@@ -536,5 +537,115 @@ describe('deleteScheduleEntry', () => {
         db.prismaPublic,
       ),
     ).rejects.toThrow()
+  })
+})
+
+describe('일정 생성 알림', () => {
+  it('생성하면 다른 보호자에게 알릴 잡을 넣는다', async () => {
+    const { user, family } = await setup()
+    const jobs: NotificationJob[] = []
+    const entry = await createScheduleEntry(
+      {
+        familyId: family.id,
+        byUserId: user.id,
+        title: '예방접종',
+        onDate: '2026-09-24',
+        startMinute: 600,
+      },
+      db.prismaPublic,
+      async (job) => {
+        jobs.push(job)
+      },
+    )
+    expect(jobs).toEqual([
+      {
+        familyId: family.id,
+        actorUserId: user.id,
+        type: 'schedule.created',
+        payload: {
+          entryId: entry.id,
+          title: '예방접종',
+          onDate: '2026-09-24',
+          startMinute: '600',
+        },
+      },
+    ])
+  })
+
+  it('종일·날짜 없는 일정은 시각·날짜를 싣지 않는다', async () => {
+    const { user, family } = await setup()
+    const jobs: NotificationJob[] = []
+    const push = async (job: NotificationJob) => {
+      jobs.push(job)
+    }
+    await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '돌잔치', onDate: '2026-09-24' },
+      db.prismaPublic,
+      push,
+    )
+    await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '기저귀 주문' },
+      db.prismaPublic,
+      push,
+    )
+    expect(jobs.map((j) => j.payload)).toEqual([
+      { entryId: expect.any(String), title: '돌잔치', onDate: '2026-09-24' },
+      { entryId: expect.any(String), title: '기저귀 주문' },
+    ])
+  })
+
+  it('권한이 없어 거절되면 알리지 않는다', async () => {
+    const { user, family } = await setup()
+    const other = await signup(
+      { email: `x-${Date.now()}@b.com`, password: 'password123', displayName: 'X' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.membership.create({
+      data: { familyId: family.id, userId: other.user.id, role: 'family' },
+    })
+    const jobs: NotificationJob[] = []
+    await expect(
+      createScheduleEntry(
+        { familyId: family.id, byUserId: other.user.id, title: '몰래' },
+        db.prismaPublic,
+        async (job) => {
+          jobs.push(job)
+        },
+      ),
+    ).rejects.toThrow()
+    expect(jobs).toEqual([])
+    expect(user.id).not.toBe(other.user.id)
+  })
+
+  it('수정·삭제·완료는 알리지 않는다 — 생성만 알린다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '접종', onDate: '2026-09-24' },
+      db.prismaPublic,
+      async () => {},
+    )
+    const jobs: NotificationJob[] = []
+    const spy = async (job: NotificationJob) => {
+      jobs.push(job)
+    }
+    await updateScheduleEntry(
+      {
+        id: entry.id,
+        familyId: family.id,
+        byUserId: user.id,
+        patch: { title: '접종 2차', onDate: '2026-09-25' },
+      },
+      db.prismaPublic,
+    )
+    await setScheduleEntryDone(
+      { id: entry.id, familyId: family.id, byUserId: user.id, done: true },
+      db.prismaPublic,
+    )
+    await deleteScheduleEntry(
+      { id: entry.id, familyId: family.id, byUserId: user.id },
+      db.prismaPublic,
+    )
+    expect(jobs).toEqual([])
+    expect(spy).toBeTypeOf('function')
   })
 })

@@ -1496,7 +1496,8 @@
         "albumAdd": "Album additions",
         "diaryGrowthMilestone": "Stories, growth & milestones",
         "memory": "Memories",
-        "scheduleReminder": "Schedule reminders"
+        "scheduleReminder": "Schedule reminders",
+        "scheduleChanged": "New schedules"
       },
       "vapidHeading": "VAPID keys",
       "vapidConfigured": "Keys are configured.",
@@ -1820,6 +1821,11 @@
     "intervalUnknown": "a while",
     "scheduleReminder": {
       "title": "Schedule reminder"
+    },
+    "scheduleCreated": {
+      "withTime": "A new schedule was added 🗓️ \"{title}\" · {when, date, long} at {time} {period, select, am {AM} other {PM}}",
+      "allDay": "A new schedule was added 🗓️ \"{title}\" · {when, date, long}, all day",
+      "noDate": "A new to-do was added 🗓️ \"{title}\""
     },
     "testTitle": "Bebe Moment",
     "testBody": "Your test notification arrived! 🎉"

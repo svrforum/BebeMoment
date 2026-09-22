@@ -7,13 +7,21 @@ import ko from '../../messages/ko.json'
 
 const CATALOGS: Record<Locale, Record<string, unknown>> = { ko, en }
 
-export type ServerT = (key: string, values?: Record<string, string | number>) => string
+export type ServerT = (key: string, values?: Record<string, string | number | Date>) => string
 
 // 요청 컨텍스트 밖(푸시 워커·메일러)에서 쓰는 정적 번역기. next-intl 의 request-scoped
 // getTranslations 와 달리 명시 locale 로 메시지를 직접 로드한다. next-intl 의 키 타입은
 // 글로벌 메시지 증강에 의존해 namespace 동적 사용 시 `never` 가 되므로 느슨한 호출 타입으로 노출.
 export function getServerTranslator(locale: Locale, namespace: string): ServerT {
-  return createTranslator({ locale, messages: CATALOGS[locale], namespace }) as unknown as ServerT
+  return createTranslator({
+    locale,
+    messages: CATALOGS[locale],
+    namespace,
+    // 날짜·시각 placeholder(`{when, date, long}`)는 **벽시계를 UTC 자정으로 담아** 넘긴다
+    // (일정의 on_date, 사진의 takenAt 과 같은 규약). 여기를 컨테이너 로컬 시간대로 두면
+    // UTC 서쪽 인스턴스에서 하루 전 날짜가 찍힌다.
+    timeZone: 'UTC',
+  }) as unknown as ServerT
 }
 
 const LocaleSchema = z.enum(LOCALES as unknown as [Locale, ...Locale[]])

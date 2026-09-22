@@ -1496,7 +1496,8 @@
         "albumAdd": "앨범 추가",
         "diaryGrowthMilestone": "스토리·성장·마일스톤",
         "memory": "추억",
-        "scheduleReminder": "일정 알림"
+        "scheduleReminder": "일정 알림",
+        "scheduleChanged": "일정 추가"
       },
       "vapidHeading": "VAPID 키",
       "vapidConfigured": "키가 설정되어 있어요.",
@@ -1820,6 +1821,11 @@
     "intervalUnknown": "예전",
     "scheduleReminder": {
       "title": "일정 알림"
+    },
+    "scheduleCreated": {
+      "withTime": "새 일정이 추가됐어요 🗓️ \"{title}\" · {when, date, long} {period, select, am {오전} other {오후}} {time}",
+      "allDay": "새 일정이 추가됐어요 🗓️ \"{title}\" · {when, date, long} 종일",
+      "noDate": "새 할 일이 추가됐어요 🗓️ \"{title}\""
     },
     "testTitle": "베베 모먼트",
     "testBody": "테스트 알림이 잘 도착했어요! 🎉"

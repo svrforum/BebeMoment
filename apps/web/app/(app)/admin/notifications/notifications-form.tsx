@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
 import { type ActionResult, actionErrorText } from '@/lib/action-result'
+import { NOTIFICATION_CATEGORY_LABEL_KEYS } from '@/i18n/labels'
 import type { NotificationCategory } from '@bebe/core'
 import { useTranslations } from 'next-intl'
 import { type ReactNode, useState, useTransition } from 'react'
@@ -16,15 +17,6 @@ import {
   setPushCategory,
   setPushMaster,
 } from './actions'
-
-const CATEGORY_KEYS: Record<NotificationCategory, string> = {
-  asset_upload: 'assetUpload',
-  comment_mention: 'commentMention',
-  album_add: 'albumAdd',
-  diary_growth_milestone: 'diaryGrowthMilestone',
-  memory: 'memory',
-  schedule_reminder: 'scheduleReminder',
-}
 
 type Props = {
   master: boolean
@@ -170,7 +162,7 @@ export function NotificationsForm({
           {cats.map((c) => (
             <div key={c.category} className="flex items-center justify-between gap-4">
               <span className={masterOn ? '' : 'text-base-400'}>
-                {t(`notifications.category.${CATEGORY_KEYS[c.category]}`)}
+                {t(`notifications.category.${NOTIFICATION_CATEGORY_LABEL_KEYS[c.category]}`)}
               </span>
               <Toggle
                 checked={c.enabled}

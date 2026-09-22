@@ -1,6 +1,11 @@
-import { FEATURE_FLAGS, MILESTONE_PRESETS } from '@bebe/core'
+import { FEATURE_FLAGS, MILESTONE_PRESETS, NOTIFICATION_CATEGORIES } from '@bebe/core'
 import { describe, expect, it } from 'vitest'
-import { formatAgeBucket, formatMemoryInterval, milestonePresetLabels } from './labels'
+import {
+  NOTIFICATION_CATEGORY_LABEL_KEYS,
+  formatAgeBucket,
+  formatMemoryInterval,
+  milestonePresetLabels,
+} from './labels'
 import { getServerTranslator } from './translator'
 
 const age = { ko: getServerTranslator('ko', 'age'), en: getServerTranslator('en', 'age') }
@@ -90,6 +95,21 @@ describe('기능 플래그 라벨', () => {
           expect(value).toBeTruthy()
           expect(value).not.toContain('features.flags.')
         }
+      }
+    }
+  })
+})
+
+// 카테고리를 추가하고 카탈로그를 잊으면, 관리자·설정 화면의 토글에 키 경로가 그대로 뜬다.
+describe('알림 카테고리 라벨', () => {
+  it('모든 카테고리에 ko·en 이름이 있다', () => {
+    for (const locale of ['ko', 'en'] as const) {
+      for (const category of NOTIFICATION_CATEGORIES) {
+        const value = admin[locale](
+          `notifications.category.${NOTIFICATION_CATEGORY_LABEL_KEYS[category]}`,
+        )
+        expect(value).toBeTruthy()
+        expect(value).not.toContain('notifications.category.')
       }
     }
   })

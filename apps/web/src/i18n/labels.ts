@@ -1,4 +1,4 @@
-import type { AgeBucket, MemoryInterval } from '@bebe/core'
+import type { AgeBucket, MemoryInterval, NotificationCategory } from '@bebe/core'
 import { MILESTONE_PRESETS, isValidPresetKey } from '@bebe/core'
 
 /**
@@ -48,4 +48,20 @@ export function milestonePresetLabels(t: LabelT): Record<string, string> {
   const out: Record<string, string> = {}
   for (const p of MILESTONE_PRESETS) out[p.key] = milestonePresetLabel(p.key, t)
   return out
+}
+
+/**
+ * 네임스페이스 `admin.notifications.category`. 관리자 화면(인스턴스 토글)과 설정 화면(개인
+ * 토글)이 같은 이름을 써야 해서 한 곳에 둔다. `Record` 라 카테고리를 추가하면 컴파일러가
+ * 빠진 항목을 잡는다 — 전에는 설정 화면 쪽이 배열이라, 빠뜨리면 토글 없이 기본값 켜짐으로
+ * 계속 발송되는 알림이 생겼다.
+ */
+export const NOTIFICATION_CATEGORY_LABEL_KEYS: Record<NotificationCategory, string> = {
+  asset_upload: 'assetUpload',
+  comment_mention: 'commentMention',
+  album_add: 'albumAdd',
+  diary_growth_milestone: 'diaryGrowthMilestone',
+  memory: 'memory',
+  schedule_reminder: 'scheduleReminder',
+  schedule_changed: 'scheduleChanged',
 }

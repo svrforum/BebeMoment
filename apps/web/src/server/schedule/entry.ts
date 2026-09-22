@@ -3,6 +3,7 @@ import { type Capability, resolveCan } from '@bebe/core'
 import type { PrismaClient, ScheduleEntry } from '@bebe/db-public'
 import { z } from 'zod'
 import { ServiceError } from '../error'
+import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const DAY = /^\d{4}-\d{2}-\d{2}$/
 
@@ -68,14 +69,19 @@ async function assertBabyInFamily(
   if (!baby) throw new ServiceError(400, 'schedule.babyNotFound')
 }
 
+/**
+ * 만들 때만 알린다 — 수정·삭제는 알리지 않는다. 같이 쓰는 일정판에 뭐가 새로 생겼다는 소식은
+ * 한 번이면 되고, 고칠 때마다 울리면 끄게 된다(그러면 추가 소식까지 같이 잃는다).
+ */
 export async function createScheduleEntry(
   raw: unknown,
   prisma: PrismaClient,
+  enqueue: EnqueueNotification = enqueueNotification,
 ): Promise<ScheduleEntry> {
   const input = CreateInput.parse(raw)
   await assertScheduleCan(input.familyId, input.byUserId, 'schedule.create', prisma)
   await assertBabyInFamily(input.babyId ?? null, input.familyId, prisma)
-  return prisma.scheduleEntry.create({
+  const entry = await prisma.scheduleEntry.create({
     data: {
       familyId: input.familyId,
       babyId: input.babyId ?? null,
@@ -88,6 +94,20 @@ export async function createScheduleEntry(
       createdByUserId: input.byUserId,
     },
   })
+  await enqueue({
+    familyId: input.familyId,
+    actorUserId: input.byUserId,
+    type: 'schedule.created',
+    payload: {
+      entryId: entry.id,
+      title: entry.title,
+      // 날짜·시각은 **벽시계 그대로** 싣는다. 워커가 문구를 만들 때 시간대를 다시 유도하면
+      // 안 된다(§2.5) — 저장된 문자열과 분을 그대로 넘겨 그 자리에서 포맷한다.
+      ...(input.onDate ? { onDate: input.onDate } : {}),
+      ...(input.startMinute != null ? { startMinute: String(input.startMinute) } : {}),
+    },
+  })
+  return entry
 }
 
 const UpdateInput = z.object({
