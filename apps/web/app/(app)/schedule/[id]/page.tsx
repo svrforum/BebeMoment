@@ -24,5 +24,12 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
   const canEdit = ctx.capabilities.includes(own ? 'schedule.edit.own' : 'schedule.edit.any')
   const canDelete = ctx.capabilities.includes(own ? 'schedule.delete.own' : 'schedule.delete.any')
 
-  return <EntryDetail entry={entry} canEdit={canEdit} canDelete={canDelete} />
+  return (
+    <EntryDetail
+      entry={entry}
+      canEdit={canEdit}
+      canDelete={canDelete}
+      viewerName={ctx.user.displayName}
+    />
+  )
 }

@@ -23,4 +23,17 @@ describe('isNavActive', () => {
     expect(isNavActive('/timeline', '/calendar', { inDateView: true })).toBe(true)
     expect(isNavActive('/timeline', '/timeline', { inDateView: true })).toBe(false)
   })
+
+  /** 일정 상세(`/schedule/<id>`)는 캘린더에서 들어가는 화면이다 — 탭이 꺼지면 어디에 있는지 모른다. */
+  it('일정 상세에서는 캘린더만 켠다', () => {
+    const id = '/schedule/0f1e2d3c-4b5a-6978-8796-a5b4c3d2e1f0'
+    expect(isNavActive(id, '/calendar')).toBe(true)
+    expect(isNavActive(id, '/timeline')).toBe(false)
+    expect(isNavActive(id, '/settings')).toBe(false)
+    expect(isNavActive('/schedule', '/calendar')).toBe(true)
+  })
+
+  it('접두사만 같은 `/schedules` 는 캘린더 맥락이 아니다', () => {
+    expect(isNavActive('/schedules', '/calendar')).toBe(false)
+  })
 })

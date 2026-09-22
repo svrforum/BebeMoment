@@ -21,6 +21,8 @@ export type ScheduleChecklistItemView = {
   position: number
   doneAt: Date | null
   doneByUserId: string | null
+  /** 체크한 사람의 표시 이름. 두 사람이 나눠 챙기는 목록이라 이게 목록의 절반이다. */
+  doneByName: string | null
 }
 
 export type ScheduleReminderView = {
@@ -213,7 +215,15 @@ export async function getScheduleEntry(
     include: {
       checklistItems: {
         orderBy: { position: 'asc' },
-        select: { id: true, label: true, position: true, doneAt: true, doneByUserId: true },
+        // 이름은 같은 왕복에 실어 온다 — 항목마다 사용자를 따로 읽으면 N+1 이다.
+        select: {
+          id: true,
+          label: true,
+          position: true,
+          doneAt: true,
+          doneByUserId: true,
+          doneBy: { select: { displayName: true } },
+        },
       },
       reminders: {
         orderBy: { createdAt: 'asc' },
@@ -233,7 +243,10 @@ export async function getScheduleEntry(
     babyId: row.babyId,
     createdByUserId: row.createdByUserId,
     doneByUserId: row.doneByUserId,
-    checklistItems: row.checklistItems,
+    checklistItems: row.checklistItems.map(({ doneBy, ...item }) => ({
+      ...item,
+      doneByName: doneBy?.displayName ?? null,
+    })),
     reminders: row.reminders,
   }
 }

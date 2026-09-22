@@ -355,6 +355,54 @@ describe('getScheduleEntry', () => {
     expect(detail?.reminders[0]?.leadMinutes).toBe(30)
   })
 
+  /** 두 사람이 나눠 챙기는 목록이라 "누가 챙겼는지"가 핵심이다 — 왕복 한 번에 이름까지 싣는다. */
+  it('체크한 사람의 이름을 함께 돌려준다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '준비물' },
+      db.prismaPublic,
+    )
+    const ticked = await addChecklistItem(
+      { entryId: entry.id, familyId: family.id, byUserId: user.id, label: '기저귀' },
+      db.prismaPublic,
+    )
+    await addChecklistItem(
+      { entryId: entry.id, familyId: family.id, byUserId: user.id, label: '분유' },
+      db.prismaPublic,
+    )
+    await setChecklistItemDone(
+      { id: ticked.id, familyId: family.id, byUserId: user.id, done: true },
+      db.prismaPublic,
+    )
+    const detail = await getScheduleEntry({ id: entry.id, familyId: family.id }, db.prismaPublic)
+    expect(detail?.checklistItems.map((i) => [i.label, i.doneByName])).toEqual([
+      ['기저귀', 'T'],
+      ['분유', null],
+    ])
+  })
+
+  it('체크를 풀면 이름도 사라진다', async () => {
+    const { user, family } = await setup()
+    const entry = await createScheduleEntry(
+      { familyId: family.id, byUserId: user.id, title: '준비물' },
+      db.prismaPublic,
+    )
+    const item = await addChecklistItem(
+      { entryId: entry.id, familyId: family.id, byUserId: user.id, label: '기저귀' },
+      db.prismaPublic,
+    )
+    await setChecklistItemDone(
+      { id: item.id, familyId: family.id, byUserId: user.id, done: true },
+      db.prismaPublic,
+    )
+    await setChecklistItemDone(
+      { id: item.id, familyId: family.id, byUserId: user.id, done: false },
+      db.prismaPublic,
+    )
+    const detail = await getScheduleEntry({ id: entry.id, familyId: family.id }, db.prismaPublic)
+    expect(detail?.checklistItems[0]?.doneByName).toBe(null)
+  })
+
   it('다른 가족의 일정은 찾지 못한다', async () => {
     const mine = await setup('A')
     const theirs = await setup('B')
