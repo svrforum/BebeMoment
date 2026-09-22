@@ -117,6 +117,12 @@ function draftOf(initial: ScheduleFormInitial, babies: ScheduleBabyOption[]): Dr
   }
 }
 
+// 체크리스트가 길어져도 저장에 닿을 수 있어야 한다 — 본문만 스크롤하고 저장은 시트 바닥에
+// 붙인다. 하단 인셋을 지켜 홈 인디케이터에 버튼이 가리지 않게.
+const BODY_CLASS = 'min-h-0 flex-1 overflow-y-auto px-5 pb-4 pt-1'
+const FOOTER_CLASS =
+  'shrink-0 border-t border-base-100 bg-base-0 px-5 pb-[max(env(safe-area-inset-bottom),0.75rem)] pt-3 dark:border-base-800 dark:bg-base-900'
+
 function timeValue(minute: number): string {
   return `${String(Math.floor(minute / 60)).padStart(2, '0')}:${String(minute % 60).padStart(2, '0')}`
 }
@@ -259,158 +265,166 @@ function EntryFormSheet({
       open={open}
       onOpenChange={onOpenChange}
       title={draft.id ? t('form.editTitle') : t('form.createTitle')}
+      fill
     >
-      <div className="space-y-5 pb-2">
-        {error && (
-          <p className="text-[13px] text-danger" role="alert">
-            {error}
-          </p>
-        )}
-
-        <div>
-          <Label htmlFor="schedule-title">{t('form.title')}</Label>
-          <Input
-            id="schedule-title"
-            value={draft.title}
-            maxLength={200}
-            placeholder={t('form.titlePlaceholder')}
-            onChange={(e) => patch({ title: e.target.value })}
-          />
-        </div>
-
-        <div>
-          <Label htmlFor="schedule-date">{t('form.date')}</Label>
-          <div className="flex items-center gap-2">
-            <Input
-              id="schedule-date"
-              type="date"
-              value={draft.onDate}
-              onChange={(e) => onDateChange(e.target.value)}
-              className="flex-1"
-            />
-            {hasDate && (
-              <button
-                type="button"
-                onClick={() => onDateChange('')}
-                className="focus-ring shrink-0 rounded-xl px-3 py-2 text-[13px] font-medium text-base-500 transition active:opacity-70 dark:text-base-400"
-              >
-                {t('form.clearDate')}
-              </button>
-            )}
-          </div>
-          {!hasDate && <p className="mt-1.5 text-[12px] text-base-400">{t('form.noDateHint')}</p>}
-        </div>
-
-        {hasDate && (
-          <div className="flex flex-wrap items-center gap-3">
-            <Segmented
-              value={draft.mode}
-              onChange={onModeChange}
-              options={[
-                { value: 'allDay' as const, label: t('allDay') },
-                { value: 'timed' as const, label: t('form.timed') },
-              ]}
-            />
-            {draft.mode === 'timed' && (
-              <Input
-                type="time"
-                aria-label={t('form.time')}
-                value={timeValue(draft.startMinute)}
-                onChange={(e) => {
-                  const m = /^(\d{2}):(\d{2})$/.exec(e.target.value)
-                  if (m) patch({ startMinute: Number(m[1]) * 60 + Number(m[2]) })
-                }}
-                className="h-11 w-32 tabular-nums"
-              />
-            )}
-          </div>
-        )}
-
-        <div>
-          <Label htmlFor="schedule-memo">{t('form.memo')}</Label>
-          <textarea
-            id="schedule-memo"
-            value={draft.memo}
-            maxLength={2000}
-            rows={3}
-            placeholder={t('form.memoPlaceholder')}
-            onChange={(e) => patch({ memo: e.target.value })}
-            className="w-full resize-none rounded-2xl border border-transparent bg-base-100 px-4 py-3 text-[15px] text-base-900 placeholder:text-base-400 transition-all focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-100"
-          />
-        </div>
-
-        <div>
-          <Label>{t('form.checklist')}</Label>
-          <ChecklistEditor items={draft.checklist} onChange={(checklist) => patch({ checklist })} />
-        </div>
-
-        <div>
-          <Label>{t('form.reminders')}</Label>
-          {hasDate ? (
-            <ReminderPicker
-              mode={draft.mode}
-              specs={draft.reminders}
-              onChange={(reminders) => patch({ reminders })}
-              pushEnabled={pushEnabled}
-            />
-          ) : (
-            <p className="text-[12.5px] text-base-400">{t('form.remindersNeedDate')}</p>
+      <div className={BODY_CLASS}>
+        <div className="space-y-5 pb-2">
+          {error && (
+            <p className="text-[13px] text-danger" role="alert">
+              {error}
+            </p>
           )}
-        </div>
 
-        {hasDate && (
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <span className="text-[14px] font-medium text-base-800 dark:text-base-100">
-                {t('form.repeatYearly')}
-              </span>
-              <Toggle
-                checked={draft.repeatYearly}
-                aria-label={t('form.repeatYearly')}
-                onChange={(e) =>
-                  patch({
-                    repeatYearly: e.target.checked,
-                    ...(e.target.checked ? {} : { repeatUntil: '' }),
-                  })
-                }
+          <div>
+            <Label htmlFor="schedule-title">{t('form.title')}</Label>
+            <Input
+              id="schedule-title"
+              value={draft.title}
+              maxLength={200}
+              placeholder={t('form.titlePlaceholder')}
+              onChange={(e) => patch({ title: e.target.value })}
+            />
+          </div>
+
+          <div>
+            <Label htmlFor="schedule-date">{t('form.date')}</Label>
+            <div className="flex items-center gap-2">
+              <Input
+                id="schedule-date"
+                type="date"
+                value={draft.onDate}
+                onChange={(e) => onDateChange(e.target.value)}
+                className="flex-1"
               />
+              {hasDate && (
+                <button
+                  type="button"
+                  onClick={() => onDateChange('')}
+                  className="focus-ring shrink-0 rounded-xl px-3 py-2 text-[13px] font-medium text-base-500 transition active:opacity-70 dark:text-base-400"
+                >
+                  {t('form.clearDate')}
+                </button>
+              )}
             </div>
-            {draft.repeatYearly && (
-              <div>
-                <Label htmlFor="schedule-repeat-until">{t('form.repeatUntil')}</Label>
+            {!hasDate && <p className="mt-1.5 text-[12px] text-base-400">{t('form.noDateHint')}</p>}
+          </div>
+
+          {hasDate && (
+            <div className="flex flex-wrap items-center gap-3">
+              <Segmented
+                value={draft.mode}
+                onChange={onModeChange}
+                options={[
+                  { value: 'allDay' as const, label: t('allDay') },
+                  { value: 'timed' as const, label: t('form.timed') },
+                ]}
+              />
+              {draft.mode === 'timed' && (
                 <Input
-                  id="schedule-repeat-until"
-                  type="date"
-                  value={draft.repeatUntil}
-                  min={draft.onDate}
-                  onChange={(e) => patch({ repeatUntil: e.target.value })}
+                  type="time"
+                  aria-label={t('form.time')}
+                  value={timeValue(draft.startMinute)}
+                  onChange={(e) => {
+                    const m = /^(\d{2}):(\d{2})$/.exec(e.target.value)
+                    if (m) patch({ startMinute: Number(m[1]) * 60 + Number(m[2]) })
+                  }}
+                  className="h-11 w-32 tabular-nums"
+                />
+              )}
+            </div>
+          )}
+
+          <div>
+            <Label htmlFor="schedule-memo">{t('form.memo')}</Label>
+            <textarea
+              id="schedule-memo"
+              value={draft.memo}
+              maxLength={2000}
+              rows={3}
+              placeholder={t('form.memoPlaceholder')}
+              onChange={(e) => patch({ memo: e.target.value })}
+              className="w-full resize-none rounded-2xl border border-transparent bg-base-100 px-4 py-3 text-[15px] text-base-900 placeholder:text-base-400 transition-all focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-100"
+            />
+          </div>
+
+          <div>
+            <Label>{t('form.checklist')}</Label>
+            <ChecklistEditor
+              items={draft.checklist}
+              onChange={(checklist) => patch({ checklist })}
+            />
+          </div>
+
+          <div>
+            <Label>{t('form.reminders')}</Label>
+            {hasDate ? (
+              <ReminderPicker
+                mode={draft.mode}
+                specs={draft.reminders}
+                onChange={(reminders) => patch({ reminders })}
+                pushEnabled={pushEnabled}
+              />
+            ) : (
+              <p className="text-[12.5px] text-base-400">{t('form.remindersNeedDate')}</p>
+            )}
+          </div>
+
+          {hasDate && (
+            <div className="space-y-3">
+              <div className="flex items-center justify-between">
+                <span className="text-[14px] font-medium text-base-800 dark:text-base-100">
+                  {t('form.repeatYearly')}
+                </span>
+                <Toggle
+                  checked={draft.repeatYearly}
+                  aria-label={t('form.repeatYearly')}
+                  onChange={(e) =>
+                    patch({
+                      repeatYearly: e.target.checked,
+                      ...(e.target.checked ? {} : { repeatUntil: '' }),
+                    })
+                  }
                 />
               </div>
-            )}
-          </div>
-        )}
+              {draft.repeatYearly && (
+                <div>
+                  <Label htmlFor="schedule-repeat-until">{t('form.repeatUntil')}</Label>
+                  <Input
+                    id="schedule-repeat-until"
+                    type="date"
+                    value={draft.repeatUntil}
+                    min={draft.onDate}
+                    onChange={(e) => patch({ repeatUntil: e.target.value })}
+                  />
+                </div>
+              )}
+            </div>
+          )}
 
-        {/* 아기가 하나면 이 줄을 아예 내지 않는다 — 고를 것이 없는 칸이다.
-            값은 `initialBabyId` 가 그 아기로 채워 두므로 저장하면 그대로 연결된다. */}
-        {babyMode.kind === 'choose' && (
-          <div>
-            <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
-            <select
-              id="schedule-baby"
-              value={draft.babyId}
-              onChange={(e) => patch({ babyId: e.target.value })}
-              className="h-12 w-full rounded-2xl bg-base-100 px-4 text-[15px] text-base-900 dark:bg-base-800 dark:text-base-100"
-            >
-              <option value="">{t('form.babyNone')}</option>
-              {babies.map((baby) => (
-                <option key={baby.id} value={baby.id}>
-                  {baby.name}
-                </option>
-              ))}
-            </select>
-          </div>
-        )}
+          {/* 아기가 하나면 이 줄을 아예 내지 않는다 — 고를 것이 없는 칸이다.
+              값은 `initialBabyId` 가 그 아기로 채워 두므로 저장하면 그대로 연결된다. */}
+          {babyMode.kind === 'choose' && (
+            <div>
+              <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
+              <select
+                id="schedule-baby"
+                value={draft.babyId}
+                onChange={(e) => patch({ babyId: e.target.value })}
+                className="h-12 w-full rounded-2xl bg-base-100 px-4 text-[15px] text-base-900 dark:bg-base-800 dark:text-base-100"
+              >
+                <option value="">{t('form.babyNone')}</option>
+                {babies.map((baby) => (
+                  <option key={baby.id} value={baby.id}>
+                    {baby.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+        </div>
+      </div>
 
+      <div className={FOOTER_CLASS}>
         <button
           type="button"
           disabled={!canSubmit}

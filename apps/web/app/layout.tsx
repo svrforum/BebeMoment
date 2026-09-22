@@ -36,6 +36,9 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 1,
   viewportFit: 'cover',
+  // 키보드가 화면을 덮는 게 아니라 레이아웃 뷰포트를 줄이게 한다. 기본값(resizes-visual)에선
+  // vh·dvh 가 그대로라 하단 고정 시트의 아랫부분이 키보드 뒤로 숨고, 저장 버튼에 닿을 수 없다.
+  interactiveWidget: 'resizes-content',
 }
 
 async function readDefaultTheme(): Promise<DefaultTheme> {

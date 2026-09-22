@@ -1,5 +1,6 @@
 'use client'
 import { cn } from '@/lib/cn'
+import { keyboardOverlaysLayout } from '@/lib/keyboard-overlap'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useRef } from 'react'
@@ -27,19 +28,43 @@ export function MobileDrawerShell({
   fill: boolean | undefined
 }) {
   const t = useTranslations('common')
+  const contentRef = useRef<HTMLDivElement>(null)
+
+  // vaul 은 키보드가 화면을 **덮는다**고 보고 시트 높이·bottom 을 인라인 스타일로 직접 잡는다.
+  // 레이아웃 뷰포트가 실제로 줄어드는 브라우저(뷰포트 interactive-widget=resizes-content,
+  // 안드로이드 WebView 의 adjustResize)에서는 그 계산이 어긋나 키보드가 닫힌 뒤에도 줄어든
+  // 높이가 남는다 — 시트가 반쪽으로 굳는다. 키보드가 덮고 있지 않은 동안에는 인라인 값을
+  // 걷어내 CSS 상한(dvh)에 맡긴다.
+  useEffect(() => {
+    if (!open) return
+    const vv = window.visualViewport
+    if (!vv) return
+    const releaseInlineSizing = () => {
+      const node = contentRef.current
+      if (!node) return
+      if (keyboardOverlaysLayout(window.innerHeight, vv.height)) return
+      node.style.height = ''
+      node.style.bottom = ''
+    }
+    vv.addEventListener('resize', releaseInlineSizing)
+    return () => vv.removeEventListener('resize', releaseInlineSizing)
+  }, [open])
+
   return (
     <Drawer.Root open={open} onOpenChange={onOpenChange}>
       <Drawer.Portal>
         <Drawer.Overlay className="fixed inset-0 z-40 bg-black/40" />
         <Drawer.Content
+          ref={contentRef}
           // 제목 없는 시트도 Radix Dialog 설명 경고를 피한다(설명 없음 명시).
           aria-describedby={undefined}
           className={cn(
             'fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col overflow-hidden rounded-t-3xl border-t border-base-200 bg-base-0 dark:border-base-800 dark:bg-base-900',
             // Fill mode wants a definite height so the inner flex column
             // (scroll region + pinned footer) can resolve flex-1. Otherwise
-            // size to content, capped at 90vh.
-            fill ? 'h-[85dvh] max-h-[85dvh]' : 'max-h-[90vh]',
+            // size to content, capped at 90dvh — dynamic units so the cap
+            // follows the viewport the soft keyboard leaves behind.
+            fill ? 'h-[85dvh] max-h-[85dvh]' : 'max-h-[90dvh]',
             className,
           )}
         >
@@ -158,7 +183,7 @@ export function DesktopModalShell({
             transition={{ type: 'spring', stiffness: 480, damping: 30 }}
             className={cn(
               'relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-base-200/70 bg-base-0 shadow-elevated dark:border-base-800/70 dark:bg-base-900',
-              fill ? 'h-[80vh] max-h-[80vh]' : 'max-h-[80vh]',
+              fill ? 'h-[80dvh] max-h-[80dvh]' : 'max-h-[80dvh]',
               className,
             )}
           >

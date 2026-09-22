@@ -10,8 +10,16 @@ type Props = {
   onChange: (items: ChecklistDraftItem[]) => void
 }
 
+// 준비물 목록은 열다섯 줄까지 간다 — 줄 높이는 손끝 하한(44px)에 딱 맞추고 줄 사이는 4px 만
+// 둬서 한 화면에 최대한 담는다. `checklist-editor.test.ts` 가 하한을 지킨다.
 const INPUT_CLASS =
   'h-11 w-full rounded-xl border border-transparent bg-base-100 px-3 text-[15px] text-base-900 placeholder:text-base-400 transition-all focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-100'
+
+const REMOVE_BUTTON_CLASS =
+  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 active:scale-95 dark:hover:bg-base-800'
+
+const ADD_BUTTON_CLASS =
+  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-600 transition active:scale-95 dark:bg-base-800 dark:text-base-300'
 
 export function ChecklistEditor({ items, onChange }: Props) {
   const t = useTranslations('schedule')
@@ -52,9 +60,9 @@ export function ChecklistEditor({ items, onChange }: Props) {
   return (
     <div className="space-y-2">
       {items.length > 0 && (
-        <ul className="space-y-2">
+        <ul className="space-y-1">
           {items.map((item, index) => (
-            <li key={item.key} className="flex items-center gap-2">
+            <li key={item.key} className="flex items-center gap-1">
               <input
                 value={item.label}
                 maxLength={200}
@@ -65,7 +73,7 @@ export function ChecklistEditor({ items, onChange }: Props) {
                 type="button"
                 aria-label={t('form.checklistRemove')}
                 onClick={() => removeAt(index)}
-                className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 active:scale-95 dark:hover:bg-base-800"
+                className={REMOVE_BUTTON_CLASS}
               >
                 <X size={16} strokeWidth={2.4} />
               </button>
@@ -73,7 +81,7 @@ export function ChecklistEditor({ items, onChange }: Props) {
           ))}
         </ul>
       )}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1">
         <input
           value={draft}
           maxLength={200}
@@ -89,7 +97,7 @@ export function ChecklistEditor({ items, onChange }: Props) {
           // 마우스 다운 시점에 포커스가 입력에서 떠나면 모바일 키보드가 닫힌다.
           onMouseDown={(e) => e.preventDefault()}
           onClick={commitDraft}
-          className="focus-ring flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-600 transition active:scale-95 dark:bg-base-800 dark:text-base-300"
+          className={ADD_BUTTON_CLASS}
         >
           <Plus size={17} strokeWidth={2.4} />
         </button>
