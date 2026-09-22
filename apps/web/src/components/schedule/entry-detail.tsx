@@ -142,7 +142,7 @@ export function EntryDetail({ entry, canEdit, canDelete, viewerName }: Props) {
 
   return (
     <>
-      <header className="sticky top-0 z-30 border-b border-base-200/60 bg-base-50/80 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/70">
+      <header className="sticky top-0 pt-[env(safe-area-inset-top)] z-30 border-b border-base-200/60 bg-base-50/80 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/70">
         <div className="mx-auto flex h-12 max-w-2xl items-center justify-between gap-3 px-5">
           <Link
             href="/calendar"

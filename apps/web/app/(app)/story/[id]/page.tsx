@@ -62,7 +62,7 @@ export default async function StoryDetailPage({
     )
     return (
       <>
-        <header className="sticky top-0 z-30 border-b border-base-200/60 bg-base-50/80 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/70">
+        <header className="sticky top-0 pt-[env(safe-area-inset-top)] z-30 border-b border-base-200/60 bg-base-50/80 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/70">
           <div className="mx-auto flex h-12 max-w-2xl items-center justify-between gap-3 px-5">
             <Link
               href={`/story/${publicNo}`}
@@ -151,7 +151,7 @@ export default async function StoryDetailPage({
 async function StoryDetailHeader() {
   const t = await getTranslations('story')
   return (
-    <header className="sticky top-0 z-30 border-b border-transparent bg-base-50/80 backdrop-blur-xl transition-colors dark:bg-base-950/70">
+    <header className="sticky top-0 pt-[env(safe-area-inset-top)] z-30 border-b border-transparent bg-base-50/80 backdrop-blur-xl transition-colors dark:bg-base-950/70">
       <div className="mx-auto flex h-12 max-w-2xl items-center gap-2 px-3">
         <Link
           href="/story"

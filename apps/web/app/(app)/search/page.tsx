@@ -101,7 +101,7 @@ export default function SearchPage() {
 
   return (
     <div className="mx-auto max-w-3xl px-4 pb-24">
-      <div className="sticky top-0 z-20 -mx-4 flex items-center gap-2 border-b border-base-200/60 bg-base-50/85 px-4 py-3 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/75">
+      <div className="sticky top-0 pt-[env(safe-area-inset-top)] z-20 -mx-4 flex items-center gap-2 border-b border-base-200/60 bg-base-50/85 px-4 py-3 backdrop-blur-xl dark:border-base-800/60 dark:bg-base-950/75">
         <button
           type="button"
           onClick={() => router.back()}
