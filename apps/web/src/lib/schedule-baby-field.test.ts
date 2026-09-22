@@ -12,8 +12,8 @@ describe('babyFieldMode', () => {
     expect(babyFieldMode([])).toEqual({ kind: 'hidden' })
   })
 
-  it('한 명이면 그 아기로 고정한다', () => {
-    expect(babyFieldMode(one)).toEqual({ kind: 'fixed', babyId: 'b1', name: '딸기' })
+  it('한 명이면 고를 것이 없으니 줄을 내지 않고 그 아기로 고정한다', () => {
+    expect(babyFieldMode(one)).toEqual({ kind: 'fixed', babyId: 'b1' })
   })
 
   it('두 명 이상이면 고르게 한다', () => {

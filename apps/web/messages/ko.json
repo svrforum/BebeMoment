@@ -546,7 +546,6 @@
       "daysBefore": "{n}일 전",
       "morningOf": "당일 {time}",
       "daysBeforeAt": "{n}일 전 {time}",
-      "remove": "알림 삭제",
       "custom": "직접 입력",
       "customAdd": "추가",
       "customAmount": "알림 간격",

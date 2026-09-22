@@ -1,8 +1,9 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { currentPushEnabled, isNativeApp, pushSupported } from '@/lib/push-client'
+import { reminderChips } from '@/lib/schedule-reminder-chips'
 import type { ReminderSpec } from '@/server/schedule/reminder-time'
-import { BellOff, Plus, X } from 'lucide-react'
+import { BellOff, Check, Plus } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useEffect, useMemo, useState } from 'react'
@@ -83,7 +84,7 @@ export function ReminderPicker({ mode, specs, onChange, pushEnabled }: Props) {
     onChange(chosen.has(key) ? specs.filter((s) => reminderKey(s) !== key) : [...specs, spec])
   }
 
-  const extras = specs.filter((spec) => !presets.some((p) => reminderKey(p) === reminderKey(spec)))
+  const chips = reminderChips(presets, specs)
 
   const addCustom = () => {
     const spec = buildCustom()
@@ -110,48 +111,27 @@ export function ReminderPicker({ mode, specs, onChange, pushEnabled }: Props) {
 
   return (
     <div className="space-y-3">
+      {/* 켜진 칩 = 걸려 있는 알림. 눌러서 끈다. 직접 넣은 값도 같은 모양의 켜진 칩이라
+          어디에 무엇이 걸렸는지 한 줄에서 다 보인다. */}
       <div className="flex flex-wrap gap-1.5">
-        {presets.map((spec) => {
-          const key = reminderKey(spec)
-          const active = chosen.has(key)
-          return (
-            <button
-              key={key}
-              type="button"
-              aria-pressed={active}
-              onClick={() => toggle(spec)}
-              className={cn(
-                'focus-ring rounded-full px-3 py-1.5 text-[13px] font-medium transition active:scale-95',
-                active
-                  ? 'bg-point-500 text-white'
-                  : 'bg-base-100 text-base-600 dark:bg-base-800 dark:text-base-300',
-              )}
-            >
-              {describe(spec)}
-            </button>
-          )
-        })}
+        {chips.map((chip) => (
+          <button
+            key={chip.key}
+            type="button"
+            aria-pressed={chip.selected}
+            onClick={() => toggle(chip.spec)}
+            className={cn(
+              'focus-ring flex items-center gap-1 rounded-full py-1.5 text-[13px] font-medium transition active:scale-95',
+              chip.selected
+                ? 'bg-point-500 pl-2.5 pr-3 text-white'
+                : 'bg-base-100 px-3 text-base-600 dark:bg-base-800 dark:text-base-300',
+            )}
+          >
+            {chip.selected && <Check size={13} strokeWidth={3} aria-hidden />}
+            {describe(chip.spec)}
+          </button>
+        ))}
       </div>
-
-      {extras.length > 0 && (
-        <ul className="flex flex-wrap gap-1.5">
-          {extras.map((spec) => (
-            <li key={reminderKey(spec)}>
-              <span className="flex items-center gap-1 rounded-full bg-point-500/12 py-1.5 pl-3 pr-1.5 text-[13px] font-medium text-point-600 dark:text-point-300">
-                {describe(spec)}
-                <button
-                  type="button"
-                  aria-label={t('reminder.remove')}
-                  onClick={() => toggle(spec)}
-                  className="focus-ring flex h-5 w-5 items-center justify-center rounded-full transition active:scale-90"
-                >
-                  <X size={13} strokeWidth={2.6} />
-                </button>
-              </span>
-            </li>
-          ))}
-        </ul>
-      )}
 
       {customOpen ? (
         <div className="flex flex-wrap items-center gap-2">

@@ -73,7 +73,8 @@ function FabTrigger({
     anyInputRef.current?.click()
   }, [])
 
-  const goSchedule = useCallback(() => openCreate(null), [openCreate])
+  // 날짜를 주지 않으면 작성 시트가 오늘로 시작한다(알림을 바로 걸 수 있게).
+  const goSchedule = useCallback(() => openCreate(), [openCreate])
 
   // 업로드가 가능하면 항상 선택 시트를 띄운다 — 예전처럼 곧장 사진 선택기를 열면
   // "파일에서 선택" 이 어디에도 보이지 않아 존재를 알 수 없다. 업로드가 기본 동작이라는

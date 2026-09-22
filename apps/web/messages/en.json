@@ -546,7 +546,6 @@
       "daysBefore": "{n} days before",
       "morningOf": "Same day at {time}",
       "daysBeforeAt": "{n} days before at {time}",
-      "remove": "Remove reminder",
       "custom": "Enter your own",
       "customAdd": "Add",
       "customAmount": "Reminder offset",

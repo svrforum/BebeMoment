@@ -3,15 +3,18 @@ export type ScheduleBabyChoice = { id: string; name: string }
 export type BabyFieldMode =
   /** 아기가 없으면 연결할 대상이 없다. */
   | { kind: 'hidden' }
-  /** 한 명이면 고를 것이 없다 — 그 아기로 고정하고 이름만 보여준다. */
-  | { kind: 'fixed'; babyId: string; name: string }
+  /**
+   * 한 명이면 고를 것이 없다 — 줄 자체를 내지 않고 그 아기로 고정한다.
+   * 읽기 전용으로 이름만 띄우면 결정할 게 없는 칸이 폼을 길게 만든다.
+   */
+  | { kind: 'fixed'; babyId: string }
   /** 두 명 이상이면 고른다. */
   | { kind: 'choose' }
 
 export function babyFieldMode(babies: ScheduleBabyChoice[]): BabyFieldMode {
   const only = babies[0]
   if (!only) return { kind: 'hidden' }
-  if (babies.length === 1) return { kind: 'fixed', babyId: only.id, name: only.name }
+  if (babies.length === 1) return { kind: 'fixed', babyId: only.id }
   return { kind: 'choose' }
 }
 

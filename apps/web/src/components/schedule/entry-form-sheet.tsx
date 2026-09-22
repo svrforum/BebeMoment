@@ -7,6 +7,8 @@ import { Segmented } from '@/components/ui/segmented'
 import { Toggle } from '@/components/ui/toggle'
 import { actionErrorText } from '@/lib/action-result'
 import { cn } from '@/lib/cn'
+import { localDayKey } from '@/lib/day-key'
+import { initialOnDate } from '@/lib/schedule-date-field'
 import { useToast } from '@/lib/toast'
 import type { ReminderSpec } from '@/server/schedule/reminder-time'
 import { useTranslations } from 'next-intl'
@@ -47,7 +49,10 @@ export type ScheduleFormInitial = {
 type ScheduleFormApi = {
   /** 이 뷰어가 일정을 만들 수 있는지 — 화면들이 '일정 추가' 를 그릴지 판단한다. */
   canCreate: boolean
-  /** 날짜가 채워진 작성 시트. `null` 이면 날짜 없는 할 일로 시작한다. */
+  /**
+   * 작성 시트를 연다. 날짜 칸에서 열면 그 날로, 날짜 없이 열면 오늘로 채워 시작한다 —
+   * 빈 날짜로 열면 알림 UI 가 숨어 버린다. 날짜 없는 할 일은 시트 안 '날짜 지우기' 로.
+   */
   openCreate: (day?: string | null) => void
   openEdit: (initial: ScheduleFormInitial) => void
 }
@@ -74,14 +79,14 @@ type Draft = {
   reminders: ReminderSpec[]
 }
 
-// 아기를 미리 골라 두지 않는다 — 가족 일정은 아기 소속이 아니고, 자동으로 붙으면
-// 사용자가 고르지도 않은 연결이 생긴다.
-function blankDraft(day: string | null, babies: ScheduleBabyOption[]): Draft {
+// 아기가 둘 이상이면 미리 골라 두지 않는다 — 가족 일정은 아기 소속이 아니고, 자동으로
+// 붙으면 사용자가 고르지도 않은 연결이 생긴다. 한 명뿐이면 고를 것이 없어 그 아기로 찬다.
+function blankDraft(day: string | null | undefined, babies: ScheduleBabyOption[]): Draft {
   return {
     id: null,
     title: '',
     memo: '',
-    onDate: day ?? '',
+    onDate: initialOnDate(day, localDayKey()),
     mode: 'allDay',
     startMinute: MORNING_MINUTE,
     repeatYearly: false,
@@ -138,7 +143,7 @@ export function ScheduleFormProvider({
       openCreate: (day) => {
         setDraft((prev) => ({
           serial: (prev?.serial ?? 0) + 1,
-          value: blankDraft(day ?? null, babies),
+          value: blankDraft(day, babies),
         }))
         setOpen(true)
       },
@@ -385,19 +390,8 @@ function EntryFormSheet({
           </div>
         )}
 
-        {babyMode.kind === 'fixed' && (
-          // 아기가 하나면 고를 것이 없다 — 이름만 보여주고 값은 고정한다.
-          <div>
-            <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
-            <p
-              id="schedule-baby"
-              className="flex h-12 w-full items-center rounded-2xl bg-base-100 px-4 text-[15px] text-base-900 dark:bg-base-800 dark:text-base-100"
-            >
-              {babyMode.name}
-            </p>
-          </div>
-        )}
-
+        {/* 아기가 하나면 이 줄을 아예 내지 않는다 — 고를 것이 없는 칸이다.
+            값은 `initialBabyId` 가 그 아기로 채워 두므로 저장하면 그대로 연결된다. */}
         {babyMode.kind === 'choose' && (
           <div>
             <Label htmlFor="schedule-baby">{t('form.baby')}</Label>
