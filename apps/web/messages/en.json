@@ -614,6 +614,21 @@
     "time": {
       "am": "{time} AM",
       "pm": "{time} PM"
+    },
+    "template": {
+      "load": "Load template",
+      "save": "Save as template",
+      "loading": "Loading…",
+      "empty": "No templates yet. Fill in a checklist, then tap ‘Save as template’.",
+      "itemCount": "{n} items",
+      "delete": "Delete template",
+      "deleteConfirm": "Delete",
+      "namePlaceholder": "Template name (e.g. Clinic bag)",
+      "saveConfirm": "Save",
+      "applied": "Added {n} items",
+      "nothingNew": "Everything is already on the list",
+      "saved": "Saved as ‘{name}’",
+      "replaced": "Updated ‘{name}’ with this list"
     }
   },
   "viewer": {
@@ -744,6 +759,10 @@
         "date": {
           "sheetTitle": "Create share link for this day",
           "intro": "Anyone with the link can view this day's photos and stories, including ones added to this day later. Only family can save the originals."
+        },
+        "schedule": {
+          "sheetTitle": "Create share link for this schedule",
+          "intro": "Anyone with the link sees only the title, date and time. Notes and the checklist are visible to signed-in guardians only."
         }
       },
       "text": {
@@ -2013,7 +2032,9 @@
       "repeatNeedsDate": "Pick a date before turning on repeat",
       "repeatUntilNeedsRepeat": "An end date only applies to yearly repeats",
       "reminderNeedsDate": "A reminder needs the schedule to have a date",
-      "babyNotFound": "That baby is not available"
+      "babyNotFound": "That baby is not available",
+      "templateEmpty": "Add at least one item to save a template",
+      "templateNotFound": "Template not found"
     },
     "user": {
       "displayNameRequired": "Enter a name",

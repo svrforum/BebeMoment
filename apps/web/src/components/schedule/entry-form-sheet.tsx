@@ -352,6 +352,7 @@ function EntryFormSheet({
             <ChecklistEditor
               items={draft.checklist}
               onChange={(checklist) => patch({ checklist })}
+              templateName={draft.title}
             />
           </div>
 

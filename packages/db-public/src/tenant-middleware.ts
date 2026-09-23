@@ -25,6 +25,7 @@ export const TENANT_SCOPED_MODELS = new Set([
   'ScheduleChecklistItem',
   'ScheduleReminder',
   'ScheduleReminderFire',
+  'ScheduleChecklistTemplate',
   // NOTE: PushSubscription, NotificationPref are user-scoped (not family-scoped),
   // like Session — queried by userId, no familyId filter required.
 ])
@@ -55,6 +56,7 @@ export const MODELS_WITH_FAMILY_ID_COLUMN = new Set([
   'ScheduleChecklistItem',
   'ScheduleReminder',
   'ScheduleReminderFire',
+  'ScheduleChecklistTemplate',
 ])
 
 const READ_LIKE_OPERATIONS = new Set([

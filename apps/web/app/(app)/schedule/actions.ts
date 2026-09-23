@@ -18,6 +18,12 @@ import {
 } from '@/server/schedule/entry'
 import { getScheduleEntry } from '@/server/schedule/list'
 import { setScheduleReminders } from '@/server/schedule/reminders'
+import {
+  type ChecklistTemplateView,
+  deleteChecklistTemplate,
+  listChecklistTemplates,
+  saveChecklistTemplate,
+} from '@/server/schedule/templates'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { revalidatePath } from 'next/cache'
 import { redirect } from 'next/navigation'
@@ -256,5 +262,37 @@ export async function setChecklistItemDoneAction(
       prismaPublic,
     )
     refresh()
+  })
+}
+
+export async function listChecklistTemplatesAction(): Promise<
+  ActionResult<ChecklistTemplateView[]>
+> {
+  return withActionLog('schedule.template.list', async () => {
+    const who = await caller()
+    return listChecklistTemplates({ familyId: who.familyId, byUserId: who.userId }, prismaPublic)
+  })
+}
+
+export async function saveChecklistTemplateAction(input: {
+  name: string
+  items: string[]
+}): Promise<ActionResult<{ template: ChecklistTemplateView; replaced: boolean }>> {
+  return withActionLog('schedule.template.save', async () => {
+    const who = await caller()
+    return saveChecklistTemplate(
+      { familyId: who.familyId, byUserId: who.userId, name: input.name, items: input.items },
+      prismaPublic,
+    )
+  })
+}
+
+export async function deleteChecklistTemplateAction(id: string): Promise<ActionResult<void>> {
+  return withActionLog('schedule.template.delete', async () => {
+    const who = await caller()
+    await deleteChecklistTemplate(
+      { id, familyId: who.familyId, byUserId: who.userId },
+      prismaPublic,
+    )
   })
 }

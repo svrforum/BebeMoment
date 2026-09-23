@@ -614,6 +614,21 @@
     "time": {
       "am": "오전 {time}",
       "pm": "오후 {time}"
+    },
+    "template": {
+      "load": "템플릿 불러오기",
+      "save": "템플릿으로 저장",
+      "loading": "불러오는 중…",
+      "empty": "저장된 템플릿이 없어요. 체크리스트를 채운 뒤 ‘템플릿으로 저장’을 눌러 보세요.",
+      "itemCount": "{n}개",
+      "delete": "템플릿 삭제",
+      "deleteConfirm": "삭제",
+      "namePlaceholder": "템플릿 이름 (예: 병원 준비물)",
+      "saveConfirm": "저장",
+      "applied": "항목 {n}개를 불러왔어요",
+      "nothingNew": "이미 모두 있는 항목이에요",
+      "saved": "‘{name}’ 템플릿으로 저장했어요",
+      "replaced": "‘{name}’ 템플릿을 지금 목록으로 바꿨어요"
     }
   },
   "viewer": {
@@ -744,6 +759,10 @@
         "date": {
           "sheetTitle": "이 날 공유 링크 만들기",
           "intro": "링크를 아는 사람은 이 날의 사진과 이야기를 볼 수 있어요. 나중에 이 날에 올린 것도 함께 보여요. 원본 저장은 가족만 할 수 있어요."
+        },
+        "schedule": {
+          "sheetTitle": "일정 공유 링크 만들기",
+          "intro": "링크를 아는 사람은 제목과 날짜·시각만 볼 수 있어요. 메모와 체크리스트는 로그인한 보호자만 볼 수 있어요."
         }
       },
       "text": {
@@ -2013,7 +2032,9 @@
       "repeatNeedsDate": "반복하려면 날짜가 필요해요",
       "repeatUntilNeedsRepeat": "반복 종료일은 매년 반복일 때만 정할 수 있어요",
       "reminderNeedsDate": "날짜가 없는 일정에는 알림을 걸 수 없어요",
-      "babyNotFound": "연결할 수 없는 아기예요"
+      "babyNotFound": "연결할 수 없는 아기예요",
+      "templateEmpty": "템플릿에 담을 항목이 없어요",
+      "templateNotFound": "템플릿을 찾을 수 없어요"
     },
     "user": {
       "displayNameRequired": "이름을 입력해주세요.",

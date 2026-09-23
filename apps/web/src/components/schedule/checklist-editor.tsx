@@ -3,11 +3,14 @@ import { cn } from '@/lib/cn'
 import { Plus, X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { type KeyboardEvent, useRef, useState } from 'react'
+import { ChecklistTemplates } from './checklist-templates'
 import { type ChecklistDraftItem, appendChecklistItem } from './form-model'
 
 type Props = {
   items: ChecklistDraftItem[]
   onChange: (items: ChecklistDraftItem[]) => void
+  /** 템플릿으로 저장할 때 미리 채울 이름(보통 일정 제목). */
+  templateName?: string
 }
 
 // 준비물 목록은 열다섯 줄까지 간다 — 줄 높이는 손끝 하한(44px)에 딱 맞추고 줄 사이는 4px 만
@@ -21,7 +24,7 @@ const REMOVE_BUTTON_CLASS =
 const ADD_BUTTON_CLASS =
   'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-600 transition active:scale-95 dark:bg-base-800 dark:text-base-300'
 
-export function ChecklistEditor({ items, onChange }: Props) {
+export function ChecklistEditor({ items, onChange, templateName = '' }: Props) {
   const t = useTranslations('schedule')
   const [draft, setDraft] = useState('')
   const seq = useRef(0)
@@ -55,6 +58,12 @@ export function ChecklistEditor({ items, onChange }: Props) {
 
   const removeAt = (index: number) => {
     onChange(items.filter((_, i) => i !== index))
+  }
+
+  const appendLabels = (labels: string[]) => {
+    let next = items
+    for (const label of labels) next = appendChecklistItem(next, label, nextKey())
+    onChange(next)
   }
 
   return (
@@ -102,6 +111,11 @@ export function ChecklistEditor({ items, onChange }: Props) {
           <Plus size={17} strokeWidth={2.4} />
         </button>
       </div>
+      <ChecklistTemplates
+        labels={items.map((item) => item.label).filter((label) => label.trim() !== '')}
+        defaultName={templateName}
+        onAppend={appendLabels}
+      />
     </div>
   )
 }

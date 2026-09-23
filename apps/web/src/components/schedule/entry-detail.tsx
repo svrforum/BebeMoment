@@ -19,11 +19,21 @@ import type {
   ScheduleReminderView,
 } from '@/server/schedule/list'
 import type { ReminderSpec } from '@/server/schedule/reminder-time'
-import { Bell, Check, ChevronLeft, Pencil, Repeat, RotateCcw, Trash2 } from 'lucide-react'
+import {
+  Bell,
+  Check,
+  ChevronLeft,
+  ListChecks,
+  Pencil,
+  Repeat,
+  RotateCcw,
+  StickyNote,
+  Trash2,
+} from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
-import { useEffect, useState, useTransition } from 'react'
+import { type ReactNode, useEffect, useState, useTransition } from 'react'
 import { useScheduleForm } from './entry-form-sheet'
 import { useMinuteOfDay, useReminderLabel } from './reminder-label'
 import { ScheduleShareButton } from './schedule-share-button'
@@ -55,6 +65,7 @@ export function EntryDetail({ entry, canEdit, canShare, canDelete, viewerName }:
   const [, startTransition] = useTransition()
   const [doneAt, setDoneAt] = useState<Date | null>(entry.doneAt)
   const [items, setItems] = useState<ScheduleChecklistItemView[]>(entry.checklistItems)
+  const doneCount = items.filter((item) => item.doneAt !== null).length
   const [confirmOpen, setConfirmOpen] = useState(false)
   const [busy, setBusy] = useState(false)
 
@@ -202,29 +213,53 @@ export function EntryDetail({ entry, canEdit, canShare, canDelete, viewerName }:
           </h1>
         </div>
 
+        {/* 메모와 체크리스트는 성격이 다르다 — 하나는 읽는 글, 하나는 누르는 목록. 같은 회색
+            라벨 아래 이어 붙이면 어디서 끝나고 시작하는지 안 보여서 각각 제 칸에 담는다. */}
         {entry.memo && (
-          <section>
-            <SectionTitle>{t('detail.memo')}</SectionTitle>
+          <DetailCard
+            icon={<StickyNote size={16} strokeWidth={2.2} aria-hidden />}
+            title={t('detail.memo')}
+          >
             <p className="whitespace-pre-wrap text-[15px] leading-relaxed text-base-800 dark:text-base-100">
               {entry.memo}
             </p>
-          </section>
+          </DetailCard>
         )}
 
-        <section>
-          <SectionTitle>{t('detail.checklist')}</SectionTitle>
+        <DetailCard
+          icon={<ListChecks size={16} strokeWidth={2.2} aria-hidden />}
+          title={t('detail.checklist')}
+          aside={
+            items.length > 0 ? (
+              <span className="text-[13px] font-semibold tabular-nums text-base-500 dark:text-base-400">
+                {t('checklistProgress', { done: doneCount, total: items.length })}
+              </span>
+            ) : null
+          }
+        >
           {items.length === 0 ? (
             <p className="text-[14px] text-base-400">{t('detail.checklistEmpty')}</p>
           ) : (
-            <ul className="space-y-1">
-              {items.map((item) => (
-                <li key={item.id}>
-                  <ChecklistRow item={item} onToggle={() => toggleItem(item)} />
-                </li>
-              ))}
-            </ul>
+            <>
+              <div
+                className="mb-2 h-1 overflow-hidden rounded-full bg-base-100 dark:bg-base-800"
+                aria-hidden
+              >
+                <div
+                  className="h-full rounded-full bg-point-500 transition-[width] duration-300 ease-ios"
+                  style={{ width: `${Math.round((doneCount / items.length) * 100)}%` }}
+                />
+              </div>
+              <ul className="divide-y divide-base-100 dark:divide-base-800">
+                {items.map((item) => (
+                  <li key={item.id}>
+                    <ChecklistRow item={item} onToggle={() => toggleItem(item)} />
+                  </li>
+                ))}
+              </ul>
+            </>
           )}
-        </section>
+        </DetailCard>
 
         <section>
           <SectionTitle>{t('detail.reminders')}</SectionTitle>
@@ -292,7 +327,7 @@ function ChecklistRow({
       type="button"
       onClick={onToggle}
       aria-pressed={item.doneAt !== null}
-      className="focus-ring flex w-full items-center gap-2.5 rounded-xl px-1 py-2 text-left transition active:opacity-70"
+      className="focus-ring flex min-h-11 w-full items-center gap-2.5 rounded-xl px-1 py-2.5 text-left transition active:opacity-70"
     >
       <span
         className={cn(
@@ -319,6 +354,33 @@ function ChecklistRow({
         </span>
       )}
     </button>
+  )
+}
+
+function DetailCard({
+  icon,
+  title,
+  aside,
+  children,
+}: {
+  icon: ReactNode
+  title: string
+  aside?: ReactNode
+  children: ReactNode
+}) {
+  return (
+    <section className="rounded-2xl border border-base-200/70 bg-base-0 px-4 pb-3 pt-3.5 shadow-card dark:border-base-800/70 dark:bg-base-900">
+      <div className="mb-2.5 flex items-center gap-2">
+        <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-point-500/10 text-point-500">
+          {icon}
+        </span>
+        <h2 className="flex-1 text-[14px] font-semibold text-base-800 dark:text-base-100">
+          {title}
+        </h2>
+        {aside}
+      </div>
+      {children}
+    </section>
   )
 }
 
