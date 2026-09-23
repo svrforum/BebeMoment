@@ -21,6 +21,7 @@ export type NotificationEventType =
   | 'digest.summary'
   | 'schedule.reminder'
   | 'schedule.created'
+  | 'schedule.updated'
 
 const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'asset.uploaded': 'asset_upload',
@@ -36,6 +37,7 @@ const EVENT_CATEGORY: Record<NotificationEventType, NotificationCategory> = {
   'schedule.reminder': 'schedule_reminder',
   // 알람과 분리한다 — '누가 일정을 추가했다' 소식을 끈 사람이 접종 알람까지 잃으면 안 된다.
   'schedule.created': 'schedule_changed',
+  'schedule.updated': 'schedule_changed',
 }
 export function categoryForEvent(t: NotificationEventType): NotificationCategory {
   return EVENT_CATEGORY[t]

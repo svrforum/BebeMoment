@@ -146,21 +146,23 @@ export function buildNotification(
         body: job.payload.title ?? t('scheduleReminder.title'),
         url: `/schedule/${job.payload.entryId}`,
       }
-    case 'schedule.created': {
-      // 알람이 아니라 '누가 일정을 넣었다'는 소식이다. 무엇이 언제인지 본문에 담는다.
+    case 'schedule.created':
+    case 'schedule.updated': {
+      // 알람이 아니라 '누가 일정을 넣었다/고쳤다'는 소식이다. 무엇이 언제인지 본문에 담는다.
+      const ns = job.type === 'schedule.created' ? 'scheduleCreated' : 'scheduleUpdated'
       const what = job.payload.title ?? ''
       const url = `/schedule/${job.payload.entryId}`
       const when = scheduleWallClock(job.payload.onDate, job.payload.startMinute)
-      if (!when) return { title, body: t('scheduleCreated.noDate', { title: what }), url }
+      if (!when) return { title, body: t(`${ns}.noDate`, { title: what }), url }
       if (when.minute === null) {
-        return { title, body: t('scheduleCreated.allDay', { title: what, when: when.at }), url }
+        return { title, body: t(`${ns}.allDay`, { title: what, when: when.at }), url }
       }
       // 시각의 오전/오후 낱말은 카탈로그가 붙인다 — Intl 에 맡기면 ICU 판에 따라 한국어가
       // "AM 10:00" 으로 나온다(`lib/clock.ts`).
       const { period, hour12, minute2 } = clockParts(when.minute)
       return {
         title,
-        body: t('scheduleCreated.withTime', {
+        body: t(`${ns}.withTime`, {
           title: what,
           when: when.at,
           period,
@@ -220,8 +222,8 @@ export async function handleNotificationJob(job: NotificationJob, deps: Deps): P
   const candidates =
     job.type === 'schedule.reminder'
       ? guardianIds(members)
-      : job.type === 'schedule.created'
-        ? // 반대로 만든 사람은 뺀다 — 자기가 방금 넣은 일정을 다시 알려 줄 필요가 없다.
+      : job.type === 'schedule.created' || job.type === 'schedule.updated'
+        ? // 반대로 만들거나 고친 사람은 뺀다 — 자기가 방금 한 일을 다시 알려 줄 필요가 없다.
           guardianIds(members).filter((uid) => uid !== job.actorUserId)
         : resolveRecipients({
             members,

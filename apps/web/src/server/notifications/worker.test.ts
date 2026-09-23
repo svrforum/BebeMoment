@@ -492,3 +492,76 @@ it('일정 추가 알림은 schedule_changed 카테고리로 게이팅된다', a
   expect(seen).toContain('push.categories.schedule_changed.enabled')
   expect(subscriptionsFor).toHaveBeenCalledWith(['g'])
 })
+
+it('일정 변경 알림은 무엇이 언제인지 담고 그 일정 상세로 데려간다', () => {
+  const base = { familyId: 'f', actorUserId: 'a', type: 'schedule.updated' } as const
+  const withTime = buildNotification(
+    {
+      ...base,
+      payload: { entryId: 'e1', title: '강남 진료', onDate: '2026-09-25', startMinute: '630' },
+    },
+    { familyName: '우리집' },
+    tKo,
+  )
+  expect(withTime.url).toBe('/schedule/e1')
+  expect(withTime.body).toBe('일정이 바뀌었어요 🗓️ "강남 진료" · 2026년 9월 25일 오전 10:30')
+  expect(
+    buildNotification(
+      { ...base, payload: { entryId: 'e2', title: '돌잔치', onDate: '2026-09-24' } },
+      { familyName: '우리집' },
+      tKo,
+    ).body,
+  ).toBe('일정이 바뀌었어요 🗓️ "돌잔치" · 2026년 9월 24일 종일')
+  expect(
+    buildNotification(
+      { ...base, payload: { entryId: 'e3', title: '기저귀 주문' } },
+      { familyName: '우리집' },
+      tKo,
+    ).body,
+  ).toBe('할 일이 바뀌었어요 🗓️ "기저귀 주문"')
+  expect(
+    buildNotification(
+      {
+        ...base,
+        payload: { entryId: 'e4', title: 'Checkup', onDate: '2026-09-24', startMinute: '600' },
+      },
+      { familyName: 'Our family' },
+      tEn,
+    ).body,
+  ).toBe('A schedule was changed 🗓️ "Checkup" · September 24, 2026 at 10:00 AM')
+})
+
+it('일정 변경 알림도 고친 사람을 빼고 다른 보호자에게만, 추가와 같은 설정으로 간다', async () => {
+  const subscriptionsFor = vi.fn(async (userIds: string[]) =>
+    userIds.map((userId) => ({ endpoint: userId, p256dh: 'x', auth: 'y', userId })),
+  )
+  const seen: string[] = []
+  await handleNotificationJob(
+    {
+      familyId: 'f',
+      actorUserId: 'g',
+      type: 'schedule.updated',
+      payload: { entryId: 'e1', title: '접종' },
+    },
+    {
+      settingsGet: async (key: string) => {
+        seen.push(key)
+        return 'true'
+      },
+      loadFamily: async () => ({
+        members: [
+          { userId: 'a', role: 'owner' },
+          { userId: 'g', role: 'guardian' },
+          { userId: 'b', role: 'family' },
+        ],
+        visibility: 'family',
+      }),
+      prefEnabled: async () => true,
+      subscriptionsFor,
+      send: vi.fn(),
+      deleteSub: vi.fn(),
+    },
+  )
+  expect(subscriptionsFor).toHaveBeenCalledWith(['a'])
+  expect(seen).toContain('push.categories.schedule_changed.enabled')
+})

@@ -95,6 +95,7 @@ describe('isDeliveryExempt', () => {
     // 알람과 다르다 — 사용자가 고른 시각이 아니라 남이 방금 한 일을 알리는 것이라
     // 조용한 시간에 집을 깨우면 안 된다.
     expect(isDeliveryExempt('schedule.created')).toBe(false)
+    expect(isDeliveryExempt('schedule.updated')).toBe(false)
   })
 
   it('가족 콘텐츠 알림은 면제하지 않는다', () => {

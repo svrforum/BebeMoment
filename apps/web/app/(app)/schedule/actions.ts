@@ -18,6 +18,7 @@ import {
 } from '@/server/schedule/entry'
 import { getScheduleEntry } from '@/server/schedule/list'
 import { setScheduleReminders } from '@/server/schedule/reminders'
+import { notifyScheduleUpdated } from '@/server/schedule/updated-notice'
 import {
   type ChecklistTemplateView,
   deleteChecklistTemplate,
@@ -179,6 +180,8 @@ export async function updateScheduleAction(id: string, raw: unknown): Promise<Ac
   return withActionLog('schedule.update', async () => {
     const who = await caller()
     const payload = FormPayload.parse(raw)
+    // 바뀌었는지 비교하려면 고치기 전 모습이 필요하다.
+    const previous = await getScheduleEntry({ id, familyId: who.familyId }, prismaPublic)
     await updateScheduleEntry(
       { id, familyId: who.familyId, byUserId: who.userId, patch: entryPatch(payload) },
       prismaPublic,
@@ -188,6 +191,34 @@ export async function updateScheduleAction(id: string, raw: unknown): Promise<Ac
       { entryId: id, familyId: who.familyId, byUserId: who.userId, specs: payload.reminders },
       prismaPublic,
     )
+    // 세 번의 쓰기가 모두 끝난 뒤에만 — 중간에 실패했으면 여기 오지 않는다.
+    if (previous) {
+      await notifyScheduleUpdated({
+        familyId: who.familyId,
+        byUserId: who.userId,
+        entryId: id,
+        before: {
+          title: previous.title,
+          memo: previous.memo,
+          onDate: previous.onDate,
+          startMinute: previous.startMinute,
+          repeatYearly: previous.repeatYearly,
+          repeatUntil: previous.repeatUntil,
+          babyId: previous.babyId,
+          checklist: previous.checklistItems.map((item) => item.label),
+        },
+        after: {
+          title: payload.title,
+          memo: payload.memo,
+          onDate: payload.onDate,
+          startMinute: payload.onDate ? payload.startMinute : null,
+          repeatYearly: payload.repeatYearly,
+          repeatUntil: payload.repeatUntil,
+          babyId: payload.babyId,
+          checklist: payload.checklist.map((item) => item.label),
+        },
+      })
+    }
     refresh(id)
   })
 }

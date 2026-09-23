@@ -35,5 +35,7 @@ describe('notifications', () => {
     expect(NOTIFICATION_CATEGORIES).toContain('schedule_changed')
     expect(categoryForEvent('schedule.created')).toBe('schedule_changed')
     expect(categoryForEvent('schedule.created')).not.toBe(categoryForEvent('schedule.reminder'))
+    // 추가와 변경은 같은 소식이라 한 설정으로 함께 끈다. 알람과는 여전히 다르다.
+    expect(categoryForEvent('schedule.updated')).toBe('schedule_changed')
   })
 })

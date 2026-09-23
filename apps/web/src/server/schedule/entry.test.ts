@@ -619,11 +619,12 @@ describe('일정 생성 알림', () => {
   })
 
   /**
-   * 소스를 직접 본다. 수정·삭제·완료는 enqueue 인자를 아예 받지 않으므로 스파이를 꽂을 수가
-   * 없고, 스파이 없이 "아무것도 안 왔다"를 단언하면 언제나 참이라 누가 알림을 붙여도 초록으로
-   * 남는다. 알림이 createScheduleEntry 안에서만 나가는지를 소스로 고정한다.
+   * 소스를 직접 본다. 이 파일의 쓰기 중 알림을 직접 보내는 건 생성뿐이어야 한다. 변경 알림은
+   * 수정 액션이 저장 세 단계를 모두 마친 뒤 `updated-notice.ts` 로 보낸다 — 일정 필드만 고친
+   * 시점에 여기서 보내면 체크리스트·알림 저장이 실패해도 "바뀌었어요" 가 먼저 나간다. 삭제·완료는
+   * 알리지 않는다.
    */
-  it('알림을 보내는 곳은 생성 하나뿐이다', async () => {
+  it('이 파일에서 알림을 직접 보내는 곳은 생성 하나뿐이다', async () => {
     const source = await readFile(new URL('./entry.ts', import.meta.url), 'utf8')
     const calls = source.match(/\benqueue\(/g) ?? []
     expect(calls).toHaveLength(1)

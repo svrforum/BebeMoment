@@ -1517,7 +1517,7 @@
         "diaryGrowthMilestone": "Stories, growth & milestones",
         "memory": "Memories",
         "scheduleReminder": "Schedule reminders",
-        "scheduleChanged": "New schedules"
+        "scheduleChanged": "New and changed schedules"
       },
       "vapidHeading": "VAPID keys",
       "vapidConfigured": "Keys are configured.",
@@ -1852,7 +1852,12 @@
       "noDate": "A new to-do was added 🗓️ \"{title}\""
     },
     "testTitle": "Bebe Moment",
-    "testBody": "Your test notification arrived! 🎉"
+    "testBody": "Your test notification arrived! 🎉",
+    "scheduleUpdated": {
+      "withTime": "A schedule was changed 🗓️ \"{title}\" · {when, date, long} at {time} {period, select, am {AM} other {PM}}",
+      "allDay": "A schedule was changed 🗓️ \"{title}\" · {when, date, long}, all day",
+      "noDate": "A to-do was changed 🗓️ \"{title}\""
+    }
   },
   "errors": {
     "unauthorized": "Sign in required",

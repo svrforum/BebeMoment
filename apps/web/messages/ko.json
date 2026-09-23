@@ -1517,7 +1517,7 @@
         "diaryGrowthMilestone": "스토리·성장·마일스톤",
         "memory": "추억",
         "scheduleReminder": "일정 알림",
-        "scheduleChanged": "일정 추가"
+        "scheduleChanged": "일정 추가·변경"
       },
       "vapidHeading": "VAPID 키",
       "vapidConfigured": "키가 설정되어 있어요.",
@@ -1852,7 +1852,12 @@
       "noDate": "새 할 일이 추가됐어요 🗓️ \"{title}\""
     },
     "testTitle": "베베 모먼트",
-    "testBody": "테스트 알림이 잘 도착했어요! 🎉"
+    "testBody": "테스트 알림이 잘 도착했어요! 🎉",
+    "scheduleUpdated": {
+      "withTime": "일정이 바뀌었어요 🗓️ \"{title}\" · {when, date, long} {period, select, am {오전} other {오후}} {time}",
+      "allDay": "일정이 바뀌었어요 🗓️ \"{title}\" · {when, date, long} 종일",
+      "noDate": "할 일이 바뀌었어요 🗓️ \"{title}\""
+    }
   },
   "errors": {
     "unauthorized": "로그인이 필요해요",
