@@ -66,38 +66,46 @@ export function DaySheet({
               ) : (
                 <ul className="space-y-1.5">
                   {entries.map((entry) => (
-                    <li
-                      key={entry.id}
-                      className="flex items-center gap-3 rounded-2xl bg-base-50 px-3 py-2.5 dark:bg-base-800/60"
-                    >
-                      <span className="w-[68px] shrink-0 text-[12px] font-medium tabular-nums text-base-500 dark:text-base-400">
-                        {entry.startMinute === null ? t('allDay') : minuteOfDay(entry.startMinute)}
-                      </span>
-                      <span
-                        className={cn(
-                          'min-w-0 flex-1 truncate text-[14px] font-medium text-base-900 dark:text-base-50',
-                          entry.doneAt !== null && 'text-base-400 line-through dark:text-base-500',
-                        )}
+                    <li key={entry.id}>
+                      <Link
+                        href={`/schedule/${entry.id}`}
+                        prefetch={false}
+                        onClick={() => onOpenChange(false)}
+                        className="focus-ring flex min-h-11 items-center gap-3 rounded-2xl bg-base-50 px-3 py-2.5 transition active:scale-[0.99] dark:bg-base-800/60"
                       >
-                        {entry.title}
-                      </span>
-                      {entry.checklistTotal > 0 && (
-                        <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums text-base-500 dark:text-base-400">
-                          <ListChecks size={13} strokeWidth={2.2} aria-hidden />
-                          {t('checklistProgress', {
-                            done: entry.checklistDone,
-                            total: entry.checklistTotal,
-                          })}
+                        <span className="w-[68px] shrink-0 text-[12px] font-medium tabular-nums text-base-500 dark:text-base-400">
+                          {entry.startMinute === null
+                            ? t('allDay')
+                            : minuteOfDay(entry.startMinute)}
                         </span>
-                      )}
-                      {entry.doneAt !== null && (
                         <span
-                          aria-label={t('done')}
-                          className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-point-500"
+                          className={cn(
+                            'min-w-0 flex-1 truncate text-[14px] font-medium text-base-900 dark:text-base-50',
+                            entry.doneAt !== null &&
+                              'text-base-400 line-through dark:text-base-500',
+                          )}
                         >
-                          <Check size={12} strokeWidth={3} />
+                          {entry.title}
                         </span>
-                      )}
+                        {entry.checklistTotal > 0 && (
+                          <span className="flex shrink-0 items-center gap-1 text-[12px] tabular-nums text-base-500 dark:text-base-400">
+                            <ListChecks size={13} strokeWidth={2.2} aria-hidden />
+                            {t('checklistProgress', {
+                              done: entry.checklistDone,
+                              total: entry.checklistTotal,
+                            })}
+                          </span>
+                        )}
+                        {entry.doneAt !== null && (
+                          <span
+                            aria-label={t('done')}
+                            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-point-500"
+                          >
+                            <Check size={12} strokeWidth={3} />
+                          </span>
+                        )}
+                        <ChevronRight size={16} className="shrink-0 text-base-300" aria-hidden />
+                      </Link>
                     </li>
                   ))}
                 </ul>
