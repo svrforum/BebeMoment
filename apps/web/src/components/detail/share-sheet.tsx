@@ -15,6 +15,7 @@ export type SheetTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string }
+  | { kind: 'schedule'; entryId: string }
 
 // 목록 조회 쿼리. 선택(컬렉션)은 안정적인 타깃 식별자가 없어 per-target 으로 못 찾으므로,
 // 본인이 만든 링크 전체(mine=1)를 받아 selection 종류만 추려 보여준다(회수 가능하게).
@@ -28,6 +29,8 @@ function listQuery(t: SheetTarget): string | null {
       return `albumId=${t.albumId}`
     case 'date':
       return `date=${t.date}`
+    case 'schedule':
+      return `scheduleEntryId=${t.entryId}`
     case 'selection':
       return 'mine=1'
   }
@@ -45,6 +48,8 @@ function createBody(t: SheetTarget): Record<string, unknown> {
       return { assetIds: t.assetIds }
     case 'date':
       return { date: t.date }
+    case 'schedule':
+      return { scheduleEntryId: t.entryId }
   }
 }
 

@@ -27,4 +27,9 @@ describe('shareTitle', () => {
     expect(shareTitle({ kind: 'album', albumId: 'a' }, t, 'ko', '')).toBe('share.text.album')
     expect(shareTitle({ kind: 'story', storyId: 's' }, t, 'ko')).toBe('share.text.story')
   })
+
+  it('uses the schedule title, falling back to the generic one', () => {
+    expect(shareTitle({ kind: 'schedule', entryId: 'e' }, t, 'ko', '강남 진료')).toBe('강남 진료')
+    expect(shareTitle({ kind: 'schedule', entryId: 'e' }, t, 'ko')).toBe('share.text.schedule')
+  })
 })

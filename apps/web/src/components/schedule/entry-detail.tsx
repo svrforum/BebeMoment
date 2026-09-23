@@ -26,10 +26,13 @@ import { useRouter } from 'next/navigation'
 import { useEffect, useState, useTransition } from 'react'
 import { useScheduleForm } from './entry-form-sheet'
 import { useMinuteOfDay, useReminderLabel } from './reminder-label'
+import { ScheduleShareButton } from './schedule-share-button'
 
 type Props = {
   entry: ScheduleEntryDetail
   canEdit: boolean
+  /** 공유 링크 발급 권한(share.create)과 공유 기능이 모두 켜져 있을 때만. */
+  canShare: boolean
   canDelete: boolean
   /** 내가 체크한 항목에 서버 왕복을 기다리지 않고 바로 이름을 붙이려고 받는다. */
   viewerName: string
@@ -41,7 +44,7 @@ function toSpec(reminder: ScheduleReminderView): ReminderSpec {
     : { kind: 'dayBefore', daysBefore: reminder.daysBefore ?? 0, atMinute: reminder.atMinute ?? 0 }
 }
 
-export function EntryDetail({ entry, canEdit, canDelete, viewerName }: Props) {
+export function EntryDetail({ entry, canEdit, canShare, canDelete, viewerName }: Props) {
   const t = useTranslations('schedule')
   const minuteOfDay = useMinuteOfDay()
   const tRoot = useTranslations()
@@ -151,16 +154,19 @@ export function EntryDetail({ entry, canEdit, canDelete, viewerName }: Props) {
             <ChevronLeft size={18} strokeWidth={2.2} aria-hidden />
             {t('detail.back')}
           </Link>
-          {canEdit && (
-            <button
-              type="button"
-              onClick={openEdit}
-              className="focus-ring flex items-center gap-1 rounded-lg text-[15px] font-medium text-point-500 transition active:opacity-70"
-            >
-              <Pencil size={16} strokeWidth={2.2} aria-hidden />
-              {t('detail.edit')}
-            </button>
-          )}
+          <div className="flex items-center gap-3">
+            {canShare && <ScheduleShareButton entryId={entry.id} title={entry.title} />}
+            {canEdit && (
+              <button
+                type="button"
+                onClick={openEdit}
+                className="focus-ring flex items-center gap-1 rounded-lg text-[15px] font-medium text-point-500 transition active:opacity-70"
+              >
+                <Pencil size={16} strokeWidth={2.2} aria-hidden />
+                {t('detail.edit')}
+              </button>
+            )}
+          </div>
         </div>
       </header>
 

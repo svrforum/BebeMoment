@@ -433,6 +433,7 @@ model ScheduleEntry {
 
   checklistItems ScheduleChecklistItem[]
   reminders      ScheduleReminder[]
+  shareLinks     ShareLink[]
 
   @@index([familyId, onDate])
   @@index([familyId, doneAt])
@@ -637,15 +638,19 @@ model ShareLink {
   assetId         String?   @map("asset_id") @db.Uuid
   albumId         String?   @map("album_id") @db.Uuid
   targetDate      DateTime? @map("target_date") @db.Date
+  scheduleEntryId String?   @map("schedule_entry_id") @db.Uuid
   createdByUserId String    @map("created_by_user_id") @db.Uuid
   expiresAt       DateTime? @map("expires_at")
   revokedAt       DateTime? @map("revoked_at")
   createdAt       DateTime  @default(now()) @map("created_at")
   lastAccessedAt  DateTime? @map("last_accessed_at")
 
+  scheduleEntry ScheduleEntry? @relation(fields: [scheduleEntryId], references: [id], onDelete: Cascade)
+
   @@index([familyId, storyId])
   @@index([familyId, assetId])
   @@index([familyId, albumId])
+  @@index([familyId, scheduleEntryId])
   @@map("share_links")
   @@schema("public")
 }

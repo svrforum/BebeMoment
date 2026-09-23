@@ -24,13 +24,14 @@ export async function resolveShareLink(
       asset_id: string | null
       album_id: string | null
       target_date: Date | null
+      schedule_entry_id: string | null
       family_id: string
       expires_at: Date | null
       revoked_at: Date | null
       created_at: Date
     }[]
   >`
-    SELECT story_id, asset_id, album_id, target_date, family_id, expires_at, revoked_at, created_at
+    SELECT story_id, asset_id, album_id, target_date, schedule_entry_id, family_id, expires_at, revoked_at, created_at
     FROM share_links WHERE token = ${token} LIMIT 1
   `
   const row = rows[0]
@@ -46,6 +47,7 @@ export async function resolveShareLink(
   if (row.story_id) target = { kind: 'story', storyId: row.story_id }
   else if (row.asset_id) target = { kind: 'asset', assetId: row.asset_id }
   else if (row.album_id) target = { kind: 'album', albumId: row.album_id }
+  else if (row.schedule_entry_id) target = { kind: 'schedule', entryId: row.schedule_entry_id }
   else if (row.target_date)
     target = { kind: 'date', date: row.target_date.toISOString().slice(0, 10) }
   else {

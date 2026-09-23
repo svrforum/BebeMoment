@@ -8,6 +8,7 @@ export type ShareTitleTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'date'; date: string }
   | { kind: 'selection'; assetIds: string[] }
+  | { kind: 'schedule'; entryId: string }
 
 type Translate = (key: string, values?: Record<string, string | number>) => string
 
@@ -24,6 +25,9 @@ export function shareTitle(
       return given?.trim() || t('share.text.album')
     case 'asset':
       return t('share.text.asset')
+    case 'schedule':
+      // 일정 제목은 로그인 전 화면에도 보이는 정보라 메시지 문구로 써도 된다(메모는 쓰지 않는다).
+      return given?.trim() || t('share.text.schedule')
     case 'selection':
       return t('share.text.selection', { n: target.assetIds.length })
     case 'date': {

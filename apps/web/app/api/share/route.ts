@@ -22,6 +22,12 @@ async function getCtx(): Promise<CtxError | { ctx: Awaited<ReturnType<typeof res
   return { ctx }
 }
 
+async function canShareSchedule(capabilities: readonly string[]): Promise<boolean> {
+  return (
+    capabilities.includes('schedule.read') && (await isFeatureEnabled('schedule', prismaPublic))
+  )
+}
+
 const createSchema = z
   .object({
     storyId: z.string().uuid().optional(),
@@ -32,13 +38,19 @@ const createSchema = z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)
       .optional(),
+    scheduleEntryId: z.string().uuid().optional(),
     ttl: z.string().refine(isShareTtl, 'errors.share.ttlInvalid'),
   })
   .refine(
     (b) =>
-      [b.storyId, b.assetId, b.albumId, b.assetIds?.length ? b.assetIds : null, b.date].filter(
-        Boolean,
-      ).length === 1,
+      [
+        b.storyId,
+        b.assetId,
+        b.albumId,
+        b.assetIds?.length ? b.assetIds : null,
+        b.date,
+        b.scheduleEntryId,
+      ].filter(Boolean).length === 1,
     'errors.share.targetOnlyOne',
   )
 
@@ -48,6 +60,8 @@ function targetFromQuery(url: URL): ShareTarget | null {
   const assetId = q.get('assetId')
   const albumId = q.get('albumId')
   const date = q.get('date')
+  const scheduleEntryId = q.get('scheduleEntryId')
+  if (scheduleEntryId) return { kind: 'schedule', entryId: scheduleEntryId }
   if (storyId) return { kind: 'story', storyId }
   if (assetId) return { kind: 'asset', assetId }
   if (albumId) return { kind: 'album', albumId }
@@ -71,6 +85,8 @@ export async function GET(req: Request) {
   if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
   const target = targetFromQuery(url)
   if (!target) return errorJsonKey('share.targetRequired', 400)
+  if (target.kind === 'schedule' && !(await canShareSchedule(r.ctx.capabilities)))
+    return errorJsonKey('forbidden', 403)
   const links = await listShareLinks(target, r.ctx.family!.id, prismaPublic)
   return NextResponse.json({ links })
 }
@@ -93,7 +109,13 @@ export async function POST(req: Request) {
           ? { kind: 'album', albumId: body.albumId }
           : body.assetIds?.length
             ? { kind: 'selection', assetIds: body.assetIds }
-            : { kind: 'date', date: body.date as string }
+            : body.scheduleEntryId
+              ? { kind: 'schedule', entryId: body.scheduleEntryId }
+              : { kind: 'date', date: body.date as string }
+    // 일정은 보호자 전용 기능이다. 공유 권한만으로는 부족하고, 그 일정을 볼 수 있는 사람이어야
+    // 링크를 만든다 — 볼 수 없는 것을 밖으로 내보내는 경로가 생기면 안 된다.
+    if (target.kind === 'schedule' && !(await canShareSchedule(r.ctx.capabilities)))
+      return errorJsonKey('forbidden', 403)
     const { token, expiresAt } = await createShareLink(
       { target, familyId: r.ctx.family!.id, userId: r.ctx.user!.id, ttl: body.ttl },
       prismaPublic,

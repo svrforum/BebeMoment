@@ -751,7 +751,8 @@
         "asset": "A photo 📷",
         "selection": "{n} photos 📷",
         "story": "A family story",
-        "album": "Album"
+        "album": "Album",
+        "schedule": "Schedule 📅"
       }
     },
     "download": {
@@ -1683,6 +1684,10 @@
       "revokedBody": "This link can no longer be used. Please request a new one.",
       "notfoundTitle": "We couldn't find this link",
       "notfoundBody": "Please double-check that the link is correct."
+    },
+    "schedule": {
+      "meta": "Schedule",
+      "locked": "Only signed-in guardians can see the notes and checklist"
     }
   },
   "misc": {
@@ -1941,7 +1946,8 @@
       "featureOff": "Sharing is turned off",
       "targetRequired": "A share target is required",
       "ttlInvalid": "That expiry is not valid",
-      "targetOnlyOne": "Share exactly one target"
+      "targetOnlyOne": "Share exactly one target",
+      "scheduleNotFound": "Schedule not found"
     },
     "notif": {
       "unknownCategory": "Unknown notification category",

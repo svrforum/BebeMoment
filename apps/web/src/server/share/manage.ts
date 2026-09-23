@@ -24,7 +24,9 @@ export async function listShareLinks(
         ? { assetId: target.assetId, familyId, revokedAt: null }
         : target.kind === 'album'
           ? { albumId: target.albumId, familyId, revokedAt: null }
-          : { targetDate: new Date(`${target.date}T00:00:00.000Z`), familyId, revokedAt: null }
+          : target.kind === 'schedule'
+            ? { scheduleEntryId: target.entryId, familyId, revokedAt: null }
+            : { targetDate: new Date(`${target.date}T00:00:00.000Z`), familyId, revokedAt: null }
   const rows = await prisma.shareLink.findMany({
     where,
     orderBy: { createdAt: 'desc' },
@@ -50,7 +52,7 @@ export async function revokeShareLink(
   return res.count > 0
 }
 
-export type ShareLinkKind = 'story' | 'asset' | 'album' | 'date' | 'selection'
+export type ShareLinkKind = 'story' | 'asset' | 'album' | 'date' | 'selection' | 'schedule'
 
 export type ShareLinkAdminInfo = ShareLinkInfo & {
   kind: ShareLinkKind
@@ -63,10 +65,12 @@ function classifyTarget(row: {
   assetId: string | null
   albumId: string | null
   targetDate: Date | null
+  scheduleEntryId: string | null
 }): { kind: ShareLinkKind; target: string } {
   if (row.storyId) return { kind: 'story', target: row.storyId }
   if (row.assetId) return { kind: 'asset', target: row.assetId }
   if (row.albumId) return { kind: 'album', target: row.albumId }
+  if (row.scheduleEntryId) return { kind: 'schedule', target: row.scheduleEntryId }
   if (row.targetDate) return { kind: 'date', target: row.targetDate.toISOString().slice(0, 10) }
   return { kind: 'selection', target: '' }
 }
@@ -91,6 +95,7 @@ export async function listAllShareLinks(
       assetId: true,
       albumId: true,
       targetDate: true,
+      scheduleEntryId: true,
       createdByUserId: true,
       expiresAt: true,
       createdAt: true,
@@ -140,6 +145,7 @@ export async function listMyShareLinks(
       assetId: true,
       albumId: true,
       targetDate: true,
+      scheduleEntryId: true,
       createdByUserId: true,
       expiresAt: true,
       createdAt: true,

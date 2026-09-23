@@ -23,11 +23,13 @@ export default async function ScheduleDetailPage({ params }: { params: Promise<{
   const own = entry.createdByUserId === ctx.user.id
   const canEdit = ctx.capabilities.includes(own ? 'schedule.edit.own' : 'schedule.edit.any')
   const canDelete = ctx.capabilities.includes(own ? 'schedule.delete.own' : 'schedule.delete.any')
+  const canShare = features.share && ctx.capabilities.includes('share.create')
 
   return (
     <EntryDetail
       entry={entry}
       canEdit={canEdit}
+      canShare={canShare}
       canDelete={canDelete}
       viewerName={ctx.user.displayName}
     />

@@ -6,6 +6,10 @@ import { formatDayShareMeta } from '@/server/share/day-meta'
 import { type DayPreview, buildDayPreview } from '@/server/share/day-preview'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
+import {
+  type PublicSchedulePreview,
+  getPublicSchedulePreview,
+} from '@/server/share/public-schedule'
 import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/public-story'
 import { pickShareBaseUrl } from '@/lib/share-base-url'
 import { clientIp, rateLimit } from '@/server/auth/rate-limit'
@@ -14,10 +18,12 @@ import { isFeatureEnabled } from '@/server/settings/features'
 import type { Metadata } from 'next'
 import { getLocale, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
+import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { AlbumShareView } from './album-view'
 import { DayShareView } from './day-view'
 import { PhotoSetShareView } from './photo-set-view'
+import { ScheduleShareView, scheduleWhen } from './schedule-view'
 import { GoneCard } from './share-frame'
 import { StoryShareView } from './story-view'
 
@@ -45,6 +51,7 @@ type Loaded =
   | { status: 'ok'; kind: 'day'; preview: DayPreview; date: string; meta: string }
   | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
+  | { status: 'ok'; kind: 'schedule'; familyId: string; preview: PublicSchedulePreview }
   | { status: 'expired' | 'revoked' | 'notfound' }
 
 // generateMetadata 와 페이지가 같은 요청 안에서 한 번씩 부른다 — cache() 로 묶어 DB·미디어 조회와
@@ -58,6 +65,14 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
   if (!(await isFeatureEnabled('share', prismaPublic))) return { status: 'notfound' }
   const r = await resolveShareLink(token, prismaPublic)
   if (r.status !== 'ok') return { status: r.status }
+  if (r.target.kind === 'schedule') {
+    // 일정 기능을 끈 인스턴스에서는 이미 나간 링크도 열리지 않는다.
+    if (!(await isFeatureEnabled('schedule', prismaPublic))) return { status: 'notfound' }
+    const preview = await getPublicSchedulePreview(r.target.entryId, r.familyId, prismaPublic)
+    return preview
+      ? { status: 'ok', kind: 'schedule', familyId: r.familyId, preview }
+      : { status: 'notfound' }
+  }
   const media = getMediaClient()
 
   if (r.target.kind === 'story') {
@@ -144,6 +159,26 @@ export async function generateMetadata({
   const r = await load(token, base)
   if (r.status !== 'ok') return {}
 
+  if (r.kind === 'schedule') {
+    // 로그인 전에 보여도 되는 것만 — 제목·날짜·시각. 메모는 미리보기 문구에도 넣지 않는다.
+    const { day, time } = await scheduleWhen(r.preview)
+    const when = [day, time].filter(Boolean).join(' ')
+    const desc = when ? `${when} · ${r.preview.title}` : r.preview.title
+    const title = r.preview.familyName
+    return {
+      title,
+      description: desc,
+      openGraph: {
+        title,
+        description: desc,
+        url: `${base}/s/${token}`,
+        siteName: title,
+        type: 'article',
+      },
+      twitter: { card: 'summary', title, description: desc },
+    }
+  }
+
   const familyName =
     r.kind === 'photoset'
       ? r.set.preview.familyName
@@ -199,6 +234,16 @@ async function viewerFamilyId(): Promise<string | null> {
   return ctx.family?.id ?? null
 }
 
+async function viewerCanSeeSchedule(familyId: string): Promise<boolean> {
+  const { session } = await getAuth()
+  if (!session) return false
+  const ctx = await resolveContext(
+    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
+    prismaPublic,
+  )
+  return ctx.family?.id === familyId && ctx.capabilities.includes('schedule.read')
+}
+
 export default async function PublicSharePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const base = await requestBaseUrl()
@@ -212,6 +257,11 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
   if (r.status !== 'ok')
     return <GoneCard title={t('gone.notfoundTitle')} body={t('gone.notfoundBody')} />
 
+  if (r.kind === 'schedule') {
+    // 이 일정을 볼 수 있는 보호자가 이미 로그인해 있으면 공개 화면을 거칠 이유가 없다.
+    if (await viewerCanSeeSchedule(r.familyId)) redirect(`/schedule/${r.preview.entryId}`)
+    return <ScheduleShareView p={r.preview} base={base} />
+  }
   if (r.kind === 'story') return <StoryShareView p={r.preview} base={base} />
   if (r.kind === 'album') return <AlbumShareView p={r.preview} base={base} />
   if (r.kind === 'day')

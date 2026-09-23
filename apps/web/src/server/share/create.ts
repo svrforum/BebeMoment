@@ -10,6 +10,7 @@ export type ShareTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string } // 'YYYY-MM-DD'
+  | { kind: 'schedule'; entryId: string }
 
 const SELECTION_MAX = 100
 
@@ -27,7 +28,14 @@ export async function createShareLink(
   const t = input.target
   let validAssetIds: string[] = []
 
-  if (t.kind === 'story') {
+  if (t.kind === 'schedule') {
+    // 지운 일정·다른 가족 일정은 없는 것으로 — 링크가 떠돌며 존재 여부를 흘리지 않게 같은 404.
+    const entry = await prismaPublic.scheduleEntry.findFirst({
+      where: { id: t.entryId, familyId: input.familyId, deletedAt: null },
+      select: { id: true },
+    })
+    if (!entry) throw new ServiceError(404, 'share.scheduleNotFound')
+  } else if (t.kind === 'story') {
     const story = await prismaPublic.story.findFirst({
       where: { id: t.storyId, familyId: input.familyId, deletedAt: null },
       select: { id: true, visibility: true },
@@ -79,6 +87,7 @@ export async function createShareLink(
       assetId: t.kind === 'asset' ? t.assetId : null,
       albumId: t.kind === 'album' ? t.albumId : null,
       targetDate: t.kind === 'date' ? new Date(`${t.date}T00:00:00.000Z`) : null,
+      scheduleEntryId: t.kind === 'schedule' ? t.entryId : null,
     },
   })
 
