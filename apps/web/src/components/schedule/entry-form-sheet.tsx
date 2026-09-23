@@ -328,7 +328,7 @@ function EntryFormSheet({
                     const m = /^(\d{2}):(\d{2})$/.exec(e.target.value)
                     if (m) patch({ startMinute: Number(m[1]) * 60 + Number(m[2]) })
                   }}
-                  className="h-11 w-32 tabular-nums"
+                  className="h-11 w-40 shrink-0 tabular-nums"
                 />
               )}
             </div>
