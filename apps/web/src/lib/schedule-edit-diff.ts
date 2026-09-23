@@ -2,6 +2,8 @@
  * 다른 보호자에게 "일정이 바뀌었어요" 를 보낼지 가르는 비교 대상. 알림 시점(리마인더)은
  * 넣지 않는다 — 화면에 보이는 일정 내용은 그대로인데 변경 알림이 오면 무엇이 바뀌었는지
  * 찾을 수가 없다. 체크 표시(완료)도 여기서는 보지 않는다 — 그건 '수정' 이 아니다.
+ * 아기 연결도 보지 않는다 — 아기가 한 명이면 폼이 저장할 때 자동으로 연결하므로, 연결 전에
+ * 만든 일정을 열었다 그냥 저장만 해도 값이 달라진다. 사용자는 아무것도 안 바꿨다.
  */
 export type ScheduleContent = {
   title: string
@@ -23,7 +25,6 @@ export function scheduleContentChanged(before: ScheduleContent, after: ScheduleC
   if ((before.startMinute ?? null) !== (after.startMinute ?? null)) return true
   if (before.repeatYearly !== after.repeatYearly) return true
   if ((before.repeatUntil ?? null) !== (after.repeatUntil ?? null)) return true
-  if ((before.babyId ?? null) !== (after.babyId ?? null)) return true
   const a = before.checklist.map(text)
   const b = after.checklist.map(text).filter((label) => label !== '')
   return a.length !== b.length || a.some((label, i) => label !== b[i])

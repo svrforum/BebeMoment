@@ -29,9 +29,14 @@ describe('scheduleContentChanged', () => {
     ['시각', { startMinute: 630 }],
     ['종일로', { startMinute: null }],
     ['반복', { repeatYearly: true }],
-    ['아기', { babyId: null }],
   ] as const)('%s이 바뀌면 바뀐 것이다', (_label, patch) => {
     expect(scheduleContentChanged(base, { ...base, ...patch })).toBe(true)
+  })
+
+  it('아기 연결만 달라진 것은 바뀐 것으로 보지 않는다', () => {
+    // 아기가 한 명이면 폼이 저장할 때 그 아기로 자동 연결한다 — 연결 전에 만든 일정을 열었다
+    // 그냥 저장하기만 해도 값이 달라진다. 사용자가 바꾼 게 아니다(라이브 확인 중 발견).
+    expect(scheduleContentChanged({ ...base, babyId: null }, { ...base, babyId: 'b1' })).toBe(false)
   })
 
   it('체크리스트 항목을 더하거나 빼거나 이름을 바꾸거나 순서를 바꾸면 바뀐 것이다', () => {
