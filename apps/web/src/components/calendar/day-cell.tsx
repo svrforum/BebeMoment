@@ -3,7 +3,7 @@ import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
 import { dayCellMarkers } from '@/lib/day-cell-markers'
 import type { AssetUrls } from '@bebe/media-client'
-import { PencilLine } from 'lucide-react'
+import { CalendarCheck2, PencilLine } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 
 type Asset = { id: string; urls: AssetUrls | null }
@@ -13,6 +13,8 @@ type Props = {
   assets: Asset[]
   isCurrentMonth: boolean
   isToday?: boolean
+  /** 마지막으로 누른 날. 시트를 닫아도 어느 날을 보고 있었는지 남긴다. */
+  isSelected?: boolean
   /** 그 날 사진 중 스토리에 속한 게 있으면 스토리 표식(모델 B). */
   hasStory?: boolean
   /** 그날 일정 수(회차 기준). 0 이면 아무것도 그리지 않는다. */
@@ -32,6 +34,7 @@ export function DayCell({
   assets,
   isCurrentMonth,
   isToday = false,
+  isSelected = false,
   hasStory = false,
   scheduleTotal = 0,
   scheduleRemaining = 0,
@@ -66,13 +69,22 @@ export function DayCell({
       type="button"
       onClick={onSelect}
       aria-label={labelParts.join(', ')}
+      aria-pressed={isSelected}
       className={cn(
         'focus-ring group relative flex aspect-square overflow-hidden rounded-2xl',
         'transition-transform ease-ios active:scale-[0.94]',
         !isCurrentMonth && 'opacity-35',
-        hasAssets ? 'bg-base-100 dark:bg-base-900' : 'bg-transparent',
-        isToday &&
-          'ring-2 ring-point-500 ring-offset-2 ring-offset-base-50 dark:ring-offset-base-950',
+        hasAssets
+          ? 'bg-base-100 dark:bg-base-900'
+          : // 사진 없는 날엔 남은 일정을 칸 바탕으로도 알린다 — 작은 표식 하나로는 훑어볼 때 놓친다.
+            scheduleRemaining > 0
+            ? 'bg-point-500/[0.08] dark:bg-point-500/[0.14]'
+            : 'bg-transparent',
+        // 오늘은 파란 테두리, 고른 날은 진한 테두리 — 둘이 같은 색이면 어느 쪽인지 모른다.
+        isSelected
+          ? 'ring-[2.5px] ring-base-900 ring-offset-2 ring-offset-base-50 dark:ring-base-50 dark:ring-offset-base-950'
+          : isToday &&
+              'ring-2 ring-point-500 ring-offset-2 ring-offset-base-50 dark:ring-offset-base-950',
       )}
     >
       {hasThumb && (
@@ -95,13 +107,15 @@ export function DayCell({
           <span
             className={cn(
               'rounded-md px-1.5 py-0.5 text-[12px] font-semibold leading-none tabular-nums',
-              hasAssets
-                ? 'bg-black/55 text-white backdrop-blur-sm'
-                : isToday
-                  ? 'text-point-500'
-                  : isCurrentMonth
-                    ? 'text-base-700 dark:text-base-300'
-                    : 'text-base-400 dark:text-base-600',
+              isSelected
+                ? 'bg-base-900 text-white dark:bg-base-50 dark:text-base-900'
+                : hasAssets
+                  ? 'bg-black/55 text-white backdrop-blur-sm'
+                  : isToday
+                    ? 'text-point-500'
+                    : isCurrentMonth
+                      ? 'text-base-700 dark:text-base-300'
+                      : 'text-base-400 dark:text-base-600',
             )}
           >
             {dayNum}
@@ -123,18 +137,19 @@ export function DayCell({
                   <PencilLine size={9} strokeWidth={2.8} />
                 </span>
               ) : (
+                // 점 하나(7px)는 사진 위에서 거의 안 보였다 — 아이콘이 든 알약으로 늘 같은 모양을 낸다.
                 <span
                   key="schedule"
                   className={cn(
-                    'flex items-center justify-center rounded-full text-[10px] font-bold leading-none tabular-nums',
-                    marker.showCount ? 'h-[14px] min-w-[14px] px-[3px]' : 'h-[7px] w-[7px]',
+                    'flex h-4 items-center gap-[2px] rounded-full px-[3px] text-[10px] font-bold leading-none tabular-nums shadow-sm',
                     marker.active
                       ? 'bg-point-500 text-white'
                       : hasAssets
-                        ? 'bg-black/55 text-white/70 backdrop-blur-sm'
-                        : 'bg-base-300 text-base-600 dark:bg-base-700 dark:text-base-300',
+                        ? 'bg-black/55 text-white/75 backdrop-blur-sm'
+                        : 'bg-base-200 text-base-500 dark:bg-base-700 dark:text-base-300',
                   )}
                 >
+                  <CalendarCheck2 size={10} strokeWidth={2.6} />
                   {marker.showCount ? marker.count : null}
                 </span>
               ),

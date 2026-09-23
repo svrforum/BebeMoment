@@ -5,15 +5,32 @@ import { DaySheet } from '@/components/schedule/day-sheet'
 import { useScheduleForm } from '@/components/schedule/entry-form-sheet'
 import { cn } from '@/lib/cn'
 import { localDayKey } from '@/lib/day-key'
+import { monthDirection, monthIndex } from '@/lib/month-direction'
 import { useFamilySSE } from '@/lib/sse'
 import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
 import type { AssetEvent } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { DayCell } from './day-cell'
+
+/** 달 전환 — 책장을 넘기듯 옆에서 살짝 기울며 들어온다. `custom` 은 넘기는 방향(1 다음, -1 이전). */
+// 한 장이 끝까지 밀려나고 다음 장이 들어온다 — 조금만 비켜 겹치면 두 달의 숫자가 포개져 읽힌다.
+const PAGE_VARIANTS = {
+  enter: (dir: number) => ({ x: `${dir * 100}%`, rotateY: dir * -10, opacity: 0.4 }),
+  center: { x: '0%', rotateY: 0, opacity: 1 },
+  exit: (dir: number) => ({ x: `${dir * -100}%`, rotateY: dir * 10, opacity: 0.4 }),
+}
+
+/** 동작 줄이기 설정이면 움직이지 않고 겹쳐 바뀌기만 한다. */
+const FADE_VARIANTS = {
+  enter: { opacity: 0 },
+  center: { opacity: 1 },
+  exit: { opacity: 0 },
+}
 
 type Asset = { id: string; takenAtISO: string; urls: AssetUrls | null }
 
@@ -156,6 +173,17 @@ export function MonthGrid({
 
   const today = useMemo(() => new Date(), [])
   const days = daysInMonth(year, month)
+
+  // 달을 넘길 때 방향을 기억한다 — 다음 달은 오른쪽에서, 이전 달은 왼쪽에서 들어온다.
+  // 렌더 중 파생 상태로 계산한다(달은 URL 에서 SSR 로 오므로 이펙트까지 기다리면 한 프레임 늦는다).
+  const monthKey = monthIndex(year, month)
+  const [shownMonth, setShownMonth] = useState(monthKey)
+  const [direction, setDirection] = useState<-1 | 0 | 1>(0)
+  if (shownMonth !== monthKey) {
+    setDirection(monthDirection(shownMonth, monthKey))
+    setShownMonth(monthKey)
+  }
+  const reduceMotion = useReducedMotion()
 
   const byDate = useMemo(() => {
     const m = new Map<string, Asset[]>()
@@ -351,30 +379,46 @@ export function MonthGrid({
           </div>
         ))}
       </div>
-      <div className="grid grid-cols-7 gap-1.5">
-        {days.map((d) => {
-          const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
-          const dayAssets = byDate.get(key) ?? []
-          const isTodayCell =
-            d.getUTCFullYear() === today.getUTCFullYear() &&
-            d.getUTCMonth() === today.getUTCMonth() &&
-            d.getUTCDate() === today.getUTCDate()
-          const day = d.toISOString().slice(0, 10)
-          const summary = scheduleByDay.get(day)
-          return (
-            <DayCell
-              key={d.toISOString()}
-              date={d}
-              assets={dayAssets.map((a) => ({ id: a.id, urls: a.urls }))}
-              isCurrentMonth={d.getUTCMonth() === month}
-              isToday={isTodayCell}
-              hasStory={storySet.has(key)}
-              scheduleTotal={summary?.total ?? 0}
-              scheduleRemaining={summary?.remaining ?? 0}
-              onSelect={() => openDay(day)}
-            />
-          )
-        })}
+      {/* 넘기는 동안 두 달이 겹쳐 있으므로 가로로만 자른다. 칸의 테두리 링(offset 포함)이 가장자리에서
+          잘리지 않게 안쪽 여백을 두고 같은 만큼 바깥으로 되돌린다. */}
+      <div className="-mx-1.5 -my-1.5 overflow-x-clip px-1.5 py-1.5 [perspective:1200px]">
+        <AnimatePresence initial={false} custom={direction} mode="popLayout">
+          <motion.div
+            key={monthKey}
+            custom={direction}
+            variants={reduceMotion ? FADE_VARIANTS : PAGE_VARIANTS}
+            initial="enter"
+            animate="center"
+            exit="exit"
+            transition={{ type: 'spring', stiffness: 360, damping: 34, mass: 0.9 }}
+            className="grid grid-cols-7 gap-1.5"
+          >
+            {days.map((d) => {
+              const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
+              const dayAssets = byDate.get(key) ?? []
+              const isTodayCell =
+                d.getUTCFullYear() === today.getUTCFullYear() &&
+                d.getUTCMonth() === today.getUTCMonth() &&
+                d.getUTCDate() === today.getUTCDate()
+              const day = d.toISOString().slice(0, 10)
+              const summary = scheduleByDay.get(day)
+              return (
+                <DayCell
+                  key={d.toISOString()}
+                  date={d}
+                  assets={dayAssets.map((a) => ({ id: a.id, urls: a.urls }))}
+                  isCurrentMonth={d.getUTCMonth() === month}
+                  isToday={isTodayCell}
+                  isSelected={day === sheetDay}
+                  hasStory={storySet.has(key)}
+                  scheduleTotal={summary?.total ?? 0}
+                  scheduleRemaining={summary?.remaining ?? 0}
+                  onSelect={() => openDay(day)}
+                />
+              )
+            })}
+          </motion.div>
+        </AnimatePresence>
       </div>
       {scheduleEnabled && (
         <UpcomingSchedule entries={scheduleEntries} todayKey={localDayKey(today)} />
