@@ -41,7 +41,7 @@ export function ViewerActionBar({
   return (
     <div
       className={cn(
-        'fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-gradient-to-t from-black/70 to-transparent px-4 pb-6 pt-8 transition-opacity',
+        'fixed inset-x-0 bottom-0 z-40 flex items-center justify-around bg-gradient-to-t from-black/70 to-transparent px-4 pb-[calc(env(safe-area-inset-bottom)+1.5rem)] pt-8 transition-opacity',
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >

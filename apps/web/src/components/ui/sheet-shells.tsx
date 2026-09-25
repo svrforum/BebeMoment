@@ -88,7 +88,9 @@ export function MobileDrawerShell({
           {fill ? (
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           ) : (
-            <div className="overflow-y-auto px-5 py-4">{children}</div>
+            <div className="overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+              {children}
+            </div>
           )}
         </Drawer.Content>
       </Drawer.Portal>

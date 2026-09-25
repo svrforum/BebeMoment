@@ -563,7 +563,7 @@ function SelectionBar({
   const t = useTranslations('timeline')
   return (
     <div
-      className="fixed inset-x-0 bottom-16 z-40 mx-auto flex max-w-md items-center gap-1.5 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
+      className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4rem)] z-40 mx-auto flex max-w-md items-center gap-1.5 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
       style={{ marginInline: 'max(env(safe-area-inset-left), 16px)' }}
     >
       <button

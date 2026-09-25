@@ -107,7 +107,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           hiddenNav={hiddenNav}
           showBookmark={showBookmark}
         />
-        <main className="pb-20 md:pb-8 md:pl-60">{children}</main>
+        <main className="pb-[calc(env(safe-area-inset-bottom)+5rem)] md:pb-8 md:pl-60">
+          {children}
+        </main>
         <BottomNav
           unreadCounts={{ '/timeline': unreadTimeline }}
           canManageFamily={canManageFamily}

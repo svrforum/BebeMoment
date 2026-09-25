@@ -85,7 +85,7 @@ export function UploadStatusPill({ onClick }: Props) {
       data-state={visible ? 'open' : 'closed'}
       aria-label={t('status.aria')}
       className={cn(
-        'fixed bottom-36 right-4 z-30 flex items-center gap-2.5 overflow-hidden rounded-full pl-3 pr-4 py-2.5 text-[13px] font-medium shadow-elevated ring-1 backdrop-blur-xl md:bottom-24',
+        'fixed bottom-[calc(env(safe-area-inset-bottom)+9rem)] right-4 z-30 flex items-center gap-2.5 overflow-hidden rounded-full pl-3 pr-4 py-2.5 text-[13px] font-medium shadow-elevated ring-1 backdrop-blur-xl md:bottom-24',
         'data-[state=open]:animate-pill-in data-[state=closed]:animate-pill-out motion-reduce:animate-none',
         completed
           ? 'bg-success/95 text-white ring-success/40'

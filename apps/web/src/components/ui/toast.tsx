@@ -12,7 +12,7 @@ export const ToastViewport = forwardRef<
   <ToastPrimitive.Viewport
     ref={ref}
     className={cn(
-      'fixed bottom-4 left-1/2 -translate-x-1/2 z-[100] flex w-full max-w-sm flex-col gap-2 px-4',
+      'fixed bottom-[calc(env(safe-area-inset-bottom)+1rem)] left-1/2 -translate-x-1/2 z-[100] flex w-full max-w-sm flex-col gap-2 px-4',
       className,
     )}
     {...props}

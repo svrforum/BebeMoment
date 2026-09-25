@@ -20,7 +20,12 @@ type Props = {
  */
 export function FAB({ onPress, label, icon: Icon = ImagePlus, className }: Props) {
   return (
-    <div className={cn('fixed bottom-20 right-4 z-30 md:bottom-8', className)}>
+    <div
+      className={cn(
+        'fixed bottom-[calc(env(safe-area-inset-bottom)+5rem)] right-4 z-30 md:bottom-8',
+        className,
+      )}
+    >
       <button
         type="button"
         onClick={onPress}

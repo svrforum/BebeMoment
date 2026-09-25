@@ -101,7 +101,7 @@ export function AssetPickerSheet({
             )
           })}
         </div>
-        <div className="sticky bottom-0 mt-4 border-t border-base-200 bg-base-0 pt-4 dark:border-base-800 dark:bg-base-900">
+        <div className="sticky bottom-0 mt-4 border-t border-base-200 bg-base-0 pb-[env(safe-area-inset-bottom)] pt-4 dark:border-base-800 dark:bg-base-900">
           <Button onClick={confirm} className="w-full">
             {t('picker.confirm')}
           </Button>

@@ -49,9 +49,9 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
     lastItem,
   ]
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t pb-[env(safe-area-inset-bottom)] border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
       <div
-        className="mx-auto grid h-16 max-w-3xl pb-[env(safe-area-inset-bottom)]"
+        className="mx-auto grid h-16 max-w-3xl"
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
       >
         {visible.map(({ href, labelKey, icon: Icon }) => {
