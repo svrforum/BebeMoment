@@ -5,7 +5,7 @@ numpy==2.5.3
 opencv-python-headless==5.0.0.93
 onnxruntime==1.29.0
 # insightface 가 실제로 쓰는 것들 — requirements-insightface.txt 참조.
-onnx==1.22.0
+onnx==1.23.0
 scikit-image==0.26.0
 requests==2.34.2
 tqdm==4.70.0
