@@ -39,6 +39,42 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
 
     expect(await waitForTimelineThumb(page)).toBeTruthy()
 
+    // 고르는 중의 뒤로가기는 선택만 푼다. 앱의 하드웨어 뒤로가기도 이 히스토리 뒤로가기를
+    // 부른다 — 예전엔 타임라인을 떠나거나, 첫 화면이면 앱 종료를 물었다. 선택 중에 연 시트가
+    // 있으면 시트가 먼저 닫히고 고른 사진은 남는다.
+    const firstCard = page.locator('main a[href^="/detail/"]').first()
+    const selectionBar = page.getByText('1장 선택됨')
+    await firstCard.click({ modifiers: ['Control'] })
+    await expect(selectionBar).toBeVisible()
+    await page.goBack()
+    await expect(selectionBar).toBeHidden()
+    await expect(page).toHaveURL(/\/timeline$/)
+
+    await firstCard.click({ modifiers: ['Control'] })
+    await page.getByRole('button', { name: '앨범에 추가', exact: true }).click()
+    const albumPicker = page.getByRole('dialog', { name: '앨범에 추가' })
+    await expect(albumPicker).toBeVisible()
+    await page.goBack()
+    await expect(albumPicker).toBeHidden()
+    await expect(selectionBar).toBeVisible()
+    await page.goBack()
+    await expect(selectionBar).toBeHidden()
+    await expect(page).toHaveURL(/\/timeline$/)
+
+    // X 로 푼 뒤 다른 탭에 갔다 와서 다시 고른 경우도 같다 — 주소만 보고 남은 사본을 이어받던
+    // 방식은 여기서 선택을 푸는 대신 캘린더로 넘어갔다.
+    await firstCard.click({ modifiers: ['Control'] })
+    await page.getByRole('button', { name: '선택 해제' }).click()
+    await page.getByRole('link', { name: '캘린더' }).first().click()
+    await expect(page).toHaveURL(/\/calendar$/, { timeout: 30_000 })
+    await page.getByRole('link', { name: '타임라인' }).first().click()
+    await expect(page).toHaveURL(/\/timeline$/, { timeout: 30_000 })
+    await firstCard.click({ modifiers: ['Control'] })
+    await expect(selectionBar).toBeVisible()
+    await page.goBack()
+    await expect(selectionBar).toBeHidden()
+    await expect(page).toHaveURL(/\/timeline$/)
+
     // Click first thumb in a bucket section → detail page
     const detailLink = page.locator('main a[href^="/detail/"]').first()
     const detailHref = await detailLink.getAttribute('href')

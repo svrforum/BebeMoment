@@ -2,6 +2,7 @@
 import { AlbumPicker } from '@/components/albums/album-picker'
 import { BulkDownloadButton } from '@/components/detail/bulk-download-button'
 import { SelectionShareButton } from '@/components/detail/selection-share-button'
+import { dropLeftoverCopies, useBackLayer } from '@/components/shell/back-layer'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { EmptyState } from '@/components/ui/empty-state'
 import { useFamilySSE } from '@/lib/sse'
@@ -244,6 +245,7 @@ export function TimelineGrid({
         }
       }
       // Otherwise (ctrl/cmd, or plain tap inside selection mode): toggle.
+      if (selected.size === 1 && selected.has(id)) dropLeftoverCopies()
       setSelected((prev) => {
         const next = new Set(prev)
         if (next.has(id)) next.delete(id)
@@ -252,13 +254,21 @@ export function TimelineGrid({
       })
       setAnchor(id)
     },
-    [anchor, orderedIds],
+    [anchor, orderedIds, selected],
   )
 
   const clearSelection = useCallback(() => {
     setSelected(new Set())
     setAnchor(null)
   }, [])
+
+  // 손으로 끝낼 때(X·Esc·마지막 사진 해제)만 선택이 쓰던 히스토리 사본을 거둔다 — 첫 화면에
+  // 남은 사본은 다음 뒤로가기를 헛돌게 한다. 삭제·앨범 추가는 clearSelection 만 쓴다: 곧이어
+  // 부르는 refresh 를 거두는 뒤로가기가 버리게 하면 지운 사진이 화면에 남는다(`dropLeftoverCopies`).
+  const cancelSelection = useCallback(() => {
+    clearSelection()
+    dropLeftoverCopies()
+  }, [clearSelection])
 
   const bulkDelete = useCallback(async () => {
     const ids = Array.from(selected)
@@ -307,11 +317,11 @@ export function TimelineGrid({
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== 'Escape') return
       if (pickerOpen) return
-      clearSelection()
+      cancelSelection()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected.size, pickerOpen, clearSelection])
+  }, [selected.size, pickerOpen, cancelSelection])
 
   // Right-click context menu — operates on a single asset id, regardless
   // of selection. If the asset isn't already selected, the menu's
@@ -320,6 +330,15 @@ export function TimelineGrid({
     setMenu({ id, x, y })
   }, [])
   const closeMenu = useCallback(() => setMenu(null), [])
+
+  // 고르는 동안 뒤로가기는 선택만 푼다 — 안 그러면 앱이 첫 화면에서 종료를 묻는다. 길게 누르면
+  // 선택과 함께 뜨는 메뉴(contextmenu)도 같이 닫는다. 선택 중에 연 시트(앨범·삭제·공유)가
+  // 있으면 그 시트가 먼저 닫힌다(`lib/back-layers.ts`).
+  const exitSelection = useCallback(() => {
+    clearSelection()
+    closeMenu()
+  }, [clearSelection, closeMenu])
+  useBackLayer('selection', selectionMode, exitSelection)
 
   // The context menu's "삭제" / "앨범" actions need to act on the right
   // target. If the asset was already in the selection set, fall back to
@@ -458,7 +477,7 @@ export function TimelineGrid({
           selectedIds={Array.from(selected)}
           canDelete={canDeleteSelection}
           canAlbum={canAddAlbum}
-          onCancel={clearSelection}
+          onCancel={cancelSelection}
           onAlbum={() => setPickerOpen(true)}
           onDelete={() => setDeleteOpen(true)}
         />
