@@ -47,7 +47,9 @@ rm -rf "$STORAGE_PATH" "$BACKUP_DIR"
 mkdir -p "$STORAGE_PATH" "$BACKUP_DIR"
 export MEDIA_PUBLIC_BASE_URL=""
 export NEXT_PUBLIC_MEDIA_BASE_URL=""
-COMPOSE_FILE_E2E="docker-compose.e2e.yml"
+# 절대 경로여야 한다 — 끝에서 e2e/ 로 cd 한 뒤 정리(trap)가 돌아, 상대 경로면 compose 가 파일을
+# 못 찾고 스택(postgres·redis)이 실행이 끝난 뒤에도 남았다.
+COMPOSE_FILE_E2E="$ROOT/docker-compose.e2e.yml"
 COMPOSE_PROJECT="bebe-e2e"
 
 # Docker may need sudo on this host; detect and wrap.
@@ -61,7 +63,8 @@ fi
 
 cleanup() {
   echo "== cleanup =="
-  "${DC[@]:-docker compose}" -p "${COMPOSE_PROJECT:-bebe-e2e}" -f "${COMPOSE_FILE_E2E:-docker-compose.e2e.yml}" down -v >/dev/null 2>&1 || true
+  # 서버부터 끈다 — 스택을 내리는 데는 몇 초가 걸려, 그사이 Ctrl-C 를 한 번 더 누르면 정리가
+  # 거기서 멈춘다. 남은 컨테이너는 다음 실행이 시작하며 치우지만 남은 서버는 아무도 안 치운다.
   # pnpm --filter 는 자식 체인을 만들어 부모만 죽이면 실제 서버가 살아남는다. 그러면 다음
   # 실행이 포트를 못 잡고, 업로드가 "등록만 되고 끝나지 않는" 유령 실패가 된다.
   # setsid 로 각자 프로세스 그룹을 줬으니 그룹째 죽인다.
@@ -71,6 +74,11 @@ cleanup() {
   done
   pkill -P $$ 2>/dev/null || true
   wait 2>/dev/null || true
+  local out
+  if ! out=$("${DC[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE_E2E" down -v 2>&1); then
+    echo "!! e2e 스택을 내리지 못했습니다 — 직접 내려 주세요: docker compose -p $COMPOSE_PROJECT -f $COMPOSE_FILE_E2E down -v"
+    echo "$out"
+  fi
 }
 trap cleanup EXIT
 
