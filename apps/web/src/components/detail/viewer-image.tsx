@@ -379,7 +379,8 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
     // 수 있음 — 탭으로 시크 위치를 정하는 게 모바일 기본 사용 패턴이라 큰 문제 없음.
     if (isCurrent) {
       return (
-        <div className="flex h-full w-full items-center justify-center">
+        // size 컨테이너 — 영상 높이 상한(100cqh) 기준.
+        <div className="flex h-full w-full items-center justify-center [container-type:size]">
           <VideoWithFallback src={slim.videoSrc ?? ''} poster={slim.posterUrl} />
         </div>
       )
@@ -456,7 +457,9 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
         playsInline
         onPlay={() => setStarted(true)}
         onError={() => setFailed(true)}
-        className="max-h-full max-w-full"
+        // max-h-full 은 높이 미확정인 래퍼 기준이라 무효 → 세로 영상이 상·하단 바 밑으로
+        // 넘쳐 네이티브 컨트롤이 가려짐. 바깥 컨테이너 크기(cqh/cqw) 기준으로 제한.
+        className="max-h-[100cqh] max-w-[100cqw]"
         // 영상은 기본 touch-action: auto 라 모바일 WebView 가 가로 터치를 자체 제스처에
         // 쓸 수 있다 → Swiper 에 도달 못 함. pan-y 로 좁혀서 가로는 JS(Swiper) 로 패스.
         style={{ touchAction: 'pan-y' }}
