@@ -3,6 +3,7 @@ import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { channelForFamily, createSubscriber } from '@/server/upload/pubsub'
 import { acquireSse, releaseSse } from '@/server/upload/sse-limit'
+import { onServerShutdown, serverShuttingDown } from '@/server/upload/sse-shutdown'
 
 export const dynamic = 'force-dynamic'
 
@@ -27,6 +28,11 @@ export async function GET(req: Request) {
   // 인증을 기다리는 사이 클라이언트가 이미 떠났다. Next 는 닫힌 소켓을 보면 응답을 보내지 않고
   // 스트림을 취소하지도 않으므로, 여기서 구독을 열면 아무도 닫지 않는다. 받을 사람은 없다.
   if (req.signal.aborted) return new Response(null, { status: 499 })
+  // 서버가 내려가는 중이다 — 지금 연 스트림은 아무도 끝내 주지 않아 종료를 또 붙잡는다.
+  // EventSource 는 non-2xx 를 받으면 앱의 재연결(백오프)이 다음 서버로 다시 붙인다.
+  if (serverShuttingDown()) {
+    return new Response(null, { status: 503, headers: { Connection: 'close' } })
+  }
 
   // 한 유저가 여는 동시 SSE(=Redis 구독) 수를 제한 — 연결/Redis 고갈 방지.
   if (!acquireSse(userId)) return new Response('Too many connections', { status: 429 })
@@ -35,6 +41,7 @@ export async function GET(req: Request) {
   let sub: ReturnType<typeof createSubscriber> | null = null
   let hb: ReturnType<typeof setInterval> | null = null
   let closed = false
+  let stopOnShutdown = () => {}
   // 끊김은 두 길로 온다 — 요청의 signal(클라이언트가 떠나면 늘 울린다)과 스트림 cancel(Next 가
   // 보내던 중이었을 때만, signal 다음에 온다). 응답을 보내기 전에 끊기면 Next 는 스트림을
   // 건드리지 않아 signal 만 온다. 둘 다 오는 게 보통이라 정리는 한 번만 — 자리를 두 번 돌려주면
@@ -42,6 +49,7 @@ export async function GET(req: Request) {
   const close = () => {
     if (closed) return
     closed = true
+    stopOnShutdown()
     if (hb) clearInterval(hb)
     releaseSse(userId)
     // quit 이 아니라 disconnect — QUIT 은 대기 중인 SUBSCRIBE 뒤에 줄을 서서, Redis 가 내려가
@@ -52,6 +60,12 @@ export async function GET(req: Request) {
 
   const stream = new ReadableStream<Uint8Array>({
     async start(controller) {
+      // 서버가 내려갈 때 끝낸다 — 끝나지 않는 SSE 응답이 Next 의 server.close() 를 붙잡아, web 이
+      // 종료 유예(45초)를 다 쓰고 강제 종료됐다.
+      stopOnShutdown = onServerShutdown(() => {
+        close()
+        controller.close()
+      })
       // 닫힌 스트림에 쓰면 throw 한다 — 연결이 다 끊기기 전에 도착한 메시지는 버린다.
       const send = (text: string) => {
         if (!closed) controller.enqueue(encoder.encode(text))
@@ -78,7 +92,10 @@ export async function GET(req: Request) {
     headers: {
       'Content-Type': 'text/event-stream',
       'Cache-Control': 'no-cache, no-transform',
-      Connection: 'keep-alive',
+      // keep-alive 가 아니라 close — 스트림이 끝나면(서버 종료 포함) 소켓도 닫는다. 남겨 두면
+      // 브라우저가 그 소켓을 재연결에 다시 쓰고, Node 는 유휴 제한(5초+)이 지나야 닫아서 web 의
+      // 종료가 9초씩 밀렸다. 스트리밍 중에는 차이가 없고 재연결은 어차피 새 요청이다.
+      Connection: 'close',
     },
   })
 }

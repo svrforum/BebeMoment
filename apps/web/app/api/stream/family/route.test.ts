@@ -63,6 +63,9 @@ const state = vi.hoisted(() => {
     userId: '',
     subscribers: [] as ReturnType<typeof makeSubscriber>[],
     makeSubscriber,
+    // 프로세스 시그널은 바깥 세계라 종료 훅만 가짜로 둔다 — 테스트가 직접 '서버가 내려간다' 를 일으킨다.
+    shutdownHooks: new Set<() => void>(),
+    shuttingDown: false,
   }
 })
 
@@ -80,6 +83,15 @@ vi.mock('@/server/context', () => ({
     membership: { role: 'owner' },
     capabilities: [],
   }),
+}))
+vi.mock('@/server/upload/sse-shutdown', () => ({
+  serverShuttingDown: () => state.shuttingDown,
+  onServerShutdown: (end: () => void) => {
+    state.shutdownHooks.add(end)
+    return () => {
+      state.shutdownHooks.delete(end)
+    }
+  },
 }))
 vi.mock('@/server/upload/pubsub', async () => {
   const { channelForFamily } = await import('@bebe/core')
@@ -125,6 +137,8 @@ beforeEach(() => {
   seq += 1
   state.userId = `user-${seq}`
   state.subscribers.length = 0
+  state.shutdownHooks.clear()
+  state.shuttingDown = false
 })
 afterEach(() => {
   vi.clearAllTimers()
@@ -234,6 +248,71 @@ describe('GET /api/stream/family', () => {
     expect(state.subscribers).toHaveLength(0)
     expect(vi.getTimerCount()).toBe(0)
     expect(freeSlots(state.userId)).toBe(before)
+  })
+
+  it('서버가 내려가면 열린 스트림을 끝낸다 — 끝나지 않는 응답이 web 의 종료를 45초 붙잡았다', async () => {
+    const before = freeSlots(state.userId)
+    const res = await GET(request())
+    const reader = res.body?.getReader()
+    if (!reader) throw new Error('본문이 없다')
+    lastSubscriber().finishSubscribe()
+    await settle()
+
+    for (const end of [...state.shutdownHooks]) end()
+
+    const read = await Promise.race([reader.read(), settle().then(() => 'still open' as const)])
+    expect(read).toEqual({ done: true, value: undefined })
+    expect(lastSubscriber().closed).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(freeSlots(state.userId)).toBe(before)
+  })
+
+  it('스트림 응답은 끝나면 연결을 닫는다고 알린다 — keep-alive 면 끝난 뒤에도 브라우저가 소켓을 붙잡아 web 의 종료가 9초 밀렸다', async () => {
+    const res = await GET(request())
+
+    expect(res.headers.get('content-type')).toBe('text/event-stream')
+    expect(res.headers.get('connection')).toBe('close')
+  })
+
+  it('Redis 가 구독에 답하기 전에 서버가 내려가도 스트림을 끝낸다 — Redis 장애 중에 붙은 연결', async () => {
+    const before = freeSlots(state.userId)
+    const res = await GET(request())
+    const reader = res.body?.getReader()
+    if (!reader) throw new Error('본문이 없다')
+    await settle()
+
+    for (const end of [...state.shutdownHooks]) end()
+    // 끊긴 연결의 대기 중 SUBSCRIBE 는 거절된다 — 그래도 아무것도 새로 throw 하지 않는다.
+    lastSubscriber().failSubscribe(new Error('Connection is closed.'))
+    await settle()
+
+    const read = await Promise.race([reader.read(), settle().then(() => 'still open' as const)])
+    expect(read).toEqual({ done: true, value: undefined })
+    expect(lastSubscriber().closed).toBe(true)
+    expect(vi.getTimerCount()).toBe(0)
+    expect(freeSlots(state.userId)).toBe(before)
+  })
+
+  it('서버가 내려가는 중에는 새 스트림을 열지 않는다 — 열면 종료를 또 붙잡는다', async () => {
+    const before = freeSlots(state.userId)
+    state.shuttingDown = true
+
+    const res = await GET(request())
+
+    expect(res.status).toBe(503)
+    expect(res.headers.get('connection')).toBe('close')
+    expect(state.subscribers).toHaveLength(0)
+    expect(freeSlots(state.userId)).toBe(before)
+  })
+
+  it('끝난 스트림은 종료 목록에서 빠진다 — 남기면 연결마다 목록이 자란다', async () => {
+    const res = await GET(request())
+    lastSubscriber().finishSubscribe()
+    await settle()
+
+    await res.body?.cancel()
+
+    expect(state.shutdownHooks.size).toBe(0)
   })
 
   it('끊긴 뒤 구독이 닫히기 전에 도착한 메시지는 버린다', async () => {

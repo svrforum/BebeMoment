@@ -6,4 +6,8 @@ export async function register(): Promise<void> {
   if (process.env.NEXT_RUNTIME !== 'nodejs') return
   const { validateEnvAtBoot } = await import('./src/lib/validate-env-boot')
   validateEnvAtBoot()
+  // 열린 SSE 응답이 서버 종료를 붙잡지 않게 시그널을 미리 듣는다. 빌드(phase-production-build)
+  // 에서는 Next 가 register() 를 부르지 않아 빌드 워커에는 리스너가 붙지 않는다.
+  const { listenForServerShutdown } = await import('./src/server/upload/sse-shutdown')
+  listenForServerShutdown()
 }
