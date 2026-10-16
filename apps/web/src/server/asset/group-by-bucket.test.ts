@@ -31,8 +31,8 @@ describe('groupAssetsByBucket', () => {
   it('groups multiple assets with same bucket together', () => {
     const birth = new Date('2026-01-01')
     const assets: A[] = [
-      { id: 'a', takenAt: new Date('2026-01-01T09:00:00') },
-      { id: 'b', takenAt: new Date('2026-01-01T18:00:00') },
+      { id: 'a', takenAt: new Date('2026-01-01T09:00:00Z') },
+      { id: 'b', takenAt: new Date('2026-01-01T18:00:00Z') },
     ]
     const groups = groupAssetsByBucket(assets, birth)
     expect(groups).toHaveLength(1)

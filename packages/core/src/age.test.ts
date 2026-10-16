@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { ageBucket, daysBetween, monthsBetween } from './age'
 
 describe('daysBetween', () => {
@@ -9,7 +9,7 @@ describe('daysBetween', () => {
     expect(daysBetween(new Date('2026-01-01'), new Date('2026-01-02'))).toBe(1)
   })
   it('ignores time-of-day', () => {
-    expect(daysBetween(new Date('2026-01-01T23:00:00'), new Date('2026-01-02T01:00:00'))).toBe(1)
+    expect(daysBetween(new Date('2026-01-01T23:00:00Z'), new Date('2026-01-02T01:00:00Z'))).toBe(1)
   })
   it('is stable across DST (uses UTC days)', () => {
     expect(daysBetween(new Date('2026-03-09'), new Date('2026-03-10'))).toBe(1)
@@ -83,5 +83,45 @@ describe('ageBucket', () => {
   })
   it('출산 119일 전은 dday 119', () => {
     expect(ageBucket(birth, new Date('2025-09-04'))).toEqual({ kind: 'dday', n: 119 })
+  })
+})
+
+// 촬영 시각은 벽시계를 UTC 필드에 담고(wall-clock-as-UTC) 생일은 date 컬럼이라 UTC 자정으로
+// 온다. 서버 로컬 시간대로 읽으면 운영(TZ=Asia/Seoul)에서 오후 3시 이후 사진이 다음 날 나이로
+// 찍힌다. 어느 시간대 서버에서 돌아도 같은 답이어야 한다.
+describe.each([
+  ['UTC', 0],
+  ['Asia/Seoul', -540],
+  ['America/Los_Angeles', 420],
+])('서버 시간대가 %s 여도 날짜는 UTC 로 읽는다', (zone, offset) => {
+  let saved: string | undefined
+  beforeEach(() => {
+    saved = process.env.TZ
+    process.env.TZ = zone
+  })
+  afterEach(() => {
+    if (saved === undefined) delete process.env.TZ
+    else process.env.TZ = saved
+  })
+
+  it('정말 그 시간대에서 돈다', () => {
+    expect(new Date('2026-10-11T21:30:00Z').getTimezoneOffset()).toBe(offset)
+  })
+
+  it('밤늦게 찍은 사진도 찍은 날로 센다', () => {
+    const birth = new Date('2026-08-27')
+    expect(ageBucket(birth, new Date('2026-10-11T21:30:00Z'))).toEqual({ kind: 'days', n: 46 })
+    expect(ageBucket(birth, new Date('2026-10-12T08:00:00Z'))).toEqual({ kind: 'days', n: 47 })
+  })
+
+  it('생일 당일 밤에 찍은 사진은 주년이다', () => {
+    expect(ageBucket(new Date('2026-01-01'), new Date('2027-01-01T23:30:00Z'))).toEqual({
+      kind: 'anniversary',
+      n: 1,
+    })
+  })
+
+  it('개월수도 찍은 날로 센다 — 다 채우기 하루 전 밤은 아직 그 전 달', () => {
+    expect(monthsBetween(new Date('2026-01-15'), new Date('2026-03-14T23:30:00Z'))).toBe(1)
   })
 })

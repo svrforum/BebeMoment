@@ -3,7 +3,10 @@ import { describe, expect, it } from 'vitest'
 import { formatAgeBucket } from './labels'
 import { getServerTranslator } from './translator'
 
-/** 이 리팩터 전 `@bebe/core` 의 `bucketLabel` 구현 그대로 — ko 출력이 안 바뀌었는지 본다. */
+/**
+ * 이 리팩터 전 `@bebe/core` 의 `bucketLabel` 구현 그대로 — ko 출력이 안 바뀌었는지 본다.
+ * 날짜만 core 처럼 UTC 로 읽는다(서버 로컬로 읽으면 서버 시간대에 따라 하루가 밀렸다).
+ */
 function legacyBucketLabel(birthDate: Date, at: Date): string {
   const elapsed = daysBetween(birthDate, at)
   if (elapsed < 0) return `D-${-elapsed}`
@@ -13,7 +16,7 @@ function legacyBucketLabel(birthDate: Date, at: Date): string {
   const months = monthsBetween(birthDate, at)
   const years = Math.floor(months / 12)
   if (years >= 1) {
-    const anniversary = months % 12 === 0 && at.getDate() === birthDate.getDate()
+    const anniversary = months % 12 === 0 && at.getUTCDate() === birthDate.getUTCDate()
     if (anniversary) return years === 1 ? '1주년 (돌)' : `${years}주년`
   }
   return years >= 1 ? `생후 ${months}개월 · 만 ${years}세` : `생후 ${months}개월`

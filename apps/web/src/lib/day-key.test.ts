@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { isSubmittableDayKey, localDayKey, utcDayKey } from './day-key'
+import { isSubmittableDayKey, localDayKey, todayAsUtcDate, utcDayKey } from './day-key'
 
 describe('utcDayKey', () => {
   it('UTC 기준으로 자른다', () => {
@@ -44,5 +44,16 @@ describe('isSubmittableDayKey', () => {
   it('미래 날짜를 막는다', () => {
     expect(isSubmittableDayKey('2026-09-21', '2026-09-20')).toBe(false)
     expect(isSubmittableDayKey('2099-12-31', '2026-09-20')).toBe(false)
+  })
+})
+
+describe('todayAsUtcDate', () => {
+  it('오늘의 벽시계 날짜를 UTC 자정으로 — 생일·촬영 시각과 같은 기준으로 센다', () => {
+    expect(todayAsUtcDate(new Date(2026, 9, 16, 0, 30)).toISOString()).toBe(
+      '2026-10-16T00:00:00.000Z',
+    )
+    expect(todayAsUtcDate(new Date(2026, 9, 16, 23, 59)).toISOString()).toBe(
+      '2026-10-16T00:00:00.000Z',
+    )
   })
 })

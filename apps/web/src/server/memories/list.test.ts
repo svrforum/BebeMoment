@@ -1,6 +1,6 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { FakeMediaClient } from '@bebe/media-client'
-import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
@@ -13,6 +13,17 @@ beforeAll(async () => {
 }, 120_000)
 afterAll(async () => {
   await db.stop()
+})
+// '오늘'은 이 프로세스의 벽시계 날짜로 센다 — 운영 컨테이너처럼 TZ=Asia/Seoul 로 고정해, 아래 UTC 자정
+// 상수들이 어느 시간대에서 돌려도 그 날짜를 가리키게 한다.
+let savedTz: string | undefined
+beforeEach(() => {
+  savedTz = process.env.TZ
+  process.env.TZ = 'Asia/Seoul'
+})
+afterEach(() => {
+  if (savedTz === undefined) delete process.env.TZ
+  else process.env.TZ = savedTz
 })
 beforeEach(async () => {
   await db.prismaPublic.storyAsset.deleteMany()
@@ -179,6 +190,26 @@ describe('listMemories', () => {
       g.stories.flatMap((s) => s.assets.map((ea) => ea.asset?.id)),
     )
     expect(ownerStoryAssetIds).toContain(secret.id)
+  })
+
+  it('KST 새벽에도 오늘 날짜의 추억이다 — 호출부가 넘기는 지금 시각은 UTC 로 아직 어제다', async () => {
+    const { user, family } = await setup()
+    // 촬영 시각은 벽시계를 UTC 필드에 담는다 — 1년 전 10/16 아침, 그리고 그 전날.
+    await makeAsset(family.id, user.id, new Date('2025-10-16T07:00:00Z'))
+    await makeAsset(family.id, user.id, new Date('2025-10-15T07:00:00Z'))
+
+    const groups = await listMemories(
+      // 2026-10-16 08:30 KST
+      { familyId: family.id, today: new Date('2026-10-15T23:30:00Z'), viewerRole: 'owner' },
+      db.prismaMedia,
+      db.prismaPublic,
+      new FakeMediaClient(),
+    )
+
+    expect(groups.map((g) => g.interval)).toEqual([{ kind: 'year', n: 1 }])
+    expect(groups[0]?.assets.map((a) => a.takenAt.toISOString())).toEqual([
+      '2025-10-16T07:00:00.000Z',
+    ])
   })
 
   it('31일: 31일이 없는 달은 건너뛰고 있는 달만 추억', async () => {

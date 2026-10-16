@@ -1,18 +1,23 @@
+/*
+ * 여기의 날짜는 전부 UTC 로 읽는다. 생일은 date 컬럼이라 UTC 자정으로 오고, 촬영 시각은 벽시계를
+ * UTC 로 저장한다(wall-clock-as-UTC). 서버 로컬로 읽으면 운영(TZ=Asia/Seoul)에서 오후 3시 이후
+ * 사진이 다음 날로 넘어간다. 지금 시각으로 셀 때는 `new Date()` 가 아니라 오늘 날짜의 UTC 자정을
+ * 넘길 것(web 의 `todayAsUtcDate`).
+ */
 const MS_PER_DAY = 24 * 60 * 60 * 1000
 
-function toUTCDate(d: Date): Date {
-  return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()))
+function utcMidnight(d: Date): number {
+  return Date.UTC(d.getUTCFullYear(), d.getUTCMonth(), d.getUTCDate())
 }
 
 export function daysBetween(from: Date, to: Date): number {
-  const a = toUTCDate(from).getTime()
-  const b = toUTCDate(to).getTime()
-  return Math.round((b - a) / MS_PER_DAY)
+  return Math.round((utcMidnight(to) - utcMidnight(from)) / MS_PER_DAY)
 }
 
 export function monthsBetween(from: Date, to: Date): number {
-  let months = (to.getFullYear() - from.getFullYear()) * 12 + (to.getMonth() - from.getMonth())
-  if (to.getDate() < from.getDate()) months -= 1
+  let months =
+    (to.getUTCFullYear() - from.getUTCFullYear()) * 12 + (to.getUTCMonth() - from.getUTCMonth())
+  if (to.getUTCDate() < from.getUTCDate()) months -= 1
   return Math.max(0, months)
 }
 
@@ -47,7 +52,7 @@ export function ageBucket(birthDate: Date, at: Date): AgeBucket {
   const years = Math.floor(months / 12)
 
   if (years >= 1) {
-    const anniversary = months % 12 === 0 && at.getDate() === birthDate.getDate()
+    const anniversary = months % 12 === 0 && at.getUTCDate() === birthDate.getUTCDate()
     if (anniversary) return { kind: 'anniversary', n: years }
   }
 

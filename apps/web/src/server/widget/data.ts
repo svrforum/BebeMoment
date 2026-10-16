@@ -4,7 +4,7 @@ import { pickDisplayUrl } from '@/lib/asset-url'
 import type { AssetUrlTier } from '@bebe/media-client'
 import { listMemories } from '@/server/memories/list'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
-import { ageBucket } from '@bebe/core'
+import { babyAgeNow } from '@/server/timeline/group-by-day'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
@@ -176,7 +176,7 @@ export async function getWidgetData(
     babyName: baby?.name ?? null,
     birthDate: baby ? baby.birthDate.toISOString().slice(0, 10) : null,
     newCount,
-    ageText: baby ? formatAgeBucket(ageBucket(baby.birthDate, new Date()), tAge) : null,
+    ageText: baby ? formatAgeBucket(babyAgeNow(baby.birthDate).bucket, tAge) : null,
     memoryUrls,
     memoryLabel:
       memoryUrls.length && memoryGroup

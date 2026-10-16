@@ -1,6 +1,7 @@
 import { type StoryCardData, storyCardDataFromEntry } from '@/components/story/story-card-data'
 import { type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
 import type { LabelT } from '@/i18n/labels'
+import { wallClockAsUtc } from '@bebe/core'
 import { formatDDay, groupAssetsByDay } from './group-by-day'
 import type { TimelineItem, TimelineSort } from './merged-list'
 
@@ -104,4 +105,14 @@ export function buildTimelineGroups(args: {
     ...g,
     stories: Array.from(storiesByDate.get(g.dateKey)?.values() ?? []),
   }))
+}
+
+/**
+ * '여기까지 봤어요' 기준을 그룹 ts 와 같은 축으로. 촬영순(ts=takenAt)은 벽시계를 UTC 필드에 담은
+ * 값이라, 실제 순간인 마지막 방문 시각도 벽시계로 옮겨야 KST 에서 9시간 어긋나지 않는다.
+ * 업로드순(ts=createdAt)은 둘 다 실제 순간이라 그대로.
+ */
+export function lastSeenOnGroupAxis(lastSeenAt: Date | null, sortMode: TimelineSort): Date | null {
+  if (!lastSeenAt || sortMode === 'uploaded') return lastSeenAt
+  return wallClockAsUtc(lastSeenAt)
 }

@@ -1,7 +1,7 @@
 import type { Story, StoryAsset } from '@bebe/db-public'
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import type { AssetWithUrls } from '../asset/types'
-import { buildTimelineGroups } from './build-groups'
+import { buildTimelineGroups, lastSeenOnGroupAxis } from './build-groups'
 import type { TimelineItem } from './merged-list'
 
 const asset = (id: string, takenAt: string): AssetWithUrls =>
@@ -100,5 +100,34 @@ describe('buildTimelineGroups — 스토리 카드 배치', () => {
       sortMode: 'uploaded',
     })
     expect(dayOfStories(groups)).toEqual(['2026-09-09:s4'])
+  })
+})
+
+describe('lastSeenOnGroupAxis', () => {
+  // 운영 컨테이너는 TZ=Asia/Seoul 이다.
+  let savedTz: string | undefined
+  beforeEach(() => {
+    savedTz = process.env.TZ
+    process.env.TZ = 'Asia/Seoul'
+  })
+  afterEach(() => {
+    if (savedTz === undefined) delete process.env.TZ
+    else process.env.TZ = savedTz
+  })
+
+  it('촬영순이면 마지막 방문(실제 순간)을 벽시계로 옮겨 촬영 시각과 비교하게 한다', () => {
+    // 2026-10-12 10:00 KST 에 마지막으로 봤다.
+    expect(lastSeenOnGroupAxis(new Date('2026-10-12T01:00:00Z'), 'taken')?.toISOString()).toBe(
+      '2026-10-12T10:00:00.000Z',
+    )
+  })
+
+  it('업로드순은 둘 다 실제 순간이라 그대로 둔다', () => {
+    const at = new Date('2026-10-12T01:00:00Z')
+    expect(lastSeenOnGroupAxis(at, 'uploaded')).toBe(at)
+  })
+
+  it('첫 방문이면 없다', () => {
+    expect(lastSeenOnGroupAxis(null, 'taken')).toBeNull()
   })
 })

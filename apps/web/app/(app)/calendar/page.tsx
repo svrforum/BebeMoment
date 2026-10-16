@@ -2,6 +2,7 @@ import { MonthGrid } from '@/components/calendar/month-grid'
 import { PullToRefresh } from '@/components/timeline/pull-to-refresh'
 import { AppHeader } from '@/components/shell/app-header'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { todayAsUtcDate, utcDayKey } from '@/lib/day-key'
 import { getMediaClient } from '@/lib/media-client'
 import { loadCalendarMonth } from '@/server/calendar/month'
 import { getContext } from '@/server/context'
@@ -24,10 +25,11 @@ export default async function CalendarPage({
   // SSR 한다(헤더+데이터가 항상 같은 SSR 달). 날짜를 눌러 타임라인으로 갔다 돌아와도 그
   // 달이 유지되고, 캐시된 셸이 오면 MonthGrid 가 router.refresh 로 자가복구.
   const { month: monthParam } = await searchParams
-  const now = new Date()
+  // 기본 달은 오늘의 벽시계 날짜로 — 지금 시각을 UTC 로 읽으면 1일 KST 새벽엔 지난달이 열린다.
+  const today = todayAsUtcDate()
   const m = monthParam && /^\d{4}-\d{2}$/.test(monthParam) ? monthParam : null
-  const year = m ? Number(m.slice(0, 4)) : now.getUTCFullYear()
-  const month = m ? Number(m.slice(5, 7)) - 1 : now.getUTCMonth()
+  const year = m ? Number(m.slice(0, 4)) : today.getUTCFullYear()
+  const month = m ? Number(m.slice(5, 7)) - 1 : today.getUTCMonth()
   const { assets, storyDays, scheduleDays, scheduleEntries } = await loadCalendarMonth(
     {
       familyId: ctx.family.id,
@@ -54,6 +56,7 @@ export default async function CalendarPage({
           scheduleDays={scheduleDays}
           scheduleEntries={scheduleEntries}
           scheduleEnabled={scheduleOn}
+          todayKey={utcDayKey(today)}
         />
       </div>
     </>

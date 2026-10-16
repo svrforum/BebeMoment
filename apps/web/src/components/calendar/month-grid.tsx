@@ -4,7 +4,6 @@ import { UpcomingSchedule } from '@/components/calendar/upcoming-schedule'
 import { DaySheet } from '@/components/schedule/day-sheet'
 import { useScheduleForm } from '@/components/schedule/entry-form-sheet'
 import { cn } from '@/lib/cn'
-import { localDayKey } from '@/lib/day-key'
 import { monthDirection, monthIndex } from '@/lib/month-direction'
 import { useFamilySSE } from '@/lib/sse'
 import type { ScheduleDaySummary, ScheduleEntryView } from '@/server/schedule/list'
@@ -49,6 +48,11 @@ type Props = {
   scheduleEntries?: ScheduleEntryView[]
   /** 기능 플래그가 꺼지면 탭·시트의 일정 영역까지 사라져야 한다(데이터만 비우면 껍데기가 남는다). */
   scheduleEnabled?: boolean
+  /**
+   * 오늘(인스턴스 벽시계 날짜) `YYYY-MM-DD`. 서버가 기본 달을 고른 바로 그 오늘이다 — 기기 시간대로
+   * 따로 구하면 서버 렌더와 하이드레이션이, 또 서버가 고른 달과 '오늘' 버튼이 어긋난다.
+   */
+  todayKey: string
 }
 
 // 날짜는 전부 UTC 로 다룬다 — takenAt 은 촬영 벽시계 시각을 UTC 로 저장하므로,
@@ -85,6 +89,7 @@ export function MonthGrid({
   scheduleDays = [],
   scheduleEntries = [],
   scheduleEnabled = false,
+  todayKey,
 }: Props) {
   const t = useTranslations('timeline')
   const locale = useLocale()
@@ -171,7 +176,9 @@ export function MonthGrid({
   )
   useFamilySSE(onEvent)
 
-  const today = useMemo(() => new Date(), [])
+  // 칸은 UTC 날짜다(촬영 시각이 벽시계를 UTC 필드에 담는다). 지금 시각을 그대로 UTC 로 읽으면
+  // KST 새벽(00~09시)엔 어제 칸이 오늘로 표시돼, 오늘 아침 사진과 어긋난다.
+  const todayCell = useMemo(() => new Date(`${todayKey}T00:00:00.000Z`), [todayKey])
   const days = daysInMonth(year, month)
 
   // 달을 넘길 때 방향을 기억한다 — 다음 달은 오른쪽에서, 이전 달은 왼쪽에서 들어온다.
@@ -208,7 +215,7 @@ export function MonthGrid({
 
   const prev = () => (month === 0 ? go(year - 1, 11) : go(year, month - 1))
   const next = () => (month === 11 ? go(year + 1, 0) : go(year, month + 1))
-  const jumpToday = () => go(today.getUTCFullYear(), today.getUTCMonth())
+  const jumpToday = () => go(todayCell.getUTCFullYear(), todayCell.getUTCMonth())
 
   // 좌우 스와이프 → 다음/이전 달. 가로 이동이 충분히 크고 세로보다 우세할 때만(셀 탭과 구분).
   const onTouchStart = (e: React.TouchEvent) => {
@@ -241,7 +248,7 @@ export function MonthGrid({
     month: 'long',
     timeZone: 'UTC',
   })
-  const isCurrentView = year === today.getUTCFullYear() && month === today.getUTCMonth()
+  const isCurrentView = year === todayCell.getUTCFullYear() && month === todayCell.getUTCMonth()
 
   return (
     // 스와이프 영역을 캘린더 전체(빈 공간 포함)로 — 그리드 아래 빈 화면에서도 달 전환되게
@@ -397,9 +404,9 @@ export function MonthGrid({
               const key = `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
               const dayAssets = byDate.get(key) ?? []
               const isTodayCell =
-                d.getUTCFullYear() === today.getUTCFullYear() &&
-                d.getUTCMonth() === today.getUTCMonth() &&
-                d.getUTCDate() === today.getUTCDate()
+                d.getUTCFullYear() === todayCell.getUTCFullYear() &&
+                d.getUTCMonth() === todayCell.getUTCMonth() &&
+                d.getUTCDate() === todayCell.getUTCDate()
               const day = d.toISOString().slice(0, 10)
               const summary = scheduleByDay.get(day)
               return (
@@ -420,9 +427,7 @@ export function MonthGrid({
           </motion.div>
         </AnimatePresence>
       </div>
-      {scheduleEnabled && (
-        <UpcomingSchedule entries={scheduleEntries} todayKey={localDayKey(today)} />
-      )}
+      {scheduleEnabled && <UpcomingSchedule entries={scheduleEntries} todayKey={todayKey} />}
       <DaySheet
         open={sheetOpen}
         onOpenChange={setSheetOpen}

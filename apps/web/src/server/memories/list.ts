@@ -4,6 +4,7 @@ import { type MemoryInterval, intervalMonths, memoryInterval } from '@bebe/core'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { GRID_URL_TIERS } from '@/lib/asset-url'
+import { todayAsUtcDate } from '@/lib/day-key'
 import type { AssetUrlTier, AssetUrls, MediaClient } from '@bebe/media-client'
 
 export type MemoryStory = Story & { assets: (StoryAsset & { asset: AssetWithUrls | null })[] }
@@ -64,7 +65,10 @@ async function collectMemoryData(
   prismaMedia: PrismaMedia,
   prismaPublic: PrismaPublic,
 ): Promise<CollectedMemoryData> {
-  const { familyId, today, viewerRole } = args
+  const { familyId, viewerRole } = args
+  // 호출부는 지금 시각(실제 순간)을 넘긴다. 사진 날짜는 벽시계를 UTC 필드에 담으니 오늘도 벽시계
+  // 날짜로 맞춘다 — 그대로 UTC 로 읽으면 KST 새벽(00~09시)엔 어제의 추억이 나온다.
+  const today = todayAsUtcDate(args.today)
   const liveAsset = { familyId, deletedAt: null, status: 'ready' as const, duplicateOf: null }
   const visibleStory = {
     familyId,

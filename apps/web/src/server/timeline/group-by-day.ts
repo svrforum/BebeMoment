@@ -1,7 +1,8 @@
 import { DEFAULT_LOCALE } from '@/i18n/locales'
 import { type LabelT, formatAgeBucket } from '@/i18n/labels'
 import { getServerTranslator } from '@/i18n/translator'
-import { ageBucket } from '@bebe/core'
+import { todayAsUtcDate } from '@/lib/day-key'
+import { type AgeBucket, ageBucket } from '@bebe/core'
 import type { AssetUrls } from '@bebe/media-client'
 
 /**
@@ -68,6 +69,18 @@ export function babyDaysDiff(birthDate: Date, at: Date): number {
   const a = utcMidnight(birthDate).getTime()
   const b = utcMidnight(at).getTime()
   return Math.round((b - a) / MS_PER_DAY)
+}
+
+/**
+ * 지금 기준 아기 나이(헤더 부제·위젯). 실제 시각을 그대로 세면 UTC 로 읽혀 KST 새벽엔 하루 전
+ * 나이가 되므로 오늘의 벽시계 날짜로 센다.
+ */
+export function babyAgeNow(
+  birthDate: Date,
+  now: Date = new Date(),
+): { days: number; bucket: AgeBucket } {
+  const today = todayAsUtcDate(now)
+  return { days: babyDaysDiff(birthDate, today), bucket: ageBucket(birthDate, today) }
 }
 
 /**

@@ -15,10 +15,9 @@ import { touchLastSeen } from '@/server/family/touch-last-seen'
 import { getFeatureFlags } from '@/server/settings/features'
 import { getSetting } from '@/server/settings/get'
 import { listMemories } from '@/server/memories/list'
-import { babyDaysDiff, formatDDay } from '@/server/timeline/group-by-day'
+import { babyAgeNow, formatDDay } from '@/server/timeline/group-by-day'
 import { formatAgeBucket } from '@/i18n/labels'
-import { ageBucket } from '@bebe/core'
-import { buildTimelineGroups } from '@/server/timeline/build-groups'
+import { buildTimelineGroups, lastSeenOnGroupAxis } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Search, Sparkles, UsersRound } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -65,12 +64,11 @@ export default async function TimelinePage({
   let babySubtitle: string | null = null
   if (baby) {
     if (birthDate) {
-      const now = new Date()
-      const diff = babyDaysDiff(birthDate, now)
+      const { days, bucket } = babyAgeNow(birthDate)
       babySubtitle =
-        diff < 0
-          ? `${baby.name} · ${formatDDay(diff)}`
-          : `${baby.name} · ${formatDDay(diff)} · ${formatAgeBucket(ageBucket(birthDate, now), tAge)}`
+        days < 0
+          ? `${baby.name} · ${formatDDay(days)}`
+          : `${baby.name} · ${formatDDay(days)} · ${formatAgeBucket(bucket, tAge)}`
     } else {
       babySubtitle = baby.name
     }
@@ -283,7 +281,7 @@ export default async function TimelinePage({
       <TimelineGrid
         initialGroups={mainGroups}
         initialNextCursor={nextCursor}
-        lastSeenAt={prevLastSeenAt}
+        lastSeenAt={lastSeenOnGroupAxis(prevLastSeenAt, sortMode)}
         canUpload={canUpload}
         canDeleteSelection={canDeleteSelection}
         canAddAlbum={canAddAlbum}

@@ -13,6 +13,14 @@ export function localDayKey(d: Date = new Date()): string {
 }
 
 /**
+ * 오늘의 벽시계 날짜를 UTC 자정으로. 생일·촬영 시각처럼 UTC 로 읽는 날짜와 셀 때 `new Date()`
+ * 대신 넘긴다 — 실제 시각을 그대로 UTC 로 읽으면 KST 새벽(00:00~09:00)엔 어제가 된다.
+ */
+export function todayAsUtcDate(now: Date = new Date()): Date {
+  return new Date(`${localDayKey(now)}T00:00:00.000Z`)
+}
+
+/**
  * UTC 기준 'YYYY-MM-DD'. `stories.entry_date` · `assets.taken_at` 처럼 벽시계 시각을
  * UTC 로 저장한 값을 다시 날짜로 읽을 때 쓴다(타임라인 group-by-day 와 같은 규칙).
  */
