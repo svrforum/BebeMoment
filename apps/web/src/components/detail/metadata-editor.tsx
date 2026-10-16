@@ -1,5 +1,5 @@
 'use client'
-import { fromUtcInputValue, toUtcInputValue } from '@/lib/taken-at-input'
+import { editedTakenAt, toUtcInputValue } from '@/lib/taken-at-input'
 import { useToast } from '@/lib/toast'
 import { Calendar, FileText, Pencil, Type } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -304,12 +304,8 @@ function DateTimeEditor({
   const [v, setV] = useState(toUtcInputValue(initialISO))
 
   const commit = () => {
-    if (!v) {
-      onCancel()
-      return
-    }
-    const next = fromUtcInputValue(v)
-    if (next === initialISO) onCancel()
+    const next = editedTakenAt(initialISO, v)
+    if (next === null) onCancel()
     else onSave(next)
   }
   const onKey = (e: KeyboardEvent<HTMLInputElement>) => {
