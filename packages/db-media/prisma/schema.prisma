@@ -33,6 +33,10 @@ model Asset {
 
   takenAt                 DateTime  @map("taken_at")
   takenAtSource           TakenAtSource @map("taken_at_source")
+  // 업로더 파일의 수정시각(File.lastModified) — 실제 순간 그대로. taken_at_source=filemtime 이면
+  // taken_at 은 이 값을 인스턴스 벽시계로 옮긴 것이라, 다시 계산해도 늘 같은 값이 나온다.
+  // 비어 있는 filemtime 행은 2026-10 전에 init 이 실제 순간을 taken_at 에 바로 넣은 것이다.
+  fileModifiedAt          DateTime? @map("file_modified_at")
   uploadedAt              DateTime  @default(now()) @map("uploaded_at")
 
   gpsLat                  Float?    @map("gps_lat")

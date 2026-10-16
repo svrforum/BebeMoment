@@ -101,6 +101,7 @@ export async function applyDedup(args: DedupArgs): Promise<'handled' | 'continue
           dominantColor: existing.dominantColor,
           takenAt: existing.takenAt,
           takenAtSource: existing.takenAtSource,
+          fileModifiedAt: existing.fileModifiedAt,
           // biome-ignore lint/suspicious/noExplicitAny: Prisma Json
           derivatives: existing.derivatives as any,
         },

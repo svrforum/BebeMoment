@@ -2,6 +2,7 @@ import { randomBytes, randomUUID } from 'node:crypto'
 import { getEnv } from '@/lib/env'
 import { signUploadToken } from '@/lib/jwt'
 import { getTusStore, tusTmpDir } from '@/lib/tus-store'
+import { wallClockAsUtc } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import { Upload } from '@tus/server'
 import { assertDiskSpaceForUpload } from './preflight'
@@ -37,6 +38,7 @@ export async function initAsset(
   publicBaseUrl: string,
 ): Promise<InitAssetResult> {
   const assetId = randomUUID()
+  const fileModifiedAt = input.fileModifiedAt ? new Date(input.fileModifiedAt) : null
   const convertToCompatible = input.convertToCompatible ?? false
   const notify = input.notify ?? true
   const env = getEnv()
@@ -76,9 +78,14 @@ export async function initAsset(
       // (process-asset.ts hashes the buffer).
       sha256: randomBytes(32).toString('hex'),
       // 명시 takenAt > 파일 수정시각(filemtime) > 업로드시각(uploaded). 워커가 EXIF·파일명
-      // 으로 다시 확정하지만, 둘 다 없으면 process-asset 이 이 filemtime 값을 폴백으로 쓴다.
-      takenAt: new Date(input.takenAt ?? input.fileModifiedAt ?? Date.now()),
-      takenAtSource: input.takenAt ? 'manual' : input.fileModifiedAt ? 'filemtime' : 'uploaded',
+      // 으로 다시 확정하지만, 둘 다 없으면 파일 수정시각으로 폴백한다. 수정시각·업로드시각은
+      // 실제 순간이라 벽시계로 옮겨 심는다(처리에 실패한 사진은 이 값을 달고 남는다). 수정시각의
+      // 실제 순간은 file_modified_at 에 따로 남겨, 워커가 늘 거기서 다시 계산하게 한다.
+      takenAt: input.takenAt
+        ? new Date(input.takenAt)
+        : wallClockAsUtc(fileModifiedAt ?? new Date()),
+      takenAtSource: input.takenAt ? 'manual' : fileModifiedAt ? 'filemtime' : 'uploaded',
+      fileModifiedAt,
       status: 'uploading',
       width: input.clientWidth ?? null,
       height: input.clientHeight ?? null,

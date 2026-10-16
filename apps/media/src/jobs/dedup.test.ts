@@ -91,3 +91,59 @@ describe('applyDedup — duplicate of a soft-deleted asset', () => {
     expect(storage.delete).toHaveBeenCalled()
   })
 })
+
+describe('applyDedup — duplicate of a live asset', () => {
+  it('별칭은 원본의 촬영 시각·출처·파일 수정시각을 그대로 따른다 — 원본이 지워져 혼자 남아도 같은 값이 나오게', async () => {
+    const asset = { id: 'asset-new', familyId: 'fam-1', kind: 'image', originalKey: 'k-new' } as Any
+    const canonical = {
+      id: 'asset-old',
+      familyId: 'fam-1',
+      originalKey: 'k-old',
+      mimeType: 'image/jpeg',
+      sizeBytes: 1n,
+      width: 8,
+      height: 8,
+      durationMs: null,
+      aspectRatioCached: 1,
+      blurhash: null,
+      dominantColor: null,
+      takenAt: new Date('2026-10-12T07:44:00Z'),
+      takenAtSource: 'filemtime',
+      fileModifiedAt: new Date('2026-10-11T22:44:00Z'),
+      derivatives: {},
+    }
+    let calls = 0
+    const updates: Any[] = []
+    const prisma = {
+      asset: {
+        update: vi.fn(async ({ where, data }: Any) => {
+          calls += 1
+          updates.push({ where, data })
+          if (calls === 1) throw p2002()
+          return {}
+        }),
+        findFirst: vi.fn(async () => canonical),
+      },
+    }
+    const storage = {
+      read: vi.fn(async () => Readable.from([Buffer.from('same-bytes')])),
+      delete: vi.fn(async () => {}),
+    } as unknown as StorageAdapter
+
+    const result = await applyDedup({
+      asset,
+      prisma: prisma as Any,
+      storage,
+      publishProgress: async () => {},
+      logger: silentLogger,
+    })
+
+    expect(result).toBe('handled')
+    expect(updates[1].data).toMatchObject({
+      duplicateOf: 'asset-old',
+      takenAt: canonical.takenAt,
+      takenAtSource: 'filemtime',
+      fileModifiedAt: canonical.fileModifiedAt,
+    })
+  })
+})

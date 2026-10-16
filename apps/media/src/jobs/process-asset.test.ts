@@ -73,38 +73,87 @@ describe('process-asset module', () => {
     })
   })
 
-  it('EXIF·파일명 날짜가 없으면 init 이 심은 filemtime(클라 파일 수정시각)으로 takenAt 을 정한다', async () => {
-    const mtime = new Date('2026-06-13T10:00:00Z')
-    const asset = fakeAsset({
-      takenAtSource: 'filemtime',
-      takenAt: mtime,
-      originalFilename: 'IMG_no_date.jpg',
+  // taken_at 은 벽시계를 UTC 필드에 담는다. 운영 컨테이너는 TZ=Asia/Seoul 이다.
+  describe('촬영 시각 폴백 — 인스턴스 시간대가 Asia/Seoul 일 때', () => {
+    let savedTz: string | undefined
+    beforeEach(() => {
+      savedTz = process.env.TZ
+      process.env.TZ = 'Asia/Seoul'
     })
-    const prisma = fakePrisma(asset)
-
-    await processAsset({
-      job: {
-        type: 'process-asset',
-        assetId: asset.id,
-        familyId: asset.familyId,
-        convertToCompatible: false,
-      },
-      // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
-      prisma: prisma as any,
-      storage: noopStorage,
-      publishProgress: async () => {},
-      logger: silentLogger,
-      enqueueNotification: vi.fn(async () => {}),
+    afterEach(() => {
+      if (savedTz === undefined) delete process.env.TZ
+      else process.env.TZ = savedTz
     })
 
-    const calls = (prisma.asset.update as unknown as { mock: { calls: unknown[][] } }).mock.calls
-    const updates = calls.map((c) => (c[0] as { data: unknown }).data)
-    const finalUpdate = updates.find(
-      (d): d is { takenAt: Date; takenAtSource: string } =>
-        typeof d === 'object' && d !== null && 'takenAtSource' in d,
-    )
-    expect(finalUpdate?.takenAtSource).toBe('filemtime')
-    expect(finalUpdate?.takenAt).toEqual(mtime)
+    async function storedTakenAt(asset: ReturnType<typeof fakeAsset>) {
+      const prisma = fakePrisma(asset)
+      await processAsset({
+        job: {
+          type: 'process-asset',
+          assetId: asset.id,
+          familyId: asset.familyId,
+          convertToCompatible: false,
+        },
+        // biome-ignore lint/suspicious/noExplicitAny: minimal prisma fake
+        prisma: prisma as any,
+        storage: noopStorage,
+        publishProgress: async () => {},
+        logger: silentLogger,
+        enqueueNotification: vi.fn(async () => {}),
+      })
+      const calls = (prisma.asset.update as unknown as { mock: { calls: unknown[][] } }).mock.calls
+      return calls
+        .map((c) => (c[0] as { data: unknown }).data)
+        .find(
+          (d): d is { takenAt: Date; takenAtSource: string; fileModifiedAt?: Date } =>
+            typeof d === 'object' && d !== null && 'takenAtSource' in d,
+        )
+    }
+
+    it('날짜가 하나도 없으면 업로드 시각을 벽시계로 옮겨 쓴다', async () => {
+      // 2026-10-12 07:44 KST 에 올린 파일 — uploaded_at 은 실제 순간이라 전날 22:44Z 다.
+      const stored = await storedTakenAt(
+        fakeAsset({
+          takenAtSource: 'uploaded',
+          takenAt: new Date('2026-10-11T22:44:00Z'),
+          uploadedAt: new Date('2026-10-11T22:44:00Z'),
+          originalFilename: 'IMG_no_date.jpg',
+        }),
+      )
+      expect(stored?.takenAtSource).toBe('uploaded')
+      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+    })
+
+    it('EXIF·파일명 날짜가 없으면 파일 수정시각(실제 순간)을 벽시계로 옮겨 쓴다 — 재처리해도 같다', async () => {
+      // 2026-10-12 07:44 KST 에 수정된 파일. init 이 실제 순간과 벽시계 씨앗을 함께 심어 뒀다.
+      const asset = fakeAsset({
+        takenAtSource: 'filemtime',
+        takenAt: new Date('2026-10-12T07:44:00Z'),
+        fileModifiedAt: new Date('2026-10-11T22:44:00Z'),
+        uploadedAt: new Date('2026-10-12T01:00:00Z'),
+        originalFilename: 'IMG_no_date.jpg',
+      })
+      const stored = await storedTakenAt(asset)
+      expect(stored?.takenAtSource).toBe('filemtime')
+      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      expect(stored?.fileModifiedAt).toBeUndefined()
+    })
+
+    it('2026-10 전 init 이 실제 순간을 taken_at 에 넣은 행은 그 순간을 남기고 벽시계로 옮긴다', async () => {
+      const stored = await storedTakenAt(
+        fakeAsset({
+          takenAtSource: 'filemtime',
+          takenAt: new Date('2026-10-11T22:44:00Z'),
+          fileModifiedAt: null,
+          uploadedAt: new Date('2026-10-12T01:00:00Z'),
+          originalFilename: 'IMG_no_date.jpg',
+        }),
+      )
+      expect(stored?.takenAtSource).toBe('filemtime')
+      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      // 다음 재처리는 이 값에서 다시 계산한다 — 옮긴 값을 또 옮기지 않게.
+      expect(stored?.fileModifiedAt?.toISOString()).toBe('2026-10-11T22:44:00.000Z')
+    })
   })
 
   it('still enqueues asset.uploaded with suppressPush when job.notify is false (story photo)', async () => {

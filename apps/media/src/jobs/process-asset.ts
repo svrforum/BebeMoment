@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import { deriveTakenAt, needsConvert, parseExif } from '@bebe/core'
+import { deriveTakenAt, needsConvert, parseExif, wallClockAsUtc } from '@bebe/core'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
 import type pino from 'pino'
@@ -62,13 +62,18 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
       exifResult = await parseExif(originalBuf)
     }
 
+    // EXIF·파일명 둘 다 없으면 클라 File.lastModified(갤러리 날짜)로 폴백한다. 수정시각·업로드시각은
+    // 실제 순간이라 벽시계로 옮겨 넘기되, 늘 원래 순간(file_modified_at·uploaded_at)에서 출발해
+    // 재처리해도 한 번만 옮겨진다. file_modified_at 이 빈 filemtime 행은 2026-10 전 init 이 실제
+    // 순간을 taken_at 에 바로 넣은 것이라 그 값을 원래 순간으로 쓰고, 끝날 때 남겨 둔다.
+    const legacyFileModifiedAt =
+      !asset.fileModifiedAt && asset.takenAtSource === 'filemtime' ? asset.takenAt : null
+    const fileModifiedAt = asset.fileModifiedAt ?? legacyFileModifiedAt
     let derived = deriveTakenAt({
       ...(exifResult.takenAt !== undefined ? { exifDateTimeOriginal: exifResult.takenAt } : {}),
       filename: asset.originalFilename,
-      // init 이 클라 File.lastModified 를 filemtime 으로 심어둠 — EXIF·파일명 둘 다 없을 때
-      // 업로드시각 대신 이 값으로 폴백(갤러리 날짜와 일치).
-      ...(asset.takenAtSource === 'filemtime' ? { fileModifiedAt: asset.takenAt } : {}),
-      uploadedAt: asset.uploadedAt,
+      ...(fileModifiedAt ? { fileModifiedAt: wallClockAsUtc(fileModifiedAt) } : {}),
+      uploadedAt: wallClockAsUtc(asset.uploadedAt),
     })
 
     const convertEnabled = job.convertToCompatible ?? false
@@ -146,6 +151,7 @@ export async function processAsset(args: ProcessAssetArgs): Promise<void> {
         originalConvertedFrom: convertedFrom,
         takenAt: derived.value,
         takenAtSource: derived.source,
+        ...(legacyFileModifiedAt ? { fileModifiedAt: legacyFileModifiedAt } : {}),
         ...(exifResult.gpsLat !== undefined ? { gpsLat: exifResult.gpsLat } : {}),
         ...(exifResult.gpsLng !== undefined ? { gpsLng: exifResult.gpsLng } : {}),
         ...(exifResult.cameraMake !== undefined ? { cameraMake: exifResult.cameraMake } : {}),
