@@ -259,6 +259,56 @@ backup/restore (above) is an equivalent path if you prefer it.
 One-off repairs that ship with the image. Run them inside the running app
 container; all of them print what they touch, and support `--dry-run` where noted.
 
+### Rebuild photo capture times stored as instants
+
+`taken_at` holds the wall clock at capture, stored in UTC fields; the timeline,
+calendar and memories cut days with UTC getters. Before v0.0.122, an instance whose
+container ran with a `TZ` other than UTC (the default compose sets `Asia/Seoul`)
+stored EXIF photo times as real UTC instants, and every instance stored file
+modified times and upload times as instants. In Korea that is 9 hours early, so a
+photo taken at 07:44 sat on the previous day. New uploads are stored correctly; run
+this once after upgrading to repair the existing rows.
+
+Run it inside the app container, as below: instants are moved to the wall clock of
+the container's `TZ`, so set `TZ` correctly first.
+
+```bash
+# preview first — prints what it would change, writes nothing
+docker exec -w /repo/apps/media bebe-app \
+  node --import tsx src/scripts/backfill-taken-at-wall-clock.ts --dry-run
+
+# apply
+docker exec -w /repo/apps/media bebe-app \
+  node --import tsx src/scripts/backfill-taken-at-wall-clock.ts
+```
+
+Every step recomputes from a value that does not change, so running it again gives
+the same result:
+
+- **EXIF photos** re-read the EXIF in the original. Originals replaced by the
+  compatibility conversion (HEIC to JPEG) have no EXIF left; they are logged and kept.
+- **Upload-time rows** (photos and videos) are recomputed from `uploaded_at`.
+- **File-modified-time rows** (photos and videos) are recomputed from
+  `file_modified_at`. Older rows kept the instant in `taken_at`; it is copied there first.
+- **Dates edited by hand** (`taken_at_source = 'manual'`) are kept. The exception is
+  rows that the date field re-saved without a change (opening it and leaving used to
+  store the same time without its seconds): EXIF and upload-time photos return to
+  their original source. Such a re-save is recognised by matching the old shifted
+  value to the minute, so a date set by hand to exactly that value is treated the
+  same way. Rows that came from a file-modified time cannot be told apart and stay.
+- **Duplicate aliases** follow their original, including an inherited hand-edited
+  date. An alias whose original row was permanently deleted repairs itself if it is
+  an EXIF or file-modified-time photo; an upload-time alias keeps its value, since it
+  carries its original's date rather than its own upload time. The dry run counts
+  only the aliases already out of step; a real run also fixes those whose original
+  it fixes.
+- Videos dated from their container metadata and photos dated from their filename
+  were already correct and are not touched.
+
+A row the app changes while the script runs (an upload finishing, a date edited by
+hand) is left as the app wrote it. Restoring a backup taken before this repair brings
+the old values back; run the script again afterwards.
+
 ### Rebuild video capture dates
 
 Videos uploaded before v0.0.80 carry the wrong date. They have no EXIF, so the
