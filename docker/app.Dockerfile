@@ -100,7 +100,7 @@ RUN --mount=type=cache,id=pnpm-store,target=/root/.local/share/pnpm/store \
 # 라이선스: configure 에 --enable-gpl --enable-version3 가 있고 --enable-nonfree 는 없다
 # → GPL-3.0-or-later, 재배포 가능. 별도 프로그램으로 실행할 뿐 AGPL 본체와 링크되지 않는다.
 # 자세한 내역은 THIRD_PARTY_NOTICES.md.
-FROM mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585 AS ffmpeg
+FROM mwader/static-ffmpeg:9.0.2-1@sha256:f5d100184884eb3e82b0eb14bb5ebf98da99826ac824989720297fb9ef21c822 AS ffmpeg
 
 # -------- runner --------
 FROM node:22-bookworm-slim AS runner
