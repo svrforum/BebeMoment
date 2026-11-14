@@ -24,6 +24,11 @@ updates:
       # for a newer Node let a missing API typecheck and then fail in production.
       - dependency-name: "@types/node"
         update-types: ["version-update:semver-major"]
+      # TypeScript 7.0 ships no JS API, and `next build` type-checks through
+      # require('typescript'). 7.0 checks the same as 6.0, so the major only
+      # buys speed; take it once 7.1 brings the API back.
+      - dependency-name: typescript
+        update-types: ["version-update:semver-major"]
 
   # GitHub Actions
   - package-ecosystem: github-actions
