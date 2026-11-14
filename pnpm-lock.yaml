@@ -14,13 +14,13 @@ importers:
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.5.15
-        version: 2.6.7
+        version: 2.6.6
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   apps/media:
     dependencies:
@@ -83,23 +83,23 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   apps/web:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1151.0
-        version: 3.1168.0
+        version: 3.1166.0
       '@aws-sdk/lib-storage':
         specifier: ^3.1151.0
-        version: 3.1168.0(@aws-sdk/client-s3@3.1168.0)
+        version: 3.1166.0(@aws-sdk/client-s3@3.1166.0)
       '@bebe/config':
         specifier: workspace:*
         version: link:../../packages/config
@@ -144,7 +144,7 @@ importers:
         version: 3.0.3
       better-auth:
         specifier: 1.7.22
-        version: 1.7.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.15.3)(next@16.2.6(@playwright/test@1.65.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.21.0)(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)))
+        version: 1.7.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.15.3)(next@16.2.6(@playwright/test@1.65.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.21.0)(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)))
       blurhash:
         specifier: ^2.0.5
         version: 2.0.5
@@ -234,8 +234,8 @@ importers:
         specifier: ^3.0.0
         version: 3.0.0
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       '@types/nodemailer':
         specifier: ^8.0.0
         version: 8.0.0
@@ -256,7 +256,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   e2e:
     devDependencies:
@@ -264,8 +264,8 @@ importers:
         specifier: ^1.64.0
         version: 1.65.0
       '@types/node':
-        specifier: ^20.14.0
-        version: 20.19.39
+        specifier: ^20.19.43
+        version: 20.19.43
       sharp:
         specifier: ^0.33.5
         version: 0.33.5
@@ -284,7 +284,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/core:
     dependencies:
@@ -297,7 +297,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/db-media:
     dependencies:
@@ -321,8 +321,8 @@ importers:
         specifier: ^12.2.1
         version: 12.2.1
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       '@types/pg':
         specifier: ^8.15.6
         version: 8.20.0
@@ -334,7 +334,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/db-public:
     dependencies:
@@ -358,8 +358,8 @@ importers:
         specifier: ^12.2.1
         version: 12.2.1
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       '@types/pg':
         specifier: ^8.15.6
         version: 8.20.0
@@ -371,7 +371,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/media-client:
     dependencies:
@@ -380,14 +380,14 @@ importers:
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       typescript:
         specifier: ^6.0.3
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/queue:
     dependencies:
@@ -402,8 +402,8 @@ importers:
         version: 6.0.0
     devDependencies:
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       testcontainers:
         specifier: ^12.2.1
         version: 12.2.1
@@ -412,26 +412,26 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
   packages/storage:
     dependencies:
       '@aws-sdk/client-s3':
         specifier: ^3.1151.0
-        version: 3.1168.0
+        version: 3.1166.0
       '@aws-sdk/lib-storage':
         specifier: ^3.1151.0
-        version: 3.1168.0(@aws-sdk/client-s3@3.1168.0)
+        version: 3.1166.0(@aws-sdk/client-s3@3.1166.0)
       '@aws-sdk/s3-request-presigner':
         specifier: ^3.1151.0
-        version: 3.1168.0
+        version: 3.1166.0
       zod:
         specifier: ^3.23.0
         version: 3.25.76
     devDependencies:
       '@types/node':
-        specifier: ^22.0.0
-        version: 22.19.19
+        specifier: ^20.19.43
+        version: 20.19.43
       testcontainers:
         specifier: ^12.2.1
         version: 12.2.1
@@ -440,7 +440,7 @@ importers:
         version: 6.0.3
       vitest:
         specifier: ^5.0.4
-        version: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+        version: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
 
 packages:
 
@@ -452,8 +452,8 @@ packages:
     resolution: {integrity: sha512-OHlfkNzDFjYnwNPABhwAkDTUi0HPjfsKUHJDR0bSMORpCXNzRpInPCNCIT08xKDhjaPlcLJ+2Av+Sk7hHnuC8A==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/client-s3@3.1168.0':
-    resolution: {integrity: sha512-7NcVxqy7Vc6I8A3KOZFORGh+zfMCd4S5aje55tBNBfshddz+F1NZwxLXblt44TC6nw0Hgx5os3AM2d/P0McELQ==}
+  '@aws-sdk/client-s3@3.1166.0':
+    resolution: {integrity: sha512-kc7U+1sysOT8fcFk75JnrH1YMIFHOPzGL8mG5QdpiK7QCYb36ES7GmPxCvoaXa79OEmdvHmL21B/preVdl8D+w==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/core@3.981.0':
@@ -492,11 +492,11 @@ packages:
     resolution: {integrity: sha512-duLeE3xlf0viHeH+1RM4z5duR3b32BCZTWVMu+MbxFPjQBxy7hmIGEqt5hekuFPRuXoyhMovjNl+PNNsb5oiGQ==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/lib-storage@3.1168.0':
-    resolution: {integrity: sha512-pVXbvfXb5vBAw0H+9mZLIjfMGst8+X3g3LclyqIeps0mkN1B7FcqSdLhPbqQiHPAbGBZzdhDH3f/mMb4nB+KAQ==}
+  '@aws-sdk/lib-storage@3.1166.0':
+    resolution: {integrity: sha512-B4kZu48nr3inhz/274ZnREoJlo1KvyXTropMfyTFIKvkeQwLiBrPO7w4j8VvPgopPMu3XImmbjORVYID6d3GPg==}
     engines: {node: '>=20.0.0'}
     peerDependencies:
-      '@aws-sdk/client-s3': ^3.1168.0
+      '@aws-sdk/client-s3': ^3.1166.0
 
   '@aws-sdk/middleware-sdk-s3@3.972.89':
     resolution: {integrity: sha512-Lem2/ZT1eOicVATBukPRPm2S4JAmrTEkP3/dnJE9iTeyqIKqsJF2j04f5L0o+rrZIrwR13swiQMdzcE5jXRzNA==}
@@ -506,8 +506,8 @@ packages:
     resolution: {integrity: sha512-acHTTzMB13CU6dU4sxABYExMI3PQM2zStWH2MiUwJp/7QKTrLg2f7mbzSXoegW2kYOk2tdqQYagsZrWB8Xv7eA==}
     engines: {node: '>=20.0.0'}
 
-  '@aws-sdk/s3-request-presigner@3.1168.0':
-    resolution: {integrity: sha512-HLjffsA8Di01lZuChctZAhbLsK2CuM8dE1D2+rA/jaerV5W2pj65iBmed15kouJFXTX3XhTF2mFxEEUxMoP4yw==}
+  '@aws-sdk/s3-request-presigner@3.1166.0':
+    resolution: {integrity: sha512-Xyv+qVWYJeiMrsRhrbfWgP2nMJyDBd3XNW4M2O/5MfJLqH3L01p/wdh/QtbVdJlFZBh3n9JO2wwhoEWUVPwbaw==}
     engines: {node: '>=20.0.0'}
 
   '@aws-sdk/signature-v4-multi-region@3.996.52':
@@ -609,71 +609,71 @@ packages:
   '@better-fetch/fetch@1.3.3':
     resolution: {integrity: sha512-U6SlDt/GUWtK2JAxS/NhdoYTEim+EL1G5byz2TUj83KjLZBUpYzb5SmX0aXaCnbGkAjFKnV/o/0+cyXMbEcqqg==}
 
-  '@biomejs/biome@2.6.7':
-    resolution: {integrity: sha512-2bT1FE6FvZZgPLFw4BjcDyRwG8Ry9zYla4X+Lw8oj2SxvqiXHiYkkEpjcrsWQrik6iYHygAa/D67YxLbVz9P1Q==}
+  '@biomejs/biome@2.6.6':
+    resolution: {integrity: sha512-NCgVJRyrU1+hsW1ILNaRqNAb9fRL4n49bwyef+wjVJQ488/bXbp0BfnNqTTExkiNQT3ugkgYKR1vK8NxsjlNSQ==}
     engines: {node: '>=14.21.3'}
     hasBin: true
 
-  '@biomejs/cli-android-arm64@2.6.7':
-    resolution: {integrity: sha512-f4fyRTl+rW6QZp+iHdZrKAKptG/xmIDijTnxWhpC1Hnzr8yvjaBm/aJ98JiMv5mMx7jL1MOu4+zwmQUzfcoKBg==}
+  '@biomejs/cli-android-arm64@2.6.6':
+    resolution: {integrity: sha512-bicnqNNxEX7pjkDQaptYvPRIWDfgXJLl/Ok7iZjC+F1AhfReor3FSS7SgPYnOvUy/jf++5U/KYN4T8OKH5rrNA==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [android]
 
-  '@biomejs/cli-android-x64@2.6.7':
-    resolution: {integrity: sha512-eUdeN+mh2bwen+By1feKzpFkFGAfLG3Pxi6tbwpzMvePBwFGMd4mnE6gaxDRMiWJ1eMuc+Xhtg3ErbLLbtL5wQ==}
+  '@biomejs/cli-android-x64@2.6.6':
+    resolution: {integrity: sha512-N443kDSElF4kDMKjarsL+ymj/ewLA5R9VAdawA7fJ7pwgN3JVDZp0K+xhKBglH8EwsKi2+K8xC6WxXSkgziFfw==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [android]
 
-  '@biomejs/cli-darwin-arm64@2.6.7':
-    resolution: {integrity: sha512-GewLcsnCsVblgnWYw5QRz5ydy9xphCtlFP37TpLKarezqwZMrH2qxrYblhY6DPOir4gnKyaqDnS/xZWIGVjaKw==}
+  '@biomejs/cli-darwin-arm64@2.6.6':
+    resolution: {integrity: sha512-/vSAqWx3by3p8w5ew+HVJDgguuaTK3U6Fb5gk/oDUH21iWOopm3gOlhT6tZfy5mTaM5R4CVc3uFWkxBtEDrKyw==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [darwin]
 
-  '@biomejs/cli-darwin-x64@2.6.7':
-    resolution: {integrity: sha512-AMPl+Q+bHjRcNUBn8gwBl+dJAnKRUWGZ7ZiJo2U8tQtdpqJ32OqvIg4cwTH+xv0jrcNVkUSE69nj57zsHZ1WBA==}
+  '@biomejs/cli-darwin-x64@2.6.6':
+    resolution: {integrity: sha512-lLdOAJKbrAoDs+3GvTyVmMW345D9IhrIE3GgoL2eeHwO1boN4VhrSlALtFYsP0p+Jy4udUp4bTguij0qjKrH8w==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [darwin]
 
-  '@biomejs/cli-linux-arm64-musl@2.6.7':
-    resolution: {integrity: sha512-BIA7qVO1O15D2wVKxLTcvEWszgOqJVZRUhlksg1KQ9N0VtYCbvknV1vyjFiSrzuBT57+z59gbzhYQCinw9lRSQ==}
+  '@biomejs/cli-linux-arm64-musl@2.6.6':
+    resolution: {integrity: sha512-rw2Vsoi/WZGDyRjMXx9KZH9zsHe79LIzkdWHkLqsIkeKZm6qiGxtiIApxn7cmJSoEPaSvHaH5pRj1FhTcyL/XA==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
     libc: [musl]
 
-  '@biomejs/cli-linux-arm64@2.6.7':
-    resolution: {integrity: sha512-Qa2edxQClKn17y1ASWkOOuT96K2si1nTLiPbXMOMilNJ79eNsa1as1kaSbgxOXy1kRUENw76sp4pAddneq3l8Q==}
+  '@biomejs/cli-linux-arm64@2.6.6':
+    resolution: {integrity: sha512-UzJdUCg9dbEGpZOuZRyehEPrnwKjx9z4Um7sWLG5x6txu7UjeWdJZuBXVGlyAdD39w2Hx0nZeK1jKC4NFUTCNQ==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [linux]
     libc: [glibc]
 
-  '@biomejs/cli-linux-x64-musl@2.6.7':
-    resolution: {integrity: sha512-+AOQyCsPR4nH5L4Hjzp8T0iaHm4UxY3unjL/KUJKc/8ziLnbkbmL3adtWmQW5ERB1zi6LRA1fsjaSuf/xGnLaQ==}
+  '@biomejs/cli-linux-x64-musl@2.6.6':
+    resolution: {integrity: sha512-DiKejs+GnFbOVQsBnukUpiB+T13tqUDFGwwjsTq51vatAsaflzFzVD0BOgjVUGRrqKgE0K0Xf+wNtkcmdN2chw==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
     libc: [musl]
 
-  '@biomejs/cli-linux-x64@2.6.7':
-    resolution: {integrity: sha512-VpHQ33CPNYrlIn0vyDdRS1KUlS3AiM17FiyEE2gwU000NwzyY4MgjzVHEv2KrmMb5D9Ksm3gFkwg+IOx/ULJNQ==}
+  '@biomejs/cli-linux-x64@2.6.6':
+    resolution: {integrity: sha512-l8/aPXc1cz8VpUyd4hb5Pm5zx+X3voQBks4aLYbp5pC8KSchuHyvqDfY5xax39qCHomI/2xn6NKEot+zebG38g==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [linux]
     libc: [glibc]
 
-  '@biomejs/cli-win32-arm64@2.6.7':
-    resolution: {integrity: sha512-2nLivZfgcGMIXP/bI8w1FZP5JE2MetP+XZInyMQ7SvJBKlDoGrm/nRjN7uUi9dOaaSlpbRWkHSfb7PqcQR3nXg==}
+  '@biomejs/cli-win32-arm64@2.6.6':
+    resolution: {integrity: sha512-DjVXwQAQeHrO1JEZAEus54k40Tnh4glyU3VFLcDBKwoz0xnxCEnqw6TCMXoujcQMQynWd3AY8bLrbR1o0XNqow==}
     engines: {node: '>=14.21.3'}
     cpu: [arm64]
     os: [win32]
 
-  '@biomejs/cli-win32-x64@2.6.7':
-    resolution: {integrity: sha512-uYfH+n+IAtVz3lh7m6JxdjxfJ3WCvAJDE3spHIUbU955V42oKymlhiQiu92fAhXZb7KOjvRcrfImySQbc1MFFg==}
+  '@biomejs/cli-win32-x64@2.6.6':
+    resolution: {integrity: sha512-B7KMG26A4I9lAuxwBGMmiVcjMGAeJRoz+pzFt9brRvOAsIrgOu8ptJld5rUWui6tM1uiJwxeJhhDPuAiZtxXdw==}
     engines: {node: '>=14.21.3'}
     cpu: [x64]
     os: [win32]
@@ -2166,11 +2166,8 @@ packages:
   '@types/node@18.19.130':
     resolution: {integrity: sha512-GRaXQx6jGfL8sKfaIDD6OupbIHBr9jv7Jnaml9tB7l4v068PAOXqfcujMMo5PhbIs6ggR1XODELqahT2R8v0fg==}
 
-  '@types/node@20.19.39':
-    resolution: {integrity: sha512-orrrD74MBUyK8jOAD/r0+lfa1I2MO6I+vAkmAWzMYbCcgrN4lCrmK52gRFQq/JRxfYPfonkr4b0jcY7Olqdqbw==}
-
-  '@types/node@22.19.19':
-    resolution: {integrity: sha512-dyh/xO2Fh5bYrfWaaqGrRQQGkNdmYw6AmaAUvYeUMNTWQtvb796ikLdmTchRmOlOiIJ1TDXfWgVx1QkUlQ6Hew==}
+  '@types/node@20.19.43':
+    resolution: {integrity: sha512-6oYBAi5ikg4Pl+kGsoYtawUMBT2zZMCvPNF7pVLnHZfd1zf38DRiWn/gT01RYCdUqkv7Fhr+C9ot4/tb+2sVvA==}
 
   '@types/nodemailer@8.0.0':
     resolution: {integrity: sha512-fyf8jWULsCo0d0BuoQ75i6IeoHs47qcqxWc7yUdUcV0pOZGjUTTOvwdG1PRXUDqN/8A64yQdQdnA2pZgcdi+cA==}
@@ -3334,6 +3331,7 @@ packages:
 
   node-abort-controller@3.1.1:
     resolution: {integrity: sha512-AGK2yQKIjRuqnc6VkX2Xj5d+QW8xZ87pa1UK6yA6ouUyuxfHuMP6umE5QK7UmTeOAymo+Zx1Fxiuw9rVx8taHQ==}
+    deprecated: This package is no longer needed on supported Node.js versions. Node.js 16+ includes AbortController and AbortSignal as built-in globals. All Node.js versions requiring this polyfill are end-of-life. Use the built-in globals instead.
 
   node-addon-api@7.1.1:
     resolution: {integrity: sha512-5m3bsyrjFWE1xf7nz7YXdN4udnVtXK6/Yfgn5qnahL6bCkf2yKt4k3nuTKAtT4r3IG8JNR2ncsIMdZuAzJjHQQ==}
@@ -4235,7 +4233,7 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.8.1
 
-  '@aws-sdk/client-s3@3.1168.0':
+  '@aws-sdk/client-s3@3.1166.0':
     dependencies:
       '@aws-sdk/checksums': 3.1002.5
       '@aws-sdk/core': 3.981.0
@@ -4344,9 +4342,9 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.8.1
 
-  '@aws-sdk/lib-storage@3.1168.0(@aws-sdk/client-s3@3.1168.0)':
+  '@aws-sdk/lib-storage@3.1166.0(@aws-sdk/client-s3@3.1166.0)':
     dependencies:
-      '@aws-sdk/client-s3': 3.1168.0
+      '@aws-sdk/client-s3': 3.1166.0
       '@smithy/core': 3.40.0
       '@smithy/types': 4.20.0
       buffer: 5.6.0
@@ -4374,7 +4372,7 @@ snapshots:
       '@smithy/types': 4.20.0
       tslib: 2.8.1
 
-  '@aws-sdk/s3-request-presigner@3.1168.0':
+  '@aws-sdk/s3-request-presigner@3.1166.0':
     dependencies:
       '@aws-sdk/core': 3.981.0
       '@aws-sdk/signature-v4-multi-region': 3.996.52
@@ -4466,47 +4464,47 @@ snapshots:
 
   '@better-fetch/fetch@1.3.3': {}
 
-  '@biomejs/biome@2.6.7':
+  '@biomejs/biome@2.6.6':
     optionalDependencies:
-      '@biomejs/cli-android-arm64': 2.6.7
-      '@biomejs/cli-android-x64': 2.6.7
-      '@biomejs/cli-darwin-arm64': 2.6.7
-      '@biomejs/cli-darwin-x64': 2.6.7
-      '@biomejs/cli-linux-arm64': 2.6.7
-      '@biomejs/cli-linux-arm64-musl': 2.6.7
-      '@biomejs/cli-linux-x64': 2.6.7
-      '@biomejs/cli-linux-x64-musl': 2.6.7
-      '@biomejs/cli-win32-arm64': 2.6.7
-      '@biomejs/cli-win32-x64': 2.6.7
+      '@biomejs/cli-android-arm64': 2.6.6
+      '@biomejs/cli-android-x64': 2.6.6
+      '@biomejs/cli-darwin-arm64': 2.6.6
+      '@biomejs/cli-darwin-x64': 2.6.6
+      '@biomejs/cli-linux-arm64': 2.6.6
+      '@biomejs/cli-linux-arm64-musl': 2.6.6
+      '@biomejs/cli-linux-x64': 2.6.6
+      '@biomejs/cli-linux-x64-musl': 2.6.6
+      '@biomejs/cli-win32-arm64': 2.6.6
+      '@biomejs/cli-win32-x64': 2.6.6
 
-  '@biomejs/cli-android-arm64@2.6.7':
+  '@biomejs/cli-android-arm64@2.6.6':
     optional: true
 
-  '@biomejs/cli-android-x64@2.6.7':
+  '@biomejs/cli-android-x64@2.6.6':
     optional: true
 
-  '@biomejs/cli-darwin-arm64@2.6.7':
+  '@biomejs/cli-darwin-arm64@2.6.6':
     optional: true
 
-  '@biomejs/cli-darwin-x64@2.6.7':
+  '@biomejs/cli-darwin-x64@2.6.6':
     optional: true
 
-  '@biomejs/cli-linux-arm64-musl@2.6.7':
+  '@biomejs/cli-linux-arm64-musl@2.6.6':
     optional: true
 
-  '@biomejs/cli-linux-arm64@2.6.7':
+  '@biomejs/cli-linux-arm64@2.6.6':
     optional: true
 
-  '@biomejs/cli-linux-x64-musl@2.6.7':
+  '@biomejs/cli-linux-x64-musl@2.6.6':
     optional: true
 
-  '@biomejs/cli-linux-x64@2.6.7':
+  '@biomejs/cli-linux-x64@2.6.6':
     optional: true
 
-  '@biomejs/cli-win32-arm64@2.6.7':
+  '@biomejs/cli-win32-arm64@2.6.6':
     optional: true
 
-  '@biomejs/cli-win32-x64@2.6.7':
+  '@biomejs/cli-win32-x64@2.6.6':
     optional: true
 
   '@electric-sql/pglite-socket@0.1.1(@electric-sql/pglite@0.4.1)':
@@ -5674,13 +5672,13 @@ snapshots:
 
   '@types/docker-modem@3.0.6':
     dependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       '@types/ssh2': 1.15.5
 
   '@types/dockerode@4.0.1':
     dependencies:
       '@types/docker-modem': 3.0.6
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       '@types/ssh2': 1.15.5
 
   '@types/estree@1.0.8': {}
@@ -5689,21 +5687,17 @@ snapshots:
     dependencies:
       undici-types: 5.26.5
 
-  '@types/node@20.19.39':
-    dependencies:
-      undici-types: 6.21.0
-
-  '@types/node@22.19.19':
+  '@types/node@20.19.43':
     dependencies:
       undici-types: 6.21.0
 
   '@types/nodemailer@8.0.0':
     dependencies:
-      '@types/node': 20.19.39
+      '@types/node': 20.19.43
 
   '@types/pg@8.20.0':
     dependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       pg-protocol: 1.14.0
       pg-types: 2.2.0
 
@@ -5711,7 +5705,7 @@ snapshots:
 
   '@types/qrcode@1.5.6':
     dependencies:
-      '@types/node': 20.19.39
+      '@types/node': 20.19.43
 
   '@types/react-dom@19.2.3(@types/react@19.2.15)':
     dependencies:
@@ -5725,11 +5719,11 @@ snapshots:
 
   '@types/ssh2-streams@0.1.13':
     dependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
 
   '@types/ssh2@0.5.52':
     dependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       '@types/ssh2-streams': 0.1.13
 
   '@types/ssh2@1.15.5':
@@ -5740,7 +5734,7 @@ snapshots:
 
   '@types/web-push@3.6.4':
     dependencies:
-      '@types/node': 20.19.39
+      '@types/node': 20.19.43
 
   '@uppy/companion-client@5.1.1(@uppy/core@5.2.0)':
     dependencies:
@@ -5774,14 +5768,14 @@ snapshots:
       lodash: 4.18.1
       preact: 10.29.1
 
-  '@vitest/mocker@5.1.0(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))':
+  '@vitest/mocker@5.1.0(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))':
     dependencies:
       '@jridgewell/trace-mapping': 0.3.31
       '@vitest/spy': 5.1.0
       estree-walker: 3.0.3
       magic-string: 1.4.5
     optionalDependencies:
-      vite: 8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)
 
   '@vitest/spy@5.1.0': {}
 
@@ -5923,7 +5917,7 @@ snapshots:
 
   bcryptjs@3.0.3: {}
 
-  better-auth@1.7.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.15.3)(next@16.2.6(@playwright/test@1.65.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.21.0)(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))):
+  better-auth@1.7.22(@prisma/client@7.8.0(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(typescript@6.0.3))(mysql2@3.15.3)(next@16.2.6(@playwright/test@1.65.0)(react-dom@19.2.6(react@19.2.6))(react@19.2.6))(pg@8.21.0)(prisma@7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3))(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(vitest@5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))):
     dependencies:
       '@better-auth/core': 1.7.22(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.17)(kysely@0.28.17)(nanostores@1.3.0)
       '@better-auth/drizzle-adapter': 1.7.22(@better-auth/core@1.7.22(@better-auth/utils@0.5.1)(@better-fetch/fetch@1.3.3)(better-call@1.4.5(zod@4.6.7))(jose@6.2.17)(kysely@0.28.17)(nanostores@1.3.0))(@better-auth/utils@0.5.1)
@@ -5950,7 +5944,7 @@ snapshots:
       prisma: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.15))(@types/react@19.2.15)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@6.0.3)
       react: 19.2.6
       react-dom: 19.2.6(react@19.2.6)
-      vitest: 5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+      vitest: 5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
     transitivePeerDependencies:
       - '@opentelemetry/api'
 
@@ -7030,7 +7024,7 @@ snapshots:
       '@protobufjs/path': 1.1.2
       '@protobufjs/pool': 1.1.0
       '@protobufjs/utf8': 1.1.0
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       long: 5.3.2
 
   pump@3.0.4:
@@ -7602,7 +7596,7 @@ snapshots:
       d3-time: 3.1.0
       d3-timer: 3.0.1
 
-  vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3):
+  vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3):
     dependencies:
       lightningcss: 1.33.0
       picomatch: 4.0.7
@@ -7610,17 +7604,17 @@ snapshots:
       rolldown: 1.0.0-rc.16
       tinyglobby: 0.2.17
     optionalDependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
       esbuild: 0.27.7
       fsevents: 2.3.3
       jiti: 2.7.0
       tsx: 4.21.0
       yaml: 2.8.3
 
-  vitest@5.1.0(@types/node@22.19.19)(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)):
+  vitest@5.1.0(@types/node@20.19.43)(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)):
     dependencies:
       '@types/chai': 5.2.3
-      '@vitest/mocker': 5.1.0(vite@8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
+      '@vitest/mocker': 5.1.0(vite@8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3))
       chai: 6.3.0
       es-module-lexer: 2.3.2
       expect-type: 1.4.0
@@ -7631,10 +7625,10 @@ snapshots:
       tinybench: 6.2.3
       tinyexec: 1.3.1
       tinyglobby: 0.2.17
-      vite: 8.0.9(@types/node@22.19.19)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)
+      vite: 8.0.9(@types/node@20.19.43)(esbuild@0.27.7)(jiti@2.7.0)(tsx@4.21.0)(yaml@2.8.3)
       why-is-node-running: 3.2.1
     optionalDependencies:
-      '@types/node': 22.19.19
+      '@types/node': 20.19.43
     transitivePeerDependencies:
       - msw
 

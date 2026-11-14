@@ -16,7 +16,7 @@
     "ioredis": "^6.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.0.0",
+    "@types/node": "^20.19.43",
     "testcontainers": "^12.2.1",
     "typescript": "^6.0.3",
     "vitest": "^5.0.4"
