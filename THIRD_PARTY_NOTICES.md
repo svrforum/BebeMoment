@@ -11,11 +11,11 @@ depends on third-party components with their own licenses:
 
 ## Bundled programs (app container image)
 
-- **FFmpeg** 8.1.2 (`ffmpeg` and `ffprobe` at `/usr/local/bin/`) — **GPL-3.0-or-later**.
+- **FFmpeg** 9.0.2 (`ffmpeg` and `ffprobe` at `/usr/local/bin/`) — **GPL-3.0-or-later**.
   The app image ships the prebuilt static binaries from
   [`mwader/static-ffmpeg`](https://github.com/wader/static-ffmpeg), pinned by version
   tag **and** digest in [`docker/app.Dockerfile`](docker/app.Dockerfile)
-  (`mwader/static-ffmpeg:8.1.2@sha256:33f770f812cbfc3de96c547157fc9faf8bd95a36481753439ffa761045167585`,
+  (`mwader/static-ffmpeg:9.0.2-1@sha256:f5d100184884eb3e82b0eb14bb5ebf98da99826ac824989720297fb9ef21c822`,
   a multi-arch index covering linux/amd64 and linux/arm64). That build is configured
   with `--enable-gpl --enable-version3` and **without** `--enable-nonfree`, so it is
   redistributable; run `ffmpeg -version` in the container for the full configure line
