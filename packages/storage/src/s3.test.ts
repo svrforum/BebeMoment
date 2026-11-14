@@ -1,9 +1,9 @@
 import { Readable } from 'node:stream'
-import { GenericContainer, type StartedTestContainer, Wait } from 'testcontainers'
 import { afterAll, beforeAll, describe, expect, it } from 'vitest'
 import { S3Adapter } from './s3'
+import { TEST_S3_CREDENTIALS, type TestS3, startTestS3 } from './test-s3'
 
-let container: StartedTestContainer
+let s3: TestS3 | undefined
 let adapter: S3Adapter
 
 async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
@@ -13,39 +13,22 @@ async function collect(stream: NodeJS.ReadableStream): Promise<Buffer> {
 }
 
 beforeAll(async () => {
-  // quay.io 에서 받는다 — MinIO 가 Docker Hub 에서 이미지를 내려 `minio/minio` 는
-  // "pull access denied ... repository does not exist" 로 거절된다(2026-09-20 CI 가
-  // 이걸로 막혔다). 같은 릴리스 태그가 quay.io 에는 그대로 있다.
-  container = await new GenericContainer('quay.io/minio/minio:RELEASE.2024-09-13T20-26-02Z')
-    .withCommand(['server', '/data'])
-    .withEnvironment({
-      MINIO_ROOT_USER: 'minioadmin',
-      MINIO_ROOT_PASSWORD: 'minioadmin',
-    })
-    .withExposedPorts(9000)
-    .withWaitStrategy(Wait.forLogMessage(/API:.*9000/))
-    .start()
-
-  const endpoint = `http://${container.getHost()}:${container.getMappedPort(9000)}`
+  s3 = await startTestS3()
   adapter = new S3Adapter({
     mode: 's3',
-    endpoint,
+    endpoint: s3.endpoint,
     bucket: 'bebe-test',
-    accessKey: 'minioadmin',
-    secretKey: 'minioadmin',
-    region: 'us-east-1',
+    ...TEST_S3_CREDENTIALS,
     forcePathStyle: true,
   })
   await adapter.createBucket()
 }, 120_000)
 
 afterAll(async () => {
-  await container?.stop()
+  await s3?.stop()
 })
 
-// MinIO 가 quay.io 이미지까지 막아(2026-09-25, 401 Unauthorized) 컨테이너를 띄울 수 없다.
-// 대체 S3 호환 이미지로 옮기기 전까지 이 스위트는 돌리지 않는다.
-describe.skip('S3Adapter', () => {
+describe('S3Adapter', () => {
   it('writes and reads buffer', async () => {
     await adapter.writeBuffer('hello.txt', Buffer.from('world'))
     const s = await adapter.read('hello.txt')
