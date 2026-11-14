@@ -1,12 +1,13 @@
 'use client'
+import { saveAsset } from '@/lib/asset-download'
 import { Download } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
 /**
  * 여러 사진을 한 번에 저장. ZIP 대신 개별 다운로드를 순차 트리거 — 휴대폰 갤러리에
- * 곧바로 들어가(압축 해제 불필요), 앱의 DownloadListener 가 각각 처리한다. 원본 화질
- * (EXIF 제거됨)로 받는다.
+ * 곧바로 들어가(압축 해제 불필요), 앱의 DownloadListener 가 각각 처리한다. 기본 저장
+ * (auto — JPEG 는 EXIF 를 지운 갤러리용 재인코드)으로 받는다.
  *
  * 한 장씩 간격을 두고 거는 이유는 브라우저·WebView 가 연속 다운로드를 묶어서 떨구기
  * 때문이다. 그래서 마지막 장이 걸릴 때까지 이 페이지가 살아 있어야 한다 — 화면 전환은
@@ -48,12 +49,7 @@ export function BulkDownloadButton({
     setDone(0)
     try {
       for (const [i, id] of assetIds.entries()) {
-        const a = document.createElement('a')
-        a.href = `/api/asset/${id}/download?q=auto`
-        a.download = ''
-        document.body.appendChild(a)
-        a.click()
-        a.remove()
+        saveAsset(id, 'auto')
         setDone(i + 1)
         await new Promise((r) => setTimeout(r, 450))
       }

@@ -1,4 +1,5 @@
 'use client'
+import { assetDownloadHref } from '@/lib/asset-download'
 import { cn } from '@/lib/cn'
 import { useFeatures } from '@/lib/features'
 import { useToast } from '@/lib/toast'
@@ -68,9 +69,9 @@ export function ViewerActionBar({
         </button>
       ) : (
         <a
-          href={`/api/asset/${assetId}/download?q=auto`}
+          href={assetDownloadHref(assetId, 'auto')}
           download
-          aria-label={t('actions.downloadOriginal')}
+          aria-label={t('actions.download')}
           onClick={() => toast({ title: t('actions.savingPhoto') })}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
         >

@@ -1,5 +1,10 @@
 import { describe, expect, test } from 'vitest'
+import { assetDownloadHref } from '@/lib/asset-download'
 import { parseDownloadQuality } from './quality'
+
+function requestedQuality(href: string): string | null {
+  return new URL(href, 'http://localhost').searchParams.get('q')
+}
 
 describe('parseDownloadQuality', () => {
   test('defaults to auto when q is absent', () => {
@@ -19,5 +24,12 @@ describe('parseDownloadQuality', () => {
   test('anything else saves as auto instead of failing the download', () => {
     expect(parseDownloadQuality('4k')).toBe('auto')
     expect(parseDownloadQuality('')).toBe('auto')
+  })
+
+  // 모르는 q 는 auto 로 접힌다 — 뷰어가 엉뚱한 값을 보내면 에러 없이 EXIF 가 다시 지워진다(#45).
+  test('the viewer original link reaches the server as original', () => {
+    expect(parseDownloadQuality(requestedQuality(assetDownloadHref('a1', 'original')))).toBe(
+      'original',
+    )
   })
 })

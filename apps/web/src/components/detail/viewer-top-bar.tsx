@@ -1,4 +1,5 @@
 'use client'
+import { assetDownloadHref, saveAsset } from '@/lib/asset-download'
 import { cn } from '@/lib/cn'
 import { useToast } from '@/lib/toast'
 import { Download, MoreVertical, X } from 'lucide-react'
@@ -89,7 +90,7 @@ export function ViewerTopBar({
       <div className="flex items-center gap-1">
         {showDownload && (
           <a
-            href={`/api/asset/${assetId}/download?q=auto`}
+            href={assetDownloadHref(assetId, 'auto')}
             download
             aria-label={t('actions.download')}
             onClick={() => toast({ title: t('actions.savingPhoto') })}
@@ -125,6 +126,18 @@ export function ViewerTopBar({
                   className="block w-full px-4 py-2 text-left text-sm hover:bg-base-100 disabled:opacity-50 dark:hover:bg-base-800"
                 >
                   {widgetOn ? t('actions.widgetRemove') : t('actions.widgetAdd')}
+                </button>
+                {/* 기본 저장은 JPEG 의 EXIF(촬영일시·GPS)를 지운다 — 원본 바이트가 필요한 사람용(#45). */}
+                <button
+                  type="button"
+                  onClick={() => {
+                    setMenuOpen(false)
+                    saveAsset(assetId, 'original')
+                    toast({ title: t('actions.savingOriginal') })
+                  }}
+                  className="block w-full px-4 py-2 text-left text-sm hover:bg-base-100 dark:hover:bg-base-800"
+                >
+                  {t('actions.downloadOriginal')}
                 </button>
                 {onInfo && (
                   <button

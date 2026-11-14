@@ -1,4 +1,5 @@
 'use client'
+import { assetDownloadHref } from '@/lib/asset-download'
 import { useFeatures } from '@/lib/features'
 import { useToast } from '@/lib/toast'
 import { Download, FolderPlus } from 'lucide-react'
@@ -95,9 +96,9 @@ export function ViewerInfoPanel({
               </button>
             ) : (
               <a
-                href={`/api/asset/${assetId}/download?q=auto`}
+                href={assetDownloadHref(assetId, 'auto')}
                 download
-                aria-label={t('actions.downloadOriginal')}
+                aria-label={t('actions.download')}
                 onClick={() => toast({ title: t('actions.savingPhoto') })}
                 className="ml-1 inline-flex h-9 w-9 items-center justify-center rounded-full text-base-500 transition-colors hover:bg-base-100 hover:text-base-900 dark:hover:bg-base-800 dark:hover:text-base-100"
               >

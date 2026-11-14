@@ -1,4 +1,5 @@
 'use client'
+import { saveAsset } from '@/lib/asset-download'
 import { CheckCircle2, Download, Eye, FolderPlus, Trash2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -107,12 +108,7 @@ export function TimelineContextMenu({
       <Item
         icon={<Download size={16} strokeWidth={2.2} />}
         onClick={() => {
-          const a = document.createElement('a')
-          a.href = `/api/asset/${assetId}/download?q=auto`
-          a.download = ''
-          document.body.appendChild(a)
-          a.click()
-          a.remove()
+          saveAsset(assetId, 'auto')
           onClose()
         }}
       >
