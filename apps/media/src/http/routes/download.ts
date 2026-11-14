@@ -98,11 +98,12 @@ async function serveOriginal(
   return reply.status(200).send(await storage.read(payload.originalKey))
 }
 
+// S3 여도 리다이렉트하지 않는다 — 원본 URL 로 보내면 메타 제거를 건너뛰어 촬영일·GPS 가 그대로
+// 나간다(로컬과 S3 의 결과가 달랐다, 이슈 #45).
 async function serveGalleryJpeg(
   reply: FastifyReply,
   payload: DownloadTokenPayload,
 ): Promise<FastifyReply> {
-  if (await redirectIfS3(reply, payload.originalKey)) return reply
   const storage = getStorage()
   if (!(await storage.exists(payload.originalKey))) throw notFound()
   const buf = await streamToBuffer(await storage.read(payload.originalKey))
