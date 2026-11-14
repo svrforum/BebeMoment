@@ -12,7 +12,7 @@
   },
   "dependencies": {
     "@bebe/core": "workspace:*",
-    "bullmq": "^6.3.4",
+    "bullmq": "^6.7.6",
     "ioredis": "^6.0.0"
   },
   "devDependencies": {
