@@ -37,22 +37,23 @@ afterEach(() => {
 })
 
 describe('onServerShutdown', () => {
-  it.each(
-    SIGNALS,
-  )('%s 를 받으면 걸어 둔 함수를 모두 부르고, 그 뒤로는 내려가는 중이다', async (signal) => {
-    const { onServerShutdown, serverShuttingDown } = await load()
-    const first = vi.fn()
-    const second = vi.fn()
-    onServerShutdown(first)
-    onServerShutdown(second)
-    expect(serverShuttingDown()).toBe(false)
+  it.each(SIGNALS)(
+    '%s 를 받으면 걸어 둔 함수를 모두 부르고, 그 뒤로는 내려가는 중이다',
+    async (signal) => {
+      const { onServerShutdown, serverShuttingDown } = await load()
+      const first = vi.fn()
+      const second = vi.fn()
+      onServerShutdown(first)
+      onServerShutdown(second)
+      expect(serverShuttingDown()).toBe(false)
 
-    receive(signal)
+      receive(signal)
 
-    expect(first).toHaveBeenCalledTimes(1)
-    expect(second).toHaveBeenCalledTimes(1)
-    expect(serverShuttingDown()).toBe(true)
-  })
+      expect(first).toHaveBeenCalledTimes(1)
+      expect(second).toHaveBeenCalledTimes(1)
+      expect(serverShuttingDown()).toBe(true)
+    },
+  )
 
   it('뗀 함수는 부르지 않는다', async () => {
     const { onServerShutdown } = await load()

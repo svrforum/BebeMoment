@@ -144,7 +144,7 @@ describe('acceptInvite', () => {
     const rejected = results.filter((r): r is PromiseRejectedResult => r.status === 'rejected')
     expect(fulfilled).toHaveLength(1)
     expect(rejected).toHaveLength(1)
-    expect((rejected[0]?.reason as Error).message).toBe('invite.alreadyAccepted')
+    expect((rejected[0]?.reason as Error | undefined)?.message).toBe('invite.alreadyAccepted')
     const joined = await db.prismaPublic.membership.count({
       where: { familyId: family.id, userId: { in: [a.id, b.id] } },
     })

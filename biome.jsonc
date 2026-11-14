@@ -1,5 +1,5 @@
 {
-  "$schema": "https://biomejs.dev/schemas/2.4.15/schema.json",
+  "$schema": "https://biomejs.dev/schemas/2.6.7/schema.json",
   "files": {
     "includes": [
       "**",
@@ -18,6 +18,8 @@
       "!**/*.md",
       "!**/data",
       "!**/pg",
+      // 로컬 개발 데이터(라이브 DB 볼륨·브랜드 원본 SVG 등) — gitignore 대상이라 CI 에는 없다.
+      "!.dev",
       "!**/redis",
       // 백업 번들·매니페스트가 쌓이는 런타임 디렉터리 (data/pg/redis 와 같은 부류)
       "!**/backups",
@@ -38,6 +40,11 @@
         "organizeImports": "off"
       }
     }
+  },
+  "yaml": {
+    // biome 2.6 부터 YAML 도 포맷한다. 손으로 다듬은 compose(Synology 에 그대로 붙여넣는다)·
+    // 워크플로를 포매터 스타일로 갈아엎는 diff 만 생기므로 끈다.
+    "formatter": { "enabled": false }
   },
   "css": {
     "parser": {
@@ -63,7 +70,7 @@
   "linter": {
     "enabled": true,
     "rules": {
-      "recommended": true,
+      "preset": "recommended",
       "a11y": {
         // New biome 2 rules, too opinionated for intentional patterns here (drag-drop dropzone div,
         // aria-label on blurhash/placeholder spans/divs). They also cascade into each other, so off.
