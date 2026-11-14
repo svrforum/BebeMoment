@@ -32,10 +32,10 @@ jobs:
       SECRET_KEY: ci-secret-key-32-bytes-minimum-ok-padding
       PUBLIC_URL: http://localhost:3000
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with: { version: 11.5.0 }
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -78,10 +78,10 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
         with: { version: 11.5.0 }
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: '22'
           cache: pnpm
@@ -95,7 +95,7 @@ jobs:
           MEDIA_SERVICE_TOKEN: ci-media-service-token-32-bytes-min-ok
           MEDIA_JWT_SECRET: ci-media-jwt-secret-32-bytes-minimum-ok
           NEXT_TELEMETRY_DISABLED: '1'
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v7
         if: failure()
         with:
           name: e2e-artifacts
