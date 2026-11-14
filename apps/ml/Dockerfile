@@ -1,4 +1,4 @@
-FROM python:3.13-slim
+FROM python:3.15-slim
 
 # libgomp1 = onnxruntime, libglib2.0-0 = opencv-headless. 컴파일러는 필요 없다 —
 # insightface 는 순수 파이썬 휠이고 나머지도 전부 manylinux 휠로 온다.
