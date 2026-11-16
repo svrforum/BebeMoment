@@ -320,7 +320,7 @@ export function ViewerShell({
     // leaked through. View transitions still play correctly on a fixed root.
     <div className="fixed inset-0 z-50 bg-black overflow-hidden md:flex">
       {/* Image column: takes full width on mobile, flexes on desktop */}
-      <div className="relative flex-1 min-w-0">
+      <div className="relative h-full flex-1 min-w-0">
         <ViewerTopBar
           assetId={currentSlim.id}
           visible={chromeVisible}

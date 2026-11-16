@@ -85,7 +85,7 @@ export function ViewerImage({
     // 왜 못 보여주는지 구분해서 말한다 — 업로드가 끊긴 자산에 영원히 '처리 중'이라고
     // 하면 사용자는 "영상이 재생 안 된다"로 겪고 기다릴 수도, 고칠 수도 없다(§6).
     return (
-      <div className="flex h-screen w-full items-center justify-center px-8 text-center text-sm text-base-400">
+      <div className="flex h-full w-full items-center justify-center px-8 text-center text-sm text-base-400">
         {current.status === 'failed' ? t('video.uploadIncomplete') : t('video.processing')}
       </div>
     )
@@ -266,10 +266,10 @@ function SwiperViewport({
       onTouchCancel={() => {
         dragRef.current = null
       }}
-      // h-screen + dynamic top/bottom padding so the photo fits BETWEEN the top
-      // bar and (mobile) action bar when chrome is showing. Desktop has no
-      // bottom action bar (md:pb-0).
-      className={`relative h-screen w-full overflow-hidden transition-[padding] duration-200 ease-out ${
+      // h-full (뷰어 루트 fixed inset-0 를 따른다 — vh 단위 금지, viewer-height.test.ts) +
+      // dynamic top/bottom padding so the photo fits BETWEEN the top bar and (mobile)
+      // action bar when chrome is showing. Desktop has no bottom action bar (md:pb-0).
+      className={`relative h-full w-full overflow-hidden transition-[padding] duration-200 ease-out ${
         chromeVisible
           ? 'pt-[calc(env(safe-area-inset-top)+56px)] pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-0'
           : 'pt-0 pb-0'
@@ -346,16 +346,18 @@ function SwiperViewport({
         </button>
       )}
 
-      {/* 스토리에서 열렸을 때 — 사진 아래 빈 영역에 스토리 본문 + 순번(1/4). chrome 토글에
-          맞춰 같이 사라진다. pointer-events-none 으로 사진 탭/스와이프는 그대로. */}
-      {storyCtx && chromeVisible && (
+      {/* 사진이 스토리에 속하면 — 사진 아래 빈 영역에 스토리 본문(스토리에서 열었으면 순번 1/4
+          도). chrome 토글에 맞춰 같이 사라진다. pointer-events-none 으로 사진 탭/스와이프는 그대로. */}
+      {storyCtx && chromeVisible && (storyCtx.index !== null || storyCtx.body.trim()) && (
         <div className="pointer-events-none absolute inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+5.25rem)] z-20 px-5 md:bottom-6">
           <div className="mx-auto max-w-2xl">
-            <span className="inline-block rounded-full bg-white/15 px-2 py-0.5 text-[12px] font-semibold tabular-nums text-white/80 backdrop-blur-sm">
-              {t('story.count', { index: storyCtx.index, total: storyCtx.total })}
-            </span>
+            {storyCtx.index !== null && storyCtx.total !== null && (
+              <span className="mb-1.5 inline-block rounded-full bg-white/15 px-2 py-0.5 text-[12px] font-semibold tabular-nums text-white/80 backdrop-blur-sm">
+                {t('story.count', { index: storyCtx.index, total: storyCtx.total })}
+              </span>
+            )}
             {storyCtx.body.trim() && (
-              <p className="mt-1.5 line-clamp-3 whitespace-pre-wrap text-[14px] leading-snug text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
+              <p className="line-clamp-3 whitespace-pre-wrap text-[14px] leading-snug text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
                 {storyCtx.body}
               </p>
             )}

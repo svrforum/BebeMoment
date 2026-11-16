@@ -1,3 +1,4 @@
+import { randomUUID } from 'node:crypto'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
@@ -107,5 +108,96 @@ describe('resolveStoryViewerCtx', () => {
       'family',
     )
     expect(result?.body).toBe('secret body')
+  })
+})
+
+// 타임라인·검색·캘린더에서 열어도 그 사진이 속한 스토리 본문은 보여야 한다 — 예전엔
+// 스토리 화면에서 열 때만 보여서, 타임라인에서 바로 여는 가족에겐 본문이 없는 기능이었다.
+// 앞뒤 사진이 스토리 순서가 아니므로 순번(1/4)은 없다.
+describe('resolveStoryViewerCtx — opened outside the story', () => {
+  it('returns the body of the story the photo belongs to, without a position', async () => {
+    const { family, entry, assetId } = await secretStoryWithAsset('family')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      [randomUUID(), assetId],
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'family',
+    )
+    const story = await db.prismaPublic.story.findUniqueOrThrow({ where: { id: entry.id } })
+    expect(result).toEqual({
+      body: 'secret body',
+      publicNo: story.publicNo,
+      index: null,
+      total: null,
+    })
+  })
+
+  it('works without any ctx', async () => {
+    const { family, assetId } = await secretStoryWithAsset('family')
+    const result = await resolveStoryViewerCtx(
+      undefined,
+      undefined,
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'family',
+    )
+    expect(result?.body).toBe('secret body')
+    expect(result?.index).toBeNull()
+  })
+
+  it('keeps a guardians story hidden from the family role', async () => {
+    const { family, assetId } = await secretStoryWithAsset('guardians')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      [assetId],
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'family',
+    )
+    expect(result).toBeNull()
+  })
+
+  it('shows a guardians story to the owner', async () => {
+    const { family, assetId } = await secretStoryWithAsset('guardians')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      [assetId],
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'owner',
+    )
+    expect(result?.body).toBe('secret body')
+  })
+
+  it('returns null for a photo that is in no story', async () => {
+    const { family } = await secretStoryWithAsset('family')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      undefined,
+      randomUUID(),
+      family.id,
+      db.prismaPublic,
+      'owner',
+    )
+    expect(result).toBeNull()
+  })
+
+  it('does not leak a story from another family', async () => {
+    const { assetId } = await secretStoryWithAsset('family')
+    const other = await secretStoryWithAsset('family')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      undefined,
+      assetId,
+      other.family.id,
+      db.prismaPublic,
+      'owner',
+    )
+    expect(result).toBeNull()
   })
 })
