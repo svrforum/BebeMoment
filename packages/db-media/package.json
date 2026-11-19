@@ -15,11 +15,11 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@prisma/adapter-pg": "^7.8.0",
-    "@prisma/client": "^7.8.0",
+    "@prisma/adapter-pg": "^7.10.1",
+    "@prisma/client": "^7.10.1",
     "dotenv": "^17.4.2",
     "pg": "^8.21.0",
-    "prisma": "^7.8.0"
+    "prisma": "^7.10.1"
   },
   "devDependencies": {
     "@testcontainers/postgresql": "^12.2.1",

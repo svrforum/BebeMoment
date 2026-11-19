@@ -1,6 +1,6 @@
 import type { RawImage } from '@/domain/raw-image'
 import type { StorageAdapter } from '@bebe/storage'
-import type sharp from 'sharp'
+import type { Sharp } from 'sharp'
 import { getEnv } from '@/lib/env'
 import { decodeSharp } from '@/lib/sharp'
 
@@ -53,7 +53,7 @@ const CONTENT_TYPE: Record<FormatKey, string> = {
 // 차이는 미미하고 인코드는 눈에 띄게 빠르다(MEDIA_AVIF_EFFORT 로 조정). JPEG 는 mozjpeg 로
 // 같은 품질에서 더 작게.
 function encodeFromBase(
-  base: sharp.Sharp,
+  base: Sharp,
   max: number,
   format: FormatKey,
   avifEffort: number,
