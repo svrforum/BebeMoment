@@ -9,8 +9,8 @@ describe('buildSignedUrl', () => {
 
   test('produces URL under /media/v1/files/', async () => {
     const url = await buildSignedUrl({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      assetId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      assetId: '22222222-2222-4222-8222-222222222222',
       key: 'families/fam/assets/asset/original',
     })
     expect(url.startsWith('https://example.com/media/v1/files/')).toBe(true)

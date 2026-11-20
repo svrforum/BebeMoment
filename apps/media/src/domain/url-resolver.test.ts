@@ -10,9 +10,9 @@ vi.mock('./signed-url', async (importOriginal) => {
 
 const mkAsset = (overrides: Partial<Asset> = {}): Asset =>
   ({
-    id: '22222222-2222-2222-2222-222222222222',
-    familyId: '11111111-1111-1111-1111-111111111111',
-    uploadedByUserId: '33333333-3333-3333-3333-333333333333',
+    id: '22222222-2222-4222-8222-222222222222',
+    familyId: '11111111-1111-4111-8111-111111111111',
+    uploadedByUserId: '33333333-3333-4333-8333-333333333333',
     kind: 'image',
     originalKey: 'families/fam/assets/asset/original',
     originalFilename: 'a.jpg',

@@ -18,8 +18,8 @@ describe('media-client schemas', () => {
 
   test('initAssetRequest accepts valid payload', () => {
     const parsed = initAssetRequest.parse({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      uploaderId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      uploaderId: '22222222-2222-4222-8222-222222222222',
       mime: 'image/jpeg',
       sizeBytes: 12345,
       originalName: 'photo.jpg',
@@ -31,8 +31,8 @@ describe('media-client schemas', () => {
 
   test('initAssetRequest defaults convertToCompatible to false', () => {
     const parsed = initAssetRequest.parse({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      uploaderId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      uploaderId: '22222222-2222-4222-8222-222222222222',
       mime: 'image/jpeg',
       sizeBytes: 1,
       originalName: 'a.jpg',
@@ -42,8 +42,8 @@ describe('media-client schemas', () => {
 
   test('initAssetRequest accepts convertToCompatible=true', () => {
     const parsed = initAssetRequest.parse({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      uploaderId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      uploaderId: '22222222-2222-4222-8222-222222222222',
       mime: 'image/heic',
       sizeBytes: 1,
       originalName: 'a.heic',
@@ -55,8 +55,8 @@ describe('media-client schemas', () => {
   test('initAssetRequest rejects negative sizeBytes', () => {
     expect(() =>
       initAssetRequest.parse({
-        familyId: '11111111-1111-1111-1111-111111111111',
-        uploaderId: '22222222-2222-2222-2222-222222222222',
+        familyId: '11111111-1111-4111-8111-111111111111',
+        uploaderId: '22222222-2222-4222-8222-222222222222',
         mime: 'image/jpeg',
         sizeBytes: -1,
         originalName: 'photo.jpg',
@@ -68,7 +68,7 @@ describe('media-client schemas', () => {
     expect(() =>
       initAssetResponse.parse({
         v: 2,
-        assetId: '11111111-1111-1111-1111-111111111111',
+        assetId: '11111111-1111-4111-8111-111111111111',
         tusUploadUrl: 'https://media.example.com/tus/abc',
         uploadToken: 'token',
         expiresAt: '2026-04-24T12:00:00Z',
@@ -93,16 +93,16 @@ describe('media-client schemas', () => {
   })
 
   test('batchUrlsRequest max 200 assetIds', () => {
-    const ids = Array.from({ length: 201 }, () => '11111111-1111-1111-1111-111111111111')
+    const ids = Array.from({ length: 201 }, () => '11111111-1111-4111-8111-111111111111')
     expect(() =>
-      batchUrlsRequest.parse({ familyId: '22222222-2222-2222-2222-222222222222', assetIds: ids }),
+      batchUrlsRequest.parse({ familyId: '22222222-2222-4222-8222-222222222222', assetIds: ids }),
     ).toThrow()
   })
 
   test('batchUrlsRequest tiers defaults to undefined = every tier', () => {
     const parsed = batchUrlsRequest.parse({
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetIds: ['11111111-1111-1111-1111-111111111111'],
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetIds: ['11111111-1111-4111-8111-111111111111'],
     })
     expect(parsed.tiers).toBeUndefined()
     expect(ALL_ASSET_URL_TIERS).toEqual(['thumb', 'display', 'original', 'video'])
@@ -110,8 +110,8 @@ describe('media-client schemas', () => {
 
   test('batchUrlsRequest accepts a tier subset', () => {
     const parsed = batchUrlsRequest.parse({
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetIds: ['11111111-1111-1111-1111-111111111111'],
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetIds: ['11111111-1111-4111-8111-111111111111'],
       tiers: ['thumb', 'video'],
     })
     expect(parsed.tiers).toEqual(['thumb', 'video'])
@@ -119,15 +119,15 @@ describe('media-client schemas', () => {
 
   test('batchUrlsRequest rejects an unknown tier and an empty tier list', () => {
     const base = {
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetIds: ['11111111-1111-1111-1111-111111111111'],
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetIds: ['11111111-1111-4111-8111-111111111111'],
     }
     expect(() => batchUrlsRequest.parse({ ...base, tiers: ['thumb512'] })).toThrow()
     expect(() => batchUrlsRequest.parse({ ...base, tiers: [] })).toThrow()
   })
 
   test('batchUrlsResponse wraps map of asset urls', () => {
-    const id = '11111111-1111-1111-1111-111111111111'
+    const id = '11111111-1111-4111-8111-111111111111'
     const parsed = batchUrlsResponse.parse({
       v: 1,
       urls: {
@@ -151,8 +151,8 @@ describe('media-client schemas', () => {
   test('setBabyTagsRequest validates uuid list', () => {
     expect(() => setBabyTagsRequest.parse({ familyId: 'not-uuid', babyIds: [] })).toThrow()
     const parsed = setBabyTagsRequest.parse({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      babyIds: ['22222222-2222-2222-2222-222222222222'],
+      familyId: '11111111-1111-4111-8111-111111111111',
+      babyIds: ['22222222-2222-4222-8222-222222222222'],
     })
     expect(parsed.babyIds).toHaveLength(1)
   })

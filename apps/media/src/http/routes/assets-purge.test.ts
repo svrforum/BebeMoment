@@ -5,9 +5,9 @@ import { afterAll, beforeAll, beforeEach, describe, expect, test, vi } from 'vit
 const SECRET = 'a'.repeat(40)
 const TOKEN = 'b'.repeat(40)
 
-const FAMILY_ID = '11111111-1111-1111-1111-111111111111'
-const USER_ID = '22222222-2222-2222-2222-222222222222'
-const ASSET_ID = '33333333-3333-3333-3333-333333333333'
+const FAMILY_ID = '11111111-1111-4111-8111-111111111111'
+const USER_ID = '22222222-2222-4222-8222-222222222222'
+const ASSET_ID = '33333333-3333-4333-8333-333333333333'
 
 // Stub the storage adapter — purge doesn't need real bytes; it just needs
 // storage.delete to resolve (or reject, in the "tolerates errors" test).
@@ -195,7 +195,7 @@ describe('POST /media/v1/assets/:id:purge', () => {
   })
 
   test("different family cannot purge another family's asset", async () => {
-    const OTHER_FAMILY = '99999999-9999-9999-9999-999999999999'
+    const OTHER_FAMILY = '99999999-9999-4999-8999-999999999999'
     await db.prisma.$executeRawUnsafe(`
       INSERT INTO public.families (id, name, slug, created_by_user_id, created_at, updated_at)
       VALUES ('${OTHER_FAMILY}', 'O', 'o', '${USER_ID}', NOW(), NOW())

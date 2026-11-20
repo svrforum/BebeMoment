@@ -3,8 +3,8 @@ import type pino from 'pino'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { reapStaleUploads, reapStuckProcessing } from './reap-stale-uploads'
 
-const FAMILY = '11111111-1111-1111-1111-111111111111'
-const USER = '22222222-2222-2222-2222-222222222222'
+const FAMILY = '11111111-1111-4111-8111-111111111111'
+const USER = '22222222-2222-4222-8222-222222222222'
 const silent = { warn: () => {}, info: () => {}, error: () => {} } as unknown as pino.Logger
 
 let db: TestDb
@@ -55,9 +55,9 @@ async function seedWith(id: string, status: 'uploading' | 'processing', updatedA
 
 describe('reapStaleUploads', () => {
   it('오래된 uploading 은 failed 로, 최근 uploading·다른 상태는 그대로 둔다', async () => {
-    const stale = '33333333-3333-3333-3333-333333333333'
-    const fresh = '44444444-4444-4444-4444-444444444444'
-    const ready = '55555555-5555-5555-5555-555555555555'
+    const stale = '33333333-3333-4333-8333-333333333333'
+    const fresh = '44444444-4444-4444-8444-444444444444'
+    const ready = '55555555-5555-4555-8555-555555555555'
     await makeUploading(stale)
     await makeUploading(fresh)
     await makeUploading(ready)

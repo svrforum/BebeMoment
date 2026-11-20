@@ -5,8 +5,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, test } fr
 const SECRET = 'a'.repeat(40)
 const TOKEN = 'b'.repeat(40)
 
-const FAMILY_ID = '11111111-1111-1111-1111-111111111111'
-const USER_ID = '22222222-2222-2222-2222-222222222222'
+const FAMILY_ID = '11111111-1111-4111-8111-111111111111'
+const USER_ID = '22222222-2222-4222-8222-222222222222'
 
 describe('POST /media/v1/assets/init', () => {
   let db: TestDb

@@ -18,7 +18,7 @@ describe('channelForFamily', () => {
   })
 
   it('UUID 형태도 그대로 포함한다', () => {
-    const id = '11111111-1111-1111-1111-111111111111'
+    const id = '11111111-1111-4111-8111-111111111111'
     expect(channelForFamily(id)).toBe(`bebe:events:family:${id}`)
   })
 })

@@ -8,7 +8,7 @@ describe('HttpMediaClient', () => {
         new Response(
           JSON.stringify({
             v: 1,
-            assetId: '11111111-1111-1111-1111-111111111111',
+            assetId: '11111111-1111-4111-8111-111111111111',
             tusUploadUrl: 'https://media.test/tus/abc',
             uploadToken: 'tok',
             expiresAt: '2026-04-24T12:00:00Z',
@@ -22,13 +22,13 @@ describe('HttpMediaClient', () => {
       fetch: fetchSpy,
     })
     const result = await client.initAsset({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      uploaderId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      uploaderId: '22222222-2222-4222-8222-222222222222',
       mime: 'image/jpeg',
       sizeBytes: 10,
       originalName: 'a.jpg',
     })
-    expect(result.assetId).toBe('11111111-1111-1111-1111-111111111111')
+    expect(result.assetId).toBe('11111111-1111-4111-8111-111111111111')
     expect(fetchSpy).toHaveBeenCalledWith(
       'https://media.test/media/v1/assets/init',
       expect.objectContaining({
@@ -58,8 +58,8 @@ describe('HttpMediaClient', () => {
     })
     await expect(
       client.initAsset({
-        familyId: '11111111-1111-1111-1111-111111111111',
-        uploaderId: '22222222-2222-2222-2222-222222222222',
+        familyId: '11111111-1111-4111-8111-111111111111',
+        uploaderId: '22222222-2222-4222-8222-222222222222',
         mime: 'image/jpeg',
         sizeBytes: 999_999_999_999,
         originalName: 'big.jpg',
@@ -82,8 +82,8 @@ describe('HttpMediaClient', () => {
     })
     await expect(
       client.initAsset({
-        familyId: '11111111-1111-1111-1111-111111111111',
-        uploaderId: '22222222-2222-2222-2222-222222222222',
+        familyId: '11111111-1111-4111-8111-111111111111',
+        uploaderId: '22222222-2222-4222-8222-222222222222',
         mime: 'image/jpeg',
         sizeBytes: 10,
         originalName: 'a.jpg',
@@ -119,12 +119,12 @@ describe('HttpMediaClient', () => {
       fetch: fetchSpy,
     })
     await client.getAssetUrls(
-      '11111111-1111-1111-1111-111111111111',
-      '22222222-2222-2222-2222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
     )
     expect(fetchSpy).toHaveBeenCalledWith(
       expect.stringMatching(
-        /\/media\/v1\/assets\/11111111-1111-1111-1111-111111111111\/urls\?familyId=22222222-2222-2222-2222-222222222222/,
+        /\/media\/v1\/assets\/11111111-1111-4111-8111-111111111111\/urls\?familyId=22222222-2222-4222-8222-222222222222/,
       ),
       expect.objectContaining({ method: 'GET' }),
     )
@@ -257,8 +257,8 @@ describe('본문 없는 요청의 content-type', () => {
   test('purgeAsset 은 본문이 없으니 content-type 을 붙이지 않는다', async () => {
     const { client, fetchSpy } = spyClient()
     await client.purgeAsset(
-      '11111111-1111-1111-1111-111111111111',
-      '22222222-2222-2222-2222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
     )
     const init = fetchSpy.mock.calls[0]?.[1] as RequestInit
     const headers = (init?.headers ?? {}) as Record<string, string>
@@ -270,8 +270,8 @@ describe('본문 없는 요청의 content-type', () => {
   test('본문이 있으면 그대로 content-type 을 붙인다', async () => {
     const { client, fetchSpy } = spyClient()
     await client.retryAsset(
-      '11111111-1111-1111-1111-111111111111',
-      '22222222-2222-2222-2222-222222222222',
+      '11111111-1111-4111-8111-111111111111',
+      '22222222-2222-4222-8222-222222222222',
     )
     const headers = (fetchSpy.mock.calls[0]?.[1]?.headers ?? {}) as Record<string, string>
     expect(headers['content-type']).toBe('application/json')

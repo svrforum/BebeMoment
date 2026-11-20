@@ -40,7 +40,7 @@
     "lucide-react": "^1.8.0",
     "next": "^16.4.6",
     "next-intl": "^4.13.0",
-    "nodemailer": "^9.1.1",
+    "nodemailer": "^10.6.0",
     "piexifjs": "^1.0.6",
     "pino": "^10.3.1",
     "postcss": "^8.5.32",
@@ -52,17 +52,16 @@
     "swiper": "^12.2.0",
     "tailwind-merge": "^3.5.0",
     "tailwindcss": "^4.3.5",
-    "tsx": "^4.16.0",
+    "tsx": "^4.23.15",
     "vaul": "^1.1.2",
     "web-push": "^3.6.7",
-    "zod": "^3.23.0"
+    "zod": "^4.6.7"
   },
   "devDependencies": {
     "@prisma/adapter-pg": "^7.10.1",
     "@testcontainers/postgresql": "^12.2.1",
     "@types/bcryptjs": "^3.0.0",
     "@types/node": "^22.0.0",
-    "@types/nodemailer": "^8.0.0",
     "@types/piexifjs": "^1.0.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",

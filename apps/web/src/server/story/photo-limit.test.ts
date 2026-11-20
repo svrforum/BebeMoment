@@ -8,14 +8,14 @@ const noDb = null as never
 
 function payload(n: number) {
   return {
-    familyId: '11111111-1111-1111-1111-111111111111',
+    familyId: '11111111-1111-4111-8111-111111111111',
     babyId: null,
     entryDate: '2026-08-30',
     body: 'x',
-    byUserId: '33333333-3333-3333-3333-333333333333',
+    byUserId: '33333333-3333-4333-8333-333333333333',
     assetIds: Array.from(
       { length: n },
-      (_, i) => `22222222-2222-2222-2222-${String(i).padStart(12, '0')}`,
+      (_, i) => `22222222-2222-4222-8222-${String(i).padStart(12, '0')}`,
     ),
   }
 }

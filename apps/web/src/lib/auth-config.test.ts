@@ -97,7 +97,7 @@ describe('Better Auth email/password', () => {
 
     // Stamp currentFamilyId directly on the session row (what the login route +
     // onboarding flow do). Cookie cache is off, so getSession reads it fresh.
-    const fakeFamilyId = '00000000-0000-0000-0000-0000000000aa'
+    const fakeFamilyId = '00000000-0000-4000-8000-0000000000aa'
     const family = await db.prismaPublic.family.create({
       data: { id: fakeFamilyId, name: 'F', slug: 'f', createdByUserId: user.id },
     })

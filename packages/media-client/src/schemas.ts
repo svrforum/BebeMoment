@@ -168,7 +168,7 @@ export const errorResponse = z.object({
     code: z.string(),
     message: z.string(),
     retriable: z.boolean(),
-    details: z.record(z.unknown()).optional(),
+    details: z.record(z.string(), z.unknown()).optional(),
   }),
 })
 export type ErrorResponse = z.infer<typeof errorResponse>

@@ -16,7 +16,7 @@ function fakePrisma(opts: { asset: Record<string, unknown> | null; otherHolders:
 }
 
 const canonical = {
-  id: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+  id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
   familyId: 'fam-1',
   deletedAt: new Date(),
   originalKey: 'families/fam-1/assets/aaa/original',
@@ -25,7 +25,7 @@ const canonical = {
 
 // 별칭은 canonical 의 originalKey 를 그대로 복사해 가진다(dedup).
 const alias = {
-  id: 'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+  id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
   familyId: 'fam-1',
   duplicateOf: canonical.id,
   deletedAt: new Date(),

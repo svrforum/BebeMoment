@@ -8,6 +8,9 @@ packages:
 overrides:
   react: 19.2.6
   react-dom: 19.2.6
+  # @prisma/config 7.10.1 이 effect 3.20.0 을 고정한다 — Schema.TemplateLiteral ReDoS(GHSA-7589-6fvf-x4pw)
+  # 수정판으로 같은 3.x 안에서 올린다. 범위 선택자라 Prisma 가 3.22.1+ 로 올리면 저절로 무의미해진다.
+  'effect@<3.22.1': ^3.22.4
 
 # pnpm 10+ 는 의존성 빌드 스크립트를 기본 차단하고, 허용 안 된 게 있으면 설치를 실패시킨다
 # (ERR_PNPM_IGNORED_BUILDS). pnpm 9 시절엔 전부 자동 실행됐으므로, 그때 빌드되던 패키지를

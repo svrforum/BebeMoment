@@ -23,12 +23,12 @@ describe('GET /media/v1/assets/:id/urls', () => {
     await db.prisma.asset.deleteMany()
     await db.prisma.$executeRawUnsafe(`
       INSERT INTO public.users (id, email, display_name, password_hash, created_at, updated_at)
-      VALUES ('33333333-3333-3333-3333-333333333333', 'a@b.com', 'U', 'x', NOW(), NOW())
+      VALUES ('33333333-3333-4333-8333-333333333333', 'a@b.com', 'U', 'x', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `)
     await db.prisma.$executeRawUnsafe(`
       INSERT INTO public.families (id, name, slug, created_by_user_id, created_at, updated_at)
-      VALUES ('11111111-1111-1111-1111-111111111111', 'F', 'f', '33333333-3333-3333-3333-333333333333', NOW(), NOW())
+      VALUES ('11111111-1111-4111-8111-111111111111', 'F', 'f', '33333333-3333-4333-8333-333333333333', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `)
   })
@@ -37,7 +37,7 @@ describe('GET /media/v1/assets/:id/urls', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/assets/22222222-2222-2222-2222-222222222222/urls?familyId=11111111-1111-1111-1111-111111111111',
+      url: '/media/v1/assets/22222222-2222-4222-8222-222222222222/urls?familyId=11111111-1111-4111-8111-111111111111',
     })
     expect(res.statusCode).toBe(401)
     await app.close()
@@ -47,7 +47,7 @@ describe('GET /media/v1/assets/:id/urls', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/assets/22222222-2222-2222-2222-222222222222/urls?familyId=11111111-1111-1111-1111-111111111111',
+      url: '/media/v1/assets/22222222-2222-4222-8222-222222222222/urls?familyId=11111111-1111-4111-8111-111111111111',
       headers: { authorization: `Bearer ${TOKEN}` },
     })
     expect(res.statusCode).toBe(404)
@@ -57,12 +57,12 @@ describe('GET /media/v1/assets/:id/urls', () => {
   test('200 with valid asset returns AssetUrls', async () => {
     await db.prisma.asset.create({
       data: {
-        id: '22222222-2222-2222-2222-222222222222',
-        familyId: '11111111-1111-1111-1111-111111111111',
-        uploadedByUserId: '33333333-3333-3333-3333-333333333333',
+        id: '22222222-2222-4222-8222-222222222222',
+        familyId: '11111111-1111-4111-8111-111111111111',
+        uploadedByUserId: '33333333-3333-4333-8333-333333333333',
         kind: 'image',
         originalKey:
-          'families/11111111-1111-1111-1111-111111111111/assets/22222222-2222-2222-2222-222222222222/original',
+          'families/11111111-1111-4111-8111-111111111111/assets/22222222-2222-4222-8222-222222222222/original',
         originalFilename: 'a.jpg',
         mimeType: 'image/jpeg',
         sizeBytes: BigInt(100),
@@ -77,7 +77,7 @@ describe('GET /media/v1/assets/:id/urls', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/assets/22222222-2222-2222-2222-222222222222/urls?familyId=11111111-1111-1111-1111-111111111111',
+      url: '/media/v1/assets/22222222-2222-4222-8222-222222222222/urls?familyId=11111111-1111-4111-8111-111111111111',
       headers: { authorization: `Bearer ${TOKEN}` },
     })
     expect(res.statusCode).toBe(200)
@@ -91,9 +91,9 @@ describe('GET /media/v1/assets/:id/urls', () => {
   test('404 when asset belongs to different family', async () => {
     await db.prisma.asset.create({
       data: {
-        id: '22222222-2222-2222-2222-222222222222',
-        familyId: '11111111-1111-1111-1111-111111111111',
-        uploadedByUserId: '33333333-3333-3333-3333-333333333333',
+        id: '22222222-2222-4222-8222-222222222222',
+        familyId: '11111111-1111-4111-8111-111111111111',
+        uploadedByUserId: '33333333-3333-4333-8333-333333333333',
         kind: 'image',
         originalKey: 'x',
         originalFilename: 'a.jpg',
@@ -108,7 +108,7 @@ describe('GET /media/v1/assets/:id/urls', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/assets/22222222-2222-2222-2222-222222222222/urls?familyId=99999999-9999-9999-9999-999999999999',
+      url: '/media/v1/assets/22222222-2222-4222-8222-222222222222/urls?familyId=99999999-9999-4999-8999-999999999999',
       headers: { authorization: `Bearer ${TOKEN}` },
     })
     expect(res.statusCode).toBe(404)

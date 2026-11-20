@@ -23,25 +23,25 @@ describe('POST /media/v1/assets/urls:batch', () => {
     await db.prisma.asset.deleteMany()
     await db.prisma.$executeRawUnsafe(`
       INSERT INTO public.users (id, email, display_name, password_hash, created_at, updated_at)
-      VALUES ('33333333-3333-3333-3333-333333333333', 'a@b.com', 'U', 'x', NOW(), NOW())
+      VALUES ('33333333-3333-4333-8333-333333333333', 'a@b.com', 'U', 'x', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `)
     await db.prisma.$executeRawUnsafe(`
       INSERT INTO public.families (id, name, slug, created_by_user_id, created_at, updated_at)
-      VALUES ('11111111-1111-1111-1111-111111111111', 'F', 'f', '33333333-3333-3333-3333-333333333333', NOW(), NOW())
+      VALUES ('11111111-1111-4111-8111-111111111111', 'F', 'f', '33333333-3333-4333-8333-333333333333', NOW(), NOW())
       ON CONFLICT (id) DO NOTHING;
     `)
   })
 
   async function seedAsset(
     id: string,
-    familyId = '11111111-1111-1111-1111-111111111111',
+    familyId = '11111111-1111-4111-8111-111111111111',
   ): Promise<void> {
     await db.prisma.asset.create({
       data: {
         id,
         familyId,
-        uploadedByUserId: '33333333-3333-3333-3333-333333333333',
+        uploadedByUserId: '33333333-3333-4333-8333-333333333333',
         kind: 'image',
         originalKey: `families/fam/assets/${id}/original`,
         originalFilename: 'a.jpg',
@@ -56,8 +56,8 @@ describe('POST /media/v1/assets/urls:batch', () => {
   }
 
   test('returns map of URLs for requested asset ids', async () => {
-    const id1 = '22222222-2222-2222-2222-222222222222'
-    const id2 = '44444444-4444-4444-4444-444444444444'
+    const id1 = '22222222-2222-4222-8222-222222222222'
+    const id2 = '44444444-4444-4444-8444-444444444444'
     await seedAsset(id1)
     await seedAsset(id2)
 
@@ -67,7 +67,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
       url: '/media/v1/assets/urls:batch',
       headers: { authorization: `Bearer ${TOKEN}` },
       payload: {
-        familyId: '11111111-1111-1111-1111-111111111111',
+        familyId: '11111111-1111-4111-8111-111111111111',
         assetIds: [id1, id2],
       },
     })
@@ -80,8 +80,8 @@ describe('POST /media/v1/assets/urls:batch', () => {
   })
 
   test('missing assets are simply absent from the returned map', async () => {
-    const id1 = '22222222-2222-2222-2222-222222222222'
-    const missing = '99999999-9999-9999-9999-999999999999'
+    const id1 = '22222222-2222-4222-8222-222222222222'
+    const missing = '99999999-9999-4999-8999-999999999999'
     await seedAsset(id1)
     const app = buildApp()
     const res = await app.inject({
@@ -89,7 +89,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
       url: '/media/v1/assets/urls:batch',
       headers: { authorization: `Bearer ${TOKEN}` },
       payload: {
-        familyId: '11111111-1111-1111-1111-111111111111',
+        familyId: '11111111-1111-4111-8111-111111111111',
         assetIds: [id1, missing],
       },
     })
@@ -101,7 +101,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
   })
 
   test('tiers narrows the response to the requested tiers, byte-identical otherwise', async () => {
-    const id = '22222222-2222-2222-2222-222222222222'
+    const id = '22222222-2222-4222-8222-222222222222'
     await seedAsset(id)
     await db.prisma.asset.update({
       where: { id },
@@ -121,7 +121,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
         url: '/media/v1/assets/urls:batch',
         headers: { authorization: `Bearer ${TOKEN}` },
         payload: {
-          familyId: '11111111-1111-1111-1111-111111111111',
+          familyId: '11111111-1111-4111-8111-111111111111',
           assetIds: [id],
           ...(tiers ? { tiers } : {}),
         },
@@ -147,13 +147,13 @@ describe('POST /media/v1/assets/urls:batch', () => {
   })
 
   test('rejects requests exceeding 200 asset ids', async () => {
-    const ids = Array.from({ length: 201 }, () => '22222222-2222-2222-2222-222222222222')
+    const ids = Array.from({ length: 201 }, () => '22222222-2222-4222-8222-222222222222')
     const app = buildApp()
     const res = await app.inject({
       method: 'POST',
       url: '/media/v1/assets/urls:batch',
       headers: { authorization: `Bearer ${TOKEN}` },
-      payload: { familyId: '11111111-1111-1111-1111-111111111111', assetIds: ids },
+      payload: { familyId: '11111111-1111-4111-8111-111111111111', assetIds: ids },
     })
     expect(res.statusCode).toBe(400)
     await app.close()
@@ -165,7 +165,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
       method: 'POST',
       url: '/media/v1/assets/urls:batch',
       headers: { authorization: `Bearer ${TOKEN}` },
-      payload: { familyId: '11111111-1111-1111-1111-111111111111', assetIds: [] },
+      payload: { familyId: '11111111-1111-4111-8111-111111111111', assetIds: [] },
     })
     expect(res.statusCode).toBe(200)
     const body = JSON.parse(res.body)
@@ -178,7 +178,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
     const res = await app.inject({
       method: 'POST',
       url: '/media/v1/assets/urls:batch',
-      payload: { familyId: '11111111-1111-1111-1111-111111111111', assetIds: [] },
+      payload: { familyId: '11111111-1111-4111-8111-111111111111', assetIds: [] },
     })
     expect(res.statusCode).toBe(401)
     await app.close()

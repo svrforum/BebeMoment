@@ -13,7 +13,7 @@ describe('GET /media/v1/progress/sse', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/progress/sse?assetId=11111111-1111-1111-1111-111111111111',
+      url: '/media/v1/progress/sse?assetId=11111111-1111-4111-8111-111111111111',
     })
     expect(res.statusCode).toBe(401)
     await app.close()
@@ -22,9 +22,9 @@ describe('GET /media/v1/progress/sse', () => {
   test('400 without assetId query', async () => {
     const { signUploadToken } = await import('@/lib/jwt')
     const token = await signUploadToken({
-      sub: '11111111-1111-1111-1111-111111111111',
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetId: '33333333-3333-3333-3333-333333333333',
+      sub: '11111111-1111-4111-8111-111111111111',
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetId: '33333333-3333-4333-8333-333333333333',
       mime: 'image/jpeg',
       maxBytes: 1,
       convertToCompatible: false,
@@ -42,9 +42,9 @@ describe('GET /media/v1/progress/sse', () => {
   test('403 on assetId mismatch', async () => {
     const { signUploadToken } = await import('@/lib/jwt')
     const token = await signUploadToken({
-      sub: '11111111-1111-1111-1111-111111111111',
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetId: 'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa',
+      sub: '11111111-1111-4111-8111-111111111111',
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetId: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa',
       mime: 'image/jpeg',
       maxBytes: 1,
       convertToCompatible: false,
@@ -52,7 +52,7 @@ describe('GET /media/v1/progress/sse', () => {
     const app = buildApp()
     const res = await app.inject({
       method: 'GET',
-      url: '/media/v1/progress/sse?assetId=bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb',
+      url: '/media/v1/progress/sse?assetId=bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb',
       headers: { authorization: `Bearer ${token}` },
     })
     expect(res.statusCode).toBe(403)

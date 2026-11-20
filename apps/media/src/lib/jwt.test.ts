@@ -21,16 +21,16 @@ describe('upload token', () => {
 
   test('sign + verify roundtrip', async () => {
     const token = await signUploadToken({
-      sub: '11111111-1111-1111-1111-111111111111',
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetId: '33333333-3333-3333-3333-333333333333',
+      sub: '11111111-1111-4111-8111-111111111111',
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetId: '33333333-3333-4333-8333-333333333333',
       mime: 'image/jpeg',
       maxBytes: 10_000_000,
       convertToCompatible: false,
     })
     const payload = await verifyUploadToken(token)
-    expect(payload.familyId).toBe('22222222-2222-2222-2222-222222222222')
-    expect(payload.assetId).toBe('33333333-3333-3333-3333-333333333333')
+    expect(payload.familyId).toBe('22222222-2222-4222-8222-222222222222')
+    expect(payload.assetId).toBe('33333333-3333-4333-8333-333333333333')
     expect(payload.scope).toBe('tus-upload')
     expect(payload.convertToCompatible).toBe(false)
   })
@@ -97,8 +97,8 @@ describe('file-serve token', () => {
 
   test('sign + verify roundtrip', async () => {
     const token = await signFileServeToken({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      assetId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      assetId: '22222222-2222-4222-8222-222222222222',
       key: 'families/fam/assets/asset/original',
     })
     const payload = await verifyFileServeToken(token)
@@ -108,8 +108,8 @@ describe('file-serve token', () => {
   })
 
   const fileArgs = {
-    familyId: '11111111-1111-1111-1111-111111111111',
-    assetId: '22222222-2222-2222-2222-222222222222',
+    familyId: '11111111-1111-4111-8111-111111111111',
+    assetId: '22222222-2222-4222-8222-222222222222',
     key: 'x',
   }
 
@@ -167,9 +167,9 @@ describe('file-serve token', () => {
 
   test('upload token is rejected by file-serve verify', async () => {
     const uploadToken = await signUploadToken({
-      sub: '11111111-1111-1111-1111-111111111111',
-      familyId: '22222222-2222-2222-2222-222222222222',
-      assetId: '33333333-3333-3333-3333-333333333333',
+      sub: '11111111-1111-4111-8111-111111111111',
+      familyId: '22222222-2222-4222-8222-222222222222',
+      assetId: '33333333-3333-4333-8333-333333333333',
       mime: 'image/jpeg',
       maxBytes: 1,
       convertToCompatible: false,
@@ -179,8 +179,8 @@ describe('file-serve token', () => {
 
   test('file-serve token is rejected by upload verify', async () => {
     const fileToken = await signFileServeToken({
-      familyId: '11111111-1111-1111-1111-111111111111',
-      assetId: '22222222-2222-2222-2222-222222222222',
+      familyId: '11111111-1111-4111-8111-111111111111',
+      assetId: '22222222-2222-4222-8222-222222222222',
       key: 'x',
     })
     await expect(verifyUploadToken(fileToken)).rejects.toThrow()
