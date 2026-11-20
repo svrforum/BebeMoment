@@ -408,3 +408,121 @@ describe('listTimeline — 같은 시각 경계의 키셋 커서', () => {
     )
   })
 })
+
+describe('listTimeline — until(날짜 점프)', () => {
+  it('커서부터 그 날 끝까지, 그리고 그 아래 한 페이지(limit)를 더 싣는다', async () => {
+    const { user, family } = await setup()
+    const days = [
+      '2026-09-20',
+      '2026-09-15',
+      '2026-09-13',
+      '2026-09-13',
+      '2026-09-10',
+      '2026-09-01',
+    ]
+    const ids: string[] = []
+    for (const [i, d] of days.entries()) {
+      ids.push((await makeAsset(family.id, user.id, new Date(`${d}T0${i}:00:00Z`), `u${i}`)).id)
+    }
+    const media = new FakeMediaClient()
+    const first = await listTimeline(
+      family.id,
+      { limit: 1 },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(first.nextCursor).not.toBeNull()
+
+    const jump = await listTimeline(
+      family.id,
+      { cursor: first.nextCursor ?? '', until: '2026-09-13', limit: 1 },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    // 09-15, 09-13 두 장(그날 전부) + 아래 한 장(09-10) — 목표 날을 화면 맨 위로 올릴 자리가
+    // 있어야 한다. 커서 뒤라 09-20 은 다시 오지 않는다.
+    expect(jump.items.filter((it) => it.kind === 'asset').map((it) => it.id)).toEqual([
+      ids[1],
+      ids[3],
+      ids[2],
+      ids[4],
+    ])
+    expect(jump.nextCursor).not.toBeNull()
+
+    const rest = await listTimeline(
+      family.id,
+      { cursor: jump.nextCursor ?? '' },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(rest.items.map((it) => it.id)).toEqual([ids[5]])
+  })
+
+  it('그 아래 사진이 limit 이하면 커서는 null', async () => {
+    const { user, family } = await setup()
+    await makeAsset(family.id, user.id, new Date('2026-09-20T01:00:00Z'), 'v1')
+    await makeAsset(family.id, user.id, new Date('2026-09-13T01:00:00Z'), 'v2')
+    await makeAsset(family.id, user.id, new Date('2026-09-01T01:00:00Z'), 'v3')
+    const jump = await listTimeline(
+      family.id,
+      { until: '2026-09-13', limit: 1 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(jump.items).toHaveLength(3)
+    expect(jump.nextCursor).toBeNull()
+  })
+
+  it('업로드순은 createdAt 의 UTC 일자로 자른다', async () => {
+    const { user, family } = await setup()
+    const ids: string[] = []
+    for (const [i, created] of ['2026-09-20', '2026-09-10', '2026-09-05'].entries()) {
+      const a = await makeAsset(family.id, user.id, new Date('2020-01-01T00:00:00Z'), `w${i}`)
+      await db.prismaMedia.asset.update({
+        where: { id: a.id },
+        data: { createdAt: new Date(`${created}T03:00:00Z`) },
+      })
+      ids.push(a.id)
+    }
+    const jump = await listTimeline(
+      family.id,
+      { sort: 'uploaded', until: '2026-09-15', limit: 1 },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(jump.items.map((it) => it.id)).toEqual([ids[0], ids[1]])
+    expect(jump.nextCursor).not.toBeNull()
+  })
+})
+
+describe('listTimeline — until 커서가 이미 그 날을 지났을 때', () => {
+  it('아래 페이지도 커서 뒤에서만 — 이미 받은 사진을 다시 주지 않는다', async () => {
+    const { user, family } = await setup()
+    const ids: string[] = []
+    for (const [i, d] of ['2026-09-20', '2026-09-13', '2026-09-10', '2026-09-01'].entries()) {
+      ids.push((await makeAsset(family.id, user.id, new Date(`${d}T01:00:00Z`), `x${i}`)).id)
+    }
+    const media = new FakeMediaClient()
+    const first = await listTimeline(
+      family.id,
+      { limit: 3 },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    const jump = await listTimeline(
+      family.id,
+      { cursor: first.nextCursor ?? '', until: '2026-09-15', limit: 5 },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
+    expect(jump.items.map((it) => it.id)).toEqual([ids[3]])
+    expect(jump.nextCursor).toBeNull()
+  })
+})

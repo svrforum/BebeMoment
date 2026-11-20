@@ -69,6 +69,7 @@ export function AppHeader({ title, subtitle, left, right, wide = false, switchHr
 
   return (
     <header
+      data-app-header=""
       className={cn(
         'sticky top-0 z-30 transition-[background-color,backdrop-filter] ease-ios duration-200',
         scrolled

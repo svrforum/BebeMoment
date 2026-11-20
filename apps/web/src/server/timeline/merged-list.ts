@@ -29,6 +29,26 @@ type Cursor = {
   sort?: TimelineSort
 }
 
+/** `until` 한 번에 싣는 상한. 넘으면 커서를 주고 클라가 같은 요청을 이어서 보낸다. */
+export const UNTIL_MAX_ASSETS = 1500
+
+/**
+ * 타임라인 그리드에 보이는 자산의 기본 조건. 날짜 스크러버의 날 목록(`days.ts`)도 이걸 쓴다 —
+ * 둘이 어긋나면 눈금이 그리드에 없는 날을 가리켜 점프가 끝없이 불러오기만 한다.
+ */
+export function timelineAssetWhere(familyId: string, hidden: string[]) {
+  return {
+    familyId,
+    // 실패한 자산도 싣는다. asset-card 에 재시도·삭제 UI 가 있는데 그리드가 ready 만
+    // 가져와서 닿을 수가 없었다 — 실패한 사진은 휴지통에도 없어(deletedAt=null) 앱
+    // 어디에서도 보이지 않고, 용량만 계속 차지했다.
+    status: { in: ['ready' as const, 'failed' as const] },
+    deletedAt: null,
+    duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
+    ...(hidden.length ? { id: { notIn: hidden } } : {}),
+  }
+}
+
 const isCursor = (c: Record<string, unknown>): c is Cursor =>
   typeof c.ts === 'string' && typeof c.id === 'string' && (c.kind === 'asset' || c.kind === 'story')
 
@@ -49,6 +69,10 @@ export async function listTimeline(
      *  `createdAt` desc — groups reflect when the item was added to the
      *  app. Cursor is mode-aware. */
     sort?: TimelineSort
+    /** 날짜 점프(YYYY-MM-DD, 축의 UTC 일자). 커서부터 그 날 끝까지를 한 번에(상한
+     *  UNTIL_MAX_ASSETS — 넘으면 커서를 주고 끊는다), 거기에 그 아래 `limit` 장을 더 싣는다.
+     *  날짜 필터(`date`)와 함께 오면 무시한다. */
+    until?: string
     /** false 면 signed URL 을 받지 않는다(urls=null). 순서만 필요한 호출부(뷰어 이웃
      *  해석)가 media 왕복과 수백 건 서명을 건너뛰게 — 화면용 호출은 기본값 그대로. */
     signUrls?: boolean
@@ -72,6 +96,10 @@ export async function listTimeline(
     dayStart = new Date(`${params.date}T00:00:00.000Z`)
     dayEnd = new Date(dayStart.getTime() + 24 * 60 * 60 * 1000)
   }
+  const untilStart =
+    !dayStart && params.until && /^\d{4}-\d{2}-\d{2}$/.test(params.until)
+      ? new Date(`${params.until}T00:00:00.000Z`)
+      : null
 
   // 비밀 스토리(guardians) 사진은 family 에게 그리드·썸네일 모두에서 숨긴다.
   const hidden = await hiddenAssetIdsForViewer(
@@ -89,35 +117,57 @@ export async function listTimeline(
   // 플래너가 인덱스 시작점으로 쓸 수 있는 중복 조건이다 — OR 만으로는 인덱스 범위를 못
   // 잡아 깊은 페이지마다 가족 전체를 앞에서부터 훑었다. 의미는 lte 가 OR 를 포함하므로 동일.
   const cursorBound = cursorTs && cur ? { lte: cursorTs } : null
+  const untilBound = untilStart ? { gte: untilStart } : null
   const takenRange = dayStart && dayEnd ? { gte: dayStart, lt: dayEnd } : null
-  const takenBound = sort === 'taken' ? cursorBound : null
-  const takenFilter = takenRange || takenBound ? { takenAt: { ...takenRange, ...takenBound } } : {}
+  const takenBound = sort === 'taken' ? { ...cursorBound, ...untilBound } : null
+  const takenFilter =
+    takenRange || (takenBound && Object.keys(takenBound).length)
+      ? { takenAt: { ...takenRange, ...takenBound } }
+      : {}
+  const createdBound = sort === 'uploaded' ? { ...cursorBound, ...untilBound } : null
+  const base = timelineAssetWhere(familyId, hidden)
+  const afterCursor =
+    cursorTs && cur
+      ? sort === 'uploaded'
+        ? { OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }] }
+        : { OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }] }
+      : {}
+  const orderBy =
+    sort === 'uploaded'
+      ? [{ createdAt: 'desc' as const }, { id: 'desc' as const }]
+      : [{ takenAt: 'desc' as const }, { id: 'desc' as const }]
+  const take = untilStart ? UNTIL_MAX_ASSETS : limit
   const assetRows = await prismaMedia.asset.findMany({
     where: {
-      familyId,
-      // 실패한 자산도 싣는다. asset-card 에 재시도·삭제 UI 가 있는데 그리드가 ready 만
-      // 가져와서 닿을 수가 없었다 — 실패한 사진은 휴지통에도 없어(deletedAt=null) 앱
-      // 어디에서도 보이지 않고, 용량만 계속 차지했다.
-      status: { in: ['ready', 'failed'] },
-      deletedAt: null,
-      duplicateOf: null, // 중복 별칭은 그리드에서 제외(스토리·앨범 참조에서는 표시)
-      ...(hidden.length ? { id: { notIn: hidden } } : {}),
+      ...base,
       ...takenFilter,
-      ...(sort === 'uploaded' && cursorBound ? { createdAt: cursorBound } : {}),
-      ...(cursorTs && cur
-        ? sort === 'uploaded'
-          ? { OR: [{ createdAt: { lt: cursorTs } }, { createdAt: cursorTs, id: { lt: cur.id } }] }
-          : { OR: [{ takenAt: { lt: cursorTs } }, { takenAt: cursorTs, id: { lt: cur.id } }] }
-        : {}),
+      ...(createdBound && Object.keys(createdBound).length ? { createdAt: createdBound } : {}),
+      ...afterCursor,
     },
-    orderBy:
-      sort === 'uploaded'
-        ? [{ createdAt: 'desc' }, { id: 'desc' }]
-        : [{ takenAt: 'desc' }, { id: 'desc' }],
-    take: limit + 1,
+    orderBy,
+    take: take + 1,
   })
-  const hasMore = assetRows.length > limit
-  const pageAssets = hasMore ? assetRows.slice(0, limit) : assetRows
+  // until: 그 날까지 다 실었으면 그 아래 한 페이지를 더 붙인다 — 목표 날이 목록 끝이면
+  // 문서가 모자라 그 날을 화면 맨 위로 올릴 수 없다(스크롤이 바닥에서 멈춘다).
+  const reachedUntil = untilStart !== null && assetRows.length <= take
+  const belowRows =
+    reachedUntil && untilStart
+      ? await prismaMedia.asset.findMany({
+          where: {
+            ...base,
+            ...(sort === 'uploaded'
+              ? { createdAt: { lt: untilStart, ...cursorBound } }
+              : { takenAt: { lt: untilStart, ...cursorBound } }),
+            ...afterCursor,
+          },
+          orderBy,
+          take: limit + 1,
+        })
+      : []
+  const hasMore = reachedUntil ? belowRows.length > limit : assetRows.length > take
+  const pageAssets = reachedUntil
+    ? [...assetRows, ...belowRows.slice(0, limit)]
+    : assetRows.slice(0, take)
   const pageAssetIds = pageAssets.map((a) => a.id)
 
   // 페이지 자산을 소유한 스토리 멤버십 → 스토리 본문(가시성 필터).

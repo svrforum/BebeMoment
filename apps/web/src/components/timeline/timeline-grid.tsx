@@ -23,7 +23,9 @@ import {
   pendingLabelCount,
   receiveEvent,
 } from './live-refresh'
+import type { ScrubDay } from './scrubber-math'
 import { TimelineContextMenu } from './timeline-context-menu'
+import { DAY_SECTION_ATTR, TimelineScrubber, appHeaderBottom } from './timeline-scrubber'
 
 // useLayoutEffect 는 SSR 에서 경고를 낸다. 스크롤 보정은 브라우저에서만 의미가 있다.
 const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -46,6 +48,27 @@ type Props = {
   sort?: 'taken' | 'uploaded'
   /** 컬렉션 맥락(예: 'saved') — 상세 링크에 실어 뷰어 스와이프 스코프 유지. */
   viewerCtx?: string | null
+  /** 사진이 있는 날 전체(최신순). 주면 오른쪽에 날짜 스크러버를 단다. */
+  scrubberDays?: ScrubDay[] | null
+}
+
+type GroupsResponse = { groups: BucketGroup[]; nextCursor: string | null }
+
+// JSON 직렬화로 Date → 문자열이 되므로 디바이더 계산에 쓰는 ts 를 Date 로 되살린다.
+function reviveGroups(groups: BucketGroup[]): BucketGroup[] {
+  return groups.map((g) => ({
+    ...g,
+    assets: g.assets.map((a) => ({ ...a, ts: new Date(a.ts as unknown as string) })),
+  }))
+}
+
+/** 그 날짜 섹션을 헤더 바로 밑으로. 아직 그려지지 않았으면 false. */
+function scrollToDay(dayKey: string): boolean {
+  const el = document.querySelector(`[${DAY_SECTION_ATTR}="${dayKey}"]`)
+  if (!el) return false
+  const top = el.getBoundingClientRect().top + window.scrollY - appHeaderBottom() - 8
+  window.scrollTo({ top: Math.max(0, top), behavior: 'instant' })
+  return true
 }
 
 export function TimelineGrid({
@@ -58,6 +81,7 @@ export function TimelineGrid({
   canAddAlbum = true,
   sort = 'taken',
   viewerCtx = null,
+  scrubberDays = null,
 }: Props) {
   const t = useTranslations('timeline')
   const router = useRouter()
@@ -65,6 +89,9 @@ export function TimelineGrid({
 
   const [groups, setGroups] = useState<BucketGroup[]>(initialGroups)
   const [cursor, setCursor] = useState<string | null>(initialNextCursor)
+  // 점프와 무한스크롤이 겹칠 때 늦게 끝난 쪽이 낡은 커서로 붙이지 않도록 최신 커서를 ref 로도 든다.
+  const cursorRef = useRef(cursor)
+  cursorRef.current = cursor
   const [loadingMore, setLoadingMore] = useState(false)
   const sentinelRef = useRef<HTMLDivElement | null>(null)
   const [selected, setSelected] = useState<Set<string>>(new Set())
@@ -160,6 +187,31 @@ export function TimelineGrid({
     updatePending(NO_PENDING)
   }, [initialGroups, initialNextCursor, scopeKey, updatePending])
 
+  // 점프로 불러온 날짜는 그려진 직후(페인트 전)에 그 섹션으로 옮긴다.
+  const scrollAfterRenderRef = useRef<string | null>(null)
+  // 점프로 처음 들어온 섹션은 한 번은 실제로 그린다. 그려진 적 없는 섹션은 추정 높이로 자리를
+  // 잡는데(출생 전 날은 나이 줄이 없어 30px 넘게 작다) 화면 근처에서 그려지는 순간 줄어들어,
+  // 도착한 날이 밀리고 위로 스크롤할 때마다 화면이 튀었다. 한 번 그리면 `auto` 가 그 높이를 기억한다.
+  const [renderOnce, setRenderOnce] = useState<ReadonlySet<string> | null>(null)
+  useBrowserLayoutEffect(() => {
+    const key = scrollAfterRenderRef.current
+    if (!key) return
+    scrollAfterRenderRef.current = null
+    scrollToDay(key)
+  }, [groups])
+  useEffect(() => {
+    if (!renderOnce) return
+    // 두 프레임 뒤 — 높이가 기록된 다음에 다시 화면 밖 생략으로.
+    let second = 0
+    const first = requestAnimationFrame(() => {
+      second = requestAnimationFrame(() => setRenderOnce(null))
+    })
+    return () => {
+      cancelAnimationFrame(first)
+      cancelAnimationFrame(second)
+    }
+  }, [renderOnce])
+
   useBrowserLayoutEffect(() => {
     const anchor = anchorRef.current
     if (!anchor) return
@@ -181,16 +233,10 @@ export function TimelineGrid({
       if (date) qp.set('date', date)
       const res = await fetch(`/api/timeline?${qp.toString()}`)
       if (!res.ok) throw new Error('load failed')
-      const data = (await res.json()) as { groups: BucketGroup[]; nextCursor: string | null }
-      // JSON 직렬화로 Date → 문자열이 되므로 디바이더 계산에 쓰는 ts 를 Date 로 되살린다.
-      const revived = data.groups.map((g) => ({
-        ...g,
-        assets: g.assets.map((a) => ({
-          ...a,
-          ts: new Date(a.ts as unknown as string),
-        })),
-      }))
-      setGroups((prev) => mergeGroups(prev, revived))
+      const data = (await res.json()) as GroupsResponse
+      // 그사이 점프가 목록을 더 늘렸으면 이 페이지는 이미 들어 있다.
+      if (cursorRef.current !== cursor) return
+      setGroups((prev) => mergeGroups(prev, reviveGroups(data.groups)))
       setCursor(data.nextCursor)
       pagesLoadedRef.current += 1
     } catch {
@@ -199,6 +245,38 @@ export function TimelineGrid({
       setLoadingMore(false)
     }
   }, [cursor, loadingMore, sort, date, toast, t])
+
+  // 날짜 스크러버 — 그 날이 아직 없으면 지금 커서부터 그 날까지 한 번에 불러와 이어붙인다.
+  // 목록이 늘 맨 위부터 이어져 있어야 머리 갱신(reconcileHead)·새 사진 알림이 그대로 맞는다.
+  const jumpToDay = useCallback(
+    async (dayKey: string) => {
+      if (scrollToDay(dayKey)) return
+      let merged = groupsRef.current
+      let next = cursorRef.current
+      try {
+        while (next && !merged.some((g) => g.dateKey === dayKey)) {
+          const qp = new URLSearchParams({ sort, cursor: next, until: dayKey })
+          const res = await fetch(`/api/timeline?${qp.toString()}`)
+          if (!res.ok) throw new Error('jump failed')
+          const data = (await res.json()) as GroupsResponse
+          merged = mergeGroups(merged, reviveGroups(data.groups))
+          next = data.nextCursor
+          pagesLoadedRef.current += 1
+        }
+      } catch {
+        toast({ title: t('grid.loadMoreFailed'), variant: 'danger' })
+      }
+      if (merged === groupsRef.current) return
+      const had = new Set(groupsRef.current.map((g) => g.dateKey))
+      groupsRef.current = merged
+      cursorRef.current = next
+      scrollAfterRenderRef.current = dayKey
+      setRenderOnce(new Set(merged.flatMap((g) => (had.has(g.dateKey) ? [] : [g.dateKey]))))
+      setGroups(merged)
+      setCursor(next)
+    },
+    [sort, toast, t],
+  )
 
   useEffect(() => {
     const el = sentinelRef.current
@@ -417,8 +495,12 @@ export function TimelineGrid({
           // hover ring 을 잘라내지 않게 낸 자리 — 레이아웃 위치는 그대로다.
           <div
             key={g.dateKey}
+            {...{ [DAY_SECTION_ATTR]: g.dateKey }}
             style={{
-              contentVisibility: 'auto',
+              // flow-root: 섹션의 아래 여백(mb-10)을 늘 이 상자 안에 둔다. `auto` 는 레이아웃
+              // 봉쇄로 이미 그렇게 하지만 `visible` 은 여백이 밖으로 새어 높이가 40px 달라진다.
+              display: 'flow-root',
+              contentVisibility: renderOnce?.has(g.dateKey) ? 'visible' : 'auto',
               containIntrinsicSize: `auto ${estimateSectionHeight({
                 assetCount: g.assets.length,
                 storyCount: g.stories?.length ?? 0,
@@ -462,6 +544,8 @@ export function TimelineGrid({
           </div>
         )}
       </div>
+
+      {scrubberDays && !date && <TimelineScrubber days={scrubberDays} onJump={jumpToDay} />}
 
       {hasPending(pending) && !selectionMode && (
         <NewChangesPill

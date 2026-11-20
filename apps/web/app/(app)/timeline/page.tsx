@@ -18,6 +18,7 @@ import { listMemories } from '@/server/memories/list'
 import { babyAgeNow, formatDDay } from '@/server/timeline/group-by-day'
 import { formatAgeBucket } from '@/i18n/labels'
 import { buildTimelineGroups, lastSeenOnGroupAxis } from '@/server/timeline/build-groups'
+import { listTimelineDays } from '@/server/timeline/days'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Search, Sparkles, UsersRound } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -171,7 +172,10 @@ export default async function TimelinePage({
     )
   }
 
-  const features = await getFeatureFlags(prismaPublic)
+  const [features, scrubberDays] = await Promise.all([
+    getFeatureFlags(prismaPublic),
+    listTimelineDays(ctx.family.id, { sort: sortMode, viewerRole }, prismaPublic, prismaMedia),
+  ])
 
   // "여기까지 봤어요" 디바이더 기준점. ctx.membership.lastSeenAt 의 OLD 값을
   // 캡쳐한 뒤 touchLastSeen 으로 NOW() 를 찍는다 — 다음 방문 때부터 갱신된
@@ -287,6 +291,7 @@ export default async function TimelinePage({
         canAddAlbum={canAddAlbum}
         sort={sortMode}
         viewerCtx="timeline"
+        scrubberDays={scrubberDays}
       />
     </>
   )
