@@ -118,10 +118,20 @@ describe('loadCalendarMonth', () => {
     expect(ownerView.assets.map((a) => a.id)).toContain(secretId)
   })
 
-  it('하루 여러 장이면 커버 1장만 URL 사인한다', async () => {
+  it('날짜 시트가 그리는 만큼(하루 최신 6장)만 URL 을 사인한다', async () => {
     const { user, family } = await setup()
-    await makeReady(family.id, user.id, 'd1a', new Date('2026-05-10T09:00:00Z'))
-    await makeReady(family.id, user.id, 'd1b', new Date('2026-05-10T18:00:00Z'))
+    const day10: string[] = []
+    for (let h = 1; h <= 7; h++) {
+      day10.push(
+        await makeReady(
+          family.id,
+          user.id,
+          `d10-${h}`,
+          new Date(`2026-05-10T${String(h).padStart(2, '0')}:00:00Z`),
+        ),
+      )
+    }
+    const day11 = await makeReady(family.id, user.id, 'd11', new Date('2026-05-11T09:00:00Z'))
     const media = new FakeMediaClient()
     const data = await loadCalendarMonth(
       { familyId: family.id, year: 2026, month: 4, viewerRole: 'owner', schedule: true },
@@ -129,9 +139,10 @@ describe('loadCalendarMonth', () => {
       db.prismaPublic,
       media,
     )
-    // 두 자산 모두 목록엔 있지만 signed URL batch 는 커버(1장)만
-    expect(data.assets).toHaveLength(2)
-    expect(media.calls.getAssetUrlsBatch[0]?.assetIds).toHaveLength(1)
+    expect(data.assets).toHaveLength(8)
+    // 10일은 최신 6장(7시~2시), 가장 이른 1시 사진은 시트에 안 그려지므로 사인하지 않는다.
+    const signed = media.calls.getAssetUrlsBatch[0]?.assetIds ?? []
+    expect([...signed].sort()).toEqual([day11, ...day10.slice(1)].sort())
   })
 
   it('일정 기능이 꺼져 있으면 일정을 싣지 않는다', async () => {

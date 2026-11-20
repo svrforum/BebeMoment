@@ -7,6 +7,7 @@ import {
   listScheduleMonth,
 } from '@/server/schedule/list'
 import { GRID_URL_TIERS, type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
+import { DAY_SHEET_THUMBS } from '@/lib/day-sheet'
 import type { MediaClient } from '@bebe/media-client'
 
 export type CalendarAsset = { id: string; takenAtISO: string; urls: GridAssetUrls | null }
@@ -20,9 +21,9 @@ export type CalendarMonth = {
 const dayKeyOf = (d: Date): string => `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`
 
 /**
- * 한 달치 캘린더 데이터(날짜별 커버 1장 + 스토리 뱃지 일자 + 그 달 일정)를 조달한다. takenAt 범위로
+ * 한 달치 캘린더 데이터(그 달 사진 + 스토리 뱃지 일자 + 그 달 일정)를 조달한다. takenAt 범위로
  * 스코프해 — 전역 take:500 으로 오래된 사진이 조용히 누락되던 문제 해결(가족이 사진을
- * 많이 쌓아도 보이는 달은 항상 완전). 커버 signed URL 도 그 달의 날짜 수로만 fan-out.
+ * 많이 쌓아도 보이는 달은 항상 완전). signed URL 은 날짜마다 시트가 그리는 장수까지만.
  * year/month 는 UTC 0-based month.
  */
 export async function loadCalendarMonth(
@@ -60,17 +61,18 @@ export async function loadCalendarMonth(
     select: { id: true, takenAt: true },
   })
 
-  // 날짜별 커버 1장(최신순 첫 사진)만 signed URL.
-  const seen = new Set<string>()
-  const coverIds: string[] = []
+  // 날짜마다 최신순 앞의 몇 장만 signed URL — 첫 장은 날짜 칸의 커버, 나머지는 날짜 시트.
+  const perDay = new Map<string, number>()
+  const signIds: string[] = []
   for (const a of rawAssets) {
     const key = dayKeyOf(a.takenAt)
-    if (seen.has(key)) continue
-    seen.add(key)
-    coverIds.push(a.id)
+    const n = perDay.get(key) ?? 0
+    if (n >= DAY_SHEET_THUMBS) continue
+    perDay.set(key, n + 1)
+    signIds.push(a.id)
   }
-  const urlsMap = coverIds.length
-    ? await media.getAssetUrlsBatch(familyId, coverIds, { tiers: GRID_URL_TIERS })
+  const urlsMap = signIds.length
+    ? await media.getAssetUrlsBatch(familyId, signIds, { tiers: GRID_URL_TIERS })
     : {}
 
   // 모델 B — 그 달 사진 중 (보이는) 스토리에 속한 게 있으면 해당 일자에 스토리 뱃지.

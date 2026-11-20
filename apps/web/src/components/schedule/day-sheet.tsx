@@ -3,6 +3,7 @@ import { PictureImage } from '@/components/ui/picture-image'
 import { Sheet } from '@/components/ui/sheet'
 import { pickBlurhash, pickThumbTrio, pickThumbUrl } from '@/lib/asset-url'
 import { cn } from '@/lib/cn'
+import { DAY_SHEET_THUMBS } from '@/lib/day-sheet'
 import type { ScheduleEntryView } from '@/server/schedule/list'
 import type { AssetUrls } from '@bebe/media-client'
 import { Check, ChevronRight, ListChecks, Plus } from 'lucide-react'
@@ -24,8 +25,6 @@ type Props = {
   /** 그 날짜가 채워진 작성 시트를 여는 훅. 없으면 '일정 추가' 를 그리지 않는다. */
   onAddEntry?: ((day: string) => void) | undefined
 }
-
-const MAX_THUMBS = 6
 
 /** 그날의 일정과 사진을 한 화면에 모은 요약 시트. 날짜 칸을 누르면 열린다. */
 export function DaySheet({
@@ -121,7 +120,7 @@ export function DaySheet({
             </h3>
             {assets.length > 0 ? (
               <div className="grid grid-cols-3 gap-1.5">
-                {assets.slice(0, MAX_THUMBS).map((asset) => (
+                {assets.slice(0, DAY_SHEET_THUMBS).map((asset) => (
                   <div
                     key={asset.id}
                     className="relative aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-800"
