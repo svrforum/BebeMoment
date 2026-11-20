@@ -280,7 +280,7 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
             <p className="mt-1.5 text-xs text-base-500">{t('auth.clientSecretEncryptedHint')}</p>
           </div>
           {error && (
-            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger-text" role="alert">
               {error}
             </p>
           )}

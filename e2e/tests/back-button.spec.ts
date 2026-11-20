@@ -97,10 +97,10 @@ test.describe('뒤로가기와 시트·선택', () => {
     // 선택해서 지우면 지운 사진이 바로 사라진다 — 히스토리 사본을 거두는 뒤로가기가 끼면 Next 가
     // 진행 중인 refresh 를 버려 사진이 남았다.
     await card(page).click({ modifiers: ['Control'] })
-    await page.getByRole('button', { name: '삭제', exact: true }).click()
+    await page.getByRole('button', { name: '휴지통으로 옮기기', exact: true }).click()
     const confirm = page.getByRole('dialog')
     await expect(confirm).toBeVisible()
-    await confirm.getByRole('button', { name: '삭제', exact: true }).click()
+    await confirm.getByRole('button', { name: '휴지통으로 옮기기', exact: true }).click()
     await expect(page.getByText(/아직 올라온 사진이 없어요/)).toBeVisible({ timeout: 30_000 })
     await expect(bar(page)).toBeHidden()
   })

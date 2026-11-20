@@ -123,7 +123,7 @@ export function ReminderPicker({ mode, specs, onChange, pushEnabled }: Props) {
             className={cn(
               'focus-ring flex items-center gap-1 rounded-full py-1.5 text-[13px] font-medium transition active:scale-95',
               chip.selected
-                ? 'bg-point-500 pl-2.5 pr-3 text-white'
+                ? 'bg-point-600 pl-2.5 pr-3 text-white'
                 : 'bg-base-100 px-3 text-base-600 dark:bg-base-800 dark:text-base-300',
             )}
           >

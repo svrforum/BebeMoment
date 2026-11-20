@@ -49,6 +49,13 @@ describe('상단 스티키 헤더는 안전영역을 비운다', () => {
     expect(offenders).toEqual([])
   })
 
+  // 스티키가 아니라 absolute 로 화면 맨 위에 붙는 바 — 위 검사가 못 본다. 뷰어 상단 바가
+  // 사진(pt-[safe+56px])만 비우고 닫기·다운로드 버튼은 상태바 밑에 깔려 있었다(2026-11).
+  it('화면 맨 위에 붙는 absolute 바도 safe-area-inset-top 을 비운다', () => {
+    const src = readFileSync('src/components/detail/viewer-top-bar.tsx', 'utf8')
+    expect(src).toMatch(/absolute inset-x-0 top-0[^'"]*safe-area-inset-top/)
+  })
+
   it('허용 목록은 실제로 존재하는 파일만 담는다', () => {
     for (const rel of ALLOWED.keys()) {
       expect(() => statSync(rel)).not.toThrow()

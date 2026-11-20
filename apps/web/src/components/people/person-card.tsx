@@ -55,7 +55,7 @@ export function PersonCard({
           <span
             className={`absolute right-1 bottom-1 flex h-6 w-6 items-center justify-center rounded-full border-2 ${
               selected
-                ? 'border-point-500 bg-point-500 text-white'
+                ? 'border-point-600 bg-point-600 text-white'
                 : 'border-white/80 bg-black/25 text-transparent'
             }`}
           >

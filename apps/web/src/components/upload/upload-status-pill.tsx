@@ -125,7 +125,7 @@ export function UploadStatusPill({ onClick }: Props) {
           <Loader2 className="h-4 w-4 animate-spin text-point-500" strokeWidth={2.4} />
         )}
       </span>
-      <span className="truncate">{completed ? t('status.done') : label}</span>
+      <span className="truncate tabular-nums">{completed ? t('status.done') : label}</span>
     </button>
   )
 }

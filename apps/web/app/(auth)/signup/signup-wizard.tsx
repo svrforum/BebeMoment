@@ -332,7 +332,7 @@ function SignupWizardInner({
                   )}
                 </div>
                 {confirm.length > 0 && confirm !== password && (
-                  <p className="mt-3 text-sm text-danger">{t('signup.password.mismatch')}</p>
+                  <p className="mt-3 text-sm text-danger-text">{t('signup.password.mismatch')}</p>
                 )}
               </>
             )}
@@ -395,7 +395,9 @@ function SignupWizardInner({
                   className={inputCls}
                 />
                 {username.trim() !== '' && !USERNAME_RE.test(username.trim().toLowerCase()) && (
-                  <p className="mt-2 text-sm text-danger">{t('signup.optional.usernameError')}</p>
+                  <p className="mt-2 text-sm text-danger-text">
+                    {t('signup.optional.usernameError')}
+                  </p>
                 )}
                 <input
                   type="email"
@@ -408,7 +410,7 @@ function SignupWizardInner({
                   className="mt-4 h-14 w-full rounded-2xl border border-transparent bg-base-100 px-5 text-[17px] text-base-900 transition-all placeholder:text-base-400 hover:bg-base-200/60 focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-800/80"
                 />
                 {email.trim() !== '' && !EMAIL_RE.test(email.trim()) && (
-                  <p className="mt-2 text-sm text-danger">{t('signup.optional.emailError')}</p>
+                  <p className="mt-2 text-sm text-danger-text">{t('signup.optional.emailError')}</p>
                 )}
               </>
             )}
@@ -416,7 +418,7 @@ function SignupWizardInner({
         </AnimatePresence>
 
         {error && (
-          <p className="mt-4 text-sm text-danger" role="alert">
+          <p className="mt-4 text-sm text-danger-text" role="alert">
             {error}
           </p>
         )}

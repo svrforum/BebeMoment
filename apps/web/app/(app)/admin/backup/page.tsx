@@ -450,7 +450,7 @@ export default function BackupAdminPage() {
               </div>
             )}
             {lastError && (
-              <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
+              <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger-text">
                 {t('backup.lastAutoError', { error: lastError })}
               </p>
             )}
@@ -471,7 +471,7 @@ export default function BackupAdminPage() {
               />
             </div>
             {includeSecret && (
-              <div className="flex gap-2 rounded-xl border border-danger/30 bg-danger/5 p-3 text-[13px] text-danger">
+              <div className="flex gap-2 rounded-xl border border-danger/30 bg-danger/5 p-3 text-[13px] text-danger-text">
                 <AlertTriangle size={18} className="mt-0.5 shrink-0" />
                 <div>
                   {t.rich('backup.secretWarn', {
@@ -549,7 +549,7 @@ export default function BackupAdminPage() {
                 </div>
                 {remoteStatus && <p className="text-sm text-base-500">{remoteStatus}</p>}
                 {remote.configError && (
-                  <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">
+                  <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger-text">
                     {t('backup.remoteUnusable', { error: remote.configError })}
                   </p>
                 )}
@@ -557,12 +557,12 @@ export default function BackupAdminPage() {
                   remote.secretConfigured &&
                   !remote.usable &&
                   !remote.configError && (
-                    <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger">
+                    <p className="rounded-lg bg-danger/10 px-3 py-2 text-[12px] font-medium text-danger-text">
                       {t('backup.remoteUnusable', { error: '' })}
                     </p>
                   )}
                 {remote.lastError && (
-                  <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger">
+                  <p className="rounded-lg bg-danger/5 px-3 py-2 text-[12px] text-danger-text">
                     {t('backup.lastRemoteError', { error: remote.lastError })}
                   </p>
                 )}
@@ -639,7 +639,7 @@ export default function BackupAdminPage() {
                           {b.type === 'full' ? t('backup.full') : t('backup.incr')}
                         </span>
                         {b.includesSecret && (
-                          <span className="ml-1 rounded bg-danger/10 px-1.5 py-0.5 text-[11px] text-danger">
+                          <span className="ml-1 rounded bg-danger/10 px-1.5 py-0.5 text-[11px] text-danger-text">
                             🔑 {t('backup.keyIncluded')}
                           </span>
                         )}
@@ -651,7 +651,7 @@ export default function BackupAdminPage() {
                         })}
                       </div>
                       {b.storageMode === 's3' && (
-                        <div className="mt-1 text-[11px] font-medium text-danger">
+                        <div className="mt-1 text-[11px] font-medium text-danger-text">
                           {t('backup.s3NoMedia')}
                         </div>
                       )}
@@ -677,7 +677,7 @@ export default function BackupAdminPage() {
                       type="button"
                       onClick={() => void remove(b.id)}
                       disabled={busy !== null}
-                      className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-danger/10 hover:text-danger"
+                      className="flex h-8 w-8 items-center justify-center rounded-full text-base-500 hover:bg-danger/10 hover:text-danger-text"
                       aria-label={t('backup.delete')}
                     >
                       <Trash2 size={16} />

@@ -74,7 +74,7 @@ export function BulkDownloadButton({
     >
       <Download size={label ? 13 : 18} strokeWidth={2.2} />
       {label ? (
-        <span className="whitespace-nowrap">
+        <span className="whitespace-nowrap tabular-nums">
           {busy ? t('download.savingProgress', { done, total: assetIds.length }) : label}
         </span>
       ) : busy ? (

@@ -143,7 +143,7 @@ export function DayCell({
                   className={cn(
                     'flex h-4 items-center gap-[2px] rounded-full px-[3px] text-[10px] font-bold leading-none tabular-nums shadow-sm',
                     marker.active
-                      ? 'bg-point-500 text-white'
+                      ? 'bg-point-600 text-white'
                       : hasAssets
                         ? 'bg-black/55 text-white/75 backdrop-blur-sm'
                         : 'bg-base-200 text-base-500 dark:bg-base-700 dark:text-base-300',

@@ -56,7 +56,7 @@ export function GrowthForm({
   return (
     <form action={formAction} className="space-y-4">
       {failure && (
-        <p className="text-sm text-danger" role="alert">
+        <p className="text-sm text-danger-text" role="alert">
           {actionErrorText(tRoot, failure)}
         </p>
       )}

@@ -39,9 +39,11 @@ test.describe('P6 social smoke', () => {
     await expect(page.getByRole('heading', { name: '세부정보' })).toBeVisible()
 
     // Like
-    const likeBtn = page.getByRole('button', { name: /좋아요$/ }).first()
+    const likeBtn = page.getByRole('button', { name: /^좋아요/, pressed: false }).first()
     await likeBtn.click()
-    await expect(page.getByRole('button', { name: /좋아요 취소/ })).toBeVisible({ timeout: 3000 })
+    await expect(page.getByRole('button', { name: /^좋아요/, pressed: true }).first()).toBeVisible({
+      timeout: 3000,
+    })
 
     // Comment
     const textarea = page.locator('textarea').first()

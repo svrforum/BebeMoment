@@ -49,7 +49,10 @@ export default async function LoginPage({
         </h1>
         <p className="mt-3 text-base text-base-500">{t('login.subtitle')}</p>
         {errorMessage && (
-          <p className="mt-6 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+          <p
+            className="mt-6 rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger-text"
+            role="alert"
+          >
             {errorMessage}
           </p>
         )}

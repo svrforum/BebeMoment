@@ -65,7 +65,7 @@ export function SnsLinkSection() {
             ) : (
               <a
                 href={`/api/auth/oidc/${p.id}?link=1`}
-                className="rounded-full bg-point-500 px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-point-600"
+                className="rounded-full bg-point-600 px-3.5 py-1.5 text-[13px] font-medium text-white transition-colors hover:bg-point-700"
               >
                 {t('sns.connect')}
               </a>

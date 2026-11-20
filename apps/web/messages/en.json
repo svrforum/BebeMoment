@@ -344,6 +344,8 @@
     }
   },
   "shell": {
+    "toastLabel": "Notification",
+    "toastRegion": "Notifications ({hotkey})",
     "switchFamily": "Switch family",
     "uploadFab": "Upload photos · videos",
     "addFab": "Add",
@@ -352,7 +354,7 @@
     "addStoryDesc": "Capture today with words and photos",
     "addUpload": "Upload photos · videos",
     "addUploadDesc": "Pick from your gallery and post",
-    "unreadPhotos": "{count} new photos",
+    "unreadPhotos": "{count, plural, one {# new photo} other {# new photos}}",
     "installedAppVersion": " · App {version}",
     "theme": {
       "label": "Theme",
@@ -376,7 +378,7 @@
     "composer": {
       "writeToday": "Share today's moment",
       "placeholder": "What happened today?",
-      "photosAttached": "{count} photos attached",
+      "photosAttached": "{count, plural, one {# photo} other {# photos}} attached",
       "collapse": "Collapse",
       "close": "Close",
       "file": "File",
@@ -387,17 +389,17 @@
       "visibilityFamily": "Everyone",
       "visibilityGuardians": "Guardians only",
       "visibilityFamilyDesc": "Visible to the whole family",
-      "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
+      "visibilityGuardiansDesc": "Only admins and guardians can see this",
       "preparingPhotos": "Preparing photos…",
       "cancel": "Cancel",
       "submit": "Post",
       "submitting": "Posting…",
       "needPhoto": "Please add at least one photo",
       "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
-      "submitFailed": "Couldn't post",
+      "submitFailed": "The server couldn't save the story",
       "attachFiles": "Pick from files",
-      "rolledBack": "Couldn't post the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
-      "rolledBackPartly": "Couldn't post the story — {count} photo(s) could not be undone. ({error})",
+      "rolledBack": "Couldn't post the story. {count, plural, one {The uploaded photo was} other {The # uploaded photos were}} moved to the trash — add the photos again and post. ({error})",
+      "rolledBackPartly": "Couldn't post the story. {count, plural, one {# photo is} other {# photos are}} still on the timeline — delete them there if you don't need them. ({error})",
       "reattach": "Please add the photos again — {count} were cleared and cannot be re-sent. ({error})",
       "entryDate": "Story date",
       "entryDateInvalid": "Check the date — it must be today or earlier",
@@ -418,17 +420,19 @@
       "statusFailed": "Upload failed",
       "openPhoto": "Open photo",
       "openVideo": "Open video",
+      "photoAt": "Photo {n} of {total}, {date}",
+      "videoAt": "Video {n} of {total}, {date}",
       "selectItem": "Select",
       "retry": "Retry",
       "delete": "Delete",
       "retrying": "Reprocessing now",
-      "retryFailed": "Couldn't retry",
-      "deleteFailed": "Couldn't delete"
+      "retryFailed": "Couldn't reprocess. Try again in a moment",
+      "deleteFailed": "Couldn't delete. Try again in a moment"
     },
     "bucket": {
-      "photoCount": "{count} photos",
-      "morePhotos": "Show {count} more photos",
-      "moreStories": "Show {count} more stories"
+      "photoCount": "{count, plural, one {# photo} other {# photos}}",
+      "morePhotos": "Show {count, plural, one {# more photo} other {# more photos}}",
+      "moreStories": "Show {count, plural, one {# more story} other {# more stories}}"
     },
     "memories": {
       "view": "View memories",
@@ -436,29 +440,31 @@
     },
     "grid": {
       "loadMoreFailed": "Couldn't load more. Please try again in a moment",
-      "newPhotos": "Load {count} new photos",
+      "newPhotos": "Load {count, plural, one {# new photo} other {# new photos}}",
       "newChanges": "Load latest changes",
       "dismissNew": "Dismiss",
-      "deletePartialFailed": "Some deletions failed",
-      "deletePartialDesc": "{done}/{total} deleted. Please try again.",
-      "deletedCount": "{count} photos deleted",
-      "deletedDesc": "You can restore them from the trash",
+      "deletePartialFailed": "Some photos couldn't be moved to the trash",
+      "deletePartialDesc": "{failed, plural, one {# photo is} other {# photos are}} still selected. Tap the trash button again",
+      "deletedCount": "Moved {count, plural, one {# photo} other {# photos}} to the trash",
+      "deletedDesc": "You can restore them from the trash within 30 days",
       "emptyTitle": "No photos yet",
       "emptyViewerDesc": "New photos will show up here soon",
       "emptyUploaderDesc": "Tap the + button at the bottom right to add your first photo",
       "seenUpTo": "You're caught up",
-      "confirmDeleteTitle": "Delete {count} photos?",
-      "confirmDeleteDesc": "They'll move to the trash, where you can restore them within 30 days.",
+      "confirmDeleteTitle": "Move {count, plural, one {# photo} other {# photos}} to the trash?",
+      "confirmDeleteDesc": "You can restore them from the trash within 30 days.",
       "clearSelection": "Clear selection",
       "selectedCount": "{count} selected",
-      "delete": "Delete",
+      "delete": "Move to trash",
+      "confirmDeleteLabel": "Move to trash",
+      "moving": "Moving…",
       "addToAlbum": "Add to album",
       "menuDetail": "View details",
       "menuSelect": "Add to selection",
       "menuDeselect": "Remove from selection",
-      "menuSave": "Save",
+      "menuSave": "Download",
       "menuAddToAlbum": "Add to album",
-      "menuDelete": "Delete"
+      "menuDelete": "Move to trash"
     },
     "page": {
       "dateTitle": "{month}/{day}",
@@ -632,6 +638,9 @@
     }
   },
   "viewer": {
+    "photoAlt": "Photo taken {date}",
+    "videoAlt": "Video taken {date}",
+    "pageTitle": "Photo",
     "actions": {
       "close": "Close",
       "download": "Download",
@@ -655,7 +664,7 @@
       "widgetRemove": "Remove from home widget",
       "widgetAdded": "Added to your home widget",
       "widgetRemoved": "Removed from your home widget",
-      "widgetFailed": "Couldn't update the widget"
+      "widgetFailed": "Couldn't update the widget. Try again in a moment"
     },
     "info": {
       "details": "Details",
@@ -683,6 +692,7 @@
       "cancel": "Cancel",
       "edit": "Edit",
       "delete": "Delete",
+      "deleteConfirm": "Tap again to delete",
       "menu": "Comment menu",
       "edited": "(edited)",
       "deleted": "This comment was deleted",
@@ -693,15 +703,13 @@
     },
     "like": {
       "like": "Like",
-      "unlike": "Unlike",
       "failed": "Couldn't update your like",
       "retry": "Try again",
       "likedBy": "Liked by {names}",
-      "likedByMore": "Liked by {names} and {count} others"
+      "likedByMore": "Liked by {names} and {count, plural, one {# other} other {# others}}"
     },
     "bookmark": {
-      "add": "Add bookmark",
-      "remove": "Remove bookmark",
+      "label": "Bookmark",
       "failed": "Couldn't update your bookmark",
       "retry": "Try again"
     },
@@ -715,6 +723,7 @@
     },
     "share": {
       "share": "Share",
+      "shareDay": "Share {date}",
       "shareThisDay": "Share this day",
       "expiry": "Expires",
       "ttlPermanent": "Forever",
@@ -855,7 +864,7 @@
       "visibilityFamily": "Everyone",
       "visibilityGuardians": "Guardians only",
       "visibilityFamilyDesc": "Visible to the whole family",
-      "visibilityGuardiansDesc": "Only owner / guardian roles can see this",
+      "visibilityGuardiansDesc": "Only admins and guardians can see this",
       "attachFiles": "Pick from files",
       "rolledBack": "Couldn't save — the {count} newly uploaded photo(s) were moved to the trash. ({error})",
       "rolledBackPartly": "Couldn't save — {count} photo(s) could not be undone. ({error})",

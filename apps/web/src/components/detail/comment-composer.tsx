@@ -1,4 +1,5 @@
 'use client'
+import { smoothScroll } from '@/lib/motion'
 import { Button } from '@/components/ui/button'
 import { useToast } from '@/lib/toast'
 import { useTranslations } from 'next-intl'
@@ -88,7 +89,7 @@ export function CommentComposer({
         onFocus={(e) => {
           // 모바일 키보드가 올라올 때 작성칸이 가려지지 않도록 보이는 영역으로 끌어올린다.
           requestAnimationFrame(() =>
-            e.target.scrollIntoView({ block: 'nearest', behavior: 'smooth' }),
+            e.target.scrollIntoView({ block: 'nearest', behavior: smoothScroll() }),
           )
         }}
         onKeyDown={(e) => {

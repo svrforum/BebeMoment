@@ -12,9 +12,9 @@ export const Card = forwardRef<HTMLDivElement, CardProps>(
     <div
       ref={ref}
       className={cn(
-        'rounded-2xl border border-base-200/70 bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900',
+        'rounded-2xl border border-transparent bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900',
         interactive &&
-          'transition-[transform,box-shadow] duration-200 ease-ios hover:-translate-y-0.5 hover:shadow-elevated active:translate-y-0 active:shadow-card motion-reduce:transition-none motion-reduce:hover:translate-y-0',
+          'transition-[transform,translate,box-shadow] duration-200 ease-ios hover:-translate-y-0.5 hover:shadow-elevated active:translate-y-0 active:shadow-card motion-reduce:transition-none motion-reduce:hover:translate-y-0',
         className,
       )}
       {...props}

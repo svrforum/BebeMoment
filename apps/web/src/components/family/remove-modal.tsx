@@ -69,13 +69,13 @@ export function RemoveModal({ open, onOpenChange, membershipId, displayName }: P
             className="w-full rounded-2xl border border-base-200 bg-base-0 px-3 py-2.5 text-sm text-base-900 outline-none focus:border-red-400 dark:border-base-700 dark:bg-base-900 dark:text-base-50"
           />
         </div>
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p className="text-center text-sm text-danger-text">{error}</p>}
         <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={submit}
             disabled={pending || confirm !== confirmWord}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] hover:bg-red-600 disabled:opacity-40"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-danger text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] hover:brightness-110 disabled:opacity-40"
           >
             {pending ? t('removeModal.removing') : t('removeModal.confirm')}
           </button>

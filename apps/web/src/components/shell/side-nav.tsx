@@ -73,6 +73,9 @@ export function SideNav({
         ? t('theme.light')
         : t('theme.dark')
 
+  // 상세 뷰어(fixed inset-0)가 덮는 동안 Tab 이 안 보이는 사이드바 링크로 새지 않게 — 바텀 네비와 같은 가드.
+  if (pathname?.startsWith('/detail') === true) return null
+
   return (
     <aside className="fixed inset-y-0 left-0 hidden w-60 flex-col border-r border-base-200/70 bg-base-0/70 backdrop-blur-xl md:flex dark:border-base-800/60 dark:bg-base-900/60">
       <div className="flex items-center gap-2.5 px-5 pb-5 pt-7">
@@ -83,7 +86,7 @@ export function SideNav({
           <div className="truncate text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
             {familyName}
           </div>
-          <div className="truncate text-[11px] text-base-400">
+          <div className="truncate text-[11px] text-base-500">
             bebe<span className="text-point-500">·</span>moment
           </div>
         </div>
@@ -95,10 +98,11 @@ export function SideNav({
             <Link
               key={href}
               href={href}
+              aria-current={active ? 'page' : undefined}
               className={cn(
-                'focus-ring group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-all ease-ios',
+                'focus-ring group relative flex items-center gap-3 rounded-2xl px-3 py-2.5 text-[14px] font-medium transition-colors ease-ios',
                 active
-                  ? 'bg-point-500/10 text-point-500'
+                  ? 'bg-point-500/10 text-point-700 dark:text-point-300'
                   : 'text-base-600 hover:bg-base-100 hover:text-base-900 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100',
               )}
             >
@@ -124,7 +128,7 @@ export function SideNav({
         >
           <ThemeIcon size={16} strokeWidth={1.9} />
           <span className="flex-1 text-left">{t('theme.label')}</span>
-          <span className="text-[11px] text-base-400">{themeTitle}</span>
+          <span className="text-[11px] text-base-500">{themeTitle}</span>
         </button>
       </div>
     </aside>

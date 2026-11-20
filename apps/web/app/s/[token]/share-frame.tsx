@@ -70,7 +70,7 @@ export async function ShareViewFrame({
       <div className="mt-auto flex flex-col gap-2.5 pt-8">
         <a
           href={appHref}
-          className="flex h-12 items-center justify-center rounded-2xl bg-point-500 text-[15px] font-semibold text-white active:scale-[0.99]"
+          className="flex h-12 items-center justify-center rounded-2xl bg-point-600 text-[15px] font-semibold text-white active:scale-[0.99]"
         >
           {resolvedAppLabel}
         </a>

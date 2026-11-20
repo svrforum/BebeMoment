@@ -328,7 +328,7 @@ export function MonthGrid({
                         className={cn(
                           'rounded-xl py-2 text-[14px] font-medium tabular-nums transition active:scale-95',
                           isSel
-                            ? 'bg-point-500 text-white'
+                            ? 'bg-point-600 text-white'
                             : 'text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
                         )}
                       >
@@ -381,7 +381,10 @@ export function MonthGrid({
             'calendar.dow6',
           ] as const
         ).map((k, i) => (
-          <div key={k} className={cn(i === 0 && 'text-danger/70', i === 6 && 'text-point-500/70')}>
+          <div
+            key={k}
+            className={cn(i === 0 && 'text-danger-text/70', i === 6 && 'text-point-500/70')}
+          >
             {t(k)}
           </div>
         ))}

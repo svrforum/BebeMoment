@@ -1035,9 +1035,10 @@
   --radius-2xl: 24px;
   --radius-3xl: 28px;
 
-  /* 두 겹의 얕은 깊이감 — 1px 접촉면 테두리 + 부드러운 확산. 무거운 elevation 없이 층이 읽힌다. */
+  /* 두 겹의 얕은 깊이감 — 1px 접촉면 링 + 부드러운 확산. 라이트 카드는 테두리 없이 이 링이
+     가장자리를 그린다(테두리까지 겹치면 선이 두 줄로 보였다). 다크는 그림자가 안 보여 테두리를 쓴다. */
   --shadow-card:
-    0 0 0 1px rgb(0 0 0 / 0.03), 0 1px 2px rgb(0 0 0 / 0.04), 0 4px 12px -6px rgb(0 0 0 / 0.08);
+    0 0 0 1px rgb(0 0 0 / 0.06), 0 1px 2px -1px rgb(0 0 0 / 0.06), 0 2px 6px -2px rgb(0 0 0 / 0.06);
   --shadow-elevated:
     0 0 0 1px rgb(0 0 0 / 0.04), 0 2px 6px -2px rgb(0 0 0 / 0.06),
     0 12px 32px -12px rgb(0 0 0 / 0.16);
@@ -1098,7 +1099,8 @@
   --color-base-200: #d8d8de;
   --color-base-300: #c6c6cc;
   --color-base-400: #a1a1aa;
-  --color-base-500: #71717a;
+  /* 흰 카드·base-50·base-100 위 보조 텍스트가 4.5:1 을 넘도록 #71717a 에서 한 단 내렸다. */
+  --color-base-500: #686871;
   --color-base-600: #52525b;
   --color-base-700: #3f3f46;
   --color-base-800: #27272a;
@@ -1106,10 +1108,17 @@
   --color-base-950: #09090b;
 
   --color-point-50: #eff6ff;
+  --color-point-100: #dbeafe;
+  --color-point-300: #93c5fd;
+  --color-point-400: #60a5fa;
   --color-point-500: #3b82f6;
   --color-point-600: #2563eb;
+  --color-point-700: #1d4ed8;
 
-  --color-danger: #ef4444;
+  /* 흰 글자를 얹는 채움색. #ef4444 위 흰 글자는 3.8:1 이라 한 단 진하게. */
+  --color-danger: #dc2626;
+  /* 빨간 '글자'용 — 채움색과 따로 둔다(라이트 6.5:1, 다크는 아래 .dark 에서 밝게). */
+  --color-danger-text: #b91c1c;
   --color-success: #10b981;
   --color-warning: #f59e0b;
 
@@ -1125,6 +1134,7 @@
   /* 다크모드 보조 텍스트 대비 — 라이트용 base-500(#71717a)은 어두운 배경에서 ~3.7:1 로
      WCAG AA(4.5:1) 미달이라, 다크에서만 한 단계 밝게 올린다(모든 text-base-500 일괄 개선). */
   --color-base-500: #9494a0;
+  --color-danger-text: #f87171;
 }
 
 :root {
@@ -1146,10 +1156,15 @@
   }
   body {
     @apply bg-base-50 text-base-900 font-sans antialiased;
-    font-feature-settings: "ss01", "ss02", "tnum";
-    /* Pretendard variable axes — slight weight bias for primary surfaces */
-    font-variation-settings: "wght" 420;
+    font-feature-settings: "ss01", "ss02";
+    /* 본문만 살짝 굵게. font-variation-settings 의 "wght" 는 상속되면서 font-weight 를
+       이겨 font-bold·semibold 를 전부 420 으로 눌러 버렸다(2026-11) — 굵기는 속성으로만. */
+    font-weight: 420;
     letter-spacing: -0.01em;
+    /* 한글은 기본값이면 음절 사이 아무 데서나 줄이 바뀐다("잠자/는"). 띄어쓰기에서만 끊고,
+       띄어쓰기 없는 긴 덩어리(ㅋㅋㅋ…·URL)만 넘칠 때 쪼갠다. */
+    word-break: keep-all;
+    overflow-wrap: break-word;
   }
   .dark body {
     @apply bg-base-950 text-base-50;
@@ -1269,21 +1284,14 @@
       animation: none;
     }
   }
-  /* Crisp, consistent keyboard focus ring for interactive surfaces that
-     aren't <Button>. Mouse/touch never shows it (focus-visible only). */
-  .focus-ring {
-    outline: none;
-  }
+  /* 키보드 포커스 링 — focus-visible 일 때만. box-shadow 로 그리던 반투명 링은 배경 대비
+     3:1 에 못 미쳤고 고대비(forced-colors) 모드에선 아예 사라졌다. outline 은 둘 다 통과한다. */
   .focus-ring:focus-visible {
-    outline: none;
-    box-shadow:
-      0 0 0 2px var(--color-base-0),
-      0 0 0 4px color-mix(in srgb, var(--color-point-500) 55%, transparent);
+    outline: 2px solid var(--color-point-600);
+    outline-offset: 2px;
   }
   .dark .focus-ring:focus-visible {
-    box-shadow:
-      0 0 0 2px var(--color-base-950),
-      0 0 0 4px color-mix(in srgb, var(--color-point-500) 55%, transparent);
+    outline-color: var(--color-point-400);
   }
   /* Glass surface for sheets / overlays */
   .glass {
@@ -1435,4 +1443,31 @@
 /* 영상 재생 중에는 네이티브 컨트롤의 seek 바가 점 바로 위에 온다 — 접어 둔다. */
 .story-carousel.is-playing .swiper-pagination {
   opacity: 0;
+}
+
+/* 동작 줄이기: vaul 시트는 화면 높이만큼 0.5초 미끄러져 올라온다. vaul 이 레이어 밖 CSS 를
+   주입하므로 여기도 레이어 밖에 두고 !important 로 덮는다 — 미끄러짐 대신 짧은 투명도 전환. */
+@keyframes bebe-sheet-fade-in {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes bebe-sheet-fade-out {
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-vaul-drawer] {
+    /* biome-ignore lint/complexity/noImportantStyles: vaul 의 주입 CSS·인라인 transform 을 덮어야 한다 */
+    transition: none !important;
+  }
+  [data-vaul-drawer][data-state="open"] {
+    /* biome-ignore lint/complexity/noImportantStyles: vaul 의 주입 CSS·인라인 transform 을 덮어야 한다 */
+    animation: bebe-sheet-fade-in 150ms ease-out both !important;
+  }
+  [data-vaul-drawer][data-state="closed"] {
+    /* biome-ignore lint/complexity/noImportantStyles: vaul 의 주입 CSS·인라인 transform 을 덮어야 한다 */
+    animation: bebe-sheet-fade-out 150ms ease-out both !important;
+  }
 }

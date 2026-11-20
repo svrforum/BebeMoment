@@ -126,6 +126,35 @@ describe('@theme 은 소스가 쓰는 커스텀 유틸리티 토큰을 전부 �
     expect(report).toEqual([])
   })
 
+  // 커스텀 색(base·point·의미 색)은 정의한 단계만 CSS 가 나온다. `dark:text-point-300` 처럼 없는
+  // 단계를 쓰면 경고 없이 규칙이 0줄이 돼 다크모드 강조색이 라이트 값 그대로 남았다(2026-11, 33곳).
+  it('소스가 쓰는 커스텀 색 단계마다 --color 토큰이 있다', () => {
+    const COLOR_UTILITY =
+      /(?<![\w-])(?:bg|text|border(?:-[trblxyse])?|ring(?:-offset)?|fill|stroke|from|via|to|outline|shadow|divide|placeholder|caret|accent|decoration)-((?:base|point)-\d+|danger-text|danger|success|warning|surface-[12])(?![\w-])/g
+    const missing = new Map<string, Set<string>>()
+    for (const file of files) {
+      const src = readFileSync(file, 'utf8')
+      for (const m of src.matchAll(COLOR_UTILITY)) {
+        const token = `--color-${m[1]}`
+        if (theme.includes(`${token}:`)) continue
+        const set = missing.get(token) ?? new Set()
+        set.add(`${path.relative(ROOT, file)} (${m[0]})`)
+        missing.set(token, set)
+      }
+    }
+    const report = [...missing.entries()].map(
+      ([token, uses]) =>
+        `${token} ← ${[...uses].slice(0, 3).join(', ')}${uses.size > 3 ? ' …' : ''}`,
+    )
+    expect(report).toEqual([])
+  })
+
+  // font-variation-settings 의 "wght" 는 상속되면서 font-weight 를 이긴다 — body 에 걸려 있던
+  // "wght" 420 이 font-bold·semibold 를 전부 420 으로 눌러 굵기 위계가 통째로 사라졌다(2026-11).
+  it('굵기는 font-variation-settings 가 아니라 font-weight 로만 준다', () => {
+    expect(css).not.toMatch(/font-variation-settings:\s*["']wght["']/)
+  })
+
   it('globals.css 가 참조하는 폰트 파일은 전부 public 에 있다', () => {
     const css = readFileSync(path.join(ROOT, 'app/globals.css'), 'utf8')
     const refs = [...css.matchAll(/url\((["']?)(\/fonts\/[^)"']+)\1\)/g)].map((m) => m[2] as string)

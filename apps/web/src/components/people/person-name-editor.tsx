@@ -83,7 +83,7 @@ export function PersonNameEditor({
           type="button"
           onClick={() => void save()}
           disabled={saving}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-point-500 text-white disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-point-600 text-white disabled:opacity-50"
           aria-label={t('people.save')}
         >
           <Check size={17} />
@@ -100,7 +100,7 @@ export function PersonNameEditor({
           <X size={17} />
         </button>
       </div>
-      {error && <p className="px-1 text-xs text-red-500">{error}</p>}
+      {error && <p className="px-1 text-xs text-danger-text">{error}</p>}
     </div>
   )
 }

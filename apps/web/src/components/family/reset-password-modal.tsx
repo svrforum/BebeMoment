@@ -67,7 +67,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
           </p>
           <p className="mt-1 text-sm text-base-500">{t('resetModal.subtitle')}</p>
         </div>
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p className="text-center text-sm text-danger-text">{error}</p>}
         {url ? (
           <div className="flex flex-col gap-2">
             <div className="flex items-center gap-2 rounded-2xl border border-base-200 bg-base-50 px-3 py-2 dark:border-base-700 dark:bg-base-900">
@@ -77,7 +77,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
               <button
                 type="button"
                 onClick={copy}
-                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-point-500 px-3 py-1.5 text-sm font-semibold text-white"
+                className="inline-flex shrink-0 items-center gap-1 rounded-xl bg-point-600 px-3 py-1.5 text-sm font-semibold text-white"
               >
                 <Copy size={14} /> {copied ? t('resetModal.copied') : t('resetModal.copy')}
               </button>
@@ -100,7 +100,7 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
             type="button"
             onClick={generate}
             disabled={pending}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-600 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] disabled:opacity-60"
           >
             {pending ? t('resetModal.generating') : t('resetModal.generate')}
           </button>

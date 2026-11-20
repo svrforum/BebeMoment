@@ -367,23 +367,22 @@ export function TimelineGrid({
       )
       results.push(...settled)
     }
-    const failures = results.filter((r) => r.status === 'rejected').length
-    if (failures > 0) {
+    // results 는 ids 순서를 따른다 — 실패한 사진만 선택에 남겨 휴지통 버튼을 다시 누르면 되게 한다.
+    const failedIds = ids.filter((_, i) => results[i]?.status === 'rejected')
+    if (failedIds.length > 0) {
       toast({
         title: t('grid.deletePartialFailed'),
-        description: t('grid.deletePartialDesc', {
-          done: ids.length - failures,
-          total: ids.length,
-        }),
+        description: t('grid.deletePartialDesc', { failed: failedIds.length }),
         variant: 'danger',
       })
+      setSelected(new Set(failedIds))
     } else {
       toast({
         title: t('grid.deletedCount', { count: ids.length }),
         description: t('grid.deletedDesc'),
       })
+      clearSelection()
     }
-    clearSelection()
     router.refresh()
   }, [selected, clearSelection, router, toast, t])
 
@@ -512,7 +511,7 @@ export function TimelineGrid({
             {showDivider && i === boundaryIndex && (
               <div className="my-6 flex items-center gap-3 px-1">
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
-                <span className="text-[12px] font-medium text-base-400">{t('grid.seenUpTo')}</span>
+                <span className="text-[12px] font-medium text-base-500">{t('grid.seenUpTo')}</span>
                 <span className="h-px flex-1 bg-base-200 dark:bg-base-800" />
               </div>
             )}
@@ -582,6 +581,8 @@ export function TimelineGrid({
         onOpenChange={setDeleteOpen}
         title={t('grid.confirmDeleteTitle', { count: selected.size })}
         description={t('grid.confirmDeleteDesc')}
+        confirmLabel={t('grid.confirmDeleteLabel')}
+        confirmingLabel={t('grid.moving')}
         onConfirm={bulkDelete}
       />
 
@@ -692,7 +693,7 @@ function SelectionBar({
           type="button"
           onClick={onDelete}
           aria-label={t('grid.delete')}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-red-500 transition hover:bg-red-50 dark:hover:bg-red-500/10"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-danger-text transition hover:bg-danger/10"
         >
           <Trash2 size={18} strokeWidth={2.2} />
         </button>
@@ -701,7 +702,7 @@ function SelectionBar({
         <button
           type="button"
           onClick={onAlbum}
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-500 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-600 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-700"
         >
           <FolderPlus size={14} strokeWidth={2.4} />
           {t('grid.addToAlbum')}

@@ -292,7 +292,7 @@ export function EntryDetail({ entry, canEdit, canShare, canDelete, viewerName }:
             <button
               type="button"
               onClick={() => setConfirmOpen(true)}
-              className="focus-ring mx-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-medium text-danger/80 transition active:opacity-70"
+              className="focus-ring mx-auto flex items-center gap-1.5 rounded-xl px-3 py-2 text-[13px] font-medium text-danger-text/80 transition active:opacity-70"
             >
               <Trash2 size={14} strokeWidth={2.2} aria-hidden />
               {t('detail.delete')}
@@ -333,7 +333,7 @@ function ChecklistRow({
         className={cn(
           'flex h-5 w-5 shrink-0 items-center justify-center rounded-md border-2',
           item.doneAt
-            ? 'border-point-500 bg-point-500 text-white'
+            ? 'border-point-600 bg-point-600 text-white'
             : 'border-base-300 dark:border-base-600',
         )}
       >

@@ -38,7 +38,10 @@ export function ViewerImage({
   chromeVisible,
   onToggleChrome,
   storyCtx,
+  currentAlt,
 }: {
+  /** 지금 보이는 사진의 대체 텍스트(촬영일) — 이게 없으면 화면낭독기는 버튼만 읽고 사진은 못 읽는다. */
+  currentAlt?: string
   current: AssetSlim
   siblings: {
     prevId: string | undefined
@@ -106,6 +109,7 @@ export function ViewerImage({
       onClose={goBack}
       onTap={onToggleChrome}
       storyCtx={storyCtx ?? null}
+      currentAlt={currentAlt ?? ''}
     />
   )
 }
@@ -120,8 +124,10 @@ function SwiperViewport({
   onClose,
   onTap,
   storyCtx,
+  currentAlt,
 }: {
   current: AssetSlim
+  currentAlt: string
   prev: AssetSlim | null
   next: AssetSlim | null
   chromeVisible: boolean
@@ -312,7 +318,11 @@ function SwiperViewport({
               height: '100%',
             }}
           >
-            <SlideContent slim={slim} isCurrent={role === 'current'} />
+            <SlideContent
+              slim={slim}
+              isCurrent={role === 'current'}
+              alt={role === 'current' ? currentAlt : ''}
+            />
           </SwiperSlide>
         ))}
       </Swiper>
@@ -368,7 +378,15 @@ function SwiperViewport({
   )
 }
 
-function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean }) {
+function SlideContent({
+  slim,
+  isCurrent,
+  alt,
+}: {
+  slim: AssetSlim
+  isCurrent: boolean
+  alt: string
+}) {
   const trio = pickDisplayTrio(slim.urls)
   const fallbackUrl = pickDisplayUrl(slim.urls)
   const isVideo = slim.kind === 'video'
@@ -391,7 +409,7 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
       // biome-ignore lint/performance/noImgElement: 미디어 서버의 signed URL — next/image 부적합
       <img
         src={slim.posterUrl}
-        alt=""
+        alt={alt}
         className="max-h-full max-w-full"
         style={{ objectFit: 'contain' }}
       />
@@ -419,7 +437,7 @@ function SlideContent({ slim, isCurrent }: { slim: AssetSlim; isCurrent: boolean
     // biome-ignore lint/performance/noImgElement: Swiper Zoom 직접자식 img 요구 — 위 주석 참조
     <img
       src={src}
-      alt=""
+      alt={alt}
       decoding="async"
       loading="eager"
       fetchPriority={isCurrent ? 'high' : 'low'}

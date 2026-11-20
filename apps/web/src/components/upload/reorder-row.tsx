@@ -98,7 +98,7 @@ export function ReorderRow({
             {renderItem(key, i)}
             <span
               className={`pointer-events-none absolute left-1 top-1 z-[2] rounded-full px-1.5 py-px text-[10px] font-bold leading-tight shadow-sm ${
-                i === 0 ? 'bg-point-500 text-white' : 'bg-black/65 text-white'
+                i === 0 ? 'bg-point-600 text-white' : 'bg-black/65 text-white'
               }`}
             >
               {i === 0 ? coverLabel : i + 1}

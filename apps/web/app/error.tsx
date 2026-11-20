@@ -18,7 +18,7 @@ export default function ErrorBoundary({
         <button
           type="button"
           onClick={reset}
-          className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-500 px-6 font-semibold text-white shadow-[0_6px_20px_-6px] shadow-point-500/45 transition hover:bg-point-600"
+          className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-600 px-6 font-semibold text-white shadow-[0_6px_20px_-6px] shadow-point-500/45 transition hover:bg-point-700"
         >
           {t('tryAgain')}
         </button>

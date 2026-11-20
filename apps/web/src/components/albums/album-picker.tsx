@@ -278,7 +278,7 @@ function CreateRow({ onCreated }: { onCreated: (id: string) => void }) {
         <button
           type="submit"
           disabled={pending}
-          className="rounded-full bg-point-500 px-3 py-1 text-[12px] font-medium text-white transition active:scale-95 disabled:opacity-50"
+          className="rounded-full bg-point-600 px-3 py-1 text-[12px] font-medium text-white transition active:scale-95 disabled:opacity-50"
         >
           {t('picker.create')}
         </button>

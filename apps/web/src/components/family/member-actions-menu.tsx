@@ -142,7 +142,7 @@ function MenuItem({
       onClick={onClick}
       className={`block w-full px-4 py-2.5 text-left text-sm ${
         danger
-          ? 'text-red-500 hover:bg-red-50 dark:hover:bg-red-500/10'
+          ? 'text-danger-text hover:bg-danger/10'
           : 'text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800'
       }`}
     >

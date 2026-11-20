@@ -162,8 +162,8 @@ function Item({
       role="menuitem"
       className={
         destructive
-          ? 'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-red-500 transition-colors hover:bg-red-50 dark:hover:bg-red-500/10'
-          : 'flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-left text-[14px] font-medium text-base-800 transition-colors hover:bg-base-100 dark:text-base-100 dark:hover:bg-base-800'
+          ? 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-danger-text transition-colors hover:bg-danger/10'
+          : 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-base-800 transition-colors hover:bg-base-100 dark:text-base-100 dark:hover:bg-base-800'
       }
     >
       <span className={destructive ? '' : 'text-base-500'}>{icon}</span>

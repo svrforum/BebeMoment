@@ -273,8 +273,9 @@ export function AppShellClient({
   const canUpload = capabilities.includes('asset.upload')
   const canCreateSchedule = features.schedule && capabilities.includes('schedule.create')
   const showFab = canUpload || canCreateStory || canCreateSchedule
+  const tShell = useTranslations('shell')
   return (
-    <ToastProvider swipeDirection="down">
+    <ToastProvider swipeDirection="down" label={tShell('toastLabel')}>
       {/* 영상 전체화면 중의 뒤로가기가 페이지를 떠나지 않게 — 앱 셸 전체에 한 번만. */}
       <FullscreenBackGuard />
       <ToastEmitterProvider>
@@ -297,7 +298,7 @@ export function AppShellClient({
           </UploadSheetProvider>
         </FamilySSEProvider>
       </ToastEmitterProvider>
-      <ToastViewport />
+      <ToastViewport label={tShell('toastRegion', { hotkey: '{hotkey}' })} />
     </ToastProvider>
   )
 }

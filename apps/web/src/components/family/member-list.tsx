@@ -67,7 +67,7 @@ export function MemberList({
                     </span>
                   )}
                   {m.suspendedAt && !m.removed && (
-                    <span className="shrink-0 rounded-md bg-red-500/12 px-1.5 py-0.5 text-[10px] font-semibold text-red-500">
+                    <span className="shrink-0 rounded-md bg-danger/12 px-1.5 py-0.5 text-[10px] font-semibold text-danger-text">
                       {t('members.suspended')}
                     </span>
                   )}

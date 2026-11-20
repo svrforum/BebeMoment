@@ -2,7 +2,6 @@
 import { cn } from '@/lib/cn'
 import { useFeature } from '@/lib/features'
 import { useToast } from '@/lib/toast'
-import { motion } from 'framer-motion'
 import { Heart } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useState } from 'react'
@@ -17,6 +16,8 @@ type Controlled = {
 type Props = {
   assetId: string
   size?: 'sm' | 'md'
+  /** 검은 뷰어 위처럼 페이지 테마와 무관한 표면에 놓일 때 색을 덮어쓴다(예: 'text-white'). */
+  className?: string
 } & (
   | { initialLiked: boolean; initialCount: number; controlled?: undefined }
   | { initialLiked?: undefined; initialCount?: undefined; controlled: Controlled }
@@ -71,26 +72,20 @@ export function LikeButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={liked}
-      aria-label={liked ? t('like.unlike') : t('like.like')}
       className={cn(
-        'focus-ring inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 transition active:scale-90',
+        'focus-ring inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-base-500 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',
         pending && 'opacity-70',
+        props.className,
       )}
     >
-      <motion.span
-        animate={{ scale: liked ? [1, 1.35, 1] : 1 }}
-        transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-        className="inline-flex"
-      >
-        <Heart
-          size={iconSize}
-          className={cn(
-            'transition-colors',
-            liked ? 'fill-point-500 text-point-500' : 'text-base-500',
-          )}
-        />
-      </motion.span>
+      <Heart
+        size={iconSize}
+        aria-hidden
+        className={cn('transition-colors', liked && 'fill-point-500 text-point-500')}
+      />
+      {/* 이름은 '좋아요' 하나로 두고 상태는 aria-pressed 가 말한다 — 보이는 개수도 이름에 들어간다. */}
+      <span className="sr-only">{t('like.like')}</span>
       {count > 0 && <span className="text-sm tabular-nums">{count}</span>}
     </button>
   )

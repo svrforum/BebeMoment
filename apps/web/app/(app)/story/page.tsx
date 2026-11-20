@@ -74,7 +74,7 @@ export default async function StoryPage({
           canRecord ? (
             <Link
               href="/story/new"
-              className="flex h-9 items-center gap-1.5 rounded-full bg-point-500 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-600"
+              className="flex h-9 items-center gap-1.5 rounded-full bg-point-600 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-700"
               aria-label={t('list.writeStory')}
             >
               <Plus className="h-4 w-4" strokeWidth={2.6} />

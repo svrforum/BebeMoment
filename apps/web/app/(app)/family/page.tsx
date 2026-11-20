@@ -31,7 +31,7 @@ export default async function FamilyPage() {
           <div className="overflow-hidden rounded-2xl border border-base-200/70 bg-base-0 shadow-card dark:border-base-800/70 dark:bg-base-900">
             <Link
               href="/settings"
-              className="group flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-point-500/50 active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
+              className="group flex items-center gap-3 px-4 py-3.5 transition-colors ease-ios focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400 active:bg-base-100 md:hover:bg-base-50 dark:active:bg-base-800 dark:md:hover:bg-base-800/60"
             >
               <Settings
                 className="h-[18px] w-[18px] flex-shrink-0 text-base-400"

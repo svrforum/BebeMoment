@@ -90,7 +90,7 @@ export function AppDownloadRow() {
               <span className="text-[13px] text-base-500">{t('upToDate')}</span>
             )}
             {check === 'failed' && (
-              <span className="text-[13px] text-danger">{t('checkFailed')}</span>
+              <span className="text-[13px] text-danger-text">{t('checkFailed')}</span>
             )}
           </>
         ) : null}
@@ -100,7 +100,7 @@ export function AppDownloadRow() {
             href={latest?.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-full bg-point-600 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95"
           >
             <Download size={14} strokeWidth={2.4} />
             {current

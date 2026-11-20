@@ -145,7 +145,7 @@ function GroupHeading({
       className={cn(
         'mb-2 flex items-center gap-1.5 text-[13px] font-semibold',
         // 지난 것은 눈에 띄어야 한다 — 그게 이 화면에서 제일 먼저 처리할 일이다.
-        groupKey === 'overdue' ? 'text-danger' : 'text-base-500 dark:text-base-400',
+        groupKey === 'overdue' ? 'text-danger-text' : 'text-base-500 dark:text-base-400',
       )}
     >
       {label}
@@ -200,7 +200,7 @@ function TodoRow({
         <span
           className={cn(
             'flex h-5 w-5 items-center justify-center rounded-full border-2',
-            done ? 'border-point-500 bg-point-500 text-white' : 'border-current',
+            done ? 'border-point-600 bg-point-600 text-white' : 'border-current',
           )}
         >
           {done && <Check size={12} strokeWidth={3.2} aria-hidden />}

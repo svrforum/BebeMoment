@@ -106,7 +106,7 @@ export default function EditProviderPage({ params }: { params: Promise<Params> }
                   placeholder={t('auth.clientSecretKeepPlaceholder')}
                 />
               </div>
-              {error && <p className="text-sm text-danger">{error}</p>}
+              {error && <p className="text-sm text-danger-text">{error}</p>}
               <Button type="submit" disabled={saving} className="w-full">
                 {saving ? '...' : t('auth.save')}
               </Button>

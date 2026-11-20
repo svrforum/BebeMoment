@@ -21,7 +21,7 @@ export async function MemoriesCard({ group }: { group: MemoryGroup }) {
         <span className="text-[14px] font-semibold tracking-tight text-base-900 dark:text-base-50">
           {formatMemoryInterval(group.interval, tMemories)}
         </span>
-        <span className="ml-auto flex items-center gap-0.5 text-[12px] font-medium text-point-600 dark:text-point-300">
+        <span className="ml-auto flex items-center gap-0.5 text-[12px] font-medium text-point-700 dark:text-point-300">
           {t('memories.view')}
           <ChevronRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
         </span>
@@ -30,7 +30,7 @@ export async function MemoriesCard({ group }: { group: MemoryGroup }) {
         // 고정 크기 썸네일 — flex-1 로 채우면 사진이 1~2장일 때 전폭으로 늘어나 거대해졌다.
         <div className="flex gap-1.5">
           {thumbs.map((a) => (
-            <div key={a.id} className="h-16 w-16 shrink-0 overflow-hidden rounded-lg">
+            <div key={a.id} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl">
               <PictureImage
                 assetId={a.id}
                 trio={pickThumbTrio(a.urls)}

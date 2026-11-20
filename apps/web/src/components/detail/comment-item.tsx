@@ -28,7 +28,7 @@ function renderBody(body: string, members: Member[]): React.ReactNode {
       const isMember = members.some((m) => m.displayName === name)
       if (isMember) {
         return (
-          <span key={key} className="font-medium text-point-500">
+          <span key={key} className="font-medium text-point-600 dark:text-point-400">
             {p}
           </span>
         )
@@ -55,7 +55,13 @@ export function CommentItem({
 }) {
   const [editing, setEditing] = useState(false)
   const [draft, setDraft] = useState(comment.body)
-  const [menuOpen, setMenuOpen] = useState(false)
+  const [menuOpen, setMenuOpenState] = useState(false)
+  // 삭제는 되돌릴 수 없다(복원 경로 없음) — 메뉴 안에서 한 번 더 눌러야 지운다.
+  const [confirmDelete, setConfirmDelete] = useState(false)
+  const setMenuOpen = (next: boolean | ((open: boolean) => boolean)) => {
+    setConfirmDelete(false)
+    setMenuOpenState(next)
+  }
   const toast = useToast()
   const t = useTranslations('social')
   const locale = useLocale()
@@ -75,7 +81,11 @@ export function CommentItem({
       setEditing(false)
       onChanged?.()
     } catch {
-      toast({ title: t('comment.editFailed'), variant: 'danger' })
+      toast({
+        title: t('comment.editFailed'),
+        variant: 'danger',
+        action: { label: t('comment.retry'), onClick: save },
+      })
     }
   }
 
@@ -87,7 +97,11 @@ export function CommentItem({
       if (!res.ok) throw new Error('failed')
       onChanged?.()
     } catch {
-      toast({ title: t('comment.deleteFailed'), variant: 'danger' })
+      toast({
+        title: t('comment.deleteFailed'),
+        variant: 'danger',
+        action: { label: t('comment.retry'), onClick: remove },
+      })
     }
   }
 
@@ -161,8 +175,9 @@ export function CommentItem({
               type="button"
               onClick={() => setMenuOpen((o) => !o)}
               aria-label={t('comment.menu')}
+              aria-expanded={menuOpen}
               className={cn(
-                'rounded p-1 text-base-500 md:opacity-0 md:group-hover:opacity-100',
+                'rounded p-1 text-base-500 md:opacity-0 md:group-hover:opacity-100 md:focus-visible:opacity-100',
                 menuOpen && 'opacity-100 md:opacity-100',
               )}
             >
@@ -186,12 +201,19 @@ export function CommentItem({
                   <button
                     type="button"
                     onClick={() => {
+                      if (!confirmDelete) {
+                        setConfirmDelete(true)
+                        return
+                      }
                       setMenuOpen(false)
                       remove()
                     }}
-                    className="block w-full px-3 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
+                    className={cn(
+                      'block w-full px-3 py-2 text-left text-sm text-danger-text hover:bg-base-100 dark:hover:bg-base-800',
+                      confirmDelete && 'font-semibold',
+                    )}
                   >
-                    {t('comment.delete')}
+                    {confirmDelete ? t('comment.deleteConfirm') : t('comment.delete')}
                   </button>
                 )}
               </div>

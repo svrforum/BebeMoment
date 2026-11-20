@@ -64,7 +64,7 @@ export function StoryDateFilter() {
           aria-pressed={active ? true : false}
           className={cn(
             'flex h-11 w-11 items-center justify-center rounded-2xl border bg-base-0 text-base-700 transition-colors ease-ios active:scale-95',
-            'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/30',
+            'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400',
             active
               ? 'border-point-500 text-point-600 dark:border-point-500 dark:text-point-400'
               : 'border-base-200 hover:bg-base-100 dark:border-base-800 dark:bg-base-900 dark:text-base-300 dark:hover:bg-base-800',

@@ -161,7 +161,7 @@ export function DaySheet({
             <button
               type="button"
               onClick={() => onAddEntry(day)}
-              className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-2xl bg-point-500 py-3 text-[15px] font-semibold text-white transition active:scale-[0.98]"
+              className="focus-ring flex w-full items-center justify-center gap-1.5 rounded-2xl bg-point-600 py-3 text-[15px] font-semibold text-white transition active:scale-[0.98]"
             >
               <Plus size={17} strokeWidth={2.6} />
               {t('daySheet.addEntry')}

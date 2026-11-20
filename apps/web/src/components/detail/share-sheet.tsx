@@ -235,7 +235,7 @@ export function ShareSheet({
           type="button"
           onClick={onCreate}
           disabled={creating}
-          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-point-500 text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-60"
+          className="flex h-12 w-full items-center justify-center gap-2 rounded-2xl bg-point-600 text-[15px] font-semibold text-white transition active:scale-[0.99] disabled:opacity-60"
         >
           {creating ? <Loader2 size={18} className="animate-spin" /> : <Link2 size={18} />}
           {t('share.createLink')}
@@ -287,7 +287,7 @@ export function ShareSheet({
                     type="button"
                     onClick={() => onRevoke(l.token)}
                     aria-label={t('share.revokeThisLink')}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-danger/10 hover:text-danger active:scale-95"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-danger/10 hover:text-danger-text active:scale-95"
                   >
                     <Trash2 size={16} strokeWidth={2.2} />
                   </button>

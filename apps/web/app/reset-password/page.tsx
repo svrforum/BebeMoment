@@ -80,12 +80,12 @@ function ResetForm() {
           className="w-full rounded-2xl border border-base-200 bg-base-0 px-3 py-2.5 text-sm outline-none focus:border-point-400 dark:border-base-700 dark:bg-base-900 dark:text-base-50"
         />
       </div>
-      {error && <p className="mt-2 text-sm text-red-500">{error}</p>}
+      {error && <p className="mt-2 text-sm text-danger-text">{error}</p>}
       <button
         type="button"
         onClick={submit}
         disabled={pending}
-        className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-point-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] disabled:opacity-60"
+        className="mt-4 inline-flex h-12 w-full items-center justify-center rounded-2xl bg-point-600 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] disabled:opacity-60"
       >
         {pending ? t('changing') : t('submit')}
       </button>

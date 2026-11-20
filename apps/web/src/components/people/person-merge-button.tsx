@@ -115,7 +115,7 @@ export function PersonMergeButton({
             type="button"
             onClick={() => void merge()}
             disabled={!selected || merging}
-            className="mt-1 rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+            className="mt-1 rounded-full bg-point-600 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
           >
             {merging ? t('people.merging') : t('people.mergeConfirm')}
           </button>

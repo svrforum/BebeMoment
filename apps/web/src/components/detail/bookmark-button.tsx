@@ -14,6 +14,8 @@ type Controlled = {
 type Props = {
   assetId: string
   size?: 'sm' | 'md'
+  /** 검은 뷰어 위처럼 페이지 테마와 무관한 표면에 놓일 때 색을 덮어쓴다(예: 'text-white'). */
+  className?: string
 } & (
   | { initialBookmarked: boolean; controlled?: undefined }
   | { initialBookmarked?: undefined; controlled: Controlled }
@@ -61,16 +63,18 @@ export function BookmarkButton(props: Props) {
       type="button"
       onClick={onClick}
       aria-pressed={bookmarked}
-      aria-label={bookmarked ? t('bookmark.remove') : t('bookmark.add')}
+      aria-label={t('bookmark.label')}
       className={cn(
-        'focus-ring inline-flex items-center rounded-full px-3 py-1.5 transition active:scale-90',
+        'focus-ring inline-flex items-center rounded-full px-3 py-1.5 text-base-500 transition active:scale-90',
         'hover:bg-base-100 dark:hover:bg-base-800',
         pending && 'opacity-70',
+        props.className,
       )}
     >
       <Bookmark
         size={iconSize}
-        className={cn('transition', bookmarked ? 'fill-point-500 text-point-500' : 'text-base-500')}
+        aria-hidden
+        className={cn('transition', bookmarked && 'fill-point-500 text-point-500')}
       />
     </button>
   )

@@ -9,8 +9,16 @@ import { resolveStoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { listComments } from '@/server/comment/list'
 import { getContext } from '@/server/context'
 import { getSetting } from '@/server/settings/get'
+import type { Metadata } from 'next'
+import { getTranslations } from 'next-intl/server'
 import { notFound } from 'next/navigation'
 import { z } from 'zod'
+
+// 화면마다 제목이 달라야 Next 의 경로 안내(route announcer)가 사진을 연 것을 읽어 준다.
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('viewer')
+  return { title: `${t('pageTitle')} · Bebe Moment` }
+}
 
 export default async function DetailPage({
   params,

@@ -270,7 +270,7 @@ function EntryFormSheet({
       <div className={BODY_CLASS}>
         <div className="space-y-5 pb-2">
           {error && (
-            <p className="text-[13px] text-danger" role="alert">
+            <p className="text-[13px] text-danger-text" role="alert">
               {error}
             </p>
           )}
@@ -431,7 +431,7 @@ function EntryFormSheet({
           disabled={!canSubmit}
           onClick={submit}
           className={cn(
-            'focus-ring w-full rounded-2xl bg-point-500 py-3.5 text-[15px] font-semibold text-white transition active:scale-[0.98]',
+            'focus-ring w-full rounded-2xl bg-point-600 py-3.5 text-[15px] font-semibold text-white transition active:scale-[0.98]',
             !canSubmit && 'opacity-40',
           )}
         >

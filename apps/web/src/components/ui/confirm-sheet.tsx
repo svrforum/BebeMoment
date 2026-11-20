@@ -66,7 +66,7 @@ export function ConfirmSheet({
       }}
     >
       <div className="flex flex-col gap-4 px-1 py-2">
-        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/15">
+        <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger-text dark:bg-danger/15">
           {icon ?? <AlertTriangle size={22} strokeWidth={2.2} />}
         </div>
         <div className="text-center">
@@ -78,7 +78,7 @@ export function ConfirmSheet({
             type="button"
             onClick={handleConfirm}
             disabled={pending}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-500 text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:bg-red-600 disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-danger text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:brightness-110 disabled:opacity-60"
           >
             {pending ? resolvedConfirmingLabel : resolvedConfirmLabel}
           </button>

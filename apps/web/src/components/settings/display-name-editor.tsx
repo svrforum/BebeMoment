@@ -92,7 +92,7 @@ export function DisplayNameEditor({
           type="button"
           onClick={save}
           disabled={saving}
-          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-point-500 text-white disabled:opacity-50"
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-point-600 text-white disabled:opacity-50"
           aria-label={t('account.save')}
         >
           <Check className="h-4 w-4" />
@@ -108,7 +108,7 @@ export function DisplayNameEditor({
         </button>
       </div>
       <div className="mt-1 flex items-center justify-between px-1">
-        <span className="text-[11px] text-danger">{error ?? ''}</span>
+        <span className="text-[11px] text-danger-text">{error ?? ''}</span>
         <span className="text-[11px] tabular-nums text-base-400">
           {draft.length}/{MAX_LEN}
         </span>

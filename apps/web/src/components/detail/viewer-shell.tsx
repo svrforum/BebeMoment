@@ -3,7 +3,7 @@ import { AlbumPicker } from '@/components/albums/album-picker'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
-import { useTranslations } from 'next-intl'
+import { useLocale, useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import type { CommentWithAuthor } from './comment-item'
@@ -127,6 +127,7 @@ export function ViewerShell({
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('viewer')
+  const locale = useLocale()
 
   // 같은 자산으로 중복 navigate 가 떨어지는 걸 막기 위한 가드 (Swiper slide change 가
   // 빠르게 두 번 발사될 수 있음). 마지막 처리한 id 를 기억.
@@ -333,6 +334,13 @@ export function ViewerShell({
           {...(canDelete ? { onDelete: () => setConfirmDeleteOpen(true) } : {})}
         />
         <ViewerImage
+          // takenAt 은 벽시계-as-UTC(§17#45) — UTC 로 읽어야 찍은 날짜 그대로 나온다.
+          currentAlt={t(currentSlim.kind === 'video' ? 'videoAlt' : 'photoAlt', {
+            date: metaState.takenAt.toLocaleDateString(locale, {
+              dateStyle: 'long',
+              timeZone: 'UTC',
+            }),
+          })}
           current={currentSlim}
           siblings={siblings}
           navigateTo={navigateTo}

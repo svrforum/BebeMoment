@@ -33,7 +33,7 @@ export function InviteAppButton({ token }: { token: string }) {
     <div className="mb-5 space-y-2">
       <a
         href={href}
-        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-point-500 px-5 text-[16px] font-semibold text-white transition active:scale-[0.98] hover:bg-point-600"
+        className="flex h-14 w-full items-center justify-center gap-2 rounded-2xl bg-point-600 px-5 text-[16px] font-semibold text-white transition active:scale-[0.98] hover:bg-point-700"
       >
         <Smartphone size={18} strokeWidth={2.2} />
         {t('app.continue')}

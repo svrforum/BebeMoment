@@ -344,6 +344,8 @@
     }
   },
   "shell": {
+    "toastLabel": "알림",
+    "toastRegion": "알림 ({hotkey})",
     "switchFamily": "가족 전환",
     "uploadFab": "사진 · 영상 올리기",
     "addFab": "추가",
@@ -352,7 +354,7 @@
     "addStoryDesc": "글과 사진으로 오늘을 기록해요",
     "addUpload": "사진 · 영상 올리기",
     "addUploadDesc": "갤러리에서 골라 바로 올려요",
-    "unreadPhotos": "새 사진 {count}개",
+    "unreadPhotos": "새 사진 {count}장",
     "installedAppVersion": " · 앱 {version}",
     "theme": {
       "label": "테마",
@@ -363,7 +365,7 @@
     },
     "update": {
       "title": "새 버전이 나왔어요",
-      "body": "앱 {version} 으로 업데이트할 수 있어요",
+      "body": "앱을 {version} 버전으로 업데이트할 수 있어요",
       "action": "업데이트",
       "dismiss": "닫기"
     },
@@ -387,17 +389,17 @@
       "visibilityFamily": "전체 공개",
       "visibilityGuardians": "보호자만",
       "visibilityFamilyDesc": "가족 모두가 볼 수 있어요",
-      "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요",
+      "visibilityGuardiansDesc": "관리자와 보호자에게만 보여요",
       "preparingPhotos": "사진 준비 중…",
       "cancel": "취소",
       "submit": "올리기",
       "submitting": "올리는 중…",
       "needPhoto": "사진을 최소 1장 추가해주세요",
       "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
-      "submitFailed": "글 등록 실패",
+      "submitFailed": "서버가 스토리를 저장하지 못했어요",
       "attachFiles": "파일에서 선택",
-      "rolledBack": "스토리를 올리지 못했어요 — 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
-      "rolledBackPartly": "스토리를 올리지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",
+      "rolledBack": "스토리를 올리지 못했어요. 함께 올라간 사진 {count}장은 휴지통으로 옮겼어요 — 사진을 다시 담아 올려 주세요. ({error})",
+      "rolledBackPartly": "스토리를 올리지 못했어요. 사진 {count}장은 타임라인에 따로 남았어요 — 필요 없으면 타임라인에서 지워 주세요. ({error})",
       "reattach": "사진을 다시 담아주세요 — {count}장이 정리돼 다시 올릴 수 없어요. ({error})",
       "entryDate": "이야기 날짜",
       "entryDateInvalid": "날짜를 확인해주세요 — 오늘까지의 날짜만 고를 수 있어요",
@@ -418,12 +420,14 @@
       "statusFailed": "업로드 실패",
       "openPhoto": "사진 열기",
       "openVideo": "영상 열기",
+      "photoAt": "{date} 사진 {n}/{total}",
+      "videoAt": "{date} 영상 {n}/{total}",
       "selectItem": "선택",
       "retry": "다시 시도",
       "delete": "삭제",
       "retrying": "다시 처리하고 있어요",
-      "retryFailed": "다시 시도하지 못했어요",
-      "deleteFailed": "삭제하지 못했어요"
+      "retryFailed": "다시 처리하지 못했어요. 잠시 후 다시 시도해주세요",
+      "deleteFailed": "삭제하지 못했어요. 잠시 후 다시 시도해주세요"
     },
     "bucket": {
       "photoCount": "{count}장",
@@ -439,26 +443,28 @@
       "newPhotos": "새 사진 {count}장 불러오기",
       "newChanges": "새 변경사항 불러오기",
       "dismissNew": "알림 닫기",
-      "deletePartialFailed": "일부 삭제 실패",
-      "deletePartialDesc": "{done}/{total}개 삭제됨. 다시 시도해주세요.",
-      "deletedCount": "{count}장 삭제됨",
-      "deletedDesc": "휴지통에서 복구할 수 있어요",
+      "deletePartialFailed": "일부 사진을 휴지통으로 옮기지 못했어요",
+      "deletePartialDesc": "옮기지 못한 {failed}장은 선택해 뒀어요. 휴지통 버튼을 다시 눌러 주세요",
+      "deletedCount": "{count}장을 휴지통으로 옮겼어요",
+      "deletedDesc": "휴지통에서 30일 안에 복원할 수 있어요",
       "emptyTitle": "아직 올라온 사진이 없어요",
       "emptyViewerDesc": "곧 새로운 사진이 올라올 거예요",
       "emptyUploaderDesc": "우측 하단 + 버튼을 눌러 첫 사진을 올려보세요",
       "seenUpTo": "여기까지 봤어요",
-      "confirmDeleteTitle": "{count}장을 삭제할까요?",
-      "confirmDeleteDesc": "휴지통으로 옮겨지고, 거기서 30일 안에 복구할 수 있어요.",
+      "confirmDeleteTitle": "{count}장을 휴지통으로 옮길까요?",
+      "confirmDeleteDesc": "휴지통에서 30일 안에 복원할 수 있어요.",
       "clearSelection": "선택 해제",
       "selectedCount": "{count}장 선택됨",
-      "delete": "삭제",
+      "delete": "휴지통으로 옮기기",
+      "confirmDeleteLabel": "휴지통으로 옮기기",
+      "moving": "옮기는 중…",
       "addToAlbum": "앨범에 추가",
       "menuDetail": "상세 보기",
       "menuSelect": "선택에 추가",
       "menuDeselect": "선택에서 제거",
-      "menuSave": "저장",
+      "menuSave": "다운로드",
       "menuAddToAlbum": "앨범에 추가",
-      "menuDelete": "삭제"
+      "menuDelete": "휴지통으로 옮기기"
     },
     "page": {
       "dateTitle": "{month}월 {day}일",
@@ -632,6 +638,9 @@
     }
   },
   "viewer": {
+    "photoAlt": "{date}에 찍은 사진",
+    "videoAlt": "{date}에 찍은 영상",
+    "pageTitle": "사진",
     "actions": {
       "close": "닫기",
       "download": "다운로드",
@@ -655,7 +664,7 @@
       "widgetRemove": "홈 위젯에서 빼기",
       "widgetAdded": "홈 위젯에 담았어요",
       "widgetRemoved": "홈 위젯에서 뺐어요",
-      "widgetFailed": "위젯에 담지 못했어요"
+      "widgetFailed": "위젯에 담지 못했어요. 잠시 후 다시 시도해주세요"
     },
     "info": {
       "details": "세부정보",
@@ -675,7 +684,7 @@
   },
   "social": {
     "comment": {
-      "placeholder": "댓글 입력… (@이름 으로 멘션)",
+      "placeholder": "댓글 남기기… (@를 입력해 가족 언급)",
       "submit": "등록",
       "submitFailed": "댓글을 등록하지 못했어요",
       "retry": "다시 시도",
@@ -683,6 +692,7 @@
       "cancel": "취소",
       "edit": "편집",
       "delete": "삭제",
+      "deleteConfirm": "한 번 더 누르면 삭제돼요",
       "menu": "댓글 메뉴",
       "edited": "(수정됨)",
       "deleted": "삭제된 댓글이에요",
@@ -693,15 +703,13 @@
     },
     "like": {
       "like": "좋아요",
-      "unlike": "좋아요 취소",
       "failed": "좋아요를 반영하지 못했어요",
       "retry": "다시 시도",
       "likedBy": "{names} 님이 좋아함",
       "likedByMore": "{names} 외 {count}명이 좋아함"
     },
     "bookmark": {
-      "add": "북마크에 추가",
-      "remove": "북마크 취소",
+      "label": "북마크",
       "failed": "북마크를 반영하지 못했어요",
       "retry": "다시 시도"
     },
@@ -715,6 +723,7 @@
     },
     "share": {
       "share": "공유",
+      "shareDay": "{date} 공유",
       "shareThisDay": "이 날 공유",
       "expiry": "유효기간",
       "ttlPermanent": "영구",
@@ -855,7 +864,7 @@
       "visibilityFamily": "전체 공개",
       "visibilityGuardians": "보호자만",
       "visibilityFamilyDesc": "가족 모두가 볼 수 있어요",
-      "visibilityGuardiansDesc": "owner / guardian 역할에게만 보여요",
+      "visibilityGuardiansDesc": "관리자와 보호자에게만 보여요",
       "attachFiles": "파일에서 선택",
       "rolledBack": "저장하지 못했어요 — 새로 올린 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
       "rolledBackPartly": "저장하지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",

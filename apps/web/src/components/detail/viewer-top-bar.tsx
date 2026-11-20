@@ -75,7 +75,7 @@ export function ViewerTopBar({
   return (
     <div
       className={cn(
-        'absolute inset-x-0 top-0 z-40 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 py-3 transition-opacity',
+        'absolute inset-x-0 top-0 z-40 flex items-center justify-between bg-gradient-to-b from-black/60 to-transparent px-4 pb-3 pt-[calc(env(safe-area-inset-top)+0.75rem)] transition-opacity',
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
@@ -158,7 +158,7 @@ export function ViewerTopBar({
                       setMenuOpen(false)
                       onDelete()
                     }}
-                    className="block w-full px-4 py-2 text-left text-sm text-danger hover:bg-base-100 dark:hover:bg-base-800"
+                    className="block w-full px-4 py-2 text-left text-sm text-danger-text hover:bg-base-100 dark:hover:bg-base-800"
                   >
                     {t('actions.moveToTrash')}
                   </button>

@@ -93,13 +93,13 @@ export function ChangeRoleModal({
             </button>
           ))}
         </div>
-        {error && <p className="text-center text-sm text-red-500">{error}</p>}
+        {error && <p className="text-center text-sm text-danger-text">{error}</p>}
         <div className="flex flex-col gap-2">
           <button
             type="button"
             onClick={submit}
             disabled={pending || selected === currentRole}
-            className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-500 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] hover:bg-point-600 disabled:opacity-60"
+            className="inline-flex h-12 items-center justify-center rounded-2xl bg-point-600 text-base font-semibold text-white transition-transform ease-ios active:scale-[0.98] hover:bg-point-700 disabled:opacity-60"
           >
             {pending
               ? t('roleModal.changing')

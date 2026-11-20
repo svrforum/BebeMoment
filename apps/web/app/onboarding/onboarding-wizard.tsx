@@ -227,7 +227,7 @@ export function OnboardingWizard() {
           </AnimatePresence>
 
           {state?.error && (
-            <p className="mt-4 text-sm text-danger" role="alert">
+            <p className="mt-4 text-sm text-danger-text" role="alert">
               {state.error}
             </p>
           )}

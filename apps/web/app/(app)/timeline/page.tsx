@@ -23,7 +23,14 @@ import { listTimeline } from '@/server/timeline/merged-list'
 import { ArrowLeft, Search, Sparkles, UsersRound } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
 import Link from 'next/link'
+import type { Metadata } from 'next'
 import { z } from 'zod'
+
+// 화면마다 제목이 달라야 Next 의 경로 안내(route announcer)가 이동을 화면낭독기에 읽어 준다.
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('nav')
+  return { title: `${t('timeline')} · Bebe Moment` }
+}
 
 export default async function TimelinePage({
   searchParams,
@@ -153,7 +160,7 @@ export default async function TimelinePage({
           </div>
         )}
         {isEmpty ? (
-          <div className="mx-auto max-w-3xl px-5 py-16 text-center text-sm text-base-400">
+          <div className="mx-auto max-w-3xl px-5 py-16 text-center text-sm text-base-500">
             {t('page.dateEmpty')}
           </div>
         ) : photoCount > 0 ? (

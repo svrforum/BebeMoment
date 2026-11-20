@@ -136,7 +136,7 @@ export function InviteManager() {
                 <option value="guardian">{t('invite.optionGuardian')}</option>
               </select>
             </div>
-            {error && <p className="text-sm text-danger">{error}</p>}
+            {error && <p className="text-sm text-danger-text">{error}</p>}
             <Button type="submit" className="w-full" disabled={submitting}>
               {submitting ? t('invite.creating') : t('invite.create')}
             </Button>

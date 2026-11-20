@@ -1,4 +1,5 @@
 'use client'
+import { smoothScroll } from '@/lib/motion'
 import {
   deleteChecklistTemplateAction,
   listChecklistTemplatesAction,
@@ -47,7 +48,7 @@ export function ChecklistTemplates({
   // biome-ignore lint/correctness/useExhaustiveDependencies: loading 은 본문에서 안 쓰지만, 목록이 도착해 패널 높이가 바뀔 때 다시 맞추려고 넣는다
   useEffect(() => {
     if (panel === 'closed') return
-    panelRef.current?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    panelRef.current?.scrollIntoView({ block: 'nearest', behavior: smoothScroll() })
   }, [panel, loading])
 
   const fail = (r: Parameters<typeof actionErrorText>[1]) =>
@@ -161,7 +162,7 @@ export function ChecklistTemplates({
                     className={cn(
                       'focus-ring flex h-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-semibold transition active:scale-95',
                       confirmDelete === tpl.id
-                        ? 'bg-danger/10 px-3 text-danger'
+                        ? 'bg-danger/10 px-3 text-danger-text'
                         : 'w-11 text-base-400',
                     )}
                   >
@@ -198,13 +199,13 @@ export function ChecklistTemplates({
               e.preventDefault()
               void save()
             }}
-            className="h-11 min-w-0 flex-1 rounded-xl bg-base-0 px-3 text-[15px] text-base-900 placeholder:text-base-400 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-point-500/40 dark:bg-base-900 dark:text-base-100"
+            className="h-11 min-w-0 flex-1 rounded-xl bg-base-0 px-3 text-[15px] text-base-900 placeholder:text-base-400 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400 dark:bg-base-900 dark:text-base-100"
           />
           <button
             type="button"
             onClick={save}
             disabled={!name.trim() || saving}
-            className="focus-ring flex h-11 shrink-0 items-center rounded-xl bg-point-500 px-4 text-[14px] font-semibold text-white transition active:scale-95 disabled:opacity-40"
+            className="focus-ring flex h-11 shrink-0 items-center rounded-xl bg-point-600 px-4 text-[14px] font-semibold text-white transition active:scale-95 disabled:opacity-40"
           >
             {t('template.saveConfirm')}
           </button>

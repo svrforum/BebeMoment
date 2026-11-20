@@ -1,7 +1,7 @@
 'use client'
 import { cn } from '@/lib/cn'
 import { keyboardOverlaysLayout } from '@/lib/keyboard-overlap'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { useTranslations } from 'next-intl'
 import { type ReactNode, useEffect, useRef } from 'react'
 import { Drawer } from 'vaul'
@@ -88,7 +88,7 @@ export function MobileDrawerShell({
           {fill ? (
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
           ) : (
-            <div className="overflow-y-auto px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
+            <div className="overflow-y-auto overscroll-contain px-5 pt-4 pb-[calc(env(safe-area-inset-bottom)+1rem)]">
               {children}
             </div>
           )}
@@ -115,6 +115,7 @@ export function DesktopModalShell({
 }) {
   const t = useTranslations('common')
   const dialogRef = useRef<HTMLDivElement>(null)
+  const reduceMotion = useReducedMotion()
 
   useEffect(() => {
     if (!open) return
@@ -167,6 +168,9 @@ export function DesktopModalShell({
     }
   }, [open])
 
+  // 동작 줄이기면 커지며 떠오르는 대신 투명도만 바꾼다.
+  const hidden = reduceMotion ? { opacity: 0 } : { opacity: 0, scale: 0.96, y: 8 }
+
   return (
     <AnimatePresence>
       {open && (
@@ -186,9 +190,9 @@ export function DesktopModalShell({
             aria-modal="true"
             aria-label={title ?? t('dialog')}
             tabIndex={-1}
-            initial={{ opacity: 0, scale: 0.96, y: 8 }}
+            initial={hidden}
             animate={{ opacity: 1, scale: 1, y: 0 }}
-            exit={{ opacity: 0, scale: 0.96, y: 8 }}
+            exit={hidden}
             transition={{ type: 'spring', stiffness: 480, damping: 30 }}
             className={cn(
               'relative z-10 flex w-full max-w-md flex-col overflow-hidden rounded-3xl border border-base-200/70 bg-base-0 shadow-elevated dark:border-base-800/70 dark:bg-base-900',
@@ -206,7 +210,7 @@ export function DesktopModalShell({
             {fill ? (
               <div className="flex min-h-0 flex-1 flex-col">{children}</div>
             ) : (
-              <div className="overflow-y-auto px-5 py-4">{children}</div>
+              <div className="overflow-y-auto overscroll-contain px-5 py-4">{children}</div>
             )}
           </motion.div>
         </div>

@@ -186,7 +186,7 @@ export function TimelineScrubber({ days, onJump }: Props) {
                       {monthLabel(t.month, { year: 'numeric' })}
                     </span>
                   )}
-                  <span className="text-[12px] font-semibold tabular-nums text-base-400">
+                  <span className="text-[12px] font-semibold tabular-nums text-base-500">
                     {monthLabel(t.month, { month: 'short' })}
                   </span>
                 </span>

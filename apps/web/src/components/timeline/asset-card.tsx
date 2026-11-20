@@ -24,7 +24,7 @@ type Props = {
   urls: AssetUrls | null
   status: 'uploading' | 'processing' | 'ready' | 'failed'
   kind: 'image' | 'video'
-  /** 영상 길이(ms) — 썸네일에 m:ss 배지로. null 이면 'VIDEO' 만. */
+  /** 영상 길이(ms) — 썸네일에 m:ss 배지로. null 이면 재생 아이콘만. */
   durationMs?: number | null
   /** When non-null, the card renders in selectable mode — tap toggles
    *  selection instead of navigating to detail. */
@@ -48,6 +48,9 @@ type Props = {
   viewerCtx?: string | null
   /** 첫 화면에 바로 보이는 카드 — lazy 대신 eager + fetchPriority=high 로 LCP 를 앞당긴다. */
   priority?: boolean
+  /** 그 날 안에서의 위치 — 접근성 이름을 '2026.11.15 사진 3/9' 처럼 서로 구분되게 만든다.
+   *  없으면 모든 카드가 똑같이 '사진 열기' 라 화면낭독기 링크 목록이 쓸모없어진다. */
+  position?: { date: string; n: number; total: number }
 }
 
 const STATUS_KEY: Record<
@@ -84,6 +87,7 @@ export function AssetCard({
   sort = 'taken',
   viewerCtx = null,
   priority = false,
+  position,
 }: Props) {
   const detailQp = new URLSearchParams()
   if (sort === 'uploaded') detailQp.set('sort', 'uploaded')
@@ -206,7 +210,7 @@ export function AssetCard({
       {kind === 'video' && (
         <div className="absolute right-2 top-2 z-20 flex items-center gap-1 rounded-full bg-black/60 px-1.5 py-0.5 text-[10px] font-semibold tabular-nums text-white">
           <Play size={9} className="fill-white" strokeWidth={0} />
-          {durationMs ? formatDuration(durationMs) : 'VIDEO'}
+          {durationMs ? formatDuration(durationMs) : null}
         </div>
       )}
       {selectionMode && (
@@ -252,7 +256,7 @@ export function AssetCard({
         className={cn(baseClass, 'flex flex-col items-center justify-center gap-2 p-2 text-center')}
         style={styleProp}
       >
-        <span className="text-[11px] font-medium text-rose-500">{t('card.statusFailed')}</span>
+        <span className="text-[11px] font-medium text-danger-text">{t('card.statusFailed')}</span>
         <div className="flex gap-1.5">
           <button
             type="button"
@@ -268,7 +272,7 @@ export function AssetCard({
             onClick={deleteFailed}
             disabled={busy}
             aria-label={t('card.delete')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-rose-500 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-danger-text shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90"
           >
             <Trash2 size={15} strokeWidth={2.2} />
           </button>
@@ -277,11 +281,15 @@ export function AssetCard({
     )
   }
 
+  const itemName = position
+    ? t(kind === 'video' ? 'card.videoAt' : 'card.photoAt', position)
+    : undefined
+
   if (selectionMode) {
     return (
       <button
         type="button"
-        aria-label={t('card.selectItem')}
+        aria-label={itemName ?? t('card.selectItem')}
         aria-pressed={selected}
         onClick={handleSelectionClick}
         onContextMenu={handleContextMenu}
@@ -305,7 +313,7 @@ export function AssetCard({
       // 상세는 동적 라우트라 프리페치해 봐야 빈 로딩 경계만 받는다 — 그리드 스크롤마다
       // 수십 건의 무의미한 요청을 내지 않는다.
       prefetch={false}
-      aria-label={kind === 'video' ? t('card.openVideo') : t('card.openPhoto')}
+      aria-label={itemName ?? (kind === 'video' ? t('card.openVideo') : t('card.openPhoto'))}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}
       onTouchStart={startPress}

@@ -49,7 +49,7 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
     lastItem,
   ]
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t pb-[env(safe-area-inset-bottom)] border-base-200/60 bg-base-0/85 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/80">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t pb-[env(safe-area-inset-bottom)] border-base-200/60 bg-base-0/95 backdrop-blur-xl md:hidden dark:border-base-800/60 dark:bg-base-950/95">
       <div
         className="mx-auto grid h-16 max-w-3xl"
         style={{ gridTemplateColumns: `repeat(${visible.length}, minmax(0, 1fr))` }}
@@ -63,33 +63,26 @@ export function BottomNav({ unreadCounts, hiddenNav = [], showBookmark = false }
               href={href}
               aria-current={active ? 'page' : undefined}
               className={cn(
-                'group flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors ease-ios focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-point-500/50',
-                active ? 'text-point-500' : 'text-base-400',
+                'group flex flex-col items-center justify-center gap-1 rounded-2xl transition-colors ease-ios focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400',
+                active ? 'text-point-600 dark:text-point-400' : 'text-base-500',
               )}
             >
               <span
                 className={cn(
-                  'relative flex h-7 w-12 items-center justify-center rounded-full transition-all ease-ios',
+                  'relative flex h-7 w-12 items-center justify-center rounded-full transition-[background-color,scale] ease-ios',
                   active ? 'bg-point-500/12 scale-100' : 'bg-transparent scale-95',
                 )}
               >
                 <Icon
                   className={cn(
-                    'h-5 w-5 transition-transform ease-ios',
+                    'h-5 w-5 transition-[translate] ease-ios',
                     active && '-translate-y-px',
                   )}
                   strokeWidth={active ? 2.4 : 1.9}
                 />
                 {unread > 0 && <UnreadBadge count={unread} />}
               </span>
-              <span
-                className={cn(
-                  'text-[11px] font-medium transition-opacity',
-                  active ? 'opacity-100' : 'opacity-70',
-                )}
-              >
-                {t(labelKey)}
-              </span>
+              <span className="text-[11px] font-medium">{t(labelKey)}</span>
             </Link>
           )
         })}

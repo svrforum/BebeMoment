@@ -199,7 +199,7 @@ export function NotificationsForm({
           {hasKeys &&
             (confirmingRegen ? (
               <div className="space-y-2">
-                <p className="text-sm text-danger">{t('notifications.regenWarning')}</p>
+                <p className="text-sm text-danger-text">{t('notifications.regenWarning')}</p>
                 <div className="flex gap-2">
                   <Button variant="danger" onClick={onRegenerate} disabled={pending}>
                     {t('notifications.regenConfirm')}

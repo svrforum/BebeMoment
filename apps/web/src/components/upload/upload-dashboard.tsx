@@ -416,7 +416,7 @@ export function UploadDashboard({
             type="button"
             onClick={dest === 'story' ? submitStory : () => startStagedUploads()}
             disabled={submittingStory}
-            className="rounded-full bg-point-500 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+            className="rounded-full bg-point-600 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
           >
             {dest === 'story'
               ? submittingStory

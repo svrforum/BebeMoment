@@ -212,7 +212,7 @@ export function AlbumMenu({
                 setOpen(false)
                 remove()
               }}
-              className="block w-full px-4 py-2.5 text-left text-[13px] text-danger hover:bg-base-100 dark:hover:bg-base-800"
+              className="block w-full px-4 py-2.5 text-left text-[13px] text-danger-text hover:bg-base-100 dark:hover:bg-base-800"
             >
               {t('menu.delete')}
             </button>
@@ -301,7 +301,7 @@ export function AlbumMenu({
               <button
                 type="submit"
                 disabled={!name.trim() || pending}
-                className="rounded-full bg-point-500 px-4 py-2 text-[13px] font-medium text-white transition active:scale-95 disabled:opacity-50"
+                className="rounded-full bg-point-600 px-4 py-2 text-[13px] font-medium text-white transition active:scale-95 disabled:opacity-50"
               >
                 {t('menu.save')}
               </button>

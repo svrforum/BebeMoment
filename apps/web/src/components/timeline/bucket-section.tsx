@@ -99,31 +99,29 @@ export function BucketSection({
       className="section-enter mb-10"
       style={{ '--enter-delay': `${Math.min(index * 60, 240)}ms` } as CSSProperties}
     >
-      <header className="mb-3 flex items-end justify-between gap-3 px-1">
+      <header className="mb-3 flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
           <div className="flex items-baseline gap-2.5">
             {/* Date — tabular numerals, generous tracking, bold but not heavy. */}
-            <h2 className="text-[22px] font-bold tracking-tight tabular-nums leading-none text-base-900 dark:text-base-50">
+            <h2 className="text-[22px] font-semibold tracking-tight tabular-nums leading-none text-base-900 dark:text-base-50">
               {label}
             </h2>
             {dDay && (
-              <span className="text-[13px] font-semibold tabular-nums leading-none text-base-400">
+              <span className="text-[13px] font-semibold tabular-nums leading-none text-base-500">
                 {dDay}
               </span>
             )}
           </div>
-          {ageLabel && (
-            <span className="text-[12px] font-medium text-base-400 dark:text-base-500">
-              {ageLabel}
-            </span>
-          )}
+          {ageLabel && <span className="text-[12px] font-medium text-base-500">{ageLabel}</span>}
         </div>
         {assets.length > 0 && (
           <div className="flex shrink-0 items-center gap-1">
-            <span className="text-[12px] font-medium tabular-nums text-base-400">
+            <span className="text-[12px] font-medium tabular-nums text-base-500">
               {t('bucket.photoCount', { count: assets.length })}
             </span>
-            {dateKey && !selectionMode && <DateShareButton date={dateKey} size="sm" />}
+            {dateKey && !selectionMode && (
+              <DateShareButton date={dateKey} size="sm" label={label} />
+            )}
           </div>
         )}
       </header>
@@ -146,6 +144,7 @@ export function BucketSection({
               viewerCtx={viewerCtx}
               // 첫 버킷의 접힘 노출분(2줄)만 — 첫 화면에 실제로 보이는 카드들이다.
               priority={index === 0 && i < COLLAPSED_COUNT}
+              position={{ date: label, n: i + 1, total: assets.length }}
               selectionMode={selectionMode}
               selected={selected?.has(a.id) ?? false}
               {...(onLongPress ? { onLongPress } : {})}

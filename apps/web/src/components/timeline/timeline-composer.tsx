@@ -1,4 +1,5 @@
 'use client'
+import { smoothScroll } from '@/lib/motion'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { createdAssetIds } from '@/components/upload/created-asset-ids'
 import { reportUploadFailure } from '@/components/upload/report-failure'
@@ -129,7 +130,7 @@ export function TimelineComposer({
     // (해시가 이미 #composer 로 남아 있으면 hashchange 가 안 떠서 hash 만으로는 부족.)
     const openComposer = () => {
       setExpanded(true)
-      containerRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+      containerRef.current?.scrollIntoView({ behavior: smoothScroll(), block: 'start' })
     }
     openIfHash()
     // 다른 라우트에서 /timeline#composer 로 왔을 땐 위 mount 체크가, 그 외 hashchange 도 처리.
@@ -399,7 +400,7 @@ export function TimelineComposer({
           onClick={() => setExpanded(true)}
           aria-label={t('composer.writeToday')}
           aria-expanded={false}
-          className="group flex w-full items-center gap-3 rounded-full border border-base-200/60 bg-base-0 px-3 py-2 text-left transition-colors ease-ios hover:bg-base-100/60 active:scale-[0.995] dark:border-base-800/60 dark:bg-base-900 dark:hover:bg-base-800/40"
+          className="group flex w-full items-center gap-3 rounded-full border border-transparent bg-base-0 py-2 pr-3 pl-2 text-left shadow-card transition-colors ease-ios hover:bg-base-100/60 active:scale-[0.995] dark:border-base-800/60 dark:bg-base-900 dark:hover:bg-base-800/40"
         >
           <PillAvatar avatarPath={userAvatarPath} initial={initial} />
           <span className="min-w-0 flex-1 truncate text-[14px] text-base-500 dark:text-base-400">
@@ -421,7 +422,7 @@ export function TimelineComposer({
     <div
       ref={containerRef}
       id="composer"
-      className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)] rounded-3xl border border-base-200/70 bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
+      className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)] rounded-3xl border border-transparent bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
     >
       <div className="flex items-start gap-3">
         <Avatar avatarPath={userAvatarPath} initial={initial} />
@@ -585,13 +586,15 @@ export function TimelineComposer({
                 type="button"
                 onClick={() => setVisMenuOpen((v) => !v)}
                 className="ml-1 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-[12px] font-medium text-base-600 transition-colors hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800"
-                aria-label={t('composer.visibility')}
                 aria-expanded={visMenuOpen}
               >
+                {/* 이름 = 용도 + 지금 값. aria-label 로 덮으면 '전체 공개/보호자만' 이 안 읽혀
+                    화면낭독기 사용자는 이 스토리가 누구에게 보일지 알 수 없었다. */}
+                <span className="sr-only">{t('composer.visibility')}: </span>
                 {visibility === 'family' ? (
-                  <Globe size={13} strokeWidth={2.2} />
+                  <Globe size={13} strokeWidth={2.2} aria-hidden />
                 ) : (
-                  <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" />
+                  <ShieldCheck size={13} strokeWidth={2.2} className="text-point-500" aria-hidden />
                 )}
                 <span>
                   {visibility === 'family'
@@ -652,7 +655,7 @@ export function TimelineComposer({
             type="button"
             onClick={submit}
             disabled={submitting || attachments.length === 0}
-            className="rounded-full bg-point-500 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-600 disabled:opacity-50"
+            className="rounded-full bg-point-600 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-700 disabled:opacity-50"
           >
             {submitting ? t('composer.submitting') : t('composer.submit')}
           </button>
@@ -679,6 +682,7 @@ function VisibilityOption({
     <button
       type="button"
       onClick={onClick}
+      aria-pressed={active}
       className={`flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-base-100 dark:hover:bg-base-800 ${
         active ? 'bg-point-500/8 dark:bg-point-500/10' : ''
       }`}
@@ -699,7 +703,7 @@ function Avatar({ avatarPath, initial }: { avatarPath: string | null; initial: s
     return <img src={avatarPath} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
   }
   return (
-    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[14px] font-semibold text-point-500">
+    <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[14px] font-semibold text-point-700 dark:text-point-300">
       {initial}
     </div>
   )
@@ -710,7 +714,7 @@ function PillAvatar({ avatarPath, initial }: { avatarPath: string | null; initia
     return <img src={avatarPath} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
   }
   return (
-    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[12px] font-semibold text-point-500">
+    <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-point-500/15 text-[12px] font-semibold text-point-700 dark:text-point-300">
       {initial}
     </div>
   )

@@ -93,7 +93,7 @@ export function AssetPickerSheet({
                   </div>
                 )}
                 {isSel && (
-                  <div className="absolute right-1 top-1 rounded-full bg-point-500 px-1.5 text-xs text-white">
+                  <div className="absolute right-1 top-1 rounded-full bg-point-600 px-1.5 text-xs text-white">
                     ✓
                   </div>
                 )}

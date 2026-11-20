@@ -123,7 +123,7 @@ export function PersonGrid({
               type="button"
               onClick={() => void merge()}
               disabled={selected.length < 2 || merging}
-              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-point-500 px-3.5 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
+              className="inline-flex shrink-0 items-center gap-1.5 rounded-full bg-point-600 px-3.5 py-1.5 text-sm font-semibold text-white disabled:opacity-40"
             >
               <Check size={14} />
               {merging ? t('people.merging') : t('people.mergeConfirm')}

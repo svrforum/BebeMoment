@@ -63,7 +63,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
   return (
     <div className="space-y-6">
       {oidcError && (
-        <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+        <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger-text" role="alert">
           {oidcError}
         </p>
       )}
@@ -110,7 +110,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
             </div>
           </div>
           {error && (
-            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger" role="alert">
+            <p className="rounded-xl bg-danger/10 px-3 py-2 text-sm text-danger-text" role="alert">
               {error}
             </p>
           )}

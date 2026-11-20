@@ -46,7 +46,11 @@ export function ViewerActionBar({
         visible ? 'opacity-100' : 'opacity-0 pointer-events-none',
       )}
     >
-      <LikeButton assetId={assetId} controlled={{ liked, setLiked, count, setCount }} />
+      <LikeButton
+        assetId={assetId}
+        controlled={{ liked, setLiked, count, setCount }}
+        className="text-white hover:bg-white/10 dark:hover:bg-white/10"
+      />
       {features.comments && (
         <button
           type="button"
@@ -85,7 +89,11 @@ export function ViewerActionBar({
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
         />
       )}
-      <BookmarkButton assetId={assetId} controlled={{ bookmarked, setBookmarked }} />
+      <BookmarkButton
+        assetId={assetId}
+        controlled={{ bookmarked, setBookmarked }}
+        className="text-white hover:bg-white/10 dark:hover:bg-white/10"
+      />
     </div>
   )
 }

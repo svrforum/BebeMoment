@@ -50,7 +50,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
           setOpen(true)
         }}
         aria-label={t('delete.trigger')}
-        className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-red-500 transition-colors hover:bg-red-50 active:scale-95 dark:hover:bg-red-500/10"
+        className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-danger-text transition-colors hover:bg-danger/10 active:scale-95 dark:hover:bg-red-500/10"
       >
         <Trash2 size={13} strokeWidth={2.2} />
         <span>{t('delete.trigger')}</span>
@@ -64,7 +64,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
         }}
       >
         <div className="flex flex-col gap-4 px-1 py-2">
-          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-red-50 text-red-500 dark:bg-red-500/15">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-danger/10 text-danger-text dark:bg-danger/15">
             <AlertTriangle size={22} strokeWidth={2.2} />
           </div>
           <div className="text-center">
@@ -124,7 +124,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
                 </span>
                 <span
                   className={`relative h-6 w-11 shrink-0 rounded-full transition-colors ${
-                    deletePhotos ? 'bg-red-500' : 'bg-base-300 dark:bg-base-600'
+                    deletePhotos ? 'bg-danger' : 'bg-base-300 dark:bg-base-600'
                   }`}
                 >
                   <span
@@ -142,7 +142,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
               type="button"
               onClick={handleConfirm}
               disabled={pending}
-              className="inline-flex h-12 items-center justify-center rounded-2xl bg-red-500 text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:bg-red-600 disabled:opacity-60"
+              className="inline-flex h-12 items-center justify-center rounded-2xl bg-danger text-base font-semibold text-white shadow-sm transition-transform ease-ios active:scale-[0.98] hover:brightness-110 disabled:opacity-60"
             >
               {pending
                 ? t('delete.deleting')

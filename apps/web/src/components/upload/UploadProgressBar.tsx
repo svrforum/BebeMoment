@@ -19,7 +19,7 @@ export function UploadProgressBar({ status }: { status: 'processing' | 'ready' |
         max={1}
         className="h-1 flex-1"
       />
-      <span className={`text-xs ${danger ? 'text-red-500' : 'text-base-500'}`}>
+      <span className={`text-xs ${danger ? 'text-danger-text' : 'text-base-500'}`}>
         {t(`progress.${status}`)}
       </span>
     </div>

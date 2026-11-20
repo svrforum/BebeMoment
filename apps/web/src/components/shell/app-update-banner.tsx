@@ -5,6 +5,7 @@ import {
   installedAppVersion,
   isNewerVersion,
 } from '@/lib/app-release'
+import { X } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
 
@@ -53,7 +54,7 @@ export function AppUpdateBanner() {
     <div className="fixed inset-x-4 bottom-[calc(env(safe-area-inset-bottom)+5.5rem)] z-40 mx-auto flex max-w-sm items-center gap-3 rounded-2xl bg-base-900 px-4 py-3 text-sm shadow-lg dark:bg-base-100">
       <div className="min-w-0 flex-1">
         <p className="font-semibold text-base-50 dark:text-base-900">{t('update.title')}</p>
-        <p className="truncate text-[13px] text-base-400 dark:text-base-500">
+        <p className="truncate text-[13px] text-base-400 dark:text-base-600">
           {t('update.body', { version: latest.version })}
         </p>
       </div>
@@ -61,7 +62,7 @@ export function AppUpdateBanner() {
         href={latest.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 rounded-full bg-point-500 px-3.5 py-1.5 font-semibold text-white active:scale-95"
+        className="shrink-0 rounded-full bg-point-600 px-3.5 py-1.5 font-semibold text-white active:scale-95"
       >
         {t('update.action')}
       </a>
@@ -69,9 +70,9 @@ export function AppUpdateBanner() {
         type="button"
         onClick={dismiss}
         aria-label={t('update.dismiss')}
-        className="shrink-0 text-base-400 active:opacity-70 dark:text-base-500"
+        className="-m-1 shrink-0 rounded-full p-1 text-base-400 active:opacity-70 dark:text-base-600"
       >
-        ✕
+        <X size={16} strokeWidth={2.2} aria-hidden />
       </button>
     </div>
   )

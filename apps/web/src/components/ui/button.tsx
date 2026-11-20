@@ -6,8 +6,8 @@ import { type ButtonHTMLAttributes, forwardRef } from 'react'
 const buttonVariants = cva(
   [
     'inline-flex items-center justify-center gap-2 rounded-2xl font-semibold',
-    'transition-[transform,box-shadow,background-color,filter] duration-200 ease-ios',
-    'focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/30',
+    'transition-[transform,scale,translate,box-shadow,background-color,filter] duration-200 ease-ios',
+    'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400',
     'disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none',
     // Tactile press: scale + settle the elevation toward the surface, so
     // shadowed variants feel like they push in rather than just shrink.
@@ -18,7 +18,7 @@ const buttonVariants = cva(
     variants: {
       variant: {
         primary:
-          'bg-point-500 text-white shadow-[0_6px_20px_-6px] shadow-point-500/45 hover:bg-point-600 hover:shadow-point-500/60 hover:-translate-y-px active:shadow-[0_2px_8px_-4px] active:shadow-point-500/45',
+          'bg-point-600 text-white shadow-[0_6px_20px_-6px] shadow-point-500/45 hover:bg-point-700 hover:shadow-point-500/60 hover:-translate-y-px active:shadow-[0_2px_8px_-4px] active:shadow-point-500/45',
         secondary:
           'bg-base-100 text-base-900 hover:bg-base-200 dark:bg-base-800 dark:text-base-100 dark:hover:bg-base-700',
         ghost: 'text-base-700 hover:bg-base-100 dark:text-base-300 dark:hover:bg-base-800',

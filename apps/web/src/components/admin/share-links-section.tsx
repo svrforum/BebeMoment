@@ -71,7 +71,7 @@ export function ShareLinksSection() {
           {links.length > 0 && (
             <Button
               variant="ghost"
-              className="shrink-0 text-danger"
+              className="shrink-0 text-danger-text"
               disabled={busy !== null}
               onClick={() => {
                 if (confirm(t('share.confirmAll'))) void revoke({ all: true }, 'all')
@@ -104,7 +104,7 @@ export function ShareLinksSection() {
                 </div>
                 <Button
                   variant="ghost"
-                  className="shrink-0 text-danger"
+                  className="shrink-0 text-danger-text"
                   disabled={busy !== null}
                   onClick={() => void revoke({ token: l.token }, l.token)}
                 >

@@ -51,7 +51,9 @@ export function AcceptButton({ token }: { token: string }) {
         )}
       </Button>
       {error && (
-        <p className="rounded-xl bg-danger/10 px-4 py-3 text-center text-sm text-danger">{error}</p>
+        <p className="rounded-xl bg-danger/10 px-4 py-3 text-center text-sm text-danger-text">
+          {error}
+        </p>
       )}
     </div>
   )

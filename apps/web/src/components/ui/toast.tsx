@@ -32,7 +32,7 @@ export const Toast = forwardRef<
       'group rounded-2xl bg-base-900 text-base-50 shadow-elevated px-4 py-3 flex items-center gap-3',
       'data-[state=open]:animate-toast-in data-[state=closed]:animate-toast-out motion-reduce:animate-none',
       variant === 'danger' && 'bg-danger text-white',
-      variant === 'success' && 'bg-emerald-600 text-white',
+      variant === 'success' && 'bg-emerald-700 text-white',
       className,
     )}
     {...props}
@@ -43,3 +43,4 @@ Toast.displayName = 'Toast'
 export const ToastTitle = ToastPrimitive.Title
 export const ToastDescription = ToastPrimitive.Description
 export const ToastAction = ToastPrimitive.Action
+export const ToastClose = ToastPrimitive.Close

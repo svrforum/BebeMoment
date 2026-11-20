@@ -141,7 +141,7 @@ export default function FeaturesAdminPage() {
                 </Button>
                 {ml && (
                   <span
-                    className={`text-[12px] font-medium ${ml.reachable ? 'text-base-500' : 'text-danger'}`}
+                    className={`text-[12px] font-medium ${ml.reachable ? 'text-base-500' : 'text-danger-text'}`}
                   >
                     {ml.reachable
                       ? t('features.faceMl.ok', { url: ml.url })
