@@ -9,7 +9,8 @@ import { FILE_SERVE_TTL_SEC, FILE_SERVE_WINDOW_SEC, requireMediaSecret } from '.
 // 만료는 파일 서빙 JWT 와 같은 규칙이다: 서명 시각을 15분 창으로 내려 같은 창에서는 같은
 // 주소가 나오고(브라우저 HTTP 캐시), 창의 마지막 초에 서명해도 TTL 만큼은 산다.
 
-const TOKEN = /^(\d{1,12})\.([A-Za-z0-9_-]{43})$/
+// 만료는 앞자리 0 없이 — `0<exp>` 도 같은 수로 읽혀 mac 이 맞기 때문에 철자를 하나로 못 박는다.
+const TOKEN = /^([1-9]\d{0,11})\.([A-Za-z0-9_-]{43})$/
 
 // JWT 와 같은 비밀을 그대로 쓰지 않고 용도별 키를 뽑는다 — 한쪽 서명이 다른 쪽 검증을
 // 통과할 길이 없다.

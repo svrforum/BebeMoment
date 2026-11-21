@@ -1,3 +1,4 @@
+import { createHmac } from 'node:crypto'
 import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 import { signImageAccess, verifyImageAccess } from './image-access'
 import { FILE_SERVE_TTL_SEC, FILE_SERVE_WINDOW_SEC, signFileServeToken } from './jwt'
@@ -67,6 +68,25 @@ describe('image access token', () => {
     ['wrong mac', `${WINDOW_START + FILE_SERVE_TTL_SEC + FILE_SERVE_WINDOW_SEC}.${'A'.repeat(43)}`],
   ])('rejects %s', (_label, token) => {
     expect(verifyImageAccess(ASSET, token, NOW)).toBeNull()
+  })
+
+  test('only the canonical spelling of the expiry verifies', () => {
+    // 앞에 0 을 붙여도 같은 수로 읽혀 mac 이 맞는다 — 같은 토큰의 다른 철자를 받지 않는다.
+    const [exp, mac] = signImageAccess(ASSET, NOW).split('.')
+    expect(verifyImageAccess(ASSET, `0${exp}.${mac}`, NOW)).toBeNull()
+    expect(verifyImageAccess(ASSET, `00${exp}.${mac}`, NOW)).toBeNull()
+  })
+
+  test('the mac is HMAC-SHA256 under a key derived for this purpose, not the raw secret', () => {
+    const exp = WINDOW_START + FILE_SERVE_TTL_SEC + FILE_SERVE_WINDOW_SEC
+    const input = `${ASSET}\n${exp}`
+    const derived = createHmac('sha256', SECRET).update('bebe-media:image-url:v1').digest()
+    expect(signImageAccess(ASSET, NOW)).toBe(
+      `${exp}.${createHmac('sha256', derived).update(input).digest('base64url')}`,
+    )
+    // JWT 가 쓰는 비밀 그대로 만든 서명은 통하지 않는다.
+    const raw = createHmac('sha256', SECRET).update(input).digest('base64url')
+    expect(verifyImageAccess(ASSET, `${exp}.${raw}`, NOW)).toBeNull()
   })
 
   test('only the canonical spelling of a mac verifies', () => {
