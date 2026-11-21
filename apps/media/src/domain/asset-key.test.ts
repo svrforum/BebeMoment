@@ -1,5 +1,10 @@
 import { describe, expect, it } from 'vitest'
-import { imageDerivativeName, isImageDerivativeName, keyBelongsToAsset } from './asset-key'
+import {
+  imageDerivativeName,
+  isImageDerivativeName,
+  keyBelongsToAsset,
+  keyOwnerId,
+} from './asset-key'
 
 const FAM = 'fam-1'
 const A = 'asset-1'
@@ -80,5 +85,20 @@ describe('imageDerivativeName', () => {
     expect(imageDerivativeName(`families/fam/assets/${UUID}/original.jpg`, UUID)).toBeNull()
     expect(imageDerivativeName(`derivatives/${UUID}/x/thumb256.webp`, UUID)).toBeNull()
     expect(imageDerivativeName(`x/derivatives/${UUID}/thumb256.webp`, UUID)).toBeNull()
+  })
+})
+
+describe('keyOwnerId', () => {
+  it('is the asset itself for an ordinary row', () => {
+    expect(keyOwnerId({ id: UUID, duplicateOf: null })).toBe(UUID)
+  })
+
+  it('is the aliased asset for a duplicate upload — its keys live under that id', () => {
+    const owner = keyOwnerId({ id: UUID, duplicateOf: OTHER_UUID })
+    expect(owner).toBe(OTHER_UUID)
+    expect(keyBelongsToAsset(`derivatives/${OTHER_UUID}/thumb256.webp`, 'fam', owner)).toBe(true)
+    expect(imageDerivativeName(`derivatives/${OTHER_UUID}/thumb256.webp`, owner)).toBe(
+      'thumb256.webp',
+    )
   })
 })

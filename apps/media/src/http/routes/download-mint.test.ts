@@ -132,6 +132,45 @@ describe('POST /media/v1/download/mint — auto quality', () => {
     })
   }
 
+  test('중복 업로드 별칭도 내려받아진다 — 토큰은 키의 주인 자산에 묶인다', async () => {
+    const canonical = '55555555-5555-4555-8555-555555555555'
+    const originalKey = `families/${FAMILY}/assets/${canonical}/original.png`
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const full = path.join(process.env.STORAGE_PATH as string, originalKey)
+    fs.mkdirSync(path.dirname(full), { recursive: true })
+    fs.writeFileSync(full, 'canonical-png-bytes')
+    await db.prisma.asset.create({
+      data: {
+        id: ASSET,
+        familyId: FAMILY,
+        uploadedByUserId: USER,
+        kind: 'image',
+        originalKey,
+        originalFilename: 'copy.png',
+        mimeType: 'image/png',
+        sizeBytes: BigInt(19),
+        sha256: ''.padEnd(64, '1'),
+        takenAt: new Date(),
+        takenAtSource: 'uploaded',
+        status: 'ready',
+        duplicateOf: canonical,
+      },
+    })
+    const res = await mint('original')
+    expect(res.statusCode).toBe(200)
+    expect((await verifyDownloadToken(tokenFrom(res.body))).assetId).toBe(canonical)
+
+    const app = buildApp()
+    const file = await app.inject({
+      method: 'GET',
+      url: `/media/v1/download/${tokenFrom(res.body)}`,
+    })
+    await app.close()
+    expect(file.statusCode).toBe(200)
+    expect(file.body).toBe('canonical-png-bytes')
+  })
+
   test('JPEG 사진의 auto 는 갤러리용 재인코드(회전 굽기·EXIF 제거)다', async () => {
     await createImage('image/jpeg', 'a.jpg')
     const payload = await verifyDownloadToken(tokenFrom((await mint('auto')).body))

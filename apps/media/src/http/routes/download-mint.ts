@@ -1,3 +1,4 @@
+import { keyOwnerId } from '@/domain/asset-key'
 import { parseDerivativesV2 } from '@/domain/derivatives-v2'
 import { type DownloadTokenPayload, signDownloadToken } from '@/lib/jwt'
 import { prisma } from '@/lib/prisma'
@@ -74,7 +75,8 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
 
     const token = await signDownloadToken({
       familyId,
-      assetId,
+      // 중복 업로드 별칭은 원본 자산의 키를 든다 — 다운로드 라우트의 결속 검사는 키의 주인을 본다.
+      assetId: keyOwnerId(asset),
       originalKey: asset.originalKey,
       ...(videoCompatKey !== undefined ? { videoCompatKey } : {}),
       kind,

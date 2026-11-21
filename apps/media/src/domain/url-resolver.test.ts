@@ -1,6 +1,8 @@
 import type { Asset } from '@bebe/db-media'
 import { beforeAll, describe, expect, test, vi } from 'vitest'
 import { verifyImageAccess } from '@/lib/image-access'
+import { verifyFileServeToken } from '@/lib/jwt'
+import { keyBelongsToAsset } from './asset-key'
 import { buildSignedUrl } from './signed-url'
 import { resolveAssetUrls } from './url-resolver'
 
@@ -44,6 +46,7 @@ const mkAsset = (overrides: Partial<Asset> = {}): Asset =>
     createdAt: new Date(),
     updatedAt: new Date(),
     deletedAt: null,
+    duplicateOf: null,
     ...overrides,
   }) as unknown as Asset
 
@@ -315,14 +318,42 @@ describe('resolveAssetUrls — short image URLs', () => {
     expect(urls.videoCompat).toContain('/media/v1/files/')
   })
 
-  test('derivative keys that belong to another asset keep their JWT URLs', async () => {
-    // 중복 자산 행은 원본 자산의 파생물 키를 가리킨다. 이 자산의 토큰으로 남의 키를 열어 주지 않는다.
+  test('a duplicate upload opens the files of the asset it aliases', async () => {
+    // 중복 업로드는 별칭 행이 되고, 그 행의 키는 원본 자산의 것을 그대로 가리킨다(jobs/dedup.ts).
+    // 토큰을 별칭 id 에 묶으면 서빙 라우트의 결속 검사에 걸려 스토리 속 사진이 401 이었다.
+    const FAMILY = '11111111-1111-4111-8111-111111111111'
+    const originalKey = `families/${FAMILY}/assets/${OTHER}/original.jpg`
+    const urls = await resolveAssetUrls(
+      mkAsset({
+        duplicateOf: OTHER,
+        originalKey,
+        derivatives: {
+          v: 2,
+          thumb256: trio('thumb256', OTHER),
+          display1080: trio('display1080', OTHER),
+        },
+      } as unknown as Partial<Asset>),
+    )
+    expect(urls.thumb256?.webp).toContain(`/media/v1/img/${OTHER}/thumb256.webp/`)
+    expect(verifyImageAccess(OTHER, tokenOf(urls.display1080?.jpeg))).not.toBeNull()
+
+    const jwt = (urls.original ?? '').split('/').pop() as string
+    const claims = await verifyFileServeToken(jwt)
+    expect(claims.key).toBe(originalKey)
+    expect(keyBelongsToAsset(claims.key, claims.familyId, claims.assetId)).toBe(true)
+  })
+
+  test('keys of another asset without the alias link are not given a working URL', async () => {
+    // duplicateOf 가 없는데 남의 키를 든 행은 있어서는 안 되는 상태다 — 닫힌 쪽으로 실패한다.
     const urls = await resolveAssetUrls(
       mkAsset({
         derivatives: { v: 2, thumb256: trio('thumb256', OTHER) },
       } as unknown as Partial<Asset>),
     )
-    expect(urls.thumb256?.jpeg).toContain('/media/v1/files/')
     expect(urls.thumb256?.jpeg).not.toContain('/media/v1/img/')
+    const claims = await verifyFileServeToken(
+      (urls.thumb256?.jpeg ?? '').split('/').pop() as string,
+    )
+    expect(keyBelongsToAsset(claims.key, claims.familyId, claims.assetId)).toBe(false)
   })
 })

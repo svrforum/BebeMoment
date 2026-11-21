@@ -15,6 +15,17 @@ export function keyBelongsToAsset(key: string, familyId: string, assetId: string
   )
 }
 
+/**
+ * 이 행의 저장 키가 속한 자산의 id — 서명 토큰은 여기에 묶는다.
+ * 중복 업로드로 생긴 별칭 행은 원본 자산의 키를 그대로 가리킨다(jobs/dedup.ts: originalKey·
+ * derivatives 복사 + duplicateOf). 토큰을 별칭 id 에 묶으면 위 결속 검사에 걸려 그 사진이
+ * 열리지 않는다. 원본 행이 먼저 purge 돼도 바이트와 키는 남으므로(purge 의 refcount) 이 id 는
+ * 행이 없어도 유효하다.
+ */
+export function keyOwnerId(asset: { id: string; duplicateOf: string | null }): string {
+  return asset.duplicateOf ?? asset.id
+}
+
 // 워커가 만드는 이미지 파생물의 파일 이름 전부(jobs/derivative-trios.ts, 영상 포스터).
 // 짧은 이미지 주소(`/media/v1/img/<assetId>/<토큰>/<이름>`)의 이름은 서명에 들어가지 않아
 // 이 목록이 저장소 키로 가는 유일한 관문이다. 영상(preview.mp4)·원본은 일부러 없다.

@@ -1,6 +1,6 @@
 import type { Asset } from '@bebe/db-media'
 import type { AssetUrlTier, AssetUrls, DerivativeTrio } from '@bebe/media-client'
-import { imageDerivativeName } from './asset-key'
+import { imageDerivativeName, keyOwnerId } from './asset-key'
 import { parseDerivativesV2 } from './derivatives-v2'
 import { buildSignedUrl, imageUrlFor } from './signed-url'
 
@@ -8,21 +8,23 @@ type SignKey = (key: string) => Promise<string>
 
 // 이미지 파생물(썸네일·표시용·포스터)은 자산당 서명 하나를 쓰는 짧은 주소로 나간다 —
 // 파일마다 JWT 를 만들면 주소가 427자씩이라 그리드 한 화면의 절반이 주소였다. 그 밖의
-// 키(원본·영상, 다른 자산의 파생물을 가리키는 중복 자산 행)는 지금처럼 키별 JWT 다.
+// 키(원본·영상)는 지금처럼 키별 JWT 다.
 //
 // JWT 는 한 자산 안에서 같은 키를 한 번만 서명한다 — 영상은 videoCompat 이 원본 키일 수 있다.
 function signerFor(asset: Asset): SignKey {
   const signed = new Map<string, Promise<string>>()
+  // 중복 업로드 별칭은 원본 자산의 키를 든다 — 토큰은 키의 주인에 묶어야 열린다.
+  const owner = keyOwnerId(asset)
   let imageUrl: ((name: string) => string) | null = null
   return (key) => {
-    const name = imageDerivativeName(key, asset.id)
+    const name = imageDerivativeName(key, owner)
     if (name !== null) {
-      imageUrl ??= imageUrlFor(asset.id)
+      imageUrl ??= imageUrlFor(owner)
       return Promise.resolve(imageUrl(name))
     }
     let p = signed.get(key)
     if (!p) {
-      p = buildSignedUrl({ familyId: asset.familyId, assetId: asset.id, key })
+      p = buildSignedUrl({ familyId: asset.familyId, assetId: owner, key })
       signed.set(key, p)
     }
     return p

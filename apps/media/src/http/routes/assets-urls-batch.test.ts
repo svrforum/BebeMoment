@@ -134,6 +134,51 @@ describe('POST /media/v1/assets/urls:batch', () => {
     await app.close()
   })
 
+  test('a duplicate upload gets URLs that open the aliased asset’s files', async () => {
+    const canonical = '22222222-2222-4222-8222-222222222222'
+    const alias = '44444444-4444-4444-8444-444444444444'
+    const family = '11111111-1111-4111-8111-111111111111'
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const root = process.env.STORAGE_PATH as string
+    const originalKey = `families/${family}/assets/${canonical}/original.jpg`
+    for (const [key, body] of [
+      [`derivatives/${canonical}/thumb256.webp`, 'canonical-thumb'],
+      [originalKey, 'canonical-original'],
+    ] as const) {
+      fs.mkdirSync(path.dirname(path.join(root, key)), { recursive: true })
+      fs.writeFileSync(path.join(root, key), body)
+    }
+    const thumb = `derivatives/${canonical}/thumb256.webp`
+    const derivatives = { v: 2, thumb256: { avif: thumb, webp: thumb, jpeg: thumb } }
+    await seedAsset(canonical)
+    await seedAsset(alias)
+    // jobs/dedup.ts 가 별칭에 하는 일 그대로: 원본 자산의 키를 복사하고 duplicateOf 를 건다.
+    await db.prisma.asset.update({ where: { id: canonical }, data: { originalKey, derivatives } })
+    await db.prisma.asset.update({
+      where: { id: alias },
+      data: { originalKey, derivatives, duplicateOf: canonical },
+    })
+
+    const app = buildApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/media/v1/assets/urls:batch',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: { familyId: family, assetIds: [alias] },
+    })
+    const urls = JSON.parse(res.body).urls[alias]
+    const open = (url: string) =>
+      app.inject({ method: 'GET', url: url.replace('http://localhost:3001', '') })
+    const image = await open(urls.thumb256.webp)
+    expect(image.statusCode).toBe(200)
+    expect(image.body).toBe('canonical-thumb')
+    const original = await open(urls.original)
+    expect(original.statusCode).toBe(200)
+    expect(original.body).toBe('canonical-original')
+    await app.close()
+  })
+
   test('missing assets are simply absent from the returned map', async () => {
     const id1 = '22222222-2222-4222-8222-222222222222'
     const missing = '99999999-9999-4999-8999-999999999999'
