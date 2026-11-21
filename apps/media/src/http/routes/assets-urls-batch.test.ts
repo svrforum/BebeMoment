@@ -79,6 +79,61 @@ describe('POST /media/v1/assets/urls:batch', () => {
     await app.close()
   })
 
+  test('the image URLs it hands out open on the image route, and only for that asset', async () => {
+    const id = '22222222-2222-4222-8222-222222222222'
+    const other = '44444444-4444-4444-8444-444444444444'
+    const fs = await import('node:fs')
+    const path = await import('node:path')
+    const root = process.env.STORAGE_PATH as string
+    for (const [asset, body] of [
+      [id, 'thumb-of-the-asset'],
+      [other, 'thumb-of-another'],
+    ] as const) {
+      fs.mkdirSync(path.join(root, 'derivatives', asset), { recursive: true })
+      fs.writeFileSync(path.join(root, 'derivatives', asset, 'thumb256.webp'), body)
+    }
+    await seedAsset(id)
+    await seedAsset(other)
+    const name = (size: string, format: string) => `derivatives/${id}/${size}.${format}`
+    const trio = (size: string) => ({
+      avif: name(size, 'webp'),
+      webp: name(size, 'webp'),
+      jpeg: name(size, 'jpeg'),
+    })
+    await db.prisma.asset.update({
+      where: { id },
+      data: { derivatives: { v: 2, thumb256: trio('thumb256'), thumb512: trio('thumb512') } },
+    })
+
+    const app = buildApp()
+    const res = await app.inject({
+      method: 'POST',
+      url: '/media/v1/assets/urls:batch',
+      headers: { authorization: `Bearer ${TOKEN}` },
+      payload: {
+        familyId: '11111111-1111-4111-8111-111111111111',
+        assetIds: [id],
+        tiers: ['thumb'],
+      },
+    })
+    const url: string = JSON.parse(res.body).urls[id].thumb256.webp
+    expect(url).toMatch(
+      new RegExp(`^http://localhost:3001/media/v1/img/${id}/[^/]+/thumb256\\.webp$`),
+    )
+
+    const pathOnly = url.replace('http://localhost:3001', '')
+    const image = await app.inject({ method: 'GET', url: pathOnly })
+    expect(image.statusCode).toBe(200)
+    expect(image.body).toBe('thumb-of-the-asset')
+    expect(image.headers['content-type']).toBe('image/webp')
+
+    // 받은 주소의 자산 id 만 바꿔 다른 사진을 열 수 없다.
+    const swapped = await app.inject({ method: 'GET', url: pathOnly.replace(id, other) })
+    expect(swapped.statusCode).toBe(401)
+    expect(swapped.body).not.toContain('thumb-of-another')
+    await app.close()
+  })
+
   test('missing assets are simply absent from the returned map', async () => {
     const id1 = '22222222-2222-4222-8222-222222222222'
     const missing = '99999999-9999-4999-8999-999999999999'

@@ -1,5 +1,5 @@
 import { beforeAll, describe, expect, test } from 'vitest'
-import { buildSignedUrl } from './signed-url'
+import { buildSignedUrl, imageUrlFor } from './signed-url'
 
 describe('buildSignedUrl', () => {
   beforeAll(() => {
@@ -41,5 +41,34 @@ describe('buildSignedUrl', () => {
     expect(url.startsWith('https://example.com/media/v1/files/')).toBe(true)
     expect(url.includes('com//media')).toBe(false)
     process.env.MEDIA_PUBLIC_BASE_URL = 'https://example.com'
+  })
+})
+
+describe('imageUrlFor', () => {
+  const ID = '22222222-2222-4222-8222-222222222222'
+  beforeAll(() => {
+    process.env.MEDIA_JWT_SECRET = 'a'.repeat(40)
+  })
+
+  test('is root-relative when MEDIA_PUBLIC_BASE_URL is unset, absolute otherwise', () => {
+    const save = process.env.MEDIA_PUBLIC_BASE_URL
+    try {
+      process.env.MEDIA_PUBLIC_BASE_URL = ''
+      expect(imageUrlFor(ID)('thumb256.webp')).toMatch(
+        new RegExp(`^/media/v1/img/${ID}/\\d+\\.[A-Za-z0-9_-]{43}/thumb256\\.webp$`),
+      )
+      process.env.MEDIA_PUBLIC_BASE_URL = 'https://media.example.com/'
+      expect(imageUrlFor(ID)('thumb256.webp')).toMatch(
+        new RegExp(`^https://media\\.example\\.com/media/v1/img/${ID}/`),
+      )
+    } finally {
+      process.env.MEDIA_PUBLIC_BASE_URL = save
+    }
+  })
+
+  test('one call signs once — every name shares the token', () => {
+    const url = imageUrlFor(ID)
+    const prefix = url('thumb256.webp').slice(0, -'thumb256.webp'.length)
+    expect(url('display1080.jpeg')).toBe(`${prefix}display1080.jpeg`)
   })
 })
