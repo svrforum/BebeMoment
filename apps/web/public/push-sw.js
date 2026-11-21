@@ -32,29 +32,24 @@ self.addEventListener('notificationclick', (event) => {
 })
 
 // ─── 사진 캐시 ────────────────────────────────────────────────────────────────
-// 서명 URL 은 15분마다 바뀐다(토큰의 iat 가 15분 창으로 양자화된다). 그래서 브라우저 HTTP
-// 캐시는 같은 15분 안에서만 맞고, 앱을 다시 열 때마다 모든 썸네일을 새로 받았다.
-// 토큰 안의 저장 키(`derivatives/<assetId>/<크기>.<형식>`)는 바뀌지 않고 그 바이트도 바뀌지
-// 않으므로, 키로 보관해 두고 먼저 꺼내 준다. 원본·영상·다운로드는 건드리지 않는다.
+// 이미지 주소는 `/media/v1/img/<자산>/<토큰>/<이름>` 이고 토큰이 15분마다 바뀐다. 그래서
+// 브라우저 HTTP 캐시는 같은 15분 안에서만 맞고, 앱을 다시 열 때마다 모든 썸네일을 새로 받았다.
+// 자산과 이름(`thumb256.webp` 등)은 바뀌지 않고 그 바이트도 바뀌지 않으므로, 토큰을 뺀
+// `derivatives/<자산>/<이름>` 으로 보관해 두고 먼저 꺼내 준다. 원본·영상·다운로드
+// (`/media/v1/files/…`, `/media/v1/download/…`)는 건드리지 않는다.
 
 // 이름을 바꾸면 activate 가 옛 캐시를 지운다. 로그인 화면도 이 접두사로 지운다(lib/photo-cache.ts).
 const IMG_CACHE = 'bebe-img-v1'
 // 들어온 순서대로 오래된 것부터 버린다. 썸네일 ≈7KB, 표시용 ≈50~150KB.
 const IMG_MAX_ENTRIES = 2000
-const FILE_PREFIX = '/media/v1/files/'
-const IMAGE_KEY = /^derivatives\/[0-9a-f-]{36}\/[a-z0-9]+\.(?:avif|webp|jpe?g)$/
+// 이름 목록은 media 의 허용 목록(apps/media/src/domain/asset-key.ts)과 같아야 한다.
+const IMAGE_URL =
+  /^\/media\/v1\/img\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[^/]+\/((?:thumb256|thumb512|display1080)\.(?:avif|webp|jpeg)|poster\.jpg)$/
 
-/** 서명 URL 경로 → 이미지 파생물의 저장 키. 그 밖의 것(원본·영상·깨진 토큰)은 null. */
+/** 이미지 주소의 경로 → 보관 키. 그 밖의 경로는 null. */
 function derivativeKey(pathname) {
-  if (!pathname.startsWith(FILE_PREFIX)) return null
-  const parts = pathname.slice(FILE_PREFIX.length).split('.')
-  if (parts.length !== 3) return null
-  try {
-    const payload = JSON.parse(atob(parts[1].replace(/-/g, '+').replace(/_/g, '/')))
-    return typeof payload.key === 'string' && IMAGE_KEY.test(payload.key) ? payload.key : null
-  } catch {
-    return null
-  }
+  const m = IMAGE_URL.exec(pathname)
+  return m ? `derivatives/${m[1]}/${m[2]}` : null
 }
 
 let putsSinceTrim = 0

@@ -11,10 +11,17 @@ import { PHOTO_CACHE_PREFIX } from './photo-cache'
 
 const ORIGIN = 'https://bebe.example.com'
 const ASSET = '11111111-1111-4111-8111-111111111111'
+const OTHER_ASSET = '22222222-2222-4222-8222-222222222222'
 
-function fileUrl(key: string, signature = 'sig-a'): string {
+/** 짧은 이미지 주소 — 토큰은 15분마다 바뀌고 자산·이름은 그대로다. */
+function imgUrl(name: string, token = '1800004500.sig-a', asset = ASSET): string {
+  return `${ORIGIN}/media/v1/img/${asset}/${token}/${name}`
+}
+
+/** 키별 JWT 주소 — 원본·영상, 그리고 배포 전에 열려 있던 화면의 이미지. */
+function fileUrl(key: string): string {
   const b64 = (o: unknown) => Buffer.from(JSON.stringify(o)).toString('base64url')
-  return `${ORIGIN}/media/v1/files/${b64({ alg: 'HS256' })}.${b64({ iss: 'media', key, iat: 1 })}.${signature}`
+  return `${ORIGIN}/media/v1/files/${b64({ alg: 'HS256' })}.${b64({ iss: 'media', key, iat: 1 })}.sig`
 }
 
 type FakeResponse = { status: number; type: string; body: string; clone: () => FakeResponse }
@@ -55,7 +62,7 @@ function loadWorker() {
     return nextResponse(req.url)
   }
   const code = readFileSync(path.join(process.cwd(), 'public/push-sw.js'), 'utf8')
-  vm.runInNewContext(code, { self, caches, fetch, URL, atob, JSON, Promise })
+  vm.runInNewContext(code, { self, caches, fetch, URL })
 
   /** fetch 이벤트를 보내고, 워커가 응답을 가로챘으면 그 응답을(아니면 null) 돌려준다. */
   async function request(url: string, init: { method?: string; range?: boolean } = {}) {
@@ -93,40 +100,52 @@ describe('push-sw 사진 캐시', () => {
     sw = loadWorker()
   })
 
-  it('한 번 받은 파생물은 서명이 바뀐 주소로 와도 네트워크 없이 준다', async () => {
-    const key = `derivatives/${ASSET}/thumb256.webp`
-    const first = await sw.request(fileUrl(key, 'sig-a'))
+  it('한 번 받은 파생물은 토큰이 바뀐 주소로 와도 네트워크 없이 준다', async () => {
+    const first = await sw.request(imgUrl('thumb256.webp', '1800004500.sig-a'))
     expect(first?.body).toContain('sig-a')
     expect(sw.fetched).toHaveLength(1)
 
-    // 15분 뒤 — 토큰(서명)만 다르고 같은 사진.
-    const second = await sw.request(fileUrl(key, 'sig-b'))
+    // 15분 뒤 — 토큰만 다르고 같은 사진.
+    const second = await sw.request(imgUrl('thumb256.webp', '1800005400.sig-b'))
     expect(second?.body).toContain('sig-a')
     expect(sw.fetched).toHaveLength(1)
   })
 
-  it('크기·형식이 다르면 다른 사진으로 본다', async () => {
-    await sw.request(fileUrl(`derivatives/${ASSET}/thumb256.webp`))
-    await sw.request(fileUrl(`derivatives/${ASSET}/thumb512.webp`))
-    await sw.request(fileUrl(`derivatives/${ASSET}/thumb256.avif`))
-    expect(sw.fetched).toHaveLength(3)
+  it('크기·형식·자산이 다르면 다른 사진으로 본다', async () => {
+    await sw.request(imgUrl('thumb256.webp'))
+    await sw.request(imgUrl('thumb512.webp'))
+    await sw.request(imgUrl('thumb256.avif'))
+    await sw.request(imgUrl('poster.jpg'))
+    await sw.request(imgUrl('thumb256.webp', undefined, OTHER_ASSET))
+    expect(sw.fetched).toHaveLength(5)
+  })
+
+  it('JWT 주소 시절에 받아 둔 사진을 새 주소에서도 그대로 쓴다', async () => {
+    // 보관 키는 주소 형식이 바뀌어도 `derivatives/<자산>/<이름>` 그대로다 — 배포하면서
+    // 모든 기기가 썸네일을 다시 받는 일이 없어야 한다.
+    sw.stores.set(
+      'bebe-img-v1',
+      new Map([
+        [`${ORIGIN}/__img/derivatives/${ASSET}/thumb256.webp`, response('kept from before')],
+      ]),
+    )
+    expect((await sw.request(imgUrl('thumb256.webp')))?.body).toBe('kept from before')
+    expect(sw.fetched).toHaveLength(0)
   })
 
   it.each([
-    [
-      '원본',
-      fileUrl(`families/22222222-2222-4222-8222-222222222222/assets/${ASSET}/original.jpg`),
-      {},
-    ],
+    ['원본', fileUrl(`families/${OTHER_ASSET}/assets/${ASSET}/original.jpg`), {}],
     ['영상 프리뷰', fileUrl(`derivatives/${ASSET}/preview.mp4`), {}],
-    ['Range 요청', fileUrl(`derivatives/${ASSET}/thumb256.webp`), { range: true }],
-    ['GET 이 아닌 요청', fileUrl(`derivatives/${ASSET}/thumb256.webp`), { method: 'POST' }],
-    [
-      '다른 출처',
-      fileUrl(`derivatives/${ASSET}/thumb256.webp`).replace(ORIGIN, 'https://other.example.com'),
-      {},
-    ],
-    ['깨진 토큰', `${ORIGIN}/media/v1/files/not-a-token`, {}],
+    ['JWT 주소의 이미지', fileUrl(`derivatives/${ASSET}/thumb256.webp`), {}],
+    ['Range 요청', imgUrl('thumb256.webp'), { range: true }],
+    ['GET 이 아닌 요청', imgUrl('thumb256.webp'), { method: 'POST' }],
+    ['다른 출처', imgUrl('thumb256.webp').replace(ORIGIN, 'https://other.example.com'), {}],
+    ['목록에 없는 이름(영상)', imgUrl('preview.mp4'), {}],
+    ['목록에 없는 이름(원본)', imgUrl('original.jpg'), {}],
+    ['대문자 이름', imgUrl('THUMB256.WEBP'), {}],
+    ['UUID 가 아닌 자산', imgUrl('thumb256.webp', undefined, 'asset'), {}],
+    ['조각이 더 붙은 경로', `${imgUrl('thumb256.webp')}/x`, {}],
+    ['토큰이 빠진 경로', `${ORIGIN}/media/v1/img/${ASSET}/thumb256.webp`, {}],
     ['페이지', `${ORIGIN}/timeline`, {}],
     ['API', `${ORIGIN}/api/timeline?limit=30`, {}],
   ] as const)('%s 은 건드리지 않는다', async (_name, url, init) => {
@@ -140,20 +159,28 @@ describe('push-sw 사진 캐시', () => {
     ['외부로 리다이렉트된 응답(S3)', 0, 'opaque'],
   ] as const)('%s 은 돌려주기만 하고 보관하지 않는다', async (_name, status, type) => {
     sw.setResponse(() => response('x', status, type))
-    const key = `derivatives/${ASSET}/thumb256.webp`
-    expect((await sw.request(fileUrl(key)))?.status).toBe(status)
-    await sw.request(fileUrl(key))
+    expect((await sw.request(imgUrl('thumb256.webp')))?.status).toBe(status)
+    await sw.request(imgUrl('thumb256.webp'))
     expect(sw.fetched).toHaveLength(2)
   })
 
   it('보관 개수를 넘기면 오래된 것부터 버린다', async () => {
     const id = (n: number) => `${String(n).padStart(8, '0')}-1111-4111-8111-111111111111`
-    for (let n = 0; n < 2080; n += 1)
-      await sw.request(fileUrl(`derivatives/${id(n)}/thumb256.webp`))
+    for (let n = 0; n < 2080; n += 1) await sw.request(imgUrl('thumb256.webp', undefined, id(n)))
     const store = sw.stores.get('bebe-img-v1')
     expect(store?.size).toBeLessThanOrEqual(2040)
     expect(store?.has(`${ORIGIN}/__img/derivatives/${id(0)}/thumb256.webp`)).toBe(false)
     expect(store?.has(`${ORIGIN}/__img/derivatives/${id(2079)}/thumb256.webp`)).toBe(true)
+  })
+
+  it('보관하는 이름 목록이 media 가 내주는 이름 목록과 같다', () => {
+    // 한쪽에만 크기·형식을 더하면 그 사진은 조용히 캐시에서 빠진다(매번 다시 받는다).
+    const names = /\(\?:\(\?:[a-z0-9|]+\)\\\.\(\?:[a-z|]+\)\|poster\\\.jpg\)/
+    const worker = readFileSync(path.join(process.cwd(), 'public/push-sw.js'), 'utf8')
+    const media = readFileSync(path.join(process.cwd(), '../media/src/domain/asset-key.ts'), 'utf8')
+    const inMedia = names.exec(media)?.[0]
+    expect(inMedia).toBeDefined()
+    expect(worker).toContain((inMedia as string).slice('(?:'.length, -1))
   })
 
   it('로그인 화면이 지우는 접두사와 워커의 캐시 이름이 맞는다', () => {
