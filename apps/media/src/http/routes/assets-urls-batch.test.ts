@@ -118,7 +118,7 @@ describe('POST /media/v1/assets/urls:batch', () => {
     })
     const url: string = JSON.parse(res.body).urls[id].thumb256.webp
     expect(url).toMatch(
-      new RegExp(`^http://localhost:3001/media/v1/img/${id}/[^/]+/thumb256\\.webp$`),
+      new RegExp(`^http://localhost:3001/media/v1/img/${id}/thumb256\\.webp/[^/]+$`),
     )
 
     const pathOnly = url.replace('http://localhost:3001', '')

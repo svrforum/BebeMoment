@@ -32,7 +32,7 @@ self.addEventListener('notificationclick', (event) => {
 })
 
 // ─── 사진 캐시 ────────────────────────────────────────────────────────────────
-// 이미지 주소는 `/media/v1/img/<자산>/<토큰>/<이름>` 이고 토큰이 15분마다 바뀐다. 그래서
+// 이미지 주소는 `/media/v1/img/<자산>/<이름>/<토큰>` 이고 토큰이 15분마다 바뀐다. 그래서
 // 브라우저 HTTP 캐시는 같은 15분 안에서만 맞고, 앱을 다시 열 때마다 모든 썸네일을 새로 받았다.
 // 자산과 이름(`thumb256.webp` 등)은 바뀌지 않고 그 바이트도 바뀌지 않으므로, 토큰을 뺀
 // `derivatives/<자산>/<이름>` 으로 보관해 두고 먼저 꺼내 준다. 원본·영상·다운로드
@@ -44,7 +44,7 @@ const IMG_CACHE = 'bebe-img-v1'
 const IMG_MAX_ENTRIES = 2000
 // 이름 목록은 media 의 허용 목록(apps/media/src/domain/asset-key.ts)과 같아야 한다.
 const IMAGE_URL =
-  /^\/media\/v1\/img\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/[^/]+\/((?:thumb256|thumb512|display1080)\.(?:avif|webp|jpeg)|poster\.jpg)$/
+  /^\/media\/v1\/img\/([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})\/((?:thumb256|thumb512|display1080)\.(?:avif|webp|jpeg)|poster\.jpg)\/[^/]+$/
 
 /** 이미지 주소의 경로 → 보관 키. 그 밖의 경로는 null. */
 function derivativeKey(pathname) {

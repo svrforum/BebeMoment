@@ -15,7 +15,7 @@ const OTHER_ASSET = '22222222-2222-4222-8222-222222222222'
 
 /** 짧은 이미지 주소 — 토큰은 15분마다 바뀌고 자산·이름은 그대로다. */
 function imgUrl(name: string, token = '1800004500.sig-a', asset = ASSET): string {
-  return `${ORIGIN}/media/v1/img/${asset}/${token}/${name}`
+  return `${ORIGIN}/media/v1/img/${asset}/${name}/${token}`
 }
 
 /** 키별 JWT 주소 — 원본·영상, 그리고 배포 전에 열려 있던 화면의 이미지. */
@@ -146,6 +146,11 @@ describe('push-sw 사진 캐시', () => {
     ['UUID 가 아닌 자산', imgUrl('thumb256.webp', undefined, 'asset'), {}],
     ['조각이 더 붙은 경로', `${imgUrl('thumb256.webp')}/x`, {}],
     ['토큰이 빠진 경로', `${ORIGIN}/media/v1/img/${ASSET}/thumb256.webp`, {}],
+    [
+      '토큰과 이름의 자리가 바뀐 경로',
+      `${ORIGIN}/media/v1/img/${ASSET}/1800004500.sig-a/thumb256.webp`,
+      {},
+    ],
     ['페이지', `${ORIGIN}/timeline`, {}],
     ['API', `${ORIGIN}/api/timeline?limit=30`, {}],
   ] as const)('%s 은 건드리지 않는다', async (_name, url, init) => {

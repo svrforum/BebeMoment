@@ -11,7 +11,7 @@ const ASSET = '33333333-3333-4333-8333-333333333333'
 const OTHER = '44444444-4444-4444-8444-444444444444'
 const FAMILY = '22222222-2222-4222-8222-222222222222'
 
-describe('GET /media/v1/img/:assetId/:token/:name', () => {
+describe('GET /media/v1/img/:assetId/:name/:token', () => {
   let storageRoot: string
   const put = (key: string, body: string) => {
     const full = path.join(storageRoot, key)
@@ -36,7 +36,7 @@ describe('GET /media/v1/img/:assetId/:token/:name', () => {
   })
 
   const url = (name: string, token = signImageAccess(ASSET), assetId = ASSET) =>
-    `/media/v1/img/${assetId}/${token}/${name}`
+    `/media/v1/img/${assetId}/${name}/${token}`
 
   async function get(target: string, headers: Record<string, string> = {}) {
     const app = buildApp()
@@ -152,7 +152,7 @@ describe('GET /media/v1/img/:assetId/:token/:name', () => {
 
   test('a path that walks out of the route does not match it', async () => {
     const token = signImageAccess(ASSET)
-    const res = await get(`/media/v1/img/${ASSET}/${token}/../../../${OTHER}/thumb256.webp`)
+    const res = await get(`/media/v1/img/${ASSET}/../${OTHER}/thumb256.webp/${token}`)
     expect(res.statusCode).not.toBe(200)
     expect(res.body).not.toContain('another-photo')
   })

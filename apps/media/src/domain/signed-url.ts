@@ -23,10 +23,15 @@ export async function buildSignedUrl(args: SignedUrlArgs): Promise<string> {
 
 /**
  * 한 자산의 이미지 파생물 주소를 만드는 함수를 돌려준다 — 서명은 여기서 한 번만 하고,
- * 그 자산의 모든 크기·형식이 같은 토큰을 쓴다(`/media/v1/img/<assetId>/<토큰>/<이름>`).
+ * 그 자산의 모든 크기·형식이 같은 토큰을 쓴다(`/media/v1/img/<assetId>/<이름>/<토큰>`).
  * 이름은 호출부가 `imageDerivativeName` 으로 걸러서 넘긴다.
+ *
+ * 토큰을 맨 뒤에 둔다 — 경로가 `.webp`·`.jpeg` 로 끝나면 확장자로 정적 파일을 골라 캐시하는
+ * 프록시 규칙(Cache-Control 을 무시하는 것도 있다)에 걸린다. JWT 주소가 그랬듯 서명으로 끝나면
+ * 어떤 프록시에서도 지금까지와 똑같이 지나간다.
  */
 export function imageUrlFor(assetId: string): (name: string) => string {
-  const prefix = `${publicBase()}/media/v1/img/${assetId}/${signImageAccess(assetId)}/`
-  return (name) => `${prefix}${name}`
+  const prefix = `${publicBase()}/media/v1/img/${assetId}/`
+  const token = signImageAccess(assetId)
+  return (name) => `${prefix}${name}/${token}`
 }

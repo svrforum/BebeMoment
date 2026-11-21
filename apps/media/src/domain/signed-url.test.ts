@@ -55,7 +55,7 @@ describe('imageUrlFor', () => {
     try {
       process.env.MEDIA_PUBLIC_BASE_URL = ''
       expect(imageUrlFor(ID)('thumb256.webp')).toMatch(
-        new RegExp(`^/media/v1/img/${ID}/\\d+\\.[A-Za-z0-9_-]{43}/thumb256\\.webp$`),
+        new RegExp(`^/media/v1/img/${ID}/thumb256\\.webp/\\d+\\.[A-Za-z0-9_-]{43}$`),
       )
       process.env.MEDIA_PUBLIC_BASE_URL = 'https://media.example.com/'
       expect(imageUrlFor(ID)('thumb256.webp')).toMatch(
@@ -67,8 +67,11 @@ describe('imageUrlFor', () => {
   })
 
   test('one call signs once — every name shares the token', () => {
+    const save = process.env.MEDIA_PUBLIC_BASE_URL
+    process.env.MEDIA_PUBLIC_BASE_URL = ''
     const url = imageUrlFor(ID)
-    const prefix = url('thumb256.webp').slice(0, -'thumb256.webp'.length)
-    expect(url('display1080.jpeg')).toBe(`${prefix}display1080.jpeg`)
+    process.env.MEDIA_PUBLIC_BASE_URL = save
+    const token = url('thumb256.webp').split('/').pop()
+    expect(url('display1080.jpeg')).toBe(`/media/v1/img/${ID}/display1080.jpeg/${token}`)
   })
 })

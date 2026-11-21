@@ -48,7 +48,7 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
       .poll(() => page.locator('main a[href^="/detail/"] img').first().evaluate(loadedPath), {
         timeout: 30_000,
       })
-      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/thumb(256|512)\.(avif|webp|jpeg)$/)
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/thumb(256|512)\.(avif|webp|jpeg)\/[^/]+$/)
 
     // 공개 공유 링크 — 로그인하지 않은 새 창에서도 사진과 미리보기 이미지가 그 주소로 열린다.
     // (공유 화면은 절대 주소를 쓰고, 메신저 크롤러는 og:image 를 쿠키 없이 받는다.)
@@ -69,9 +69,11 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
     await shared.goto(`/s/${token}`)
     await expect
       .poll(() => shared.locator('main img, img').first().evaluate(loadedPath), { timeout: 30_000 })
-      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/display1080\.jpeg$/)
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/display1080\.jpeg\/[^/]+$/)
     const ogImage = await shared.locator('meta[property="og:image"]').getAttribute('content')
-    expect(new URL(ogImage as string).pathname).toMatch(/^\/media\/v1\/img\/.+\.jpeg$/)
+    expect(new URL(ogImage as string).pathname).toMatch(
+      /^\/media\/v1\/img\/[0-9a-f-]{36}\/display1080\.jpeg\/[^/]+$/,
+    )
     const og = await anon.request.get(ogImage as string)
     expect(og.status()).toBe(200)
     expect(og.headers()['content-type']).toBe('image/jpeg')
@@ -131,7 +133,7 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
       .poll(() => page.locator('.swiper-slide-active img').first().evaluate(loadedPath), {
         timeout: 30_000,
       })
-      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/(display1080|thumb512)\.(webp|jpeg)$/)
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/(display1080|thumb512)\.(webp|jpeg)\/[^/]+$/)
 
     // Close (X link with aria-label "닫기") → back to /timeline
     // 닫기는 이제 <a> 가 아니라 <button> 이다(뷰어 상단바).

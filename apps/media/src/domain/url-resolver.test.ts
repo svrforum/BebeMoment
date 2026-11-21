@@ -215,7 +215,7 @@ describe('resolveAssetUrls — short image URLs', () => {
     jpeg: key(`${size}.jpeg`, id),
   })
   const tokenOf = (url: string | null | undefined): string => {
-    const m = /\/media\/v1\/img\/[0-9a-f-]{36}\/([^/]+)\/[^/]+$/.exec(url ?? '')
+    const m = /\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/([^/]+)$/.exec(url ?? '')
     if (!m) throw new Error(`not an image URL: ${url}`)
     return m[1] as string
   }
@@ -235,10 +235,10 @@ describe('resolveAssetUrls — short image URLs', () => {
       },
     } as unknown as Partial<Asset>)
 
-  test('every image derivative gets /media/v1/img/<id>/<token>/<file name>', async () => {
+  test('every image derivative gets /media/v1/img/<id>/<file name>/<token>', async () => {
     const urls = await resolveAssetUrls(photo())
     const token = tokenOf(urls.thumb256?.avif)
-    const at = (name: string) => `https://example.com/media/v1/img/${ID}/${token}/${name}`
+    const at = (name: string) => `https://example.com/media/v1/img/${ID}/${name}/${token}`
     expect(urls.thumb256).toEqual({
       avif: at('thumb256.avif'),
       webp: at('thumb256.webp'),
@@ -292,8 +292,8 @@ describe('resolveAssetUrls — short image URLs', () => {
       } as unknown as Partial<Asset>),
     )
     expect(urls.thumb256?.avif).toBe(urls.thumb256?.webp)
-    expect(urls.thumb256?.avif).toMatch(/\/thumb256\.webp$/)
-    expect(urls.thumb512?.avif).toMatch(/\/thumb512\.webp$/)
+    expect(urls.thumb256?.avif).toContain('/thumb256.webp/')
+    expect(urls.thumb512?.avif).toContain('/thumb512.webp/')
   })
 
   test('a video poster is an image URL, the playable video stays a JWT', async () => {
@@ -309,7 +309,7 @@ describe('resolveAssetUrls — short image URLs', () => {
       } as unknown as Partial<Asset>),
     )
     expect(urls.videoPoster).toMatch(
-      new RegExp(`^https://example\\.com/media/v1/img/${ID}/[^/]+/poster\\.jpg$`),
+      new RegExp(`^https://example\\.com/media/v1/img/${ID}/poster\\.jpg/[^/]+$`),
     )
     expect(tokenOf(urls.videoPoster)).toBe(tokenOf(urls.thumb256?.jpeg))
     expect(urls.videoCompat).toContain('/media/v1/files/')
