@@ -7,7 +7,7 @@
     "allowNavigation": ["*"]
   },
   "android": {
-    "allowMixedContent": true
-  },
-  "zoomEnabled": true
+    "allowMixedContent": true,
+    "zoomEnabled": true
+  }
 }
