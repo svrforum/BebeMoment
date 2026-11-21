@@ -18,12 +18,17 @@ export type SignUploadTokenArgs = Omit<UploadTokenPayload, 'iss' | 'aud' | 'scop
 
 const UPLOAD_TOKEN_TTL_SEC = 15 * 60
 
-function getSecret(): Uint8Array {
+/** 서명에 쓰는 비밀. 짧으면 서명도 검증도 하지 않는다(부팅 설정 오류를 조용히 넘기지 않게). */
+export function requireMediaSecret(): string {
   const raw = process.env.MEDIA_JWT_SECRET
   if (!raw || raw.length < 32) {
     throw new Error('MEDIA_JWT_SECRET must be at least 32 bytes')
   }
-  return new TextEncoder().encode(raw)
+  return raw
+}
+
+function getSecret(): Uint8Array {
+  return new TextEncoder().encode(requireMediaSecret())
 }
 
 export async function signUploadToken(args: SignUploadTokenArgs): Promise<string> {
