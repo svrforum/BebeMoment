@@ -107,7 +107,9 @@ export function BucketSection({
   return (
     <section
       className="section-enter mb-10"
-      style={{ '--enter-delay': `${Math.min(index * 60, 240)}ms` } as CSSProperties}
+      // 등장 지연은 다 합쳐 0.1초 안쪽 — 예전(섹션 최대 240ms + 사진 최대 360ms + 380ms 재생)엔
+      // 타임라인을 열 때마다 마지막 사진이 0.7초 넘게 지나서야 보였다.
+      style={{ '--enter-delay': `${Math.min(index * 30, 60)}ms` } as CSSProperties}
     >
       <header className="mb-3 flex items-end justify-between gap-3">
         <div className="flex min-w-0 flex-col gap-1">
@@ -144,7 +146,7 @@ export function BucketSection({
           <div
             key={a.id}
             className="asset-enter"
-            style={{ '--enter-delay': `${Math.min(i * 30, 360)}ms` } as CSSProperties}
+            style={{ '--enter-delay': `${Math.min(i * 12, 72)}ms` } as CSSProperties}
           >
             <AssetCard
               id={a.id}

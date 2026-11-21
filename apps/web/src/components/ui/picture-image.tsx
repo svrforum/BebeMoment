@@ -9,7 +9,24 @@ import {
 } from '@/lib/asset-url'
 import type { AssetUrls, DerivativeTrio } from '@bebe/media-client'
 import { decode } from 'blurhash'
-import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
+import {
+  type CSSProperties,
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+  useSyncExternalStore,
+} from 'react'
+
+const subscribeNever = () => () => {}
+/** 서버가 그린 HTML 을 하이드레이션하는 렌더에서만 true — 클라이언트에서 새로 마운트되면 false. */
+function useHydrating(): boolean {
+  return useSyncExternalStore(
+    subscribeNever,
+    () => false,
+    () => true,
+  )
+}
 
 export type PictureImageProps = {
   trio: DerivativeTrio | null
@@ -44,7 +61,16 @@ export type PictureImageProps = {
   urlKind?: 'thumb' | 'display'
 }
 
-function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null | undefined }) {
+function BlurhashCanvas({
+  hash,
+  aspect,
+  skip,
+}: {
+  hash: string
+  aspect: number | null | undefined
+  /** 사진이 이미 떠 있으면 풀지 않는다 — 가려질 그림을 만드느라 메인 스레드를 쓰지 않게. */
+  skip: boolean
+}) {
   const ref = useRef<HTMLCanvasElement>(null)
   const [shouldDecode, setShouldDecode] = useState(false)
 
@@ -73,10 +99,14 @@ function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null 
     return () => obs.disconnect()
   }, [])
 
+  // 이미 푼 캔버스는 그대로 둔다(skip 은 '아직 안 풀었으면 풀지 마라' 일 뿐) — 페이드 중에
+  // 배경이 사라지지 않게.
+  const decodedRef = useRef(false)
   useEffect(() => {
-    if (!shouldDecode) return
+    if (!shouldDecode || skip || decodedRef.current) return
     const c = ref.current
     if (!c) return
+    decodedRef.current = true
     try {
       const w = 32
       const h = aspect && aspect > 0 ? Math.max(8, Math.round(w / aspect)) : 32
@@ -91,7 +121,7 @@ function BlurhashCanvas({ hash, aspect }: { hash: string; aspect: number | null 
     } catch {
       // ignore — invalid hash
     }
-  }, [shouldDecode, hash, aspect])
+  }, [shouldDecode, skip, hash, aspect])
 
   return (
     <canvas
@@ -129,6 +159,11 @@ export function PictureImage({
   urlKind = 'thumb',
 }: PictureImageProps) {
   const [loaded, setLoaded] = useState(false)
+  // 서버가 그려 보낸 <img> 는 숨기지 않는다. 예전엔 blurhash 가 있으면 opacity:0 으로 내보내고
+  // 하이드레이션 뒤 onLoad 가 와야 보였다 — 파일은 0.9초에 도착했는데 화면엔 3초에 나타났다
+  // (CPU 4배 감속 측정, 2026-11). 페이드는 클라이언트에서 새로 마운트된 이미지에만 쓴다.
+  const hydrating = useHydrating()
+  const [serverRendered] = useState(hydrating)
   // 서명 URL 만료로 로드 실패 시, 신선한 URL 로 한 번 교체(자가치유). null 이면 원본 props 사용.
   const [override, setOverride] = useState<{
     trio: DerivativeTrio | null
@@ -190,7 +225,7 @@ export function PictureImage({
           }}
           aria-label={alt}
         >
-          <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />
+          <BlurhashCanvas hash={blurhash} aspect={aspectRatio} skip={false} />
         </span>
       )
     }
@@ -228,14 +263,14 @@ export function PictureImage({
     height: '100%',
     objectFit,
     objectPosition,
-    opacity: blurhash && fade ? (loaded ? 1 : 0) : 1,
-    transition: blurhash && fade ? 'opacity 240ms ease-out' : undefined,
+    opacity: blurhash && fade && !serverRendered ? (loaded ? 1 : 0) : 1,
+    transition: blurhash && fade && !serverRendered ? 'opacity 240ms ease-out' : undefined,
   }
 
   if (!effTrio) {
     return (
       <span className={className} style={wrapperStyle}>
-        {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
+        {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} skip={loaded} />}
         <img
           // URL 이 바뀌면(자가치유 교체) remount 해 브라우저가 새로 로드하도록 key 를 건다.
           key={effFallback ?? ''}
@@ -257,7 +292,7 @@ export function PictureImage({
 
   return (
     <span className={className} style={wrapperStyle}>
-      {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} />}
+      {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} skip={loaded} />}
       <picture key={effTrio.jpeg}>
         <source srcSet={effSrcSet?.avif ?? effTrio.avif} sizes={sizes} type="image/avif" />
         <source srcSet={effSrcSet?.webp ?? effTrio.webp} sizes={sizes} type="image/webp" />

@@ -57,6 +57,13 @@ const nextConfig = {
       "form-action 'self'",
     ].join('; ')
     return [
+      // public/ 파일은 기본이 `max-age=0` 이라, 화면을 열 때마다 글꼴 서브셋 11개를 서버에 다시
+      // 확인하고(304) 그 뒤에야 글자가 제 글꼴로 바뀌었다. 글꼴 파일은 이름이 곧 내용이다 —
+      // 글꼴을 바꿀 때는 **파일 이름(또는 폴더)을 바꿔서** 올릴 것.
+      {
+        source: '/fonts/:path*',
+        headers: [{ key: 'Cache-Control', value: 'public, max-age=31536000, immutable' }],
+      },
       {
         source: '/:path*',
         headers: [

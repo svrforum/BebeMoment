@@ -56,7 +56,10 @@ export default async function TimelinePage({
     listTimeline(
       ctx.family.id,
       {
-        limit: 100,
+        // 첫 화면은 60개(이어 받기와 같은 크기)면 충분하다 — 100개일 땐 HTML 이 880KB 였고 그중
+        // 500KB 가 서명 URL 이었다. 나머지는 스크롤이 닿기 전에 무한 스크롤이 이어 받는다.
+        // 하루만 보는 화면(date)은 그날 사진을 한 번에 보여 주려고 100 을 유지한다.
+        limit: dateFilter ? 100 : 60,
         viewerRole,
         sort: sortMode,
         ...(dateFilter ? { date: dateFilter } : {}),

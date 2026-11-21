@@ -2,6 +2,7 @@
 import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
 import { oidcLoginErrorKey } from '@/lib/oidc-login-error'
+import { clearPhotoCache } from '@/lib/photo-cache'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -41,6 +42,12 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
     const key = oidcLoginErrorKey(new URLSearchParams(window.location.search).get('error'))
     if (key) setOidcError(t(`login.error.${key}`))
   }, [t])
+
+  // 로그아웃·세션 만료·정지 — 어떤 경로든 끝은 이 화면이다. 기기에 보관한 가족 사진을 여기서
+  // 지운다. (로그인된 채로 이 주소를 직접 열어도 지워지지만, 다시 받으면 될 뿐이다.)
+  useEffect(() => {
+    void clearPhotoCache()
+  }, [])
 
   async function submit(e: React.FormEvent) {
     e.preventDefault()

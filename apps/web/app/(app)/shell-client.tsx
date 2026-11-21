@@ -11,6 +11,7 @@ import { ToastProvider, ToastViewport } from '@/components/ui/toast'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { UploadSheetProvider, useUploadSheet } from '@/components/upload/upload-sheet'
 import { useFeatures } from '@/lib/features'
+import { registerPhotoWorker } from '@/lib/photo-cache'
 import { FamilySSEProvider } from '@/lib/sse'
 import { ToastEmitterProvider } from '@/lib/toast'
 import type { Capability } from '@bebe/core'
@@ -274,6 +275,9 @@ export function AppShellClient({
   const canCreateSchedule = features.schedule && capabilities.includes('schedule.create')
   const showFab = canUpload || canCreateStory || canCreateSchedule
   const tShell = useTranslations('shell')
+  useEffect(() => {
+    registerPhotoWorker()
+  }, [])
   return (
     <ToastProvider swipeDirection="down" label={tShell('toastLabel')}>
       {/* 영상 전체화면 중의 뒤로가기가 페이지를 떠나지 않게 — 앱 셸 전체에 한 번만. */}

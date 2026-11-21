@@ -1,12 +1,11 @@
 'use client'
+import dynamic from 'next/dynamic'
 import { smoothScroll } from '@/lib/motion'
 import { collectAssetIds } from '@/components/upload/collect-asset-ids'
 import { createdAssetIds } from '@/components/upload/created-asset-ids'
 import { reportUploadFailure } from '@/components/upload/report-failure'
 import { partitionStaleAttachments } from '@/components/upload/stale-attachments'
 import { rollbackAssets } from '@/components/upload/rollback-assets'
-import { ReorderRow } from '@/components/upload/reorder-row'
-import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { Input, Label } from '@/components/ui/input'
 import { isSubmittableDayKey, localDayKey } from '@/lib/day-key'
@@ -26,6 +25,17 @@ import {
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
+// 사진을 담거나 편집하기 전에는 쓰지 않는 무거운 조각 — 타임라인 첫 로딩에서 뺀다.
+// ReorderRow 는 framer-motion(≈43KB gzip), UploadEditor 는 react-image-crop·piexif(≈18KB gzip)를 끌고 온다.
+const ReorderRow = dynamic(
+  () => import('@/components/upload/reorder-row').then((m) => ({ default: m.ReorderRow })),
+  { ssr: false },
+)
+const UploadEditor = dynamic(
+  () => import('@/components/upload/upload-editor').then((m) => ({ default: m.UploadEditor })),
+  { ssr: false },
+)
 
 const EDITABLE = new Set(['image/jpeg', 'image/png', 'image/webp'])
 
