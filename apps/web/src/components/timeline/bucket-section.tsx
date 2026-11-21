@@ -4,8 +4,9 @@ import { StoryCard, type StoryCardData } from '@/components/story/story-card'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { type CSSProperties, useRef, useState } from 'react'
+import { type CSSProperties, memo, useRef, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
+import type { SectionPart } from './resume'
 
 // 접힘 기본 노출 수 — 모바일 3열 기준 2줄. 이보다 많으면 '+더보기'로 펼친다.
 const COLLAPSED_COUNT = 6
@@ -22,9 +23,19 @@ type AssetRow = {
 // 3개 이상이면 2개만 보이고 '…더보기'로 펼침.
 const STORY_COLLAPSE = 2
 
-export function StoryStrip({ stories }: { stories: StoryCardData[] }) {
+export function StoryStrip({
+  stories,
+  expandedOnReturn = false,
+  onExpand,
+}: {
+  stories: StoryCardData[]
+  /** 돌아온 화면에서 떠나기 전처럼 펼쳐 둔다. 나중에 true 가 돼도 펼친다(접는 길은 없다). */
+  expandedOnReturn?: boolean
+  onExpand?: () => void
+}) {
   const t = useTranslations('timeline')
-  const [expanded, setExpanded] = useState(false)
+  const [tapped, setExpanded] = useState(false)
+  const expanded = tapped || expandedOnReturn
   const collapsible = stories.length > STORY_COLLAPSE
   const visible = collapsible && !expanded ? stories.slice(0, STORY_COLLAPSE) : stories
   const listRef = useRef<HTMLDivElement>(null)
@@ -39,6 +50,7 @@ export function StoryStrip({ stories }: { stories: StoryCardData[] }) {
           onClick={() => {
             // 이 버튼은 눌리면 사라진다 — 포커스가 body 로 떨어지지 않게 새로 펼쳐진 첫 카드로.
             setExpanded(true)
+            onExpand?.()
             requestAnimationFrame(() =>
               listRef.current
                 ?.querySelectorAll<HTMLElement>('a')
@@ -78,9 +90,16 @@ type Props = {
   onContextMenu?: (id: string, x: number, y: number) => void
   sort?: 'taken' | 'uploaded'
   viewerCtx?: string | null
+  /** 돌아온 화면에서 떠나기 전처럼 펼쳐 둘 부분(`resume.ts`). */
+  photosExpandedOnReturn?: boolean
+  storiesExpandedOnReturn?: boolean
+  /** '더보기'로 펼쳤다 — 떠났다 돌아왔을 때 다시 펼치도록 그리드가 적어 둔다. */
+  onExpand?: (dateKey: string, part: SectionPart) => void
 }
 
-export function BucketSection({
+// memo: 그리드는 사진과 무관한 이유(화면 밖 생략을 켜고 끄기, 새 사진 알림, 이어 받는 중 표시)로도
+// 다시 그려진다 — 그때마다 불러온 사진 전부를 다시 그리면 수백 장에서 눈에 띄게 멈칫한다.
+export const BucketSection = memo(function BucketSection({
   label,
   ageLabel = null,
   dDay = null,
@@ -95,9 +114,13 @@ export function BucketSection({
   onContextMenu,
   sort = 'taken',
   viewerCtx = null,
+  photosExpandedOnReturn = false,
+  storiesExpandedOnReturn = false,
+  onExpand,
 }: Props) {
   const t = useTranslations('timeline')
-  const [expanded, setExpanded] = useState(false)
+  const [tapped, setExpanded] = useState(false)
+  const expanded = tapped || photosExpandedOnReturn
   const gridRef = useRef<HTMLDivElement>(null)
   // 선택 모드에선 전부 보여야 일괄 선택이 가능 — 접지 않는다.
   const collapsible = !selectionMode && assets.length > COLLAPSED_COUNT
@@ -137,7 +160,13 @@ export function BucketSection({
           </div>
         )}
       </header>
-      {stories && stories.length > 0 && <StoryStrip stories={stories} />}
+      {stories && stories.length > 0 && (
+        <StoryStrip
+          stories={stories}
+          expandedOnReturn={storiesExpandedOnReturn}
+          {...(dateKey && onExpand ? { onExpand: () => onExpand(dateKey, 'stories') } : {})}
+        />
+      )}
       <div
         ref={gridRef}
         className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
@@ -175,6 +204,7 @@ export function BucketSection({
           onClick={() => {
             // 이 버튼은 눌리면 사라진다 — 포커스가 body 로 떨어지지 않게 새로 펼쳐진 첫 사진으로.
             setExpanded(true)
+            if (dateKey) onExpand?.(dateKey, 'photos')
             requestAnimationFrame(() =>
               gridRef.current
                 ?.querySelectorAll<HTMLElement>('[data-asset-id]')
@@ -189,4 +219,4 @@ export function BucketSection({
       )}
     </section>
   )
-}
+})

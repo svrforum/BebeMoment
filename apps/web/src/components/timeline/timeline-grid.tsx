@@ -5,6 +5,7 @@ import { SelectionShareButton } from '@/components/detail/selection-share-button
 import { dropLeftoverCopies, useBackLayer } from '@/components/shell/back-layer'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
 import { EmptyState } from '@/components/ui/empty-state'
+import { forgetRemovedAssets, removedAssets } from '@/lib/removed-assets'
 import { useFamilySSE } from '@/lib/sse'
 import { useToast } from '@/lib/toast'
 import type { AssetEvent } from '@bebe/core'
@@ -14,6 +15,13 @@ import { useRouter } from 'next/navigation'
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import type { TapModifiers } from './asset-card'
 import { BucketSection } from './bucket-section'
+import {
+  DAY_SECTION_ATTR,
+  type ScrollAnchor,
+  appHeaderBottom,
+  readAnchor,
+  scrollToAnchor,
+} from './day-sections'
 import { type BucketGroup, estimateSectionHeight, mergeGroups, reconcileHead } from './groups'
 import {
   AT_TOP_SCROLL_PX,
@@ -23,9 +31,19 @@ import {
   pendingLabelCount,
   receiveEvent,
 } from './live-refresh'
+import {
+  type SectionPart,
+  expandedKey,
+  giveScrollBack,
+  historyEntries,
+  keepScrollOurs,
+  resumeView,
+  snapshotOf,
+  timelineMemory,
+} from './resume'
 import type { ScrubDay } from './scrubber-math'
 import { TimelineContextMenu } from './timeline-context-menu'
-import { DAY_SECTION_ATTR, TimelineScrubber, appHeaderBottom } from './timeline-scrubber'
+import { TimelineScrubber } from './timeline-scrubber'
 
 // useLayoutEffect 는 SSR 에서 경고를 낸다. 스크롤 보정은 브라우저에서만 의미가 있다.
 const useBrowserLayoutEffect = typeof window === 'undefined' ? useEffect : useLayoutEffect
@@ -53,6 +71,9 @@ type Props = {
 }
 
 type GroupsResponse = { groups: BucketGroup[]; nextCursor: string | null }
+
+/** 스토리 없는 날에 넘기는 빈 목록 — 매번 새 배열이면 섹션의 memo 가 깨진다. */
+const NO_STORIES: NonNullable<BucketGroup['stories']> = []
 
 // JSON 직렬화로 Date → 문자열이 되므로 디바이더 계산에 쓰는 ts 를 Date 로 되살린다.
 function reviveGroups(groups: BucketGroup[]): BucketGroup[] {
@@ -220,6 +241,95 @@ export function TimelineGrid({
     if (delta !== 0) window.scrollTo(0, Math.max(0, anchor.scrollY + delta))
   }, [groups])
 
+  // ── 떠났다 돌아왔을 때 이어 보기(`resume.ts`) ──
+  const memoryScope = `${viewerCtx ?? ''}|${scopeKey}`
+  /** 이번에 '더보기'로 펼친 부분 + 돌아오며 되살린 부분. */
+  const expandedRef = useRef(new Set<string>())
+  const [expandedOnReturn, setExpandedOnReturn] = useState<ReadonlySet<string> | null>(null)
+  /** 마지막으로 읽어 둔 화면 맨 위 기준 — 떠나는 순간엔 DOM 이 이미 헐리고 있어 그때 재지 못한다. */
+  const lastAnchorRef = useRef<ScrollAnchor | null>(null)
+  const returnRef = useRef<{ groups: BucketGroup[]; anchor: ScrollAnchor } | null>(null)
+
+  const trackAnchorFrame = useRef(0)
+  const trackAnchor = useCallback(() => {
+    if (trackAnchorFrame.current) return
+    trackAnchorFrame.current = requestAnimationFrame(() => {
+      trackAnchorFrame.current = 0
+      lastAnchorRef.current = readAnchor()
+    })
+  }, [])
+  const noteExpanded = useCallback(
+    (dateKey: string, part: SectionPart) => {
+      expandedRef.current.add(expandedKey(part, dateKey))
+      trackAnchor()
+    },
+    [trackAnchor],
+  )
+
+  useEffect(() => {
+    const entries = historyEntries()
+    if (!entries) return
+    // navigate 는 항목이 바뀌기 **전에** 온다 — 그때의 key 가 우리가 돌아올 항목이다. 링크로 떠날
+    // 때는 Next 가 커밋 도중 pushState 를 부르므로, 리스너를 layout 이 아닌 일반 effect 로 걸어
+    // 그 순간까지 살아 있게 한다.
+    const remember = (event: NavigateEvent) => {
+      // 내려받기도 navigate 로 오지만 화면을 떠나지 않는다.
+      if (event.downloadRequest !== null) return
+      const key = entries.currentEntry?.key
+      if (!key) return
+      const snapshot = snapshotOf({
+        scope: memoryScope,
+        groups: groupsRef.current,
+        cursor: cursorRef.current,
+        pagesLoaded: pagesLoadedRef.current,
+        expanded: expandedRef.current,
+        anchor: lastAnchorRef.current,
+      })
+      if (!snapshot) {
+        timelineMemory.forget(key)
+        return
+      }
+      timelineMemory.put(key, snapshot)
+      if (snapshot.anchor) keepScrollOurs(entries)
+    }
+    entries.addEventListener('navigate', remember)
+    window.addEventListener('scroll', trackAnchor, { passive: true })
+    return () => {
+      entries.removeEventListener('navigate', remember)
+      window.removeEventListener('scroll', trackAnchor)
+      cancelAnimationFrame(trackAnchorFrame.current)
+      trackAnchorFrame.current = 0
+    }
+  }, [memoryScope, trackAnchor])
+
+  const resumeTriedRef = useRef(false)
+  useBrowserLayoutEffect(() => {
+    if (resumeTriedRef.current) return
+    resumeTriedRef.current = true
+    const key = historyEntries()?.currentEntry?.key
+    if (!key) return
+    giveScrollBack()
+    const back = resumeView(timelineMemory.take(key), memoryScope, initialGroups, removedAssets())
+    if (!back) return
+    groupsRef.current = back.groups
+    cursorRef.current = back.cursor
+    pagesLoadedRef.current = back.pagesLoaded
+    expandedRef.current = new Set(back.expanded)
+    lastAnchorRef.current = back.anchor
+    returnRef.current = back.anchor ? { groups: back.groups, anchor: back.anchor } : null
+    setExpandedOnReturn(new Set(back.expanded))
+    // 새로 만든 섹션은 기억해 둔 높이가 없다 — 한 번 실제로 그려야 제자리에 선다(점프와 같은 이유).
+    setRenderOnce(new Set(back.groups.map((g) => g.dateKey)))
+    setGroups(back.groups)
+    setCursor(back.cursor)
+  }, [initialGroups, memoryScope])
+  useBrowserLayoutEffect(() => {
+    const back = returnRef.current
+    if (!back || back.groups !== groups) return
+    returnRef.current = null
+    scrollToAnchor(back.anchor)
+  }, [groups])
+
   const applyPending = useCallback(() => {
     updatePending(NO_PENDING)
     router.refresh()
@@ -385,6 +495,8 @@ export function TimelineGrid({
     }
     // results 는 ids 순서를 따른다 — 실패한 사진만 선택에 남겨 휴지통 버튼을 다시 누르면 되게 한다.
     const failedIds = ids.filter((_, i) => results[i]?.status === 'rejected')
+    // 다른 히스토리 항목에 기억해 둔 목록에서도 빠지게(`resume.ts`).
+    forgetRemovedAssets(ids.filter((_, i) => results[i]?.status === 'fulfilled'))
     if (failedIds.length > 0) {
       toast({
         title: t('grid.deletePartialFailed'),
@@ -551,7 +663,7 @@ export function TimelineGrid({
               ageLabel={g.ageLabel ?? null}
               dDay={g.dDay ?? null}
               assets={g.assets}
-              stories={g.stories ?? []}
+              stories={g.stories ?? NO_STORIES}
               dateKey={g.dateKey}
               index={i}
               selectionMode={selectionMode}
@@ -561,6 +673,13 @@ export function TimelineGrid({
               onContextMenu={onContextMenu}
               sort={sort}
               viewerCtx={viewerCtx}
+              photosExpandedOnReturn={
+                expandedOnReturn?.has(expandedKey('photos', g.dateKey)) ?? false
+              }
+              storiesExpandedOnReturn={
+                expandedOnReturn?.has(expandedKey('stories', g.dateKey)) ?? false
+              }
+              onExpand={noteExpanded}
             />
           </div>
         ))}

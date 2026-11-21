@@ -1,6 +1,7 @@
 'use client'
 import { AlbumPicker } from '@/components/albums/album-picker'
 import { ConfirmSheet } from '@/components/ui/confirm-sheet'
+import { forgetRemovedAssets } from '@/lib/removed-assets'
 import { useToast } from '@/lib/toast'
 import type { AssetUrls } from '@bebe/media-client'
 import { useLocale, useTranslations } from 'next-intl'
@@ -262,6 +263,8 @@ export function ViewerShell({
       const res = await fetch(`/api/asset/${currentSlim.id}/delete`, { method: 'POST' })
       if (!res.ok) throw new Error()
       toast({ title: t('actions.movedToTrash'), variant: 'success' })
+      // 뒤로가기로 돌아간 타임라인이 떠날 때 기억해 둔 목록을 되살려도 이 사진은 빠지게.
+      forgetRemovedAssets([currentSlim.id])
       router.push('/timeline')
       router.refresh()
     } catch {

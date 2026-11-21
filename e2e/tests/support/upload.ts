@@ -1,25 +1,35 @@
 import { mkdirSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
-import type { Page, TestInfo } from '@playwright/test'
+import type { Page, Response, TestInfo } from '@playwright/test'
 import { expect } from '@playwright/test'
 import sharp from 'sharp'
 
 /**
- * 타임라인에서 사진 한 장을 올린다.
+ * 타임라인에서 사진을 올린다(여러 장이면 한 번에 골라서).
  *
  * 예전엔 window.__uppy 내부를 직접 불렀는데, 그 핸들은 매니저가 초기화된 뒤에만 있고
  * 화면이 바뀌면 조용히 사라진다. 사용자가 하는 대로 — 파일 입력에 넣고 버튼을 누른다.
  * 그러면 mime 보정·스테이징까지 실제 경로가 함께 덮인다.
  */
-export async function uploadOnePhoto(page: Page, testInfo: TestInfo, name: string): Promise<void> {
-  const jpeg = await sharp({
-    create: { width: 800, height: 600, channels: 3, background: { r: 200, g: 100, b: 150 } },
-  })
-    .jpeg({ quality: 90 })
-    .toBuffer()
+export async function uploadPhotos(page: Page, testInfo: TestInfo, names: string[]): Promise<void> {
   mkdirSync(testInfo.outputDir, { recursive: true })
-  const file = path.join(testInfo.outputDir, name)
-  writeFileSync(file, jpeg)
+  const files: string[] = []
+  for (const [i, name] of names.entries()) {
+    // 장마다 색을 달리한다 — 바이트가 같으면 중복 업로드로 접혀 한 장만 남는다.
+    const jpeg = await sharp({
+      create: {
+        width: 800,
+        height: 600,
+        channels: 3,
+        background: { r: 200 - i * 20, g: 100 + i * 15, b: 150 },
+      },
+    })
+      .jpeg({ quality: 90 })
+      .toBuffer()
+    const file = path.join(testInfo.outputDir, name)
+    writeFileSync(file, jpeg)
+    files.push(file)
+  }
 
   // FAB → 선택 시트("사진 · 영상 올리기" 행) → 업로드 시트(같은 문구의 heading).
   await page.locator('button[aria-label="추가"], button[aria-label="업로드"]').first().click()
@@ -31,19 +41,28 @@ export async function uploadOnePhoto(page: Page, testInfo: TestInfo, name: strin
     timeout: 10_000,
   })
 
-  await page.locator('input[type="file"][accept]').first().setInputFiles(file)
-  await expect(page.getByRole('button', { name: '크게 보기' }).first()).toBeVisible({
+  await page.locator('input[type="file"][accept]').first().setInputFiles(files)
+  await expect(page.getByRole('button', { name: '크게 보기' })).toHaveCount(files.length, {
     timeout: 20_000,
   })
   // 바이트가 실제로 올라간 것을 확인하고 나서야 다음으로 넘어간다. 시트를 먼저 닫으면
   // close() 가 clearStaged() 를 불러 아직 시작 안 한 파일이 취소된다 — 그래서 예전엔
   // 업로드가 조용히 사라지고 타임라인이 비어 있었다.
-  const uploaded = page.waitForResponse(
-    (r) => r.url().includes('/media/v1/tus/') && r.request().method() === 'PATCH' && r.ok(),
-    { timeout: 60_000 },
-  )
+  let left = files.length
+  const onResponse = (r: Response) => {
+    if (r.url().includes('/media/v1/tus/') && r.request().method() === 'PATCH' && r.ok()) left -= 1
+  }
+  page.on('response', onResponse)
   await page.getByRole('button', { name: /개 업로드/ }).click()
-  await uploaded
+  try {
+    await expect.poll(() => left, { timeout: 60_000 }).toBeLessThanOrEqual(0)
+  } finally {
+    page.off('response', onResponse)
+  }
+}
+
+export async function uploadOnePhoto(page: Page, testInfo: TestInfo, name: string): Promise<void> {
+  await uploadPhotos(page, testInfo, [name])
 }
 
 /** 타임라인 그리드에 사진이 나타날 때까지 기다린다(처리 완료까지 시간이 걸린다). */

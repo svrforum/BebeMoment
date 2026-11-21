@@ -3,11 +3,9 @@ import { cn } from '@/lib/cn'
 import { ChevronDown, ChevronUp } from 'lucide-react'
 import { useLocale } from 'next-intl'
 import { type PointerEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { DAY_SECTION_ATTR, appHeaderBottom, daySectionAt } from './day-sections'
 import { AT_TOP_SCROLL_PX } from './live-refresh'
 import { type ScrubDay, dayIndexAt, fractionOfDay, monthTicks } from './scrubber-math'
-
-/** 그리드의 날짜 섹션 표식. 스크러버가 지금 보고 있는 날을 이걸로 찾는다. */
-export const DAY_SECTION_ATTR = 'data-timeline-day'
 
 const HIDE_AFTER_MS = 1500
 const HANDLE_H = 48
@@ -15,27 +13,11 @@ const TICK_MIN_GAP_PX = 22
 /** 손잡이·말풍선과 겹치는 눈금은 숨긴다(손잡이 중심에서 이 거리 안). */
 const TICK_CLEAR_PX = 34
 
-/** 상단 헤더 아랫변(뷰포트 기준). 날짜로 스크롤할 때 헤더 밑에 맞추는 데도 쓴다. */
-export function appHeaderBottom(): number {
-  return document.querySelector('[data-app-header]')?.getBoundingClientRect().bottom ?? 0
-}
-
 /** 화면 맨 위에 걸린 날짜 섹션의 순번과 그 섹션을 얼마나 지나왔는지(0~1). */
 function readCurrentDay(): { key: string; progress: number } | null {
-  const sections = document.querySelectorAll<HTMLElement>(`[${DAY_SECTION_ATTR}]`)
-  if (sections.length === 0) return null
   // 점프는 섹션을 헤더 8px 아래에 세운다 — 그 위 섹션의 아랫변이 기준선에 걸리지 않게 여유를 둔다.
   const line = appHeaderBottom() + 12
-  // 섹션은 위에서 아래로 놓여 있다 — 아랫변이 기준선 아래인 첫 섹션을 이분 탐색.
-  let lo = 0
-  let hi = sections.length - 1
-  while (lo < hi) {
-    const mid = (lo + hi) >> 1
-    const el = sections[mid]
-    if (el && el.getBoundingClientRect().bottom <= line) lo = mid + 1
-    else hi = mid
-  }
-  const el = sections[lo]
+  const el = daySectionAt(line)
   const key = el?.getAttribute(DAY_SECTION_ATTR)
   if (!el || !key) return null
   const r = el.getBoundingClientRect()
