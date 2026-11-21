@@ -61,7 +61,7 @@
     "@prisma/adapter-pg": "^7.10.1",
     "@testcontainers/postgresql": "^12.2.1",
     "@types/bcryptjs": "^3.0.0",
-    "@types/node": "^22.0.0",
+    "@types/node": "^22.20.5",
     "@types/piexifjs": "^1.0.0",
     "@types/react": "^19.2.15",
     "@types/react-dom": "^19.2.3",
