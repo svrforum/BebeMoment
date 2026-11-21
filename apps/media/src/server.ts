@@ -13,6 +13,7 @@ import { downloadRoute } from './http/routes/download'
 import { downloadMintRoute } from './http/routes/download-mint'
 import { filesRoute } from './http/routes/files'
 import { healthRoute } from './http/routes/health'
+import { imagesRoute } from './http/routes/images'
 import { sseProgressRoute } from './http/routes/sse-progress'
 import { tusRoute } from './http/routes/tus'
 import { getEnv } from './lib/env'
@@ -57,6 +58,7 @@ export function buildApp(): FastifyInstance {
   app.register(assetsPurgeRoute)
   app.register(assetsRetryRoute)
   app.register(filesRoute)
+  app.register(imagesRoute)
   app.register(downloadMintRoute)
   app.register(downloadRoute)
   app.register(tusRoute)
