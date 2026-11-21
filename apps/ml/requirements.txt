@@ -2,7 +2,7 @@ fastapi==0.141.1
 uvicorn[standard]==0.54.0
 python-multipart==0.0.32
 numpy==2.5.3
-opencv-python-headless==5.0.0.93
+opencv-python-headless==5.1.0.95
 onnxruntime==1.31.1
 # insightface 가 실제로 쓰는 것들 — requirements-insightface.txt 참조.
 onnx==1.23.2
