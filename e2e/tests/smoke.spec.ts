@@ -10,6 +10,7 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
 
   test('signup → onboarding → upload via FAB → timeline thumb → detail', async ({
     page,
+    browser,
   }, testInfo) => {
     const uniq = Date.now()
     const familyName = `Smoke Family ${uniq}`
@@ -38,6 +39,43 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
     await uploadOnePhoto(page, testInfo, `smoke-${uniq}.jpg`)
 
     expect(await waitForTimelineThumb(page)).toBeTruthy()
+
+    // 링크만 있고 사진은 401/404 인 상태를 통과시키지 않는다 — 썸네일이 실제로 그려져야 한다.
+    // 이미지 파생물은 자산당 서명 하나를 쓰는 짧은 주소로 나간다(발급 → rewrite → media 라우트).
+    const loadedPath = (el: HTMLImageElement) =>
+      el.complete && el.naturalWidth > 0 ? new URL(el.currentSrc).pathname : ''
+    await expect
+      .poll(() => page.locator('main a[href^="/detail/"] img').first().evaluate(loadedPath), {
+        timeout: 30_000,
+      })
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/thumb(256|512)\.(avif|webp|jpeg)$/)
+
+    // 공개 공유 링크 — 로그인하지 않은 새 창에서도 사진과 미리보기 이미지가 그 주소로 열린다.
+    // (공유 화면은 절대 주소를 쓰고, 메신저 크롤러는 og:image 를 쿠키 없이 받는다.)
+    const assetId = await page
+      .locator('main a[data-asset-id]')
+      .first()
+      .getAttribute('data-asset-id')
+    const { token } = await page.evaluate(async (id) => {
+      const res = await fetch('/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ assetId: id, ttl: '1d' }),
+      })
+      return (await res.json()) as { token: string }
+    }, assetId)
+    const anon = await browser.newContext({ baseURL: new URL(page.url()).origin })
+    const shared = await anon.newPage()
+    await shared.goto(`/s/${token}`)
+    await expect
+      .poll(() => shared.locator('main img, img').first().evaluate(loadedPath), { timeout: 30_000 })
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/display1080\.jpeg$/)
+    const ogImage = await shared.locator('meta[property="og:image"]').getAttribute('content')
+    expect(new URL(ogImage as string).pathname).toMatch(/^\/media\/v1\/img\/.+\.jpeg$/)
+    const og = await anon.request.get(ogImage as string)
+    expect(og.status()).toBe(200)
+    expect(og.headers()['content-type']).toBe('image/jpeg')
+    await anon.close()
 
     // 고르는 중의 뒤로가기는 선택만 푼다. 앱의 하드웨어 뒤로가기도 이 히스토리 뒤로가기를
     // 부른다 — 예전엔 타임라인을 떠나거나, 첫 화면이면 앱 종료를 물었다. 선택 중에 연 시트가
@@ -88,6 +126,12 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
 
     // Detail page renders side panel heading (P6 UI — filename removed)
     await expect(page.getByRole('heading', { name: '세부정보' })).toBeVisible()
+    // 뷰어의 큰 사진도 같은 짧은 주소로 실제로 뜬다.
+    await expect
+      .poll(() => page.locator('.swiper-slide-active img').first().evaluate(loadedPath), {
+        timeout: 30_000,
+      })
+      .toMatch(/^\/media\/v1\/img\/[0-9a-f-]{36}\/[^/]+\/(display1080|thumb512)\.(webp|jpeg)$/)
 
     // Close (X link with aria-label "닫기") → back to /timeline
     // 닫기는 이제 <a> 가 아니라 <button> 이다(뷰어 상단바).
