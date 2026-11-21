@@ -14,3 +14,24 @@ export function keyBelongsToAsset(key: string, familyId: string, assetId: string
     key.startsWith(`derivatives/${assetId}/`)
   )
 }
+
+// 워커가 만드는 이미지 파생물의 파일 이름 전부(jobs/derivative-trios.ts, 영상 포스터).
+// 짧은 이미지 주소(`/media/v1/img/<assetId>/<토큰>/<이름>`)의 이름은 서명에 들어가지 않아
+// 이 목록이 저장소 키로 가는 유일한 관문이다. 영상(preview.mp4)·원본은 일부러 없다.
+const IMAGE_DERIVATIVE_NAME =
+  /^(?:(?:thumb256|thumb512|display1080)\.(?:avif|webp|jpeg)|poster\.jpg)$/
+
+export function isImageDerivativeName(name: string): boolean {
+  return IMAGE_DERIVATIVE_NAME.test(name)
+}
+
+/**
+ * 키가 정확히 `derivatives/<assetId>/<이미지 파생물 이름>` 이면 그 이름, 아니면 null.
+ * 다른 자산의 파생물을 가리키는 키(중복 자산 행)나 영상·원본에는 짧은 주소를 내주지 않는다.
+ */
+export function imageDerivativeName(key: string, assetId: string): string | null {
+  const prefix = `derivatives/${assetId}/`
+  if (!key.startsWith(prefix)) return null
+  const name = key.slice(prefix.length)
+  return isImageDerivativeName(name) ? name : null
+}
