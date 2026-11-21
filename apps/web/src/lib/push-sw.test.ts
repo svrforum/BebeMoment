@@ -24,12 +24,24 @@ function fileUrl(key: string): string {
   return `${ORIGIN}/media/v1/files/${b64({ alg: 'HS256' })}.${b64({ iss: 'media', key, iat: 1 })}.sig`
 }
 
-type FakeResponse = { status: number; type: string; body: string; clone: () => FakeResponse }
-const response = (body: string, status = 200, type = 'basic'): FakeResponse => ({
+type FakeResponse = {
+  status: number
+  type: string
+  body: string
+  headers: Headers
+  clone: () => FakeResponse
+}
+const response = (
+  body: string,
+  status = 200,
+  type = 'basic',
+  contentType = 'image/webp',
+): FakeResponse => ({
   status,
   type,
   body,
-  clone: () => response(body, status, type),
+  headers: new Headers({ 'content-type': contentType }),
+  clone: () => response(body, status, type, contentType),
 })
 
 function loadWorker() {
@@ -166,6 +178,18 @@ describe('push-sw 사진 캐시', () => {
     sw.setResponse(() => response('x', status, type))
     expect((await sw.request(imgUrl('thumb256.webp')))?.status).toBe(status)
     await sw.request(imgUrl('thumb256.webp'))
+    expect(sw.fetched).toHaveLength(2)
+  })
+
+  it('이미지가 아닌 200 응답은 보관하지 않는다', async () => {
+    // 프록시의 안내·차단 페이지나 공용 와이파이 로그인 화면이 이미지 주소에 200 HTML 로 온다.
+    // 그걸 보관하면 그 사진은 이 기기에서 로그아웃할 때까지 깨진 채로 남는다.
+    sw.setResponse(() =>
+      response('<html>잠시만요</html>', 200, 'basic', 'text/html; charset=utf-8'),
+    )
+    expect((await sw.request(imgUrl('thumb256.webp')))?.body).toContain('<html>')
+    sw.setResponse((url) => response(`bytes of ${url}`))
+    expect((await sw.request(imgUrl('thumb256.webp')))?.body).toContain('bytes of')
     expect(sw.fetched).toHaveLength(2)
   })
 

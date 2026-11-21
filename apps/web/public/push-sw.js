@@ -74,8 +74,10 @@ async function cachedImage(event, key) {
     cache = null
   }
   const res = await fetch(event.request)
-  // 온전한 같은 출처 응답만 보관한다 — 206(부분)·리다이렉트된 외부 응답(S3)·오류는 넘긴다.
-  if (cache && res.status === 200 && res.type === 'basic') {
+  // 온전한 같은 출처의 이미지 응답만 보관한다 — 206(부분)·리다이렉트된 외부 응답(S3)·오류,
+  // 그리고 이미지 주소에 200 으로 온 HTML(프록시 안내 페이지·공용 와이파이 로그인)은 넘긴다.
+  const isImage = (res.headers.get('content-type') || '').startsWith('image/')
+  if (cache && res.status === 200 && res.type === 'basic' && isImage) {
     const copy = res.clone()
     event.waitUntil(
       cache
