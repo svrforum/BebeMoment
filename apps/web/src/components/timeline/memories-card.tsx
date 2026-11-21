@@ -30,7 +30,10 @@ export async function MemoriesCard({ group }: { group: MemoryGroup }) {
         // 고정 크기 썸네일 — flex-1 로 채우면 사진이 1~2장일 때 전폭으로 늘어나 거대해졌다.
         <div className="flex gap-1.5">
           {thumbs.map((a) => (
-            <div key={a.id} className="h-16 w-16 shrink-0 overflow-hidden rounded-xl">
+            <div
+              key={a.id}
+              className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl after:pointer-events-none after:absolute after:inset-0 after:z-[2] after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-black/10 dark:after:outline-white/10"
+            >
               <PictureImage
                 assetId={a.id}
                 trio={pickThumbTrio(a.urls)}

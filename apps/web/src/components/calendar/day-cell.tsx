@@ -72,7 +72,7 @@ export function DayCell({
       aria-pressed={isSelected}
       className={cn(
         'focus-ring group relative flex aspect-square overflow-hidden rounded-2xl',
-        'transition-transform ease-ios active:scale-[0.94]',
+        'transition-transform ease-ios active:scale-[0.96]',
         !isCurrentMonth && 'opacity-35',
         hasAssets
           ? 'bg-base-100 dark:bg-base-900'

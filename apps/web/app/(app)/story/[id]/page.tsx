@@ -127,13 +127,13 @@ export default async function StoryDetailPage({
           {features.share && (
             <StoryShareButton
               storyId={uuid}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-[0.96] dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
             />
           )}
           {canEdit && (
             <Link
               href={`/story/${publicNo}?edit=1`}
-              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
+              className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-[0.96] dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100"
             >
               <Pencil size={13} strokeWidth={2.2} />
               <span>{t('detail.edit')}</span>
@@ -156,7 +156,7 @@ async function StoryDetailHeader() {
         <Link
           href="/story"
           aria-label={t('detail.back')}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-700 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-200 dark:hover:bg-base-800"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-700 transition-colors hover:bg-base-100 active:scale-[0.96] dark:text-base-200 dark:hover:bg-base-800"
         >
           <ChevronLeft size={20} strokeWidth={2.2} />
         </Link>

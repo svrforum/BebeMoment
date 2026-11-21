@@ -52,20 +52,43 @@ export function TimelineContextMenu({
 
   useEffect(() => {
     if (!assetId) return
+    const items = () => [...(ref.current?.querySelectorAll<HTMLElement>('[role="menuitem"]') ?? [])]
+    // role="menu" 는 키보드 모델의 약속이다 — 열리면 첫 항목으로 포커스, 화살표로 이동,
+    // Esc·Tab 이면 닫고 사진 카드로 돌아간다. (스크롤하면 닫히므로 포커스가 스크롤을 일으키면 안 된다.)
+    items()[0]?.focus({ preventScroll: true })
+    const returnFocus = () =>
+      document
+        .querySelector<HTMLElement>(`[data-asset-id="${assetId}"]`)
+        ?.focus({ preventScroll: true })
     const onDocClick = (e: MouseEvent) => {
       if (ref.current && !ref.current.contains(e.target as Node)) onClose()
     }
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onClose()
+      if (e.key === 'Escape' || e.key === 'Tab') {
+        e.preventDefault()
+        onClose()
+        returnFocus()
+        return
+      }
+      const list = items()
+      const i = list.indexOf(document.activeElement as HTMLElement)
+      const go = (n: number) => {
+        e.preventDefault()
+        list[(n + list.length) % list.length]?.focus({ preventScroll: true })
+      }
+      if (e.key === 'ArrowDown') go(i + 1)
+      else if (e.key === 'ArrowUp') go(i - 1)
+      else if (e.key === 'Home') go(0)
+      else if (e.key === 'End') go(list.length - 1)
     }
     const onScroll = () => onClose()
     // mousedown so we beat any onClick handlers and close cleanly.
     window.addEventListener('mousedown', onDocClick)
-    window.addEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
     window.addEventListener('scroll', onScroll, true)
     return () => {
       window.removeEventListener('mousedown', onDocClick)
-      window.removeEventListener('keydown', onKey)
+      window.removeEventListener('keydown', onKey, true)
       window.removeEventListener('scroll', onScroll, true)
     }
   }, [assetId, onClose])
@@ -160,10 +183,11 @@ function Item({
       type="button"
       onClick={onClick}
       role="menuitem"
+      tabIndex={-1}
       className={
         destructive
-          ? 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-danger-text transition-colors hover:bg-danger/10'
-          : 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-base-800 transition-colors hover:bg-base-100 dark:text-base-100 dark:hover:bg-base-800'
+          ? 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-danger-text transition-colors hover:bg-danger/10 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400'
+          : 'flex w-full items-center gap-3 rounded-[19px] px-3 py-2.5 text-left text-[14px] font-medium text-base-800 transition-colors hover:bg-base-100 dark:text-base-100 dark:hover:bg-base-800 focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400'
       }
     >
       <span className={destructive ? '' : 'text-base-500'}>{icon}</span>

@@ -528,7 +528,7 @@ export function StoryEditForm({
           type="button"
           onClick={submit}
           disabled={submitting || (body.trim().length === 0 && photoCount === 0)}
-          className="rounded-full bg-point-600 px-5 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-700 disabled:opacity-50"
+          className="rounded-full bg-point-600 px-5 py-1.5 text-[13px] font-semibold text-white transition active:scale-[0.96] hover:bg-point-700 disabled:opacity-50"
         >
           {submitting ? t('edit.saving') : t('edit.save')}
         </button>

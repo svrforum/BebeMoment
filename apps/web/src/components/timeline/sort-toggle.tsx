@@ -49,7 +49,7 @@ export async function TimelineSortToggle({ value, preserveParams = {}, right }: 
   return (
     <div className="mx-auto flex max-w-3xl items-center justify-between gap-2 px-5 pt-2 lg:max-w-5xl xl:max-w-6xl">
       <div
-        role="tablist"
+        role="group"
         aria-label={t('sort.ariaLabel')}
         className="inline-flex rounded-full bg-base-100 p-1 text-[13px] dark:bg-base-800"
       >
@@ -58,8 +58,8 @@ export async function TimelineSortToggle({ value, preserveParams = {}, right }: 
           return (
             <Link
               key={opt.mode}
-              role="tab"
-              aria-selected={active}
+              // 탭(role=tab)은 화살표 키 이동을 약속한다 — 이건 두 개의 링크라 현재 쪽만 표시한다.
+              aria-current={active ? 'page' : undefined}
               href={buildHref(opt.mode)}
               scroll={false}
               prefetch={false}

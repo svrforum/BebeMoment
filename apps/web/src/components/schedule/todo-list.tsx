@@ -193,7 +193,7 @@ function TodoRow({
         aria-pressed={done}
         aria-label={done ? t('todo.markUndone') : t('todo.markDone')}
         className={cn(
-          'focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:scale-90 disabled:opacity-50',
+          'focus-ring flex h-8 w-8 shrink-0 items-center justify-center rounded-full transition active:scale-[0.96] disabled:opacity-50',
           done ? 'text-point-500' : 'text-base-300 dark:text-base-600',
         )}
       >

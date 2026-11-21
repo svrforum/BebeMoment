@@ -7,6 +7,8 @@ type SheetProps = {
   open: boolean
   onOpenChange: (open: boolean) => void
   title?: string | undefined
+  /** 보이는 제목 없이 화면낭독기용 이름만 줄 때(예: 확인 시트의 질문). */
+  label?: string | undefined
   children: ReactNode
   className?: string | undefined
   /**
@@ -35,7 +37,7 @@ const DesktopModal = dynamic(
   { ssr: false },
 )
 
-export function Sheet({ open, onOpenChange, title, children, className, fill }: SheetProps) {
+export function Sheet({ open, onOpenChange, title, label, children, className, fill }: SheetProps) {
   const isDesktop = useIsDesktop()
   // 열려 있는 동안 뒤로가기는 페이지를 떠나는 대신 시트를 닫는다(`lib/back-layers.ts`).
   useBackLayer('sheet', open, () => onOpenChange(false))
@@ -55,6 +57,7 @@ export function Sheet({ open, onOpenChange, title, children, className, fill }: 
         open={open}
         onOpenChange={onOpenChange}
         title={title}
+        label={label}
         className={className}
         fill={fill}
       >
@@ -67,6 +70,7 @@ export function Sheet({ open, onOpenChange, title, children, className, fill }: 
       open={open}
       onOpenChange={onOpenChange}
       title={title}
+      label={label}
       className={className}
       fill={fill}
     >

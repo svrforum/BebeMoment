@@ -33,6 +33,18 @@ export function ViewerTopBar({
   const toast = useToast()
   const t = useTranslations('viewer')
 
+  // ⋮ 메뉴가 열려 있으면 Esc 는 메뉴만 닫는다 — 캡처 단계에서 먼저 받아 뷰어 닫기를 막는다.
+  useEffect(() => {
+    if (!menuOpen) return
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      setMenuOpen(false)
+    }
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
+  }, [menuOpen])
+
   // 톱바는 사진을 넘겨도 remount 되지 않는다(깜빡임 방지) — 새 사진의 서버 상태로 맞춘다.
   // assetId 는 본문에서 안 읽지만 의도적 트리거: 낙관적 토글로 벌어진 로컬 state 를
   // 사진이 바뀌는 순간 서버 값으로 되돌린다.
@@ -83,7 +95,7 @@ export function ViewerTopBar({
         type="button"
         onClick={close}
         aria-label={t('actions.close')}
-        className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
+        className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-[0.96] hover:bg-white/10"
       >
         <X className="h-6 w-6" />
       </button>
@@ -94,7 +106,7 @@ export function ViewerTopBar({
             download
             aria-label={t('actions.download')}
             onClick={() => toast({ title: t('actions.savingPhoto') })}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-[0.96] hover:bg-white/10"
           >
             <Download className="h-6 w-6" />
           </a>
@@ -104,7 +116,8 @@ export function ViewerTopBar({
             type="button"
             onClick={() => setMenuOpen((o) => !o)}
             aria-label={t('actions.menu')}
-            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-90 hover:bg-white/10"
+            aria-expanded={menuOpen}
+            className="inline-flex h-10 w-10 items-center justify-center rounded-full text-white transition active:scale-[0.96] hover:bg-white/10"
           >
             <MoreVertical className="h-6 w-6" />
           </button>

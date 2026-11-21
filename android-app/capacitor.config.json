@@ -8,5 +8,6 @@
   },
   "android": {
     "allowMixedContent": true
-  }
+  },
+  "zoomEnabled": true
 }

@@ -290,7 +290,7 @@ export function ViewerShell({
   // 포커스가 있으면(댓글 작성 등) 가로채지 않는다.
   useEffect(() => {
     function onKey(e: KeyboardEvent) {
-      if (e.key !== 'Escape') return
+      if (e.key !== 'Escape' || e.defaultPrevented) return
       if (sheetOpen || sheetDetailsOpen || albumPickerOpen) return
       const el = document.activeElement
       if (el instanceof HTMLInputElement || el instanceof HTMLTextAreaElement) return

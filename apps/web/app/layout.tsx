@@ -5,6 +5,7 @@ import { getSetting } from '@/server/settings/get'
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
 import { getLocale, getMessages } from 'next-intl/server'
+import { headers } from 'next/headers'
 import { preload } from 'react-dom'
 import { z } from 'zod'
 import './globals.css'
@@ -27,18 +28,27 @@ export const metadata: Metadata = {
   },
 }
 
-export const viewport: Viewport = {
-  themeColor: [
-    { media: '(prefers-color-scheme: light)', color: '#ffffff' },
-    { media: '(prefers-color-scheme: dark)', color: '#09090b' },
-  ],
-  width: 'device-width',
-  initialScale: 1,
-  maximumScale: 1,
-  viewportFit: 'cover',
-  // 키보드가 화면을 덮는 게 아니라 레이아웃 뷰포트를 줄이게 한다. 기본값(resizes-visual)에선
-  // vh·dvh 가 그대로라 하단 고정 시트의 아랫부분이 키보드 뒤로 숨고, 저장 버튼에 닿을 수 없다.
-  interactiveWidget: 'resizes-content',
+// maximum-scale=1 은 애플 기기에만 준다. iOS 는 손가락 확대에는 이 값을 무시하고(늘 확대된다)
+// 16px 보다 작은 입력칸을 누를 때 화면이 저절로 커지는 것만 막아 준다. 안드로이드 Chrome·WebView
+// 는 이 값을 지켜 확대 자체를 막아 버려서, 작은 글씨를 키워 볼 수 없었다(WCAG 1.4.4).
+// (iPadOS 는 데스크톱 UA 를 보내 Macintosh 로 들어온다 — 데스크톱 브라우저는 viewport 를 무시.)
+const APPLE_UA = /iPhone|iPad|iPod|Macintosh/
+
+export async function generateViewport(): Promise<Viewport> {
+  const ua = (await headers()).get('user-agent') ?? ''
+  return {
+    themeColor: [
+      { media: '(prefers-color-scheme: light)', color: '#ffffff' },
+      { media: '(prefers-color-scheme: dark)', color: '#09090b' },
+    ],
+    width: 'device-width',
+    initialScale: 1,
+    ...(APPLE_UA.test(ua) ? { maximumScale: 1 } : {}),
+    viewportFit: 'cover',
+    // 키보드가 화면을 덮는 게 아니라 레이아웃 뷰포트를 줄이게 한다. 기본값(resizes-visual)에선
+    // vh·dvh 가 그대로라 하단 고정 시트의 아랫부분이 키보드 뒤로 숨고, 저장 버튼에 닿을 수 없다.
+    interactiveWidget: 'resizes-content',
+  }
 }
 
 async function readDefaultTheme(): Promise<DefaultTheme> {

@@ -38,7 +38,16 @@ export function ThemeProvider({
     const apply = () => {
       const r: 'light' | 'dark' = mode === 'auto' ? (mql.matches ? 'dark' : 'light') : mode
       setResolved(r)
-      document.documentElement.classList.toggle('dark', r === 'dark')
+      const root = document.documentElement
+      if (root.classList.contains('dark') === (r === 'dark')) return
+      // 클래스가 실제로 바뀔 때만 — 색 전환(transition-colors)이 한꺼번에 돌면 화면이 번지듯 바뀐다.
+      // 두 프레임 동안 전환을 끄고 바꾼다.
+      const freeze = document.createElement('style')
+      freeze.append('*,*::before,*::after{transition:none!important}')
+      document.head.append(freeze)
+      root.classList.toggle('dark', r === 'dark')
+      void root.offsetHeight
+      requestAnimationFrame(() => requestAnimationFrame(() => freeze.remove()))
     }
     apply()
     if (mode === 'auto') {

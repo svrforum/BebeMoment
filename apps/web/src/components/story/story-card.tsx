@@ -24,7 +24,7 @@ export function StoryCard({ data }: { data: StoryCardData }) {
       prefetch={false}
       className="group flex items-center gap-3 rounded-2xl border border-transparent bg-base-0 p-2.5 shadow-card transition-[scale,translate,box-shadow] duration-200 active:scale-[0.99] md:hover:-translate-y-0.5 md:hover:shadow-elevated dark:border-base-800/70 dark:bg-base-900"
     >
-      <div className="h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800">
+      <div className="relative h-16 w-16 shrink-0 overflow-hidden rounded-xl bg-base-100 dark:bg-base-800 after:pointer-events-none after:absolute after:inset-0 after:z-[2] after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-black/10 dark:after:outline-white/10">
         {trio || fallbackUrl ? (
           <PictureImage
             trio={trio}

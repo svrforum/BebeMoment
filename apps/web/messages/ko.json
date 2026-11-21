@@ -394,7 +394,7 @@
       "cancel": "취소",
       "submit": "올리기",
       "submitting": "올리는 중…",
-      "needPhoto": "사진을 최소 1장 추가해주세요",
+      "needPhoto": "사진을 1장 이상 담으면 올릴 수 있어요",
       "uploadNotReady": "사진 업로드 준비가 끝나지 않았어요. 잠시 후 다시 시도해주세요.",
       "submitFailed": "서버가 스토리를 저장하지 못했어요",
       "attachFiles": "파일에서 선택",
@@ -673,7 +673,8 @@
       "photoInfo": "사진 정보"
     },
     "story": {
-      "count": "{index}/{total}"
+      "count": "{index}/{total}",
+      "readAll": "전체 보기"
     },
     "video": {
       "processing": "처리 중…",

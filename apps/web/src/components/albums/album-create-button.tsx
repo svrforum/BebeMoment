@@ -51,7 +51,7 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
       <button
         type="button"
         onClick={() => setOpen(true)}
-        className="flex h-9 items-center gap-1.5 rounded-full bg-point-600 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-95 hover:bg-point-700"
+        className="flex h-9 items-center gap-1.5 rounded-full bg-point-600 px-3.5 text-[13px] font-medium text-white shadow-sm transition-transform ease-ios active:scale-[0.96] hover:bg-point-700"
       >
         <Plus size={16} strokeWidth={2.6} />
         <span>{t('create.button')}</span>
@@ -95,7 +95,7 @@ export function AlbumCreateButton({ parentId = null, parentName }: Props) {
               <button
                 type="submit"
                 disabled={!name.trim() || pending}
-                className="rounded-full bg-point-600 px-4 py-2 text-[13px] font-medium text-white transition active:scale-95 hover:bg-point-700 disabled:opacity-50"
+                className="rounded-full bg-point-600 px-4 py-2 text-[13px] font-medium text-white transition active:scale-[0.96] hover:bg-point-700 disabled:opacity-50"
               >
                 {t('create.submit')}
               </button>

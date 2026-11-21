@@ -19,10 +19,10 @@ const INPUT_CLASS =
   'h-11 w-full rounded-xl border border-transparent bg-base-100 px-3 text-[15px] text-base-900 placeholder:text-base-400 transition-all focus-visible:border-point-500 focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-point-500/15 dark:bg-base-800 dark:text-base-100'
 
 const REMOVE_BUTTON_CLASS =
-  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 active:scale-95 dark:hover:bg-base-800'
+  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 active:scale-[0.96] dark:hover:bg-base-800'
 
 const ADD_BUTTON_CLASS =
-  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-600 transition active:scale-95 dark:bg-base-800 dark:text-base-300'
+  'focus-ring flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-base-100 text-base-600 transition active:scale-[0.96] dark:bg-base-800 dark:text-base-300'
 
 export function ChecklistEditor({ items, onChange, templateName = '' }: Props) {
   const t = useTranslations('schedule')

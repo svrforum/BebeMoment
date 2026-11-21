@@ -1154,6 +1154,18 @@
     margin: 0;
     padding: 0;
   }
+  /* 스티키 헤더(약 96px)·하단 내비(64px) 밑은 브라우저가 '보이는 곳' 으로 친다 — Tab 으로 그 밑
+     컨트롤에 가면 스크롤 없이 가려진 채 포커스됐다(WCAG 2.4.11). scrollIntoView·포커스 이동·앵커가
+     이 여백을 지킨다. window.scrollTo(타임라인 날짜 이동 등)는 영향받지 않는다. */
+  html {
+    scroll-padding-top: calc(env(safe-area-inset-top) + 6rem);
+    scroll-padding-bottom: calc(env(safe-area-inset-bottom) + 5rem);
+  }
+  @media (min-width: 48rem) {
+    html {
+      scroll-padding-bottom: 0;
+    }
+  }
   body {
     @apply bg-base-50 text-base-900 font-sans antialiased;
     font-feature-settings: "ss01", "ss02";

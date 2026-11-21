@@ -106,7 +106,7 @@ function StoryVideoSlide({
           aria-label={playLabel}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
+          <span className="flex h-14 w-14 items-center justify-center rounded-full bg-black/45 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-[0.96]">
             <Play size={24} className="ml-0.5 fill-white text-white" strokeWidth={0} />
           </span>
         </button>
@@ -117,7 +117,7 @@ function StoryVideoSlide({
       <Link
         href={href}
         aria-label={fullscreenLabel}
-        className="-translate-y-1/2 absolute top-1/2 right-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-95"
+        className="-translate-y-1/2 absolute top-1/2 right-2.5 z-20 flex h-9 w-9 items-center justify-center rounded-full bg-black/55 text-white backdrop-blur-sm transition active:scale-[0.96]"
       >
         <Maximize2 size={15} strokeWidth={2.2} />
       </Link>
@@ -499,7 +499,7 @@ function StoryPendingPhoto({
           type="button"
           onClick={retry}
           disabled={busy}
-          className={`rounded-full bg-base-900 font-medium text-base-50 transition active:scale-95 disabled:opacity-50 dark:bg-base-50 dark:text-base-900 ${
+          className={`rounded-full bg-base-900 font-medium text-base-50 transition active:scale-[0.96] disabled:opacity-50 dark:bg-base-50 dark:text-base-900 ${
             compact ? 'px-2.5 py-1 text-[11px]' : 'px-3.5 py-1.5 text-xs'
           }`}
         >

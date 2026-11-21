@@ -50,7 +50,7 @@ export function StoryDeleteButton({ onDelete, photos }: Props) {
           setOpen(true)
         }}
         aria-label={t('delete.trigger')}
-        className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-danger-text transition-colors hover:bg-danger/10 active:scale-95 dark:hover:bg-red-500/10"
+        className="inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium text-danger-text transition-colors hover:bg-danger/10 active:scale-[0.96] dark:hover:bg-red-500/10"
       >
         <Trash2 size={13} strokeWidth={2.2} />
         <span>{t('delete.trigger')}</span>

@@ -30,8 +30,8 @@ export function DateShareButton({
         aria-label={label ? t('share.shareDay', { date: label }) : t('share.shareThisDay')}
         className={
           size === 'sm'
-            ? '-my-1.5 -mr-1.5 flex h-8 w-8 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-base-700 active:scale-95 dark:hover:bg-base-800 dark:hover:text-base-300'
-            : 'flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800'
+            ? '-my-1.5 -mr-1.5 flex h-8 w-8 items-center justify-center rounded-full text-base-500 transition hover:bg-base-100 hover:text-base-700 active:scale-[0.96] dark:hover:bg-base-800 dark:hover:text-base-300'
+            : 'flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800'
         }
       >
         <Share2 size={size === 'sm' ? 15 : 18} />

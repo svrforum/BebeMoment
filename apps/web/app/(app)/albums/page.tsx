@@ -81,7 +81,7 @@ export default async function AlbumsRootPage({
               <Link
                 href="/saved"
                 aria-label={t('list.bookmarks')}
-                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+                className="inline-flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition-colors hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
               >
                 <Bookmark size={19} strokeWidth={2.1} />
               </Link>

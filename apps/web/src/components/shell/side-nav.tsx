@@ -109,8 +109,8 @@ export function SideNav({
               <span
                 aria-hidden
                 className={cn(
-                  'absolute left-0 top-1/2 -translate-y-1/2 rounded-r-full bg-point-500 transition-all ease-ios',
-                  active ? 'h-5 w-1 opacity-100' : 'h-0 w-0.5 opacity-0',
+                  'absolute left-0 top-1/2 h-5 w-1 -translate-y-1/2 rounded-r-full bg-point-500 transition-[scale,opacity] ease-ios',
+                  active ? 'scale-y-100 opacity-100' : 'scale-y-0 opacity-0',
                 )}
               />
               <Icon size={18} strokeWidth={active ? 2.4 : 1.9} />

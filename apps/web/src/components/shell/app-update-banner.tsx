@@ -62,7 +62,7 @@ export function AppUpdateBanner() {
         href={latest.url}
         target="_blank"
         rel="noopener noreferrer"
-        className="shrink-0 rounded-full bg-point-600 px-3.5 py-1.5 font-semibold text-white active:scale-95"
+        className="shrink-0 rounded-full bg-point-600 px-3.5 py-1.5 font-semibold text-white active:scale-[0.96]"
       >
         {t('update.action')}
       </a>

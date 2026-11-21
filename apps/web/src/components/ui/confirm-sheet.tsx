@@ -60,6 +60,7 @@ export function ConfirmSheet({
   return (
     <Sheet
       open={open}
+      label={title}
       onOpenChange={(next) => {
         if (pending) return
         onOpenChange(next)
@@ -84,6 +85,8 @@ export function ConfirmSheet({
           </button>
           <button
             type="button"
+            // 되돌릴 수 없는 확인은 안전한 쪽에서 시작한다 — 시트가 열리면 이 버튼에 포커스.
+            data-autofocus
             onClick={() => onOpenChange(false)}
             disabled={pending}
             className="inline-flex h-12 items-center justify-center rounded-2xl bg-base-100 text-base font-medium text-base-900 transition-colors hover:bg-base-200 disabled:opacity-60 dark:bg-base-800 dark:text-base-50 dark:hover:bg-base-700"

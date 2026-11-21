@@ -157,7 +157,7 @@ export function InviteManager() {
                 type="button"
                 onClick={copyLink}
                 aria-label={t('invite.copyLink')}
-                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-base-900 text-base-50 active:scale-95 dark:bg-base-50 dark:text-base-900"
+                className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-base-900 text-base-50 active:scale-[0.96] dark:bg-base-50 dark:text-base-900"
               >
                 {copied ? <Check size={16} /> : <Copy size={16} />}
               </button>

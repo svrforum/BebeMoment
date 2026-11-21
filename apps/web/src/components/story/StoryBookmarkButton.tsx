@@ -45,7 +45,7 @@ export function StoryBookmarkButton({ entryId, initialBookmarked }: Props) {
       aria-pressed={bookmarked}
       aria-label={bookmarked ? t('detail.bookmarkRemove') : t('detail.bookmarkAdd')}
       className={cn(
-        'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors active:scale-95',
+        'inline-flex h-7 items-center gap-1 rounded-full px-2.5 text-[12px] font-medium transition-colors active:scale-[0.96]',
         bookmarked
           ? 'text-point-600 hover:bg-point-500/10 dark:text-point-400'
           : 'text-base-500 hover:bg-base-100 hover:text-base-800 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100',

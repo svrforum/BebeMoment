@@ -4,6 +4,7 @@ import type { StoryViewerCtx } from '@/server/asset/viewer-story-ctx'
 import { ChevronLeft, ChevronRight, Play } from 'lucide-react'
 import type { AssetUrls } from '@bebe/media-client'
 import { useTranslations } from 'next-intl'
+import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { type CSSProperties, useCallback, useEffect, useRef, useState } from 'react'
 import { Zoom } from 'swiper/modules'
@@ -275,7 +276,7 @@ function SwiperViewport({
       // h-full (뷰어 루트 fixed inset-0 를 따른다 — vh 단위 금지, viewer-height.test.ts) +
       // dynamic top/bottom padding so the photo fits BETWEEN the top bar and (mobile)
       // action bar when chrome is showing. Desktop has no bottom action bar (md:pb-0).
-      className={`relative h-full w-full overflow-hidden transition-[padding] duration-200 ease-out ${
+      className={`relative h-full w-full overflow-hidden transition-[padding] duration-200 ease-out motion-reduce:transition-none ${
         chromeVisible
           ? 'pt-[calc(env(safe-area-inset-top)+56px)] pb-[calc(env(safe-area-inset-bottom)+96px)] md:pb-0'
           : 'pt-0 pb-0'
@@ -367,14 +368,48 @@ function SwiperViewport({
               </span>
             )}
             {storyCtx.body.trim() && (
-              <p className="line-clamp-3 whitespace-pre-wrap text-[14px] leading-snug text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]">
-                {storyCtx.body}
-              </p>
+              <StoryBodyClamp body={storyCtx.body} publicNo={storyCtx.publicNo} />
             )}
           </div>
         </div>
       )}
     </div>
+  )
+}
+
+/** 스토리 본문 3줄 — 잘렸을 때만 '전체 보기' 링크를 붙인다. 본문 전체를 링크로 만들면 그 위에서
+ *  시작한 스와이프가 사진을 넘기지 못하므로, 누를 수 있는 건 작은 링크 하나뿐이다. */
+function StoryBodyClamp({ body, publicNo }: { body: string; publicNo: number }) {
+  const t = useTranslations('viewer')
+  const ref = useRef<HTMLParagraphElement>(null)
+  const [clamped, setClamped] = useState(false)
+  // biome-ignore lint/correctness/useExhaustiveDependencies: 본문이 바뀌면 다시 잰다
+  useEffect(() => {
+    const el = ref.current
+    if (!el) return
+    const measure = () => setClamped(el.scrollHeight > el.clientHeight + 1)
+    measure()
+    const ro = new ResizeObserver(measure)
+    ro.observe(el)
+    return () => ro.disconnect()
+  }, [body])
+  return (
+    <>
+      <p
+        ref={ref}
+        className="line-clamp-3 whitespace-pre-wrap text-[14px] leading-normal text-white/90 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)]"
+      >
+        {body}
+      </p>
+      {clamped && (
+        <Link
+          href={`/story/${publicNo}`}
+          className="pointer-events-auto mt-1 inline-block py-1 text-[13px] font-semibold text-white underline-offset-2 [text-shadow:0_1px_4px_rgba(0,0,0,0.7)] hover:underline"
+        >
+          {t('story.readAll')}
+        </Link>
+      )}
+    </>
   )
 }
 
@@ -492,7 +527,7 @@ function VideoWithFallback({ src, poster }: { src: string; poster: string | unde
           aria-label={t('video.play')}
           className="absolute inset-0 flex items-center justify-center"
         >
-          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-95">
+          <span className="flex h-16 w-16 items-center justify-center rounded-full bg-black/50 ring-1 ring-white/30 backdrop-blur-sm transition active:scale-[0.96]">
             <Play size={28} className="ml-1 fill-white text-white" strokeWidth={0} />
           </span>
         </button>

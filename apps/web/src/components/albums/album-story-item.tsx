@@ -89,7 +89,7 @@ export function AlbumStoryItem({ albumId, entry }: { albumId: string; entry: Ent
         onClick={remove}
         disabled={removing}
         aria-label={t('story.remove')}
-        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 hover:text-base-700 active:scale-90 disabled:opacity-50 dark:hover:bg-base-800 dark:hover:text-base-200"
+        className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full text-base-400 transition hover:bg-base-100 hover:text-base-700 active:scale-[0.96] disabled:opacity-50 dark:hover:bg-base-800 dark:hover:text-base-200"
       >
         <X size={16} strokeWidth={2.2} />
       </button>

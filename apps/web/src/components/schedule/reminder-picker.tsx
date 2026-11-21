@@ -121,7 +121,7 @@ export function ReminderPicker({ mode, specs, onChange, pushEnabled }: Props) {
             aria-pressed={chip.selected}
             onClick={() => toggle(chip.spec)}
             className={cn(
-              'focus-ring flex items-center gap-1 rounded-full py-1.5 text-[13px] font-medium transition active:scale-95',
+              'focus-ring flex items-center gap-1 rounded-full py-1.5 text-[13px] font-medium transition active:scale-[0.96]',
               chip.selected
                 ? 'bg-point-600 pl-2.5 pr-3 text-white'
                 : 'bg-base-100 px-3 text-base-600 dark:bg-base-800 dark:text-base-300',
@@ -183,7 +183,7 @@ export function ReminderPicker({ mode, specs, onChange, pushEnabled }: Props) {
           <button
             type="button"
             onClick={addCustom}
-            className="focus-ring flex h-10 items-center gap-1 rounded-xl bg-base-900 px-3 text-[13px] font-semibold text-white transition active:scale-95 dark:bg-base-100 dark:text-base-900"
+            className="focus-ring flex h-10 items-center gap-1 rounded-xl bg-base-900 px-3 text-[13px] font-semibold text-white transition active:scale-[0.96] dark:bg-base-100 dark:text-base-900"
           >
             <Plus size={15} strokeWidth={2.6} />
             {t('reminder.customAdd')}

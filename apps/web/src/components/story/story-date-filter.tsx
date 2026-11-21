@@ -63,7 +63,7 @@ export function StoryDateFilter() {
           aria-label={t('dateFilter.filterByDate')}
           aria-pressed={active ? true : false}
           className={cn(
-            'flex h-11 w-11 items-center justify-center rounded-2xl border bg-base-0 text-base-700 transition-colors ease-ios active:scale-95',
+            'flex h-11 w-11 items-center justify-center rounded-2xl border bg-base-0 text-base-700 transition-colors ease-ios active:scale-[0.96]',
             'focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-point-600 dark:focus-visible:outline-point-400',
             active
               ? 'border-point-500 text-point-600 dark:border-point-500 dark:text-point-400'

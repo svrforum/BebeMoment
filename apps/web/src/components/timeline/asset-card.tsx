@@ -182,6 +182,12 @@ export function AssetCard({
   const handleContextMenu = (e: MouseEvent) => {
     if (!onContextMenu) return
     e.preventDefault()
+    // 키보드(메뉴 키·Shift+F10)로 열면 좌표가 0,0 으로 온다 — 카드 옆에 띄운다.
+    if (e.clientX === 0 && e.clientY === 0) {
+      const r = e.currentTarget.getBoundingClientRect()
+      onContextMenu(id, r.left + r.width / 2, r.top + r.height / 2)
+      return
+    }
     onContextMenu(id, e.clientX, e.clientY)
   }
 
@@ -219,7 +225,7 @@ export function AssetCard({
             className={cn(
               // z-10 so the overlay sits above the <img> / <video> poster
               // (PictureImage gives the inner img z-index:1).
-              'pointer-events-none absolute inset-0 z-10 box-border transition-all ease-ios',
+              'pointer-events-none absolute inset-0 z-10 box-border transition-[background-color,box-shadow] ease-ios',
               selected
                 ? 'bg-point-500/15 ring-[3px] ring-point-500'
                 : 'bg-black/10 ring-[3px] ring-transparent',
@@ -227,7 +233,7 @@ export function AssetCard({
           />
           <div
             className={cn(
-              'absolute left-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-all ease-ios',
+              'absolute left-2 top-2 z-20 flex h-7 w-7 items-center justify-center rounded-full shadow-md transition-[background-color,color,scale] ease-ios',
               selected
                 ? 'scale-100 bg-point-500 text-white'
                 : 'scale-90 bg-base-0/90 text-base-400 dark:bg-base-900/90',
@@ -241,8 +247,10 @@ export function AssetCard({
   )
 
   const baseClass = cn(
-    'relative block aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-900',
-    'transition-transform ease-ios active:scale-[0.97]',
+    // 사진 가장자리 1px 안쪽 선 — 밝은 사진이 배경에 녹아 경계가 사라지지 않게. 링크의 포커스
+    // outline 과 겹치지 않도록 가상 요소에 그린다.
+    'relative block aspect-square overflow-hidden rounded-xl bg-base-100 dark:bg-base-900 after:pointer-events-none after:absolute after:inset-0 after:z-[2] after:rounded-[inherit] after:outline after:-outline-offset-1 after:outline-black/10 dark:after:outline-white/10',
+    'transition-transform ease-ios active:scale-[0.96]',
     // 데스크톱 hover 어포던스 — 마우스 사용자에게 타일이 상호작용 가능함을 알린다.
     'md:transition md:hover:ring-2 md:hover:ring-point-500/40',
     selected && 'scale-[0.95]',
@@ -256,14 +264,14 @@ export function AssetCard({
         className={cn(baseClass, 'flex flex-col items-center justify-center gap-2 p-2 text-center')}
         style={styleProp}
       >
-        <span className="text-[11px] font-medium text-danger-text">{t('card.statusFailed')}</span>
+        <span className="text-[12px] font-medium text-danger-text">{t('card.statusFailed')}</span>
         <div className="flex gap-1.5">
           <button
             type="button"
             onClick={retryFailed}
             disabled={busy}
             aria-label={t('card.retry')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-base-700 shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90 dark:text-base-200"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-base-700 shadow-sm active:scale-[0.96] disabled:opacity-50 dark:bg-base-800/90 dark:text-base-200"
           >
             <RotateCw size={15} strokeWidth={2.2} />
           </button>
@@ -272,7 +280,7 @@ export function AssetCard({
             onClick={deleteFailed}
             disabled={busy}
             aria-label={t('card.delete')}
-            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-danger-text shadow-sm active:scale-95 disabled:opacity-50 dark:bg-base-800/90"
+            className="flex h-8 w-8 items-center justify-center rounded-full bg-base-0/90 text-danger-text shadow-sm active:scale-[0.96] disabled:opacity-50 dark:bg-base-800/90"
           >
             <Trash2 size={15} strokeWidth={2.2} />
           </button>
@@ -289,6 +297,7 @@ export function AssetCard({
     return (
       <button
         type="button"
+        data-asset-id={id}
         aria-label={itemName ?? t('card.selectItem')}
         aria-pressed={selected}
         onClick={handleSelectionClick}
@@ -313,6 +322,7 @@ export function AssetCard({
       // 상세는 동적 라우트라 프리페치해 봐야 빈 로딩 경계만 받는다 — 그리드 스크롤마다
       // 수십 건의 무의미한 요청을 내지 않는다.
       prefetch={false}
+      data-asset-id={id}
       aria-label={itemName ?? (kind === 'video' ? t('card.openVideo') : t('card.openPhoto'))}
       onClick={handleNavClick}
       onContextMenu={handleContextMenu}

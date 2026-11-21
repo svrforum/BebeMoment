@@ -81,7 +81,7 @@ export function AppDownloadRow() {
               type="button"
               onClick={checkNow}
               disabled={check === 'checking'}
-              className="inline-flex items-center gap-1.5 rounded-full border border-base-200 px-3.5 py-2 text-[13px] font-medium transition active:scale-95 disabled:opacity-60 dark:border-base-700"
+              className="inline-flex items-center gap-1.5 rounded-full border border-base-200 px-3.5 py-2 text-[13px] font-medium transition active:scale-[0.96] disabled:opacity-60 dark:border-base-700"
             >
               <RefreshCw size={14} strokeWidth={2.2} />
               {check === 'checking' ? t('checking') : t('checkUpdate')}
@@ -100,7 +100,7 @@ export function AppDownloadRow() {
             href={latest?.url}
             target="_blank"
             rel="noopener noreferrer"
-            className="inline-flex items-center gap-1.5 rounded-full bg-point-600 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-95"
+            className="inline-flex items-center gap-1.5 rounded-full bg-point-600 px-3.5 py-2 text-[13px] font-semibold text-white transition active:scale-[0.96]"
           >
             <Download size={14} strokeWidth={2.4} />
             {current

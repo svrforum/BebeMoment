@@ -278,7 +278,7 @@ export function ShareSheet({
                       type="button"
                       onClick={() => onShareExisting(l.token)}
                       aria-label={t('share.shareThisLink')}
-                      className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 dark:hover:bg-base-800"
+                      className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-[0.96] dark:hover:bg-base-800"
                     >
                       <Share2 size={16} strokeWidth={2.2} />
                     </button>
@@ -287,7 +287,7 @@ export function ShareSheet({
                     type="button"
                     onClick={() => onRevoke(l.token)}
                     aria-label={t('share.revokeThisLink')}
-                    className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-danger/10 hover:text-danger-text active:scale-95"
+                    className="flex h-9 w-9 items-center justify-center rounded-xl text-base-500 transition-colors hover:bg-danger/10 hover:text-danger-text active:scale-[0.96]"
                   >
                     <Trash2 size={16} strokeWidth={2.2} />
                   </button>

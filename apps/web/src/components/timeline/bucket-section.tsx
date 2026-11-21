@@ -4,7 +4,7 @@ import { StoryCard, type StoryCardData } from '@/components/story/story-card'
 import type { AssetUrls } from '@bebe/media-client'
 import { ChevronDown } from 'lucide-react'
 import { useTranslations } from 'next-intl'
-import { type CSSProperties, useState } from 'react'
+import { type CSSProperties, useRef, useState } from 'react'
 import { AssetCard, type TapModifiers } from './asset-card'
 
 // 접힘 기본 노출 수 — 모바일 3열 기준 2줄. 이보다 많으면 '+더보기'로 펼친다.
@@ -27,15 +27,24 @@ export function StoryStrip({ stories }: { stories: StoryCardData[] }) {
   const [expanded, setExpanded] = useState(false)
   const collapsible = stories.length > STORY_COLLAPSE
   const visible = collapsible && !expanded ? stories.slice(0, STORY_COLLAPSE) : stories
+  const listRef = useRef<HTMLDivElement>(null)
   return (
-    <div className="mb-3 flex flex-col gap-2">
+    <div ref={listRef} className="mb-3 flex flex-col gap-2">
       {visible.map((s) => (
         <StoryCard key={s.id} data={s} />
       ))}
       {collapsible && !expanded && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => {
+            // 이 버튼은 눌리면 사라진다 — 포커스가 body 로 떨어지지 않게 새로 펼쳐진 첫 카드로.
+            setExpanded(true)
+            requestAnimationFrame(() =>
+              listRef.current
+                ?.querySelectorAll<HTMLElement>('a')
+                [STORY_COLLAPSE]?.focus({ preventScroll: true }),
+            )
+          }}
           className="flex w-full items-center justify-center gap-1 rounded-2xl border border-base-200/70 py-2 text-[12.5px] font-medium text-base-500 transition-colors active:bg-base-100 md:hover:bg-base-50 dark:border-base-800/70 dark:text-base-400 dark:active:bg-base-800"
         >
           {t('bucket.moreStories', { count: stories.length - STORY_COLLAPSE })}
@@ -89,6 +98,7 @@ export function BucketSection({
 }: Props) {
   const t = useTranslations('timeline')
   const [expanded, setExpanded] = useState(false)
+  const gridRef = useRef<HTMLDivElement>(null)
   // 선택 모드에선 전부 보여야 일괄 선택이 가능 — 접지 않는다.
   const collapsible = !selectionMode && assets.length > COLLAPSED_COUNT
   const visibleAssets = collapsible && !expanded ? assets.slice(0, COLLAPSED_COUNT) : assets
@@ -126,7 +136,10 @@ export function BucketSection({
         )}
       </header>
       {stories && stories.length > 0 && <StoryStrip stories={stories} />}
-      <div className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8">
+      <div
+        ref={gridRef}
+        className="grid grid-cols-3 gap-1.5 sm:grid-cols-4 sm:gap-2 md:grid-cols-5 lg:grid-cols-6 xl:grid-cols-7 2xl:grid-cols-8"
+      >
         {visibleAssets.map((a, i) => (
           <div
             key={a.id}
@@ -157,7 +170,15 @@ export function BucketSection({
       {collapsible && !expanded && (
         <button
           type="button"
-          onClick={() => setExpanded(true)}
+          onClick={() => {
+            // 이 버튼은 눌리면 사라진다 — 포커스가 body 로 떨어지지 않게 새로 펼쳐진 첫 사진으로.
+            setExpanded(true)
+            requestAnimationFrame(() =>
+              gridRef.current
+                ?.querySelectorAll<HTMLElement>('[data-asset-id]')
+                [COLLAPSED_COUNT]?.focus({ preventScroll: true }),
+            )
+          }}
           className="mt-2 flex w-full items-center justify-center gap-1.5 rounded-xl bg-base-100 py-2.5 text-[13px] font-medium text-base-600 transition hover:bg-base-200 dark:bg-base-800 dark:text-base-300 dark:hover:bg-base-700"
         >
           {t('bucket.morePhotos', { count: hiddenCount })}

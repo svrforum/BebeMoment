@@ -160,7 +160,7 @@ export function ChecklistTemplates({
                     onClick={() => remove(tpl)}
                     aria-label={t('template.delete')}
                     className={cn(
-                      'focus-ring flex h-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-semibold transition active:scale-95',
+                      'focus-ring flex h-11 shrink-0 items-center justify-center rounded-xl text-[13px] font-semibold transition active:scale-[0.96]',
                       confirmDelete === tpl.id
                         ? 'bg-danger/10 px-3 text-danger-text'
                         : 'w-11 text-base-400',
@@ -205,7 +205,7 @@ export function ChecklistTemplates({
             type="button"
             onClick={save}
             disabled={!name.trim() || saving}
-            className="focus-ring flex h-11 shrink-0 items-center rounded-xl bg-point-600 px-4 text-[14px] font-semibold text-white transition active:scale-95 disabled:opacity-40"
+            className="focus-ring flex h-11 shrink-0 items-center rounded-xl bg-point-600 px-4 text-[14px] font-semibold text-white transition active:scale-[0.96] disabled:opacity-40"
           >
             {t('template.saveConfirm')}
           </button>

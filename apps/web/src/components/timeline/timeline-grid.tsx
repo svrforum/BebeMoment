@@ -340,6 +340,22 @@ export function TimelineGrid({
     setAnchor(null)
   }, [])
 
+  // 선택 모드를 드나들면 카드가 링크↔버튼으로 바뀌며 다시 마운트돼 포커스가 body 로 떨어진다
+  // (키보드 사용자는 페이지 맨 위로 돌아간 셈). 그때만 마지막으로 건드린 카드로 돌려 놓는다.
+  const lastTouchedRef = useRef<string | null>(null)
+  useEffect(() => {
+    if (anchor) lastTouchedRef.current = anchor
+  }, [anchor])
+  const wasSelectingRef = useRef(selectionMode)
+  useEffect(() => {
+    if (wasSelectingRef.current === selectionMode) return
+    wasSelectingRef.current = selectionMode
+    const id = lastTouchedRef.current
+    if (!id) return
+    if (document.activeElement && document.activeElement !== document.body) return
+    document.querySelector<HTMLElement>(`[data-asset-id="${id}"]`)?.focus({ preventScroll: true })
+  }, [selectionMode])
+
   // 손으로 끝낼 때(X·Esc·마지막 사진 해제)만 선택이 쓰던 히스토리 사본을 거둔다 — 첫 화면에
   // 남은 사본은 다음 뒤로가기를 헛돌게 한다. 삭제·앨범 추가는 clearSelection 만 쓴다: 곧이어
   // 부르는 refresh 를 거두는 뒤로가기가 버리게 하면 지운 사진이 화면에 남는다(`dropLeftoverCopies`).
@@ -387,18 +403,19 @@ export function TimelineGrid({
   }, [selected, clearSelection, router, toast, t])
 
   // Esc clears the selection — only when a sheet/modal isn't taking
-  // priority over the keyboard. Skipping when the picker is open lets the
-  // sheet's own Esc handler close it first; the second Esc clears.
+  // priority over the keyboard. Skipping when the picker/confirm is open (or a
+  // layer already handled this Esc — defaultPrevented) lets that layer close
+  // first; the second Esc clears. 삭제 확인을 Esc 로 닫으면 선택까지 풀리던 것.
   useEffect(() => {
     if (selected.size === 0) return
     const onKey = (e: KeyboardEvent) => {
-      if (e.key !== 'Escape') return
-      if (pickerOpen) return
+      if (e.key !== 'Escape' || e.defaultPrevented) return
+      if (pickerOpen || deleteOpen) return
       cancelSelection()
     }
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
-  }, [selected.size, pickerOpen, cancelSelection])
+  }, [selected.size, pickerOpen, deleteOpen, cancelSelection])
 
   // Right-click context menu — operates on a single asset id, regardless
   // of selection. If the asset isn't already selected, the menu's
@@ -480,6 +497,19 @@ export function TimelineGrid({
 
   return (
     <>
+      {/* 화면에선 아래에 떠 있지만(fixed) DOM 은 그리드 앞 — 키보드로 선택한 뒤 Tab 한 번이면
+          작업 바에 닿는다. 뒤에 두면 불러온 사진을 전부 지나야 했고 무한 스크롤로 계속 늘었다. */}
+      {selectionMode && (
+        <SelectionBar
+          count={selected.size}
+          selectedIds={Array.from(selected)}
+          canDelete={canDeleteSelection}
+          canAlbum={canAddAlbum}
+          onCancel={cancelSelection}
+          onAlbum={() => setPickerOpen(true)}
+          onDelete={() => setDeleteOpen(true)}
+        />
+      )}
       {/* overflow-anchor 를 끄는 이유: 갱신 후 스크롤 보정을 우리가 직접 한다(위 layout
           effect). 브라우저의 자동 앵커링까지 겹치면 두 번 밀려 오히려 튄다. */}
       <div
@@ -554,18 +584,6 @@ export function TimelineGrid({
         />
       )}
 
-      {selectionMode && (
-        <SelectionBar
-          count={selected.size}
-          selectedIds={Array.from(selected)}
-          canDelete={canDeleteSelection}
-          canAlbum={canAddAlbum}
-          onCancel={cancelSelection}
-          onAlbum={() => setPickerOpen(true)}
-          onDelete={() => setDeleteOpen(true)}
-        />
-      )}
-
       <AlbumPicker
         open={pickerOpen}
         onOpenChange={setPickerOpen}
@@ -629,7 +647,7 @@ function NewChangesPill({
         <button
           type="button"
           onClick={onApply}
-          className="flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pr-1 text-[13px] font-semibold text-point-600 transition active:scale-95 dark:text-point-400"
+          className="flex items-center gap-1.5 whitespace-nowrap rounded-full py-1 pr-1 text-[13px] font-semibold text-point-600 transition active:scale-[0.96] dark:text-point-400"
         >
           <ArrowUp size={14} strokeWidth={2.6} />
           {count > 0 ? t('grid.newPhotos', { count }) : t('grid.newChanges')}
@@ -667,6 +685,8 @@ function SelectionBar({
   const t = useTranslations('timeline')
   return (
     <div
+      role="toolbar"
+      aria-label={t('grid.selectedCount', { count })}
       className="fixed inset-x-0 bottom-[calc(env(safe-area-inset-bottom)+4rem)] z-40 mx-auto flex max-w-md items-center gap-1.5 rounded-2xl border border-base-200/70 bg-base-0/95 p-2 shadow-elevated backdrop-blur-xl md:bottom-8 dark:border-base-800/70 dark:bg-base-900/95"
       style={{ marginInline: 'max(env(safe-area-inset-left), 16px)' }}
     >
@@ -678,14 +698,17 @@ function SelectionBar({
       >
         <X size={18} strokeWidth={2} />
       </button>
-      <span className="shrink-0 whitespace-nowrap px-1 text-[13px] font-medium tabular-nums">
+      <span
+        aria-live="polite"
+        className="shrink-0 whitespace-nowrap px-1 text-[13px] font-medium tabular-nums"
+      >
         {t('grid.selectedCount', { count })}
       </span>
       <div className="flex-1" />
       <BulkDownloadButton
         assetIds={selectedIds}
         label=""
-        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 disabled:opacity-60 dark:text-base-300 dark:hover:bg-base-800"
+        className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] disabled:opacity-60 dark:text-base-300 dark:hover:bg-base-800"
       />
       <SelectionShareButton assetIds={selectedIds} />
       {canDelete && (
@@ -702,7 +725,7 @@ function SelectionBar({
         <button
           type="button"
           onClick={onAlbum}
-          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-600 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-700"
+          className="inline-flex shrink-0 items-center gap-1 whitespace-nowrap rounded-full bg-point-600 px-3 py-2 text-[13px] font-semibold text-white transition active:scale-[0.96] hover:bg-point-700"
         >
           <FolderPlus size={14} strokeWidth={2.4} />
           {t('grid.addToAlbum')}

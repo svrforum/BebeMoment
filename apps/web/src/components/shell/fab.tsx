@@ -30,7 +30,7 @@ export function FAB({ onPress, label, icon: Icon = ImagePlus, className }: Props
         type="button"
         onClick={onPress}
         aria-label={label}
-        className="flex h-14 w-14 items-center justify-center rounded-full bg-point-500 text-white shadow-elevated transition-all duration-150 ease-out hover:bg-point-600 active:scale-[0.92]"
+        className="flex h-14 w-14 items-center justify-center rounded-full bg-point-500 text-white shadow-elevated transition-[background-color,scale] duration-150 ease-out hover:bg-point-600 active:scale-[0.96]"
       >
         <Icon className="h-6 w-6" strokeWidth={2.5} />
       </button>

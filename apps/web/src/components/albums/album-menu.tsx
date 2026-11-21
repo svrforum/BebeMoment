@@ -160,7 +160,7 @@ export function AlbumMenu({
         type="button"
         onClick={() => setOpen((v) => !v)}
         aria-label={t('menu.menu')}
-        className="flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+        className="flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
       >
         <MoreHorizontal size={18} />
       </button>
@@ -301,7 +301,7 @@ export function AlbumMenu({
               <button
                 type="submit"
                 disabled={!name.trim() || pending}
-                className="rounded-full bg-point-600 px-4 py-2 text-[13px] font-medium text-white transition active:scale-95 disabled:opacity-50"
+                className="rounded-full bg-point-600 px-4 py-2 text-[13px] font-medium text-white transition active:scale-[0.96] disabled:opacity-50"
               >
                 {t('menu.save')}
               </button>

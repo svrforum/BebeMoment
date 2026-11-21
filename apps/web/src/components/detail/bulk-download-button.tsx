@@ -69,7 +69,7 @@ export function BulkDownloadButton({
       aria-live="polite"
       className={
         className ??
-        'inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-95 disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
+        'inline-flex h-7 items-center gap-1 whitespace-nowrap rounded-full px-2.5 text-[12px] font-medium text-base-500 transition-colors hover:bg-base-100 hover:text-base-800 active:scale-[0.96] disabled:opacity-60 dark:text-base-400 dark:hover:bg-base-800 dark:hover:text-base-100'
       }
     >
       <Download size={label ? 13 : 18} strokeWidth={2.2} />

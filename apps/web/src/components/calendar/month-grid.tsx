@@ -301,7 +301,7 @@ export function MonthGrid({
                     type="button"
                     aria-label={t('calendar.prevYear')}
                     onClick={() => setPickerYear((y) => y - 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
                   >
                     <ChevronLeft className="h-5 w-5" />
                   </button>
@@ -312,7 +312,7 @@ export function MonthGrid({
                     type="button"
                     aria-label={t('calendar.nextYear')}
                     onClick={() => setPickerYear((y) => y + 1)}
-                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+                    className="flex h-8 w-8 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
                   >
                     <ChevronRight className="h-5 w-5" />
                   </button>
@@ -326,7 +326,7 @@ export function MonthGrid({
                         type="button"
                         onClick={() => pickMonth(m)}
                         className={cn(
-                          'rounded-xl py-2 text-[14px] font-medium tabular-nums transition active:scale-95',
+                          'rounded-xl py-2 text-[14px] font-medium tabular-nums transition active:scale-[0.96]',
                           isSel
                             ? 'bg-point-600 text-white'
                             : 'text-base-700 hover:bg-base-100 dark:text-base-200 dark:hover:bg-base-800',
@@ -346,7 +346,7 @@ export function MonthGrid({
             <button
               type="button"
               onClick={jumpToday}
-              className="focus-ring rounded-full px-3 py-1.5 text-[12px] font-medium text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+              className="focus-ring rounded-full px-3 py-1.5 text-[12px] font-medium text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
             >
               {t('calendar.today')}
             </button>
@@ -355,7 +355,7 @@ export function MonthGrid({
             type="button"
             onClick={prev}
             aria-label={t('calendar.prevMonth')}
-            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronLeft className="h-5 w-5" />
           </button>
@@ -363,7 +363,7 @@ export function MonthGrid({
             type="button"
             onClick={next}
             aria-label={t('calendar.nextMonth')}
-            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-95 dark:text-base-300 dark:hover:bg-base-800"
+            className="focus-ring flex h-9 w-9 items-center justify-center rounded-full text-base-600 transition hover:bg-base-100 active:scale-[0.96] dark:text-base-300 dark:hover:bg-base-800"
           >
             <ChevronRight className="h-5 w-5" />
           </button>

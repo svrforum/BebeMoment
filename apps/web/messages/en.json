@@ -394,7 +394,7 @@
       "cancel": "Cancel",
       "submit": "Post",
       "submitting": "Posting…",
-      "needPhoto": "Please add at least one photo",
+      "needPhoto": "Add at least one photo to post",
       "uploadNotReady": "Your photos aren't ready yet. Please try again in a moment.",
       "submitFailed": "The server couldn't save the story",
       "attachFiles": "Pick from files",
@@ -673,7 +673,8 @@
       "photoInfo": "Photo info"
     },
     "story": {
-      "count": "{index}/{total}"
+      "count": "{index}/{total}",
+      "readAll": "Read all"
     },
     "video": {
       "processing": "Processing…",

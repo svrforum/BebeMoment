@@ -55,10 +55,11 @@ export function ViewerActionBar({
         <button
           type="button"
           onClick={onCommentTap}
-          aria-label={t('actions.comments')}
           className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white"
         >
-          <MessageCircle size={22} />
+          <MessageCircle size={22} aria-hidden />
+          {/* aria-label 로 덮으면 보이는 댓글 수가 안 읽힌다 — 이름은 '댓글 3'. */}
+          <span className="sr-only">{t('actions.comments')}</span>
           {commentCount > 0 && <span className="text-sm tabular-nums">{commentCount}</span>}
         </button>
       )}
@@ -67,7 +68,7 @@ export function ViewerActionBar({
           type="button"
           onClick={onAlbumTap}
           aria-label={t('actions.addToAlbum')}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-[0.96]"
         >
           <FolderPlus size={22} />
         </button>
@@ -77,7 +78,7 @@ export function ViewerActionBar({
           download
           aria-label={t('actions.download')}
           onClick={() => toast({ title: t('actions.savingPhoto') })}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-[0.96]"
         >
           <Download size={22} />
         </a>
@@ -86,7 +87,7 @@ export function ViewerActionBar({
         <AssetShareButton
           assetId={assetId}
           iconSize={22}
-          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-90"
+          className="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-white transition-transform ease-ios active:scale-[0.96]"
         />
       )}
       <BookmarkButton

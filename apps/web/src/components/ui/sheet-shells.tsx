@@ -16,6 +16,7 @@ export function MobileDrawerShell({
   open,
   onOpenChange,
   title,
+  label,
   children,
   className,
   fill,
@@ -23,6 +24,8 @@ export function MobileDrawerShell({
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string | undefined
+  /** 보이는 제목이 없을 때 화면낭독기에 들려줄 이름. */
+  label: string | undefined
   children: ReactNode
   className: string | undefined
   fill: boolean | undefined
@@ -65,8 +68,19 @@ export function MobileDrawerShell({
           ref={contentRef}
           // 제목 없는 시트도 Radix Dialog 설명 경고를 피한다(설명 없음 명시).
           aria-describedby={undefined}
+          // vaul 은 기본으로 열릴 때 포커스를 옮기지 않아, 화면낭독기 포커스가 aria-hidden 된 뒤쪽
+          // 트리거에 남고 시트가 열린 걸 알리지 않았다. 첫 입력칸 대신 시트 자체로 옮긴다 —
+          // 입력칸으로 가면 모바일 키보드가 저절로 올라온다.
+          tabIndex={-1}
+          // 안쪽에 data-autofocus 가 있으면 그쪽(예: 삭제 확인의 취소 버튼)으로.
+          onOpenAutoFocus={(e) => {
+            e.preventDefault()
+            const node = contentRef.current
+            const target = node?.querySelector<HTMLElement>('[data-autofocus]') ?? node
+            target?.focus({ preventScroll: true })
+          }}
           className={cn(
-            'fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col overflow-hidden rounded-t-3xl border-t border-base-200 bg-base-0 dark:border-base-800 dark:bg-base-900',
+            'fixed bottom-0 left-0 right-0 z-50 mt-24 flex flex-col overflow-hidden rounded-t-3xl outline-none border-t border-base-200 bg-base-0 dark:border-base-800 dark:bg-base-900',
             // Fill mode wants a definite height so the inner flex column
             // (scroll region + pinned footer) can resolve flex-1. Otherwise
             // size to content, capped at 90dvh — dynamic units so the cap
@@ -83,7 +97,7 @@ export function MobileDrawerShell({
           <Drawer.Title
             className={title ? 'shrink-0 px-5 pt-4 pb-1 text-lg font-semibold' : 'sr-only'}
           >
-            {title ?? t('dialog')}
+            {title ?? label ?? t('dialog')}
           </Drawer.Title>
           {fill ? (
             <div className="flex min-h-0 flex-1 flex-col">{children}</div>
@@ -102,6 +116,7 @@ export function DesktopModalShell({
   open,
   onOpenChange,
   title,
+  label,
   children,
   className,
   fill,
@@ -109,6 +124,8 @@ export function DesktopModalShell({
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string | undefined
+  /** 보이는 제목이 없을 때 화면낭독기에 들려줄 이름. */
+  label: string | undefined
   children: ReactNode
   className: string | undefined
   fill: boolean | undefined
@@ -119,11 +136,14 @@ export function DesktopModalShell({
 
   useEffect(() => {
     if (!open) return
+    // 캡처 단계에서 먼저 받고 preventDefault — 뒤에 있는 뷰어의 Esc(뒤로가기)가 같이 돌지 않게.
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'Escape') onOpenChange(false)
+      if (e.key !== 'Escape') return
+      e.preventDefault()
+      onOpenChange(false)
     }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
+    window.addEventListener('keydown', onKey, true)
+    return () => window.removeEventListener('keydown', onKey, true)
   }, [open, onOpenChange])
 
   // 포커스 트랩 — 열릴 때 다이얼로그로 포커스 이동, Tab 을 다이얼로그 내부로 가두고,
@@ -132,7 +152,7 @@ export function DesktopModalShell({
     if (!open) return
     const prevFocus = document.activeElement as HTMLElement | null
     const node = dialogRef.current
-    node?.focus()
+    ;(node?.querySelector<HTMLElement>('[data-autofocus]') ?? node)?.focus()
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.key !== 'Tab' || !node) return
       const items = node.querySelectorAll<HTMLElement>(
@@ -188,7 +208,7 @@ export function DesktopModalShell({
             ref={dialogRef}
             role="dialog"
             aria-modal="true"
-            aria-label={title ?? t('dialog')}
+            aria-label={title ?? label ?? t('dialog')}
             tabIndex={-1}
             initial={hidden}
             animate={{ opacity: 1, scale: 1, y: 0 }}

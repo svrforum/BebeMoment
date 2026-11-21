@@ -11,7 +11,7 @@ const buttonVariants = cva(
     'disabled:opacity-40 disabled:pointer-events-none disabled:shadow-none',
     // Tactile press: scale + settle the elevation toward the surface, so
     // shadowed variants feel like they push in rather than just shrink.
-    'active:scale-[0.97] active:duration-75',
+    'active:scale-[0.96] active:duration-75',
     'motion-reduce:active:scale-100 motion-reduce:transition-none',
   ].join(' '),
   {

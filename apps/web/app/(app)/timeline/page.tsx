@@ -242,14 +242,14 @@ export default async function TimelinePage({
             <Link
               href="/search"
               aria-label={t('page.search')}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-[0.96] dark:bg-base-800 dark:text-base-300"
             >
               <Search className="h-[18px] w-[18px]" strokeWidth={2} />
             </Link>
             <Link
               href="/memories"
               aria-label={hasMemoryToday ? t('page.memoriesNew') : t('page.memories')}
-              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+              className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-[0.96] dark:bg-base-800 dark:text-base-300"
             >
               <Sparkles className="h-[18px] w-[18px]" strokeWidth={2} />
               {hasMemoryToday && (
@@ -260,7 +260,7 @@ export default async function TimelinePage({
               <Link
                 href="/people"
                 aria-label={hasNewPeople ? t('page.peopleNew') : t('page.people')}
-                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-95 dark:bg-base-800 dark:text-base-300"
+                className="relative flex h-8 w-8 items-center justify-center rounded-full bg-base-100 text-base-600 transition hover:bg-base-200 active:scale-[0.96] dark:bg-base-800 dark:text-base-300"
               >
                 <UsersRound className="h-[18px] w-[18px]" strokeWidth={2} />
                 {hasNewPeople && (

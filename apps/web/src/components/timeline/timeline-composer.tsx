@@ -143,7 +143,7 @@ export function TimelineComposer({
   }, [])
 
   // 펼쳐지면 textarea 에 포커스 — 레이아웃·키보드가 정착한 뒤 한 번만(setTimeout). focus()
-  // 가 textarea 를 키보드 위로 스크롤하고, #composer 의 scroll-margin-top 이 sticky 헤더에
+  // 가 textarea 를 키보드 위로 스크롤하고, html 의 scroll-padding-top(globals.css)이 sticky 헤더에
   // 안 가리게 한다. (과거: hash 효과의 smooth scrollIntoView(block:start) + 이중 focus 가
   // 키보드 열림과 경쟁해 글쓰기창이 헤더 뒤로 밀려 안 보였다 — 스토리 '쓰기' 포커스 버그.)
   useEffect(() => {
@@ -390,19 +390,18 @@ export function TimelineComposer({
 
   if (!expanded) {
     return (
-      <div
-        ref={containerRef}
-        id="composer"
-        className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)]"
-      >
+      <div ref={containerRef} id="composer">
         <button
           type="button"
           onClick={() => setExpanded(true)}
-          aria-label={t('composer.writeToday')}
+          // 이름은 보이는 글자 그대로(쓰다 만 글이면 그 글) — aria-label 로 덮으면 음성 제어가 화면의
+          // 글자로 이 버튼을 찾지 못한다. 이니셜 아바타는 이름에서 뺀다.
           aria-expanded={false}
           className="group flex w-full items-center gap-3 rounded-full border border-transparent bg-base-0 py-2 pr-3 pl-2 text-left shadow-card transition-colors ease-ios hover:bg-base-100/60 active:scale-[0.995] dark:border-base-800/60 dark:bg-base-900 dark:hover:bg-base-800/40"
         >
-          <PillAvatar avatarPath={userAvatarPath} initial={initial} />
+          <span aria-hidden className="contents">
+            <PillAvatar avatarPath={userAvatarPath} initial={initial} />
+          </span>
           <span className="min-w-0 flex-1 truncate text-[14px] text-base-500 dark:text-base-400">
             {hasDraft
               ? body.trim() || t('composer.photosAttached', { count: attachments.length })
@@ -422,7 +421,7 @@ export function TimelineComposer({
     <div
       ref={containerRef}
       id="composer"
-      className="scroll-mt-[calc(env(safe-area-inset-top)+5.5rem)] rounded-3xl border border-transparent bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
+      className="rounded-3xl border border-transparent bg-base-0 p-4 shadow-card dark:border-base-800/70 dark:bg-base-900"
     >
       <div className="flex items-start gap-3">
         <Avatar avatarPath={userAvatarPath} initial={initial} />
@@ -495,7 +494,7 @@ export function TimelineComposer({
                     type="button"
                     onClick={() => removeAttachment(a.fileId)}
                     aria-label={t('composer.remove')}
-                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                    className="absolute right-1 top-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white after:absolute after:-inset-1.5"
                   >
                     <X size={12} strokeWidth={2.6} />
                   </button>
@@ -504,7 +503,7 @@ export function TimelineComposer({
                       type="button"
                       onClick={() => openEditor(a.fileId)}
                       aria-label={t('composer.edit')}
-                      className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white"
+                      className="absolute bottom-1 right-1 flex h-5 w-5 items-center justify-center rounded-full bg-black/60 text-white after:absolute after:-inset-1.5"
                     >
                       <Pencil size={11} strokeWidth={2.4} />
                     </button>
@@ -640,6 +639,12 @@ export function TimelineComposer({
           {submitting && !allHaveAssetIds && (
             <span className="ml-1 text-[12px] text-base-500">{t('composer.preparingPhotos')}</span>
           )}
+          {/* 비활성 '올리기' 는 이유를 말하지 않는다 — 터치에선 회색 버튼만 보였다. */}
+          {!submitting && attachments.length === 0 && (
+            <span id="composer-need-photo" className="ml-1 text-[12px] text-base-500">
+              {t('composer.needPhoto')}
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {hasDraft && (
@@ -655,7 +660,8 @@ export function TimelineComposer({
             type="button"
             onClick={submit}
             disabled={submitting || attachments.length === 0}
-            className="rounded-full bg-point-600 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-95 hover:bg-point-700 disabled:opacity-50"
+            aria-describedby={attachments.length === 0 ? 'composer-need-photo' : undefined}
+            className="rounded-full bg-point-600 px-4 py-1.5 text-[13px] font-semibold text-white transition active:scale-[0.96] hover:bg-point-700 disabled:opacity-50"
           >
             {submitting ? t('composer.submitting') : t('composer.submit')}
           </button>
@@ -692,7 +698,7 @@ function VisibilityOption({
       </div>
       <div className="min-w-0 flex-1">
         <div className="text-[13px] font-semibold text-base-900 dark:text-base-50">{title}</div>
-        <div className="mt-0.5 text-[11px] text-base-500">{subtitle}</div>
+        <div className="mt-0.5 text-[12px] text-base-500">{subtitle}</div>
       </div>
     </button>
   )

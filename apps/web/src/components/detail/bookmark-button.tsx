@@ -65,7 +65,7 @@ export function BookmarkButton(props: Props) {
       aria-pressed={bookmarked}
       aria-label={t('bookmark.label')}
       className={cn(
-        'focus-ring inline-flex items-center rounded-full px-3 py-1.5 text-base-500 transition active:scale-90',
+        'focus-ring inline-flex items-center rounded-full px-3 py-1.5 text-base-500 transition active:scale-[0.96]',
         'hover:bg-base-100 dark:hover:bg-base-800',
         pending && 'opacity-70',
         props.className,

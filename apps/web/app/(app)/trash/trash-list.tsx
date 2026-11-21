@@ -179,7 +179,7 @@ export function TrashList({ assets, canPurge }: Props) {
                 type="button"
                 onClick={() => setPreview(a)}
                 aria-label={t('trash.viewPhoto')}
-                className="h-14 w-14 shrink-0 overflow-hidden rounded-lg transition active:scale-95"
+                className="h-14 w-14 shrink-0 overflow-hidden rounded-lg transition active:scale-[0.96]"
               >
                 {hasImage ? (
                   <PictureImage

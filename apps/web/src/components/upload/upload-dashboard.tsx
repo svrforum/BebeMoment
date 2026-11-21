@@ -268,7 +268,7 @@ export function UploadDashboard({
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-95 dark:bg-base-50 dark:text-base-900"
+            className="mt-2 rounded-full bg-base-900 px-4 py-2 text-sm font-medium text-base-50 transition active:scale-[0.96] dark:bg-base-50 dark:text-base-900"
           >
             {t('selectFile')}
           </button>
@@ -416,7 +416,7 @@ export function UploadDashboard({
             type="button"
             onClick={dest === 'story' ? submitStory : () => startStagedUploads()}
             disabled={submittingStory}
-            className="rounded-full bg-point-600 py-3 text-sm font-semibold text-white transition active:scale-95 disabled:opacity-50"
+            className="rounded-full bg-point-600 py-3 text-sm font-semibold text-white transition active:scale-[0.96] disabled:opacity-50"
           >
             {dest === 'story'
               ? submittingStory
