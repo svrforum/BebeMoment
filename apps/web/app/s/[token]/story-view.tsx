@@ -1,3 +1,4 @@
+import { shareInAppPath } from '@/lib/share-in-app-path'
 import type { PublicStoryPreview } from '@/server/share/public-story'
 import { Lock } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -68,8 +69,9 @@ export async function StoryPreviewBlock({
 
 export async function StoryShareView({ p, base }: { p: PublicStoryPreview; base: string }) {
   const t = await getTranslations('share')
-  const webUrl = `${base}/story/${p.publicNo}`
-  const appHref = appDeepLink(base, `/story/${p.publicNo}`, webUrl)
+  const path = shareInAppPath({ kind: 'story', publicNo: p.publicNo })
+  const webUrl = `${base}${path}`
+  const appHref = appDeepLink(base, path, webUrl)
 
   return (
     <ShareViewFrame

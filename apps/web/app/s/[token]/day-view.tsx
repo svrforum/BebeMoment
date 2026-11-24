@@ -1,3 +1,4 @@
+import { shareInAppPath } from '@/lib/share-in-app-path'
 import type { DayPreview } from '@/server/share/day-preview'
 import { ShareViewFrame, appDeepLink } from './share-frame'
 import { StoryPreviewBlock } from './story-view'
@@ -18,7 +19,7 @@ export async function DayShareView({
   meta: string
   base: string
 }) {
-  const path = `/timeline?date=${date}`
+  const path = shareInAppPath({ kind: 'day', date })
   const webUrl = `${base}${path}`
   const appHref = appDeepLink(base, path, webUrl)
   const noStories = p.stories.length === 0

@@ -200,6 +200,12 @@ test.describe('추억·스토리 공유 링크', () => {
     await expect(shared.getByText('처음 뒤집은 날')).toBeVisible()
     await anon.close()
 
+    // 스토리 링크도 같다 — 가족으로 로그인한 사람은 미리보기 대신 앱의 스토리 화면으로 간다.
+    await page.keyboard.press('Escape')
+    await page.goto(`/s/${storyToken}`)
+    await expect(page).toHaveURL(/\/story\/\d+$/)
+    await expect(page.getByText('처음 뒤집은 날').first()).toBeVisible()
+
     // 스토리에 없는 사진에서는 고르는 칸이 없다 — 예전 그대로 사진 한 장 공유.
     await page.keyboard.press('Escape')
     await page.goto('/timeline')

@@ -1,3 +1,4 @@
+import { shareInAppPath } from '@/lib/share-in-app-path'
 import type { PublicAlbumPreview } from '@/server/share/public-album'
 import { Images } from 'lucide-react'
 import { getTranslations } from 'next-intl/server'
@@ -5,8 +6,9 @@ import { ShareViewFrame, appDeepLink } from './share-frame'
 
 export async function AlbumShareView({ p, base }: { p: PublicAlbumPreview; base: string }) {
   const t = await getTranslations('share')
-  const webUrl = `${base}/albums/${p.albumId}`
-  const appHref = appDeepLink(base, `/albums/${p.albumId}`, webUrl)
+  const path = shareInAppPath({ kind: 'album', albumId: p.albumId })
+  const webUrl = `${base}${path}`
+  const appHref = appDeepLink(base, path, webUrl)
 
   return (
     <ShareViewFrame

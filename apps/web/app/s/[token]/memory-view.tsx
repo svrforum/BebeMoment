@@ -1,3 +1,4 @@
+import { shareInAppPath } from '@/lib/share-in-app-path'
 import type { MemoryPreview } from '@/server/share/memory-preview'
 import { PhotoTiles } from './photo-set-view'
 import { ShareViewFrame, appDeepLink } from './share-frame'
@@ -7,7 +8,7 @@ import { ShareViewFrame, appDeepLink } from './share-frame'
  * 링크에 담긴 것 전부가 보인다('이 날 공유'처럼 잠그지 않는다).
  *
  * 로그인하지 않은 사람이 보는 화면이다 — 가족으로 로그인해 있으면 페이지가 여기 오기 전에 앱의
- * 그 날 타임라인으로 보낸다. 아래 버튼도 같은 곳으로 이어진다(앱 / 로그인).
+ * 그 날 타임라인으로 보낸다. 아래 버튼도 같은 곳으로 이어진다(`shareInAppPath`).
  */
 export function MemoryShareView({
   p,
@@ -20,7 +21,7 @@ export function MemoryShareView({
   meta: string
   base: string
 }) {
-  const path = `/timeline?date=${date}`
+  const path = shareInAppPath({ kind: 'memory', date })
   const webUrl = `${base}${path}`
   return (
     <ShareViewFrame

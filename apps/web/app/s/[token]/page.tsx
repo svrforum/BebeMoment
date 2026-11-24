@@ -13,6 +13,7 @@ import {
 } from '@/server/share/public-schedule'
 import { type PublicStoryPreview, getPublicStoryPreview } from '@/server/share/public-story'
 import { pickShareBaseUrl } from '@/lib/share-base-url'
+import { shareInAppPath } from '@/lib/share-in-app-path'
 import { clientIp, rateLimit } from '@/server/auth/rate-limit'
 import { resolveShareLink } from '@/server/share/resolve'
 import { isFeatureEnabled } from '@/server/settings/features'
@@ -49,8 +50,15 @@ async function requestBaseUrl(): Promise<string> {
 
 type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
 type Loaded =
-  | { status: 'ok'; kind: 'story'; preview: PublicStoryPreview }
-  | { status: 'ok'; kind: 'day'; preview: DayPreview; date: string; meta: string }
+  | { status: 'ok'; kind: 'story'; familyId: string; preview: PublicStoryPreview }
+  | {
+      status: 'ok'
+      kind: 'day'
+      familyId: string
+      preview: DayPreview
+      date: string
+      meta: string
+    }
   | {
       status: 'ok'
       kind: 'memory'
@@ -59,7 +67,7 @@ type Loaded =
       date: string
       meta: string
     }
-  | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
+  | { status: 'ok'; kind: 'album'; familyId: string; preview: PublicAlbumPreview }
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
   | { status: 'ok'; kind: 'schedule'; familyId: string; preview: PublicSchedulePreview }
   | { status: 'expired' | 'revoked' | 'notfound' }
@@ -93,7 +101,9 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
       prismaMedia,
       media,
     )
-    return preview ? { status: 'ok', kind: 'story', preview } : { status: 'notfound' }
+    return preview
+      ? { status: 'ok', kind: 'story', familyId: r.familyId, preview }
+      : { status: 'notfound' }
   }
   if (r.target.kind === 'album') {
     const preview = await getPublicAlbumPreview(
@@ -104,7 +114,9 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
       prismaMedia,
       media,
     )
-    return preview ? { status: 'ok', kind: 'album', preview } : { status: 'notfound' }
+    return preview
+      ? { status: 'ok', kind: 'album', familyId: r.familyId, preview }
+      : { status: 'notfound' }
   }
 
   const t = await getTranslations('share')
@@ -122,6 +134,7 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
     return {
       status: 'ok',
       kind: 'day',
+      familyId: r.familyId,
       preview: day,
       date: r.target.date,
       meta: await dayMeta(r.target.date, day.photos.total, day.stories.length),
@@ -303,16 +316,26 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
     if (await viewerCanSeeSchedule(r.familyId)) redirect(`/schedule/${r.preview.entryId}`)
     return <ScheduleShareView p={r.preview} base={base} />
   }
-  if (r.kind === 'story') return <StoryShareView p={r.preview} base={base} />
-  if (r.kind === 'album') return <AlbumShareView p={r.preview} base={base} />
-  if (r.kind === 'day')
-    return <DayShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
 
+  // 가족으로 로그인해 있으면 공개용 미리보기를 거칠 이유가 없다 — '전체 보기' 버튼이 가리키던
+  // 그 앱 화면(탭이 있는 화면)으로 바로 보낸다. 미리보기가 있다는 것은 가족 누구나 볼 수 있는
+  // 대상이라는 뜻이다(가족 공개 스토리·비밀이 아닌 앨범·날짜). 사진 묶음(한 장·여러 장)은 그
+  // 사진들만 모아 보여 주는 앱 화면이 없어 여기 남고, 대신 저장 버튼을 받는다.
   const isFamily = (await viewerFamilyId()) === r.familyId
+  if (r.kind === 'story') {
+    if (isFamily) redirect(shareInAppPath({ kind: 'story', publicNo: r.preview.publicNo }))
+    return <StoryShareView p={r.preview} base={base} />
+  }
+  if (r.kind === 'album') {
+    if (isFamily) redirect(shareInAppPath({ kind: 'album', albumId: r.preview.albumId }))
+    return <AlbumShareView p={r.preview} base={base} />
+  }
+  if (r.kind === 'day') {
+    if (isFamily) redirect(shareInAppPath({ kind: 'day', date: r.date }))
+    return <DayShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
+  }
   if (r.kind === 'memory') {
-    // 가족으로 로그인해 있으면 공개용 화면을 거칠 이유가 없다 — 탭이 있는 앱 화면(그 날의
-    // 타임라인)에서 사진·스토리를 평소처럼 본다. 공개 화면은 로그인하지 않은 사람의 것이다.
-    if (isFamily) redirect(`/timeline?date=${r.date}`)
+    if (isFamily) redirect(shareInAppPath({ kind: 'memory', date: r.date }))
     return <MemoryShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
   }
   const canDownload = isFamily
