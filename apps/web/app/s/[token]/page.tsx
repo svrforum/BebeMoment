@@ -51,7 +51,14 @@ type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
 type Loaded =
   | { status: 'ok'; kind: 'story'; preview: PublicStoryPreview }
   | { status: 'ok'; kind: 'day'; preview: DayPreview; date: string; meta: string }
-  | { status: 'ok'; kind: 'memory'; familyId: string; preview: MemoryPreview; meta: string }
+  | {
+      status: 'ok'
+      kind: 'memory'
+      familyId: string
+      preview: MemoryPreview
+      date: string
+      meta: string
+    }
   | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
   | { status: 'ok'; kind: 'schedule'; familyId: string; preview: PublicSchedulePreview }
@@ -138,6 +145,7 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
       kind: 'memory',
       familyId: r.familyId,
       preview: memory,
+      date: r.target.date,
       meta: await dayMeta(r.target.date, memory.photos.total, memory.stories.length, true),
     }
   }
@@ -300,17 +308,15 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
   if (r.kind === 'day')
     return <DayShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
 
-  const canDownload = (await viewerFamilyId()) === r.familyId
+  const isFamily = (await viewerFamilyId()) === r.familyId
+  if (r.kind === 'memory') {
+    // 가족으로 로그인해 있으면 공개용 화면을 거칠 이유가 없다 — 탭이 있는 앱 화면(그 날의
+    // 타임라인)에서 사진·스토리를 평소처럼 본다. 공개 화면은 로그인하지 않은 사람의 것이다.
+    if (isFamily) redirect(`/timeline?date=${r.date}`)
+    return <MemoryShareView p={r.preview} date={r.date} meta={r.meta} base={base} />
+  }
+  const canDownload = isFamily
   const loginHref = `${base}/login?next=${encodeURIComponent(`/s/${token}`)}`
-  if (r.kind === 'memory')
-    return (
-      <MemoryShareView
-        p={r.preview}
-        meta={r.meta}
-        canDownload={canDownload}
-        loginHref={loginHref}
-      />
-    )
   return (
     <PhotoSetShareView
       p={r.set.preview}

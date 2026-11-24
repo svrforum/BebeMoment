@@ -38,7 +38,7 @@ export function PhotoTiles({ items, lazyFrom = 9 }: { items: PhotoSetItem[]; laz
 }
 
 /** 화면 아래의 저장 — 로그인한 가족은 바로 저장, 아니면 로그인 안내(원본 저장은 가족만). */
-export async function SaveFooter({
+async function SaveFooter({
   total,
   canDownload,
   downloadIds,

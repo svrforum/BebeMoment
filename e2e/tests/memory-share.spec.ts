@@ -142,6 +142,16 @@ test.describe('추억·스토리 공유 링크', () => {
         .evaluateAll((els) => els.filter((el) => (el as HTMLImageElement).naturalWidth > 0).length)
     await expect.poll(() => loaded(shared), { timeout: 30_000 }).toBe(3)
 
+    // 받은 사람(로그인 안 함)에게는 앱과 로그인으로 이어지는 버튼이 있다 — 그 날의 타임라인으로.
+    await expect(shared.getByRole('link', { name: '앱에서 이어보기' })).toHaveAttribute(
+      'href',
+      /^intent:\/\/open\?/,
+    )
+    await expect(shared.getByRole('link', { name: '로그인하고 전체 보기' })).toHaveAttribute(
+      'href',
+      new RegExp(`/timeline\\?date=${dayKey(day)}$`),
+    )
+
     // 링크는 만든 순간의 사진으로 고정된다 — 그 뒤 같은 날짜로 올린 사진은 따라 들어가지 않는다.
     await page.keyboard.press('Escape')
     await page.goto('/timeline')
@@ -158,6 +168,12 @@ test.describe('추억·스토리 공유 링크', () => {
     await shared.reload()
     await expect(shared.getByText(meta)).toBeVisible()
     await expect.poll(() => loaded(shared), { timeout: 30_000 }).toBe(3)
+
+    // 가족으로 로그인한 사람은 공개용 화면을 거치지 않는다 — 탭이 있는 앱 화면(그 날의 타임라인)으로 간다.
+    await page.goto(`/s/${memoryToken}`)
+    await expect(page).toHaveURL(new RegExp(`/timeline\\?date=${dayKey(day)}$`))
+    await expect(page.getByRole('link', { name: '캘린더' }).first()).toBeVisible()
+    await expect(page.locator('main a[data-asset-id]')).toHaveCount(4)
 
     // ── 뷰어에서 스토리 공유 ──
     // 뷰어의 액션바(공유 버튼)는 모바일 폭에서만 뜬다. 업로드는 데스크탑 폭에서 했다 — 모바일
