@@ -89,13 +89,18 @@ echo "== e2e infra =="
 # 이전 실행 잔여물을 먼저 치운다 — 남아 있으면 데이터가 섞이고, 가드가 정당한 실행을 막는다.
 "${DC[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE_E2E" down -v >/dev/null 2>&1 || true
 # down 은 포트가 실제로 풀리기 전에 돌아온다 — docker 의 프록시 정리와 겹치면 bind 가
-# 실패하므로 몇 번 다시 시도한다.
+# 실패하므로 몇 번 다시 시도한다. 55432 는 커널의 임시 포트 범위 안이라, 테스트를 막 돌린
+# 뒤에는 다른 연결이 잠깐 쥐고 있을 때도 있다.
+# ⚠️ 실패한 뒤 `up -d` 만 다시 부르면 안 된다 — 포트 바인드에 실패한 컨테이너는 다음 up 에서
+# **포트 매핑 없이** 뜬다. 컨테이너 안에서는 준비됐는데 호스트에서는 붙지 못해 migrate 가
+# P1001 로 죽는다. 내리고 새로 만든다.
 UP_OK=0
 for _ in {1..10}; do
   if "${DC[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE_E2E" up -d >/dev/null 2>&1; then
     UP_OK=1
     break
   fi
+  "${DC[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE_E2E" down -v >/dev/null 2>&1 || true
   sleep 2
 done
 if [[ "$UP_OK" != "1" ]]; then
@@ -105,11 +110,13 @@ if [[ "$UP_OK" != "1" ]]; then
 fi
 
 # Wait for postgres healthy — tmpfs 볼륨이라 매번 initdb 를 새로 하므로 더 오래 걸린다.
-# 호스트에서 매핑된 포트로 확인한다(컨테이너 내부 exec 보다 실제 접속 가능 여부에 가깝다).
+# 컨테이너 안에서 준비됐는지(pg_isready)와 호스트의 매핑 포트로 실제로 붙는지를 둘 다 본다 —
+# 안쪽만 보면 포트가 안 열린 컨테이너를 준비된 것으로 넘긴다.
 PG_READY=0
 for _ in {1..90}; do
   if "${DC[@]}" -p "$COMPOSE_PROJECT" -f "$COMPOSE_FILE_E2E" exec -T postgres \
-      pg_isready -U bebe -h 127.0.0.1 >/dev/null 2>&1; then
+      pg_isready -U bebe -h 127.0.0.1 >/dev/null 2>&1 \
+    && (exec 3<>/dev/tcp/127.0.0.1/55432) 2>/dev/null; then
     PG_READY=1
     break
   fi
