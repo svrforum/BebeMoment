@@ -11,6 +11,7 @@ export type ShareResolution =
  * 공개 공유 라우트(/s/<token>)용 토큰 해석. 세션/familyId 없는 무인증 라우트라 tenant
  * 미들웨어를 raw 쿼리로 우회한다(§8, isRegistrationOpen 패턴). 만료·해제 상태를 구분.
  * 단일 컬럼이 모두 null 이면 선택(컬렉션) — share_link_assets 에서 자산 id 를 순서대로 읽는다.
+ * target_date 에 그 자식 row 가 딸려 있으면 추억(날짜 + 고정된 사진 목록), 없으면 날짜 공유다.
  * 유효하면 last_accessed_at 갱신(best-effort).
  */
 export async function resolveShareLink(
@@ -48,13 +49,16 @@ export async function resolveShareLink(
   else if (row.asset_id) target = { kind: 'asset', assetId: row.asset_id }
   else if (row.album_id) target = { kind: 'album', albumId: row.album_id }
   else if (row.schedule_entry_id) target = { kind: 'schedule', entryId: row.schedule_entry_id }
-  else if (row.target_date)
-    target = { kind: 'date', date: row.target_date.toISOString().slice(0, 10) }
   else {
     const assetRows = await prisma.$queryRaw<{ asset_id: string }[]>`
       SELECT asset_id FROM share_link_assets WHERE token = ${token} ORDER BY sort_index ASC
     `
-    target = { kind: 'selection', assetIds: assetRows.map((a) => a.asset_id) }
+    const assetIds = assetRows.map((a) => a.asset_id)
+    if (!row.target_date) target = { kind: 'selection', assetIds }
+    else {
+      const date = row.target_date.toISOString().slice(0, 10)
+      target = assetIds.length > 0 ? { kind: 'memory', date, assetIds } : { kind: 'date', date }
+    }
   }
   return { status: 'ok', target, familyId: row.family_id, createdAt: row.created_at }
 }

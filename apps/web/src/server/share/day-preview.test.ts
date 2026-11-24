@@ -128,7 +128,16 @@ describe('orderDayAssetIds', () => {
   it('keeps chronological order but puts a story photos in the arranged order at its first slot', () => {
     const out = orderDayAssetIds(
       ['a', 'b', 'c', 'd'],
-      [{ id: 's', publicNo: 1, title: null, body: '', assetIds: ['c', 'b'] }],
+      [
+        {
+          id: 's',
+          publicNo: 1,
+          title: null,
+          body: '',
+          createdAt: new Date(0),
+          assetIds: ['c', 'b'],
+        },
+      ],
     )
     expect(out).toEqual(['a', 'c', 'b', 'd'])
   })

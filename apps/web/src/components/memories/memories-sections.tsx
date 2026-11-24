@@ -21,6 +21,8 @@ export async function MemoriesSections({
     <div className="space-y-7">
       {groups.map((g) => {
         const label = formatMemoryInterval(g.interval, t)
+        // 한 묶음의 사진은 모두 같은 날 찍은 것이다(takenAt 은 벽시계-as-UTC — UTC 날짜가 그 날짜).
+        const date = g.assets[0]?.takenAt.toISOString().slice(0, 10)
         return (
           <section key={`${g.interval.kind}-${g.interval.n}`}>
             <div className="mb-2.5 flex items-center gap-2 px-1">
@@ -37,8 +39,9 @@ export async function MemoriesSections({
                     .join(' · ')}
                 </span>
               </h2>
-              {secretAssetIds && (
+              {secretAssetIds && date && (
                 <MemoryShareButton
+                  date={date}
                   assetIds={memoryShareIds(g.assets, secretAssetIds)}
                   label={label}
                 />

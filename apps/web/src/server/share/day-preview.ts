@@ -11,6 +11,7 @@ export type DayStory = {
   publicNo: number
   title: string | null
   body: string
+  createdAt: Date
   /** 스토리에 담긴 순서. ready·미삭제 자산만. */
   assetIds: string[]
 }
@@ -28,6 +29,16 @@ export async function getDayStories(
   prismaMedia: PrismaMedia,
 ): Promise<DayStory[]> {
   const dayIds = await getDateAssetIds(date, familyId, prismaMedia)
+  return getStoriesHolding(dayIds, familyId, prismaPublic, prismaMedia)
+}
+
+/** 이 사진들 중 하나라도 담은 가족 공개 스토리(만든 순). 날짜 공유는 그 날 사진 전부로, 추억은 링크에 고정된 사진으로 부른다. */
+export async function getStoriesHolding(
+  dayIds: string[],
+  familyId: string,
+  prismaPublic: PrismaPublic,
+  prismaMedia: PrismaMedia,
+): Promise<DayStory[]> {
   if (dayIds.length === 0) return []
 
   const anchors = await prismaPublic.$queryRaw<{ id: string }[]>`
@@ -43,9 +54,9 @@ export async function getDayStories(
   const storyIds = anchors.map((r) => r.id)
 
   const rows = await prismaPublic.$queryRaw<
-    { id: string; public_no: number; title: string | null; body: string }[]
+    { id: string; public_no: number; title: string | null; body: string; created_at: Date }[]
   >`
-    SELECT id, public_no, title, body FROM stories WHERE id = ANY(${storyIds}::uuid[])
+    SELECT id, public_no, title, body, created_at FROM stories WHERE id = ANY(${storyIds}::uuid[])
   `
   const assetRows = await prismaPublic.$queryRaw<{ entry_id: string; asset_id: string }[]>`
     SELECT entry_id, asset_id FROM story_assets
@@ -82,6 +93,7 @@ export async function getDayStories(
             publicNo: r.public_no,
             title: r.title,
             body: r.body,
+            createdAt: r.created_at,
             assetIds: assetsByStory.get(id) ?? [],
           },
         ]

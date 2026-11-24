@@ -6,11 +6,19 @@ type Translate = (key: string, values?: Record<string, string | number>) => stri
  * 계산된다(공개 링크가 생일을 새던 문제). 타임라인 헤더의 D+N 은 로그인 뒤에만 보인다.
  */
 export function formatDayShareMeta(
-  input: { date: string; locale: string; photoCount: number; storyCount: number },
+  input: {
+    date: string
+    locale: string
+    photoCount: number
+    storyCount: number
+    /** 추억 링크 — 지난 날이라 연도가 없으면 오늘 날짜로 읽힌다. 연도만으로는 생일이 나오지 않는다. */
+    year?: boolean
+  },
   t: Translate,
 ): string {
   const at = new Date(`${input.date}T00:00:00.000Z`)
   const monthDay = new Intl.DateTimeFormat(input.locale, {
+    ...(input.year ? { year: 'numeric' as const } : {}),
     month: 'long',
     day: 'numeric',
     timeZone: 'UTC',

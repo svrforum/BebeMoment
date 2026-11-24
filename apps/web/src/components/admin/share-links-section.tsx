@@ -5,7 +5,7 @@ import { useToast } from '@/lib/toast'
 import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
-type Kind = 'story' | 'asset' | 'album' | 'date' | 'selection'
+type Kind = 'story' | 'asset' | 'album' | 'date' | 'memory' | 'selection' | 'schedule'
 type Link = {
   token: string
   kind: Kind
@@ -91,7 +91,7 @@ export function ShareLinksSection() {
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
                     {t(`share.kind.${l.kind}`)}
-                    {l.kind === 'date' ? ` · ${l.target}` : ''}
+                    {l.kind === 'date' || l.kind === 'memory' ? ` · ${l.target}` : ''}
                   </p>
                   <p className="truncate text-xs text-base-500">
                     {t('share.createdBy', { name: l.createdByName ?? '—', date: fmt(l.createdAt) })}

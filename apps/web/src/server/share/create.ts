@@ -3,6 +3,7 @@ import type { PrismaClient } from '@bebe/db-public'
 import { ServiceError } from '@/server/error'
 import { isAlbumSecretOrUnderSecret } from '@/server/album/secret-visibility'
 import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
+import { dayWindow } from './date-assets'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
 export type ShareTarget =
@@ -11,6 +12,10 @@ export type ShareTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string } // 'YYYY-MM-DD'
+  // 추억 묶음 — 그 날짜의 사진 중 발급 순간에 고른 것으로 고정. 받은 사람은 그 사진 전부와
+  // 그 사진이 담긴 스토리의 글을 본다(`memory-preview.ts`). 'date' 와 같은 target_date 열을 쓰고
+  // share_link_assets 자식 row 가 있는지로 갈린다.
+  | { kind: 'memory'; date: string; assetIds: string[] }
   | { kind: 'schedule'; entryId: string }
 
 /**
@@ -62,12 +67,19 @@ export async function createShareLink(
       )
     )
       throw new ServiceError(400, 'share.albumSecret')
-  } else if (t.kind === 'selection') {
+  } else if (t.kind === 'selection' || t.kind === 'memory') {
     if (t.assetIds.length === 0) throw new ServiceError(400, 'share.selectionEmpty')
     if (t.assetIds.length > SHARE_SELECTION_MAX)
       throw new ServiceError(400, 'share.selectionTooMany')
     const rows = await prismaMedia.asset.findMany({
-      where: { id: { in: t.assetIds }, familyId: input.familyId, status: 'ready', deletedAt: null },
+      where: {
+        id: { in: t.assetIds },
+        familyId: input.familyId,
+        status: 'ready',
+        deletedAt: null,
+        // 추억은 그 날 찍은 사진만 — 다른 날 사진이 섞이면 "그 날의 추억"이 아니다.
+        ...(t.kind === 'memory' ? { takenAt: dayWindow(t.date) } : {}),
+      },
       select: { id: true },
     })
     const ok = new Set(rows.map((r) => r.id))
@@ -86,12 +98,13 @@ export async function createShareLink(
       storyId: t.kind === 'story' ? t.storyId : null,
       assetId: t.kind === 'asset' ? t.assetId : null,
       albumId: t.kind === 'album' ? t.albumId : null,
-      targetDate: t.kind === 'date' ? new Date(`${t.date}T00:00:00.000Z`) : null,
+      targetDate:
+        t.kind === 'date' || t.kind === 'memory' ? new Date(`${t.date}T00:00:00.000Z`) : null,
       scheduleEntryId: t.kind === 'schedule' ? t.entryId : null,
     },
   })
 
-  if (t.kind === 'selection') {
+  if (t.kind === 'selection' || t.kind === 'memory') {
     await prismaPublic.$executeRaw`
       INSERT INTO share_link_assets (token, asset_id, sort_index)
       SELECT ${token}, a.id, a.ord::int

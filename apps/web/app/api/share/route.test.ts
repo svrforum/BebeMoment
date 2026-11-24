@@ -168,3 +168,56 @@ describe('GET /api/share', () => {
     expect(await res.json()).toEqual({ error: 'share.featureOff' })
   })
 })
+
+function post(body: unknown): Promise<Response> {
+  return import('./route').then(({ POST }) =>
+    POST(
+      new Request('http://localhost/api/share', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify(body),
+      }),
+    ),
+  )
+}
+
+// 추억 묶음 — 날짜와 사진 목록을 함께 보낸다. '이 날 공유'(날짜만)와 같은 날짜여도 다른 링크라
+// 서로의 목록에 나오지 않는다.
+describe('POST /api/share — memory', () => {
+  it('takes a date with a photo list as one target and lists it under ?memoryDate', async () => {
+    const { owner, family, asset } = await setup()
+    state.auth = { userId: owner.id, familyId: family.id }
+    const res = await post({ date: DAY, assetIds: [asset.id], ttl: '1d' })
+    expect(res.status).toBe(200)
+    const { token } = (await res.json()) as { token: string }
+
+    const { resolveShareLink } = await import('@/server/share/resolve')
+    const r = await resolveShareLink(token, state.db.prismaPublic)
+    expect(r.status === 'ok' && r.target).toEqual({
+      kind: 'memory',
+      date: DAY,
+      assetIds: [asset.id],
+    })
+
+    const memory = (await (await get(`?memoryDate=${DAY}`)).json()) as {
+      links: { token: string }[]
+    }
+    expect(memory.links.map((l) => l.token)).toEqual([token])
+    const day = (await (await get(`?date=${DAY}`)).json()) as { links: unknown[] }
+    expect(day.links).toEqual([])
+  })
+
+  it('still refuses two unrelated targets at once', async () => {
+    const { owner, family, asset } = await setup()
+    state.auth = { userId: owner.id, familyId: family.id }
+    const res = await post({ date: DAY, assetId: asset.id, ttl: '1d' })
+    expect(res.status).toBe(400)
+  })
+
+  it('403 for a member who may not create links', async () => {
+    const { member, family, asset } = await setup()
+    state.auth = { userId: member.id, familyId: family.id }
+    const res = await post({ date: DAY, assetIds: [asset.id], ttl: '1d' })
+    expect(res.status).toBe(403)
+  })
+})

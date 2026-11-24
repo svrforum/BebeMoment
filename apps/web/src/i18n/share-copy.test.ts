@@ -6,7 +6,6 @@ import { describe, expect, it } from 'vitest'
  * 그래서 새 종류를 추가하고 문구를 빠뜨려도 타입체크도 다른 가드도 모르고, 시트에 키 경로가
  * 그대로 뜬다 — 일정 공유를 붙일 때 실제로 그랬다. 종류 목록을 여기 적고 두 카탈로그를 본다.
  */
-// 'memory' 는 대상 종류가 아니라 문구 갈래다 — 추억 묶음은 selection 으로 나가되 안내문이 다르다.
 const KINDS = ['story', 'asset', 'album', 'selection', 'date', 'schedule', 'memory'] as const
 
 function copyOf(locale: string): Record<string, { sheetTitle?: unknown; intro?: unknown }> {

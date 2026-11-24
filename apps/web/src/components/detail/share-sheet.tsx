@@ -15,6 +15,8 @@ export type SheetTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string }
+  // 추억 묶음 — 그 날 사진 중 지금 보이는 것으로 고정된 링크(스토리 글과 사진 전부가 보인다).
+  | { kind: 'memory'; date: string; assetIds: string[] }
   | { kind: 'schedule'; entryId: string }
 
 // 목록 조회 쿼리. 선택(컬렉션)은 안정적인 타깃 식별자가 없어 per-target 으로 못 찾으므로,
@@ -29,6 +31,8 @@ function listQuery(t: SheetTarget): string | null {
       return `albumId=${t.albumId}`
     case 'date':
       return `date=${t.date}`
+    case 'memory':
+      return `memoryDate=${t.date}`
     case 'schedule':
       return `scheduleEntryId=${t.entryId}`
     case 'selection':
@@ -48,6 +52,8 @@ function createBody(t: SheetTarget): Record<string, unknown> {
       return { assetIds: t.assetIds }
     case 'date':
       return { date: t.date }
+    case 'memory':
+      return { date: t.date, assetIds: t.assetIds }
     case 'schedule':
       return { scheduleEntryId: t.entryId }
   }
@@ -81,12 +87,9 @@ function expiryLabel(l: Link, t: Translate, locale: string): string {
 
 const shareUrl = (token: string) => `${window.location.origin}/s/${token}`
 
-/** 안내 문구 갈래 — 보통은 대상 종류 그대로. 추억 묶음은 여러 장(selection)으로 나가되 문구가 다르다. */
-export type ShareCopy = SheetTarget['kind'] | 'memory'
-
 const copyFor = (
   t: Translate,
-  kind: ShareCopy,
+  kind: SheetTarget['kind'],
   n: number,
 ): { sheetTitle: string; intro: string } => ({
   sheetTitle: t(`share.copy.${kind}.sheetTitle`),
@@ -96,7 +99,6 @@ const copyFor = (
 export function ShareSheet({
   target,
   title: givenTitle,
-  copy: copyKind,
   header,
   open,
   onOpenChange,
@@ -104,7 +106,6 @@ export function ShareSheet({
   target: SheetTarget
   /** 스토리·앨범·추억 묶음의 이름. 없거나 다른 대상이면 shareTitle 이 대상별 문구를 만든다. */
   title?: string | undefined
-  copy?: ShareCopy | undefined
   /** 안내문 위에 놓을 것 — 뷰어의 '이 사진 / 스토리' 고르기. */
   header?: ReactNode
   open: boolean
@@ -214,8 +215,8 @@ export function ShareSheet({
 
   const copy = copyFor(
     t,
-    copyKind ?? target.kind,
-    target.kind === 'selection' ? target.assetIds.length : 0,
+    target.kind,
+    target.kind === 'selection' || target.kind === 'memory' ? target.assetIds.length : 0,
   )
   const ttlOpts = ttlOptions(t)
 

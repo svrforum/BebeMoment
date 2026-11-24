@@ -783,7 +783,7 @@
         },
         "memory": {
           "sheetTitle": "Create memory share link",
-          "intro": "Anyone with the link can view all {n, plural, one {# photo} other {# photos}} in this memory. Photos added later aren't included. Only family can save the originals."
+          "intro": "Anyone with the link can view all {n, plural, one {# photo} other {# photos}} in this memory, along with the text of their stories. Photos added later aren't included. Only family can save the originals."
         }
       },
       "text": {
@@ -1638,7 +1638,9 @@
         "asset": "Photo",
         "album": "Album",
         "date": "Date",
-        "selection": "Multiple"
+        "selection": "Multiple",
+        "memory": "Memory",
+        "schedule": "Schedule"
       }
     },
     "unrecoverable": {

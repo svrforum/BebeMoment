@@ -42,18 +42,18 @@ const createSchema = z
     scheduleEntryId: z.string().uuid().optional(),
     ttl: z.string().refine(isShareTtl, 'errors.share.ttlInvalid'),
   })
-  .refine(
-    (b) =>
-      [
-        b.storyId,
-        b.assetId,
-        b.albumId,
-        b.assetIds?.length ? b.assetIds : null,
-        b.date,
-        b.scheduleEntryId,
-      ].filter(Boolean).length === 1,
-    'errors.share.targetOnlyOne',
-  )
+  .refine((b) => {
+    const given = [
+      b.storyId,
+      b.assetId,
+      b.albumId,
+      b.assetIds?.length ? b.assetIds : null,
+      b.date,
+      b.scheduleEntryId,
+    ].filter(Boolean).length
+    // 날짜 + 사진 목록은 한 대상이다 — 추억 묶음(그 날 사진 중 지금 보이는 것으로 고정).
+    return given === (b.date && b.assetIds?.length ? 2 : 1)
+  }, 'errors.share.targetOnlyOne')
 
 function targetFromQuery(url: URL): ShareTarget | null {
   const q = url.searchParams
@@ -61,12 +61,15 @@ function targetFromQuery(url: URL): ShareTarget | null {
   const assetId = q.get('assetId')
   const albumId = q.get('albumId')
   const date = q.get('date')
+  const memoryDate = q.get('memoryDate')
   const scheduleEntryId = q.get('scheduleEntryId')
   if (scheduleEntryId) return { kind: 'schedule', entryId: scheduleEntryId }
   if (storyId) return { kind: 'story', storyId }
   if (assetId) return { kind: 'asset', assetId }
   if (albumId) return { kind: 'album', albumId }
   if (date && /^\d{4}-\d{2}-\d{2}$/.test(date)) return { kind: 'date', date }
+  if (memoryDate && /^\d{4}-\d{2}-\d{2}$/.test(memoryDate))
+    return { kind: 'memory', date: memoryDate, assetIds: [] }
   return null
 }
 
@@ -109,7 +112,9 @@ export async function POST(req: Request) {
         : body.albumId
           ? { kind: 'album', albumId: body.albumId }
           : body.assetIds?.length
-            ? { kind: 'selection', assetIds: body.assetIds }
+            ? body.date
+              ? { kind: 'memory', date: body.date, assetIds: body.assetIds }
+              : { kind: 'selection', assetIds: body.assetIds }
             : body.scheduleEntryId
               ? { kind: 'schedule', entryId: body.scheduleEntryId }
               : { kind: 'date', date: body.date as string }

@@ -5,7 +5,8 @@ import { uploadPhotos } from './support/upload'
 /**
  * 추억("N개월 전 오늘")으로 들어오면 사진 뷰어가 열린다. 거기서는 사진 한 장만 공유할 수 있어
  * 추억 묶음도, 그 사진이 속한 스토리도 보낼 길이 없었다. 이제 추억 화면의 묶음마다 공유 버튼이
- * 있고(받은 사람이 그 묶음의 사진을 다 본다), 뷰어의 공유 시트에서 스토리를 고를 수 있다.
+ * 있고(받은 사람이 그 묶음의 사진 전부와 스토리 글을 본다), 뷰어의 공유 시트에서 스토리를 고를
+ * 수 있다.
  */
 
 /** 오늘과 같은 일(日)인 가장 가까운 지난달의 정오 — 그 달에 그 일이 없으면(31일 등) 더 거슬러 간다. */
@@ -83,6 +84,25 @@ test.describe('추억·스토리 공유 링크', () => {
       /\/detail\/(\d+)/,
     )?.[1]
 
+    // 사진 한 장을 스토리에 담는다(API — 스토리 작성 화면은 이 테스트의 관심사가 아니다).
+    const story = await page.evaluate(
+      async ({ assetId, entryDate }) => {
+        const res = await fetch('/api/story', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({
+            babyId: null,
+            entryDate,
+            body: '처음 뒤집은 날',
+            assetIds: [assetId],
+          }),
+        })
+        return res.status
+      },
+      { assetId: storyAssetId, entryDate: dayKey(day) },
+    )
+    expect(story).toBe(200)
+
     // ── 추억 묶음 공유 ──
     await page.goto('/memories')
     const shareMemory = page.getByRole('button', { name: /전 오늘 공유$/ })
@@ -91,8 +111,10 @@ test.describe('추억·스토리 공유 링크', () => {
     await shareMemory.click()
     const memorySheet = page.getByRole('dialog', { name: '추억 공유 링크 만들기', exact: true })
     await expect(memorySheet).toBeVisible()
-    await expect(memorySheet.getByText(/사진 3장을 모두 볼 수 있어요/)).toBeVisible()
+    await expect(memorySheet.getByText(/사진 3장과 스토리 글을 볼 수 있어요/)).toBeVisible()
     const memoryToken = await createLink(page, '추억 공유 링크 만들기')
+    // 만든 링크는 이 추억의 시트에 바로 보인다(거둘 수 있게).
+    await expect(memorySheet.getByRole('button', { name: '이 링크 해제' })).toHaveCount(1)
     // 메시지 첫 줄은 "사진 3장"이 아니라 추억의 이름이다.
     await expect
       .poll(() =>
@@ -108,7 +130,12 @@ test.describe('추억·스토리 공유 링크', () => {
     await anon.addCookies([{ name: 'locale', value: 'ko', url: baseURL }])
     const shared = await anon.newPage()
     await shared.goto(`/s/${memoryToken}`)
-    await expect(shared.getByText('사진 3장', { exact: true })).toBeVisible()
+    // 연도까지 든 날짜 · 장수 · 스토리 수, 그리고 스토리 글과 사진 전부.
+    const meta = new RegExp(
+      `^${day.getFullYear()}년 ${day.getMonth() + 1}월 ${day.getDate()}일 · 사진 3장 · 이야기 1개$`,
+    )
+    await expect(shared.getByText(meta)).toBeVisible()
+    await expect(shared.getByText('처음 뒤집은 날')).toBeVisible()
     const loaded = (p: Page) =>
       p
         .locator('img[src*="/media/v1/img/"]')
@@ -129,28 +156,10 @@ test.describe('추억·스토리 공유 링크', () => {
       )
       .toBe(4)
     await shared.reload()
-    await expect(shared.getByText('사진 3장', { exact: true })).toBeVisible()
+    await expect(shared.getByText(meta)).toBeVisible()
     await expect.poll(() => loaded(shared), { timeout: 30_000 }).toBe(3)
 
     // ── 뷰어에서 스토리 공유 ──
-    const story = await page.evaluate(
-      async ({ assetId, entryDate }) => {
-        const res = await fetch('/api/story', {
-          method: 'POST',
-          headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({
-            babyId: null,
-            entryDate,
-            body: '처음 뒤집은 날',
-            assetIds: [assetId],
-          }),
-        })
-        return res.status
-      },
-      { assetId: storyAssetId, entryDate: dayKey(day) },
-    )
-    expect(story).toBe(200)
-
     // 뷰어의 액션바(공유 버튼)는 모바일 폭에서만 뜬다. 업로드는 데스크탑 폭에서 했다 — 모바일
     // 폭에서는 + 가 업로드 시트 대신 기기의 파일 선택기를 바로 연다.
     await page.setViewportSize({ width: 390, height: 844 })

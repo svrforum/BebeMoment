@@ -1,7 +1,7 @@
 /**
  * 공유 시트가 링크와 함께 보내는 한 줄 제목(카카오톡 메시지 본문의 첫 줄, Web Share 의 title).
- * 스토리·앨범은 자기 제목을 쓰고, 사진·날짜는 대상을 설명하는 문구를 만든다. 여러 장 묶음은
- * 보통 장수로 부르지만, 이름이 있는 묶음(추억 — "1년 전 오늘")은 그 이름을 쓴다.
+ * 스토리·앨범은 자기 제목을 쓰고, 사진·날짜는 대상을 설명하는 문구를 만든다. 추억 묶음은
+ * 그 추억의 이름("1년 전 오늘")을 쓴다.
  */
 export type ShareTitleTarget =
   | { kind: 'story'; storyId: string }
@@ -9,6 +9,7 @@ export type ShareTitleTarget =
   | { kind: 'album'; albumId: string }
   | { kind: 'date'; date: string }
   | { kind: 'selection'; assetIds: string[] }
+  | { kind: 'memory'; date: string; assetIds: string[] }
   | { kind: 'schedule'; entryId: string }
 
 type Translate = (key: string, values?: Record<string, string | number>) => string
@@ -30,6 +31,8 @@ export function shareTitle(
       // 일정 제목은 로그인 전 화면에도 보이는 정보라 메시지 문구로 써도 된다(메모는 쓰지 않는다).
       return given?.trim() || t('share.text.schedule')
     case 'selection':
+      return t('share.text.selection', { n: target.assetIds.length })
+    case 'memory':
       return given?.trim() || t('share.text.selection', { n: target.assetIds.length })
     case 'date': {
       // takenAt 은 wall-clock-as-UTC 라 UTC 로 포맷해야 날짜가 밀리지 않는다.

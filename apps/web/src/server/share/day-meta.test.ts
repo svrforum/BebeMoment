@@ -17,6 +17,16 @@ describe('formatDayShareMeta', () => {
     ).toBe('9월 4일 · 사진 12장 · 이야기 2개')
   })
 
+  // 추억은 지난 날이다 — "1년 전 오늘" 링크에 연도가 없으면 오늘 날짜로 읽힌다.
+  it('adds the year when asked', () => {
+    expect(
+      formatDayShareMeta(
+        { date: '2025-11-24', locale: 'ko', photoCount: 4, storyCount: 1, year: true },
+        t,
+      ),
+    ).toBe('2025년 11월 24일 · 사진 4장 · 이야기 1개')
+  })
+
   it('omits the story segment when the day has no story', () => {
     expect(
       formatDayShareMeta({ date: '2026-09-04', locale: 'en', photoCount: 3, storyCount: 0 }, t),

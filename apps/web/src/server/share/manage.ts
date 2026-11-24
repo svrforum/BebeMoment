@@ -9,6 +9,15 @@ export type ShareLinkInfo = {
   expired: boolean
 }
 
+// 날짜 공유와 추억은 같은 target_date 열을 쓴다 — 사진 목록(share_link_assets)이 딸린 쪽이 추억.
+async function tokensWithPhotoList(tokens: string[], prisma: PrismaClient): Promise<Set<string>> {
+  if (tokens.length === 0) return new Set()
+  const rows = await prisma.$queryRaw<{ token: string }[]>`
+    SELECT DISTINCT token FROM share_link_assets WHERE token = ANY(${tokens}::text[])
+  `
+  return new Set(rows.map((r) => r.token))
+}
+
 // 한 타깃(스토리/사진)의 해제 안 된 공유 링크 목록(관리 UI). 만료된 것도 보여주되 expired 로 구분.
 export async function listShareLinks(
   target: ShareTarget,
@@ -27,11 +36,19 @@ export async function listShareLinks(
           : target.kind === 'schedule'
             ? { scheduleEntryId: target.entryId, familyId, revokedAt: null }
             : { targetDate: new Date(`${target.date}T00:00:00.000Z`), familyId, revokedAt: null }
-  const rows = await prisma.shareLink.findMany({
+  const found = await prisma.shareLink.findMany({
     where,
     orderBy: { createdAt: 'desc' },
     select: { token: true, expiresAt: true, createdAt: true, lastAccessedAt: true },
   })
+  let rows = found
+  if (target.kind === 'date' || target.kind === 'memory') {
+    const pinned = await tokensWithPhotoList(
+      found.map((r) => r.token),
+      prisma,
+    )
+    rows = found.filter((r) => pinned.has(r.token) === (target.kind === 'memory'))
+  }
   const now = Date.now()
   return rows.map((r) => ({
     ...r,
@@ -52,7 +69,14 @@ export async function revokeShareLink(
   return res.count > 0
 }
 
-export type ShareLinkKind = 'story' | 'asset' | 'album' | 'date' | 'selection' | 'schedule'
+export type ShareLinkKind =
+  | 'story'
+  | 'asset'
+  | 'album'
+  | 'date'
+  | 'memory'
+  | 'selection'
+  | 'schedule'
 
 export type ShareLinkAdminInfo = ShareLinkInfo & {
   kind: ShareLinkKind
@@ -60,19 +84,37 @@ export type ShareLinkAdminInfo = ShareLinkInfo & {
   createdByName: string | null
 }
 
-function classifyTarget(row: {
+type TargetRow = {
+  token: string
   storyId: string | null
   assetId: string | null
   albumId: string | null
   targetDate: Date | null
   scheduleEntryId: string | null
-}): { kind: ShareLinkKind; target: string } {
+}
+
+function classifyTarget(
+  row: TargetRow,
+  pinned: ReadonlySet<string>,
+): { kind: ShareLinkKind; target: string } {
   if (row.storyId) return { kind: 'story', target: row.storyId }
   if (row.assetId) return { kind: 'asset', target: row.assetId }
   if (row.albumId) return { kind: 'album', target: row.albumId }
   if (row.scheduleEntryId) return { kind: 'schedule', target: row.scheduleEntryId }
-  if (row.targetDate) return { kind: 'date', target: row.targetDate.toISOString().slice(0, 10) }
+  if (row.targetDate)
+    return {
+      kind: pinned.has(row.token) ? 'memory' : 'date',
+      target: row.targetDate.toISOString().slice(0, 10),
+    }
   return { kind: 'selection', target: '' }
+}
+
+/** 날짜 열을 쓰는 링크 중 사진 목록이 딸린(추억) 토큰. */
+function pinnedDateTokens(rows: TargetRow[], prisma: PrismaClient): Promise<Set<string>> {
+  return tokensWithPhotoList(
+    rows.filter((r) => r.targetDate).map((r) => r.token),
+    prisma,
+  )
 }
 
 // 가족이 발행한 **살아있는** 공유 링크(관리자 전수 점검·일괄 회수용). 타깃별 조회만
@@ -111,10 +153,11 @@ export async function listAllShareLinks(
         })
       : []
   const nameById = new Map(users.map((u) => [u.id, u.displayName]))
+  const pinned = await pinnedDateTokens(rows, prisma)
   const now = Date.now()
   return rows.map((r) => ({
     token: r.token,
-    ...classifyTarget(r),
+    ...classifyTarget(r, pinned),
     createdByName: nameById.get(r.createdByUserId) ?? null,
     expiresAt: r.expiresAt,
     createdAt: r.createdAt,
@@ -152,10 +195,11 @@ export async function listMyShareLinks(
       lastAccessedAt: true,
     },
   })
+  const pinned = await pinnedDateTokens(rows, prisma)
   const now = Date.now()
   return rows.map((r) => ({
     token: r.token,
-    ...classifyTarget(r),
+    ...classifyTarget(r, pinned),
     createdByName: null,
     expiresAt: r.expiresAt,
     createdAt: r.createdAt,

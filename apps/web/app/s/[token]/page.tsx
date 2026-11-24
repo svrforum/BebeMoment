@@ -4,6 +4,7 @@ import { getMediaClient } from '@/lib/media-client'
 import { resolveContext } from '@/server/context'
 import { formatDayShareMeta } from '@/server/share/day-meta'
 import { type DayPreview, buildDayPreview } from '@/server/share/day-preview'
+import { type MemoryPreview, buildMemoryPreview } from '@/server/share/memory-preview'
 import { type PhotoSetPreview, buildPhotoSetPreview } from '@/server/share/photo-set'
 import { type PublicAlbumPreview, getPublicAlbumPreview } from '@/server/share/public-album'
 import {
@@ -22,6 +23,7 @@ import { redirect } from 'next/navigation'
 import { cache } from 'react'
 import { AlbumShareView } from './album-view'
 import { DayShareView } from './day-view'
+import { MemoryShareView } from './memory-view'
 import { PhotoSetShareView } from './photo-set-view'
 import { ScheduleShareView, scheduleWhen } from './schedule-view'
 import { GoneCard } from './share-frame'
@@ -49,6 +51,7 @@ type PhotoSet = { preview: PhotoSetPreview; ids: string[]; meta: string }
 type Loaded =
   | { status: 'ok'; kind: 'story'; preview: PublicStoryPreview }
   | { status: 'ok'; kind: 'day'; preview: DayPreview; date: string; meta: string }
+  | { status: 'ok'; kind: 'memory'; familyId: string; preview: MemoryPreview; meta: string }
   | { status: 'ok'; kind: 'album'; preview: PublicAlbumPreview }
   | { status: 'ok'; kind: 'photoset'; familyId: string; set: PhotoSet }
   | { status: 'ok'; kind: 'schedule'; familyId: string; preview: PublicSchedulePreview }
@@ -118,6 +121,27 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
     }
   }
 
+  // memory(추억 묶음) — 링크에 고정된 사진 전부와, 그 사진이 담긴 스토리의 글.
+  if (r.target.kind === 'memory') {
+    const memory = await buildMemoryPreview(
+      r.target.assetIds,
+      r.createdAt,
+      r.familyId,
+      base,
+      prismaPublic,
+      prismaMedia,
+      media,
+    )
+    if (!memory || memory.photos.total === 0) return { status: 'notfound' }
+    return {
+      status: 'ok',
+      kind: 'memory',
+      familyId: r.familyId,
+      preview: memory,
+      meta: await dayMeta(r.target.date, memory.photos.total, memory.stories.length, true),
+    }
+  }
+
   // asset(1장)·selection(N장) — "사진 집합" 한 뷰로.
 
   const ids = r.target.kind === 'asset' ? [r.target.assetId] : r.target.assetIds
@@ -145,10 +169,15 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
 })
 
 // "9월 4일 · 사진 12장 · 이야기 2개" — 공개 메타라 D+N 은 넣지 않는다(날짜와 함께면 생일이 된다).
-async function dayMeta(date: string, photoCount: number, storyCount: number): Promise<string> {
+async function dayMeta(
+  date: string,
+  photoCount: number,
+  storyCount: number,
+  year = false,
+): Promise<string> {
   const t = await getTranslations('share')
   const locale = await getLocale()
-  return formatDayShareMeta({ date, locale, photoCount, storyCount }, t)
+  return formatDayShareMeta({ date, locale, photoCount, storyCount, year }, t)
 }
 
 export async function generateMetadata({
@@ -184,7 +213,7 @@ export async function generateMetadata({
   const familyName =
     r.kind === 'photoset'
       ? r.set.preview.familyName
-      : r.kind === 'day'
+      : r.kind === 'day' || r.kind === 'memory'
         ? r.preview.photos.familyName
         : r.preview.familyName
   const imageUrl =
@@ -195,13 +224,15 @@ export async function generateMetadata({
           r.preview.looseCoverUrl ??
           r.preview.photos.items[0]?.displayUrl ??
           null)
-        : (r.set.preview.items[0]?.displayUrl ?? null)
+        : r.kind === 'memory'
+          ? (r.preview.stories[0]?.items[0]?.displayUrl ?? r.preview.loose[0]?.displayUrl ?? null)
+          : (r.set.preview.items[0]?.displayUrl ?? null)
   const desc =
     r.kind === 'story'
       ? r.preview.body.replace(/\s+/g, ' ').trim().slice(0, 160) || familyName
       : r.kind === 'album'
         ? r.preview.name
-        : r.kind === 'day'
+        : r.kind === 'day' || r.kind === 'memory'
           ? r.meta
           : r.set.meta
   const images = imageUrl ? [imageUrl] : []
@@ -271,6 +302,15 @@ export default async function PublicSharePage({ params }: { params: Promise<{ to
 
   const canDownload = (await viewerFamilyId()) === r.familyId
   const loginHref = `${base}/login?next=${encodeURIComponent(`/s/${token}`)}`
+  if (r.kind === 'memory')
+    return (
+      <MemoryShareView
+        p={r.preview}
+        meta={r.meta}
+        canDownload={canDownload}
+        loginHref={loginHref}
+      />
+    )
   return (
     <PhotoSetShareView
       p={r.set.preview}
