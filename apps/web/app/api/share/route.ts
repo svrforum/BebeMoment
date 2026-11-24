@@ -7,6 +7,7 @@ import { listMyShareLinks, listShareLinks } from '@/server/share/manage'
 import { isShareTtl } from '@/server/share/token'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
 
@@ -33,7 +34,7 @@ const createSchema = z
     storyId: z.string().uuid().optional(),
     assetId: z.string().uuid().optional(),
     albumId: z.string().uuid().optional(),
-    assetIds: z.array(z.string().uuid()).min(1).max(100).optional(),
+    assetIds: z.array(z.string().uuid()).min(1).max(SHARE_SELECTION_MAX).optional(),
     date: z
       .string()
       .regex(/^\d{4}-\d{2}-\d{2}$/)

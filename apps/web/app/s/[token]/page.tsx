@@ -121,10 +121,6 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
   // asset(1장)·selection(N장) — "사진 집합" 한 뷰로.
 
   const ids = r.target.kind === 'asset' ? [r.target.assetId] : r.target.assetIds
-  const meta =
-    r.target.kind === 'asset'
-      ? t('photoset.metaFamilyPhoto')
-      : t('photoset.metaCount', { n: ids.length })
   const preview = await buildPhotoSetPreview(
     ids,
     r.familyId,
@@ -134,6 +130,12 @@ const load = cache(async (token: string, base: string): Promise<Loaded> => {
     media,
   )
   if (!preview || preview.total === 0) return { status: 'notfound' }
+  // 장수는 실제로 보이는 만큼 — 발급 때의 id 수를 쓰면 비밀 스토리로 빠진 사진·지운 사진까지
+  // 세어 그리드와 어긋난다.
+  const meta =
+    r.target.kind === 'asset'
+      ? t('photoset.metaFamilyPhoto')
+      : t('photoset.metaCount', { n: preview.total })
   return {
     status: 'ok',
     kind: 'photoset',

@@ -77,6 +77,28 @@ async function setup() {
   return { user, family, normal, secret }
 }
 
+// 추억 묶음은 그 날 사진을 전부 보여 주려고 여러 장 링크로 나간다 — 표시 상한이 발급 상한보다
+// 작으면(예전 30) 사진이 많은 날은 앞부분만 보이고 나머지는 "더 있어요" 한 줄이 된다.
+describe('photo set size', () => {
+  it('shows every photo a link can hold, in the order it was given', async () => {
+    const { user, family, normal } = await setup()
+    const more: string[] = []
+    for (let i = 0; i < 34; i += 1) more.push(await makeReadyAsset(family.id, user.id))
+    const ids = [normal, ...more]
+    const preview = await buildPhotoSetPreview(
+      ids,
+      family.id,
+      'https://h',
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    expect(preview?.total).toBe(35)
+    expect(preview?.items).toHaveLength(35)
+    expect(preview?.ids).toEqual(ids)
+  })
+})
+
 describe('public share secret exclusion', () => {
   it('buildPhotoSetPreview drops secret-story photos (selection/date/single)', async () => {
     const { family, normal, secret } = await setup()

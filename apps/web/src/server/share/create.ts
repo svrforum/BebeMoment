@@ -2,6 +2,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient } from '@bebe/db-public'
 import { ServiceError } from '@/server/error'
 import { isAlbumSecretOrUnderSecret } from '@/server/album/secret-visibility'
+import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
 export type ShareTarget =
@@ -11,8 +12,6 @@ export type ShareTarget =
   | { kind: 'selection'; assetIds: string[] }
   | { kind: 'date'; date: string } // 'YYYY-MM-DD'
   | { kind: 'schedule'; entryId: string }
-
-const SELECTION_MAX = 100
 
 /**
  * 공유 링크 발급(스토리·단일 사진·앨범·여러 장 선택·날짜). 매 호출마다 새 난수 토큰. 스토리는
@@ -65,7 +64,8 @@ export async function createShareLink(
       throw new ServiceError(400, 'share.albumSecret')
   } else if (t.kind === 'selection') {
     if (t.assetIds.length === 0) throw new ServiceError(400, 'share.selectionEmpty')
-    if (t.assetIds.length > SELECTION_MAX) throw new ServiceError(400, 'share.selectionTooMany')
+    if (t.assetIds.length > SHARE_SELECTION_MAX)
+      throw new ServiceError(400, 'share.selectionTooMany')
     const rows = await prismaMedia.asset.findMany({
       where: { id: { in: t.assetIds }, familyId: input.familyId, status: 'ready', deletedAt: null },
       select: { id: true },

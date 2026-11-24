@@ -34,7 +34,14 @@ export async function PhotoSetShareView({
           >
             {it.displayUrl && (
               // biome-ignore lint/performance/noImgElement: 공개 랜딩의 signed URL — PictureImage(클라) 불필요
-              <img src={it.displayUrl} alt="" className="h-full w-full object-cover" />
+              <img
+                src={it.displayUrl}
+                alt=""
+                // 화면 밖 사진은 스크롤해 올 때 받는다 — 한 링크에 100장까지 실린다.
+                loading={i < 9 ? 'eager' : 'lazy'}
+                decoding="async"
+                className="h-full w-full object-cover"
+              />
             )}
             {it.isVideo && (
               <span className="absolute inset-0 flex items-center justify-center">

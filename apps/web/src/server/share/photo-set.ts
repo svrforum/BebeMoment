@@ -1,6 +1,7 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { listSecretAssetIds } from '../story/secret-assets'
 import { toAbsolute } from './public-story'
 
@@ -18,7 +19,9 @@ export type PhotoSetPreview = {
   ids: string[]
 }
 
-const DISPLAY_CAP = 30
+// 한 링크가 담을 수 있는 만큼은 다 보여 준다(예전엔 30 — 사진이 많은 날의 추억 묶음이 앞부분만
+// 보였다). 날짜 공유는 그 날 사진이 이보다 많을 수 있어 상한 자체는 남긴다.
+const DISPLAY_CAP = SHARE_SELECTION_MAX
 
 // 여러 장(선택·날짜) 공유의 공개 프리뷰. 그리드로 보여주고 각 사진을 바로 저장(download)할 수
 // 있게 display(보기) + original(저장) URL 을 함께 준다. assetIds 순서를 유지하되 ready·미삭제

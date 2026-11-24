@@ -6,6 +6,9 @@ export type StoryViewerCtx = {
   total: number | null
   body: string
   publicNo: number
+  id: string
+  /** 공유 링크를 만들 수 있는 스토리인지 — 보호자 전용은 발급이 거절된다(`createShareLink`). */
+  shareable: boolean
 }
 
 /**
@@ -30,7 +33,16 @@ export async function resolveStoryViewerCtx(
     deletedAt: null,
     ...(viewerRole === 'family' ? { visibility: 'family' as const } : {}),
   }
-  const select = { body: true, publicNo: true } as const
+  const select = { id: true, body: true, publicNo: true, visibility: true } as const
+  type Row = { id: string; body: string; publicNo: number; visibility: string }
+  const withPosition = (s: Row, index: number | null, total: number | null): StoryViewerCtx => ({
+    id: s.id,
+    shareable: s.visibility === 'family',
+    body: s.body,
+    publicNo: s.publicNo,
+    index,
+    total,
+  })
 
   const idx = neighborIds?.indexOf(currentAssetId) ?? -1
   if (ctx?.startsWith('story:') && neighborIds && idx >= 0) {
@@ -38,7 +50,7 @@ export async function resolveStoryViewerCtx(
       where: { ...visible, id: ctx.slice('story:'.length) },
       select,
     })
-    if (story) return { ...story, index: idx + 1, total: neighborIds.length }
+    if (story) return withPosition(story, idx + 1, neighborIds.length)
   }
 
   const story = await prisma.story.findFirst({
@@ -46,5 +58,5 @@ export async function resolveStoryViewerCtx(
     orderBy: [{ entryDate: 'desc' }, { createdAt: 'desc' }],
     select,
   })
-  return story ? { ...story, index: null, total: null } : null
+  return story ? withPosition(story, null, null) : null
 }

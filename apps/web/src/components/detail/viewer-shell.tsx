@@ -365,6 +365,7 @@ export function ViewerShell({
           commentCount={commentCount}
           visible={chromeVisible}
           canAlbum={canAlbum}
+          shareStoryId={storyCtxState?.shareable ? storyCtxState.id : null}
           onCommentTap={() => {
             setSheetDetailsOpen(false)
             setSheetOpen(true)

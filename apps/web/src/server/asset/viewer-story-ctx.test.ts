@@ -127,11 +127,44 @@ describe('resolveStoryViewerCtx — opened outside the story', () => {
     )
     const story = await db.prismaPublic.story.findUniqueOrThrow({ where: { id: entry.id } })
     expect(result).toEqual({
+      id: entry.id,
+      shareable: true,
       body: 'secret body',
       publicNo: story.publicNo,
       index: null,
       total: null,
     })
+  })
+
+  // 뷰어의 공유 버튼이 '스토리' 를 고르게 해 주려면 스토리 id 가 있어야 하고, 보호자 전용
+  // 스토리는 링크를 만들 수 없으므로(createShareLink 가 거절) 고르는 칸 자체를 내지 않는다.
+  it('marks a guardians story as not shareable, even for the owner', async () => {
+    const { family, entry, assetId } = await secretStoryWithAsset('guardians')
+    const result = await resolveStoryViewerCtx(
+      'timeline',
+      [assetId],
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'owner',
+    )
+    expect(result?.id).toBe(entry.id)
+    expect(result?.shareable).toBe(false)
+  })
+
+  it('carries the story id when opened from the story itself', async () => {
+    const { family, entry, assetId } = await secretStoryWithAsset('family')
+    const result = await resolveStoryViewerCtx(
+      `story:${entry.id}`,
+      [assetId],
+      assetId,
+      family.id,
+      db.prismaPublic,
+      'family',
+    )
+    expect(result?.id).toBe(entry.id)
+    expect(result?.shareable).toBe(true)
+    expect(result?.index).toBe(1)
   })
 
   it('works without any ctx', async () => {

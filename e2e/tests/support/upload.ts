@@ -1,4 +1,4 @@
-import { mkdirSync, writeFileSync } from 'node:fs'
+import { mkdirSync, utimesSync, writeFileSync } from 'node:fs'
 import path from 'node:path'
 import type { Page, Response, TestInfo } from '@playwright/test'
 import { expect } from '@playwright/test'
@@ -10,24 +10,35 @@ import sharp from 'sharp'
  * 예전엔 window.__uppy 내부를 직접 불렀는데, 그 핸들은 매니저가 초기화된 뒤에만 있고
  * 화면이 바뀌면 조용히 사라진다. 사용자가 하는 대로 — 파일 입력에 넣고 버튼을 누른다.
  * 그러면 mime 보정·스테이징까지 실제 경로가 함께 덮인다.
+ *
+ * `modifiedAt` 을 주면 파일 수정시각을 그때로 돌린다 — 이 사진들엔 EXIF 가 없어 앱이 수정시각을
+ * 촬영일로 삼는다. 지난 날짜의 사진(추억)이 필요한 테스트가 쓴다.
  */
-export async function uploadPhotos(page: Page, testInfo: TestInfo, names: string[]): Promise<void> {
+export async function uploadPhotos(
+  page: Page,
+  testInfo: TestInfo,
+  names: string[],
+  opts: { modifiedAt?: Date; colorShift?: number } = {},
+): Promise<void> {
   mkdirSync(testInfo.outputDir, { recursive: true })
   const files: string[] = []
   for (const [i, name] of names.entries()) {
-    // 장마다 색을 달리한다 — 바이트가 같으면 중복 업로드로 접혀 한 장만 남는다.
+    // 장마다 색을 달리한다 — 바이트가 같으면 중복 업로드로 접혀 한 장만 남는다. 한 테스트에서
+    // 두 번 올릴 땐 colorShift 로 앞서 올린 것과도 겹치지 않게 한다.
+    const n = i + (opts.colorShift ?? 0)
     const jpeg = await sharp({
       create: {
         width: 800,
         height: 600,
         channels: 3,
-        background: { r: 200 - i * 20, g: 100 + i * 15, b: 150 },
+        background: { r: 200 - n * 20, g: 100 + n * 15, b: 150 },
       },
     })
       .jpeg({ quality: 90 })
       .toBuffer()
     const file = path.join(testInfo.outputDir, name)
     writeFileSync(file, jpeg)
+    if (opts.modifiedAt) utimesSync(file, opts.modifiedAt, opts.modifiedAt)
     files.push(file)
   }
 

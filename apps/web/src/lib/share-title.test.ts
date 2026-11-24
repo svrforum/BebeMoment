@@ -22,6 +22,13 @@ describe('shareTitle', () => {
     expect(shareTitle({ kind: 'asset', assetId: 'a' }, t, 'ko')).toBe('share.text.asset')
   })
 
+  // 추억 묶음은 사진 여러 장으로 나가지만, 메시지 첫 줄은 "사진 3장"이 아니라 "1년 전 오늘"이다.
+  it('lets a selection carry its own title, falling back to the count when empty', () => {
+    const target = { kind: 'selection' as const, assetIds: ['a', 'b', 'c'] }
+    expect(shareTitle(target, t, 'ko', '1년 전 오늘 🍼')).toBe('1년 전 오늘 🍼')
+    expect(shareTitle(target, t, 'ko', '  ')).toBe('share.text.selection:3')
+  })
+
   it('uses the given title for a story or album, falling back to the generic one when empty', () => {
     expect(shareTitle({ kind: 'story', storyId: 's' }, t, 'ko', '첫 미소')).toBe('첫 미소')
     expect(shareTitle({ kind: 'album', albumId: 'a' }, t, 'ko', '')).toBe('share.text.album')

@@ -726,6 +726,12 @@
       "share": "Share",
       "shareDay": "Share {date}",
       "shareThisDay": "Share this day",
+      "shareMemory": "Share {label}",
+      "target": {
+        "label": "What to share",
+        "photo": "This photo",
+        "story": "Story"
+      },
       "expiry": "Expires",
       "ttlPermanent": "Forever",
       "ttl1d": "1 day",
@@ -774,6 +780,10 @@
         "schedule": {
           "sheetTitle": "Create share link for this schedule",
           "intro": "Anyone with the link sees only the title, date and time. Notes and the checklist are visible to signed-in guardians only."
+        },
+        "memory": {
+          "sheetTitle": "Create memory share link",
+          "intro": "Anyone with the link can view all {n, plural, one {# photo} other {# photos}} in this memory. Photos added later aren't included. Only family can save the originals."
         }
       },
       "text": {
@@ -782,7 +792,8 @@
         "selection": "{n} photos 📷",
         "story": "A family story",
         "album": "Album",
-        "schedule": "Schedule 📅"
+        "schedule": "Schedule 📅",
+        "memory": "{interval} 🍼"
       }
     },
     "download": {

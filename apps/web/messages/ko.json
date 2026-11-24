@@ -726,6 +726,12 @@
       "share": "공유",
       "shareDay": "{date} 공유",
       "shareThisDay": "이 날 공유",
+      "shareMemory": "{label} 공유",
+      "target": {
+        "label": "공유할 대상",
+        "photo": "이 사진",
+        "story": "스토리"
+      },
       "expiry": "유효기간",
       "ttlPermanent": "영구",
       "ttl1d": "1일",
@@ -774,6 +780,10 @@
         "schedule": {
           "sheetTitle": "일정 공유 링크 만들기",
           "intro": "링크를 아는 사람은 제목과 날짜·시각만 볼 수 있어요. 메모와 체크리스트는 로그인한 보호자만 볼 수 있어요."
+        },
+        "memory": {
+          "sheetTitle": "추억 공유 링크 만들기",
+          "intro": "링크를 아는 사람은 이 추억의 사진 {n}장을 모두 볼 수 있어요. 나중에 올린 사진은 들어가지 않아요. 원본 저장은 가족만 할 수 있어요."
         }
       },
       "text": {
@@ -782,7 +792,8 @@
         "selection": "사진 {n}장 📷",
         "story": "우리 가족 이야기",
         "album": "앨범",
-        "schedule": "일정 📅"
+        "schedule": "일정 📅",
+        "memory": "{interval} 🍼"
       }
     },
     "download": {

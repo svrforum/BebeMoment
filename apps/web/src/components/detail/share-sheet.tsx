@@ -5,7 +5,7 @@ import { shareTitle } from '@/lib/share-title'
 import { useToast } from '@/lib/toast'
 import { Link2, Loader2, Share2, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
-import { useCallback, useEffect, useState } from 'react'
+import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 type Translate = ReturnType<typeof useTranslations>
 
@@ -81,23 +81,32 @@ function expiryLabel(l: Link, t: Translate, locale: string): string {
 
 const shareUrl = (token: string) => `${window.location.origin}/s/${token}`
 
+/** 안내 문구 갈래 — 보통은 대상 종류 그대로. 추억 묶음은 여러 장(selection)으로 나가되 문구가 다르다. */
+export type ShareCopy = SheetTarget['kind'] | 'memory'
+
 const copyFor = (
   t: Translate,
-  kind: SheetTarget['kind'],
+  kind: ShareCopy,
+  n: number,
 ): { sheetTitle: string; intro: string } => ({
   sheetTitle: t(`share.copy.${kind}.sheetTitle`),
-  intro: t(`share.copy.${kind}.intro`),
+  intro: t(`share.copy.${kind}.intro`, { n }),
 })
 
 export function ShareSheet({
   target,
   title: givenTitle,
+  copy: copyKind,
+  header,
   open,
   onOpenChange,
 }: {
   target: SheetTarget
-  /** 스토리·앨범 제목. 없거나 다른 대상이면 shareTitle 이 대상별 문구를 만든다. */
+  /** 스토리·앨범·추억 묶음의 이름. 없거나 다른 대상이면 shareTitle 이 대상별 문구를 만든다. */
   title?: string | undefined
+  copy?: ShareCopy | undefined
+  /** 안내문 위에 놓을 것 — 뷰어의 '이 사진 / 스토리' 고르기. */
+  header?: ReactNode
   open: boolean
   onOpenChange: (open: boolean) => void
 }) {
@@ -203,12 +212,17 @@ export function ShareSheet({
     [refresh, toast, t],
   )
 
-  const copy = copyFor(t, target.kind)
+  const copy = copyFor(
+    t,
+    copyKind ?? target.kind,
+    target.kind === 'selection' ? target.assetIds.length : 0,
+  )
   const ttlOpts = ttlOptions(t)
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange} title={copy.sheetTitle}>
       <div className="space-y-5 pb-2">
+        {header}
         <p className="text-[13px] leading-relaxed text-base-500">{copy.intro}</p>
 
         <div>
