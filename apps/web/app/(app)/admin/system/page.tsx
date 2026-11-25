@@ -1,6 +1,7 @@
 import { AppHeader } from '@/components/shell/app-header'
+import { formatBytes } from '@/lib/format-bytes'
 import { backupDir, storageDataDir } from '@/server/backup/config'
-import { formatBytes, getSystemInfo } from '@/server/system/info'
+import { getSystemInfo } from '@/server/system/info'
 import { getTranslations } from 'next-intl/server'
 
 // 라이브 지표(메모리·디스크)라 매 요청 새로 읽는다.

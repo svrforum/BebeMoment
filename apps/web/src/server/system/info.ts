@@ -1,20 +1,6 @@
 import { statfs } from 'node:fs/promises'
 import os from 'node:os'
 
-const UNITS = ['B', 'KB', 'MB', 'GB', 'TB', 'PB']
-
-/** 바이트 → 사람이 읽는 단위. 음수·NaN 은 '-'. */
-export function formatBytes(n: number): string {
-  if (!Number.isFinite(n) || n < 0) return '-'
-  let v = n
-  let i = 0
-  while (v >= 1024 && i < UNITS.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${v.toFixed(i === 0 ? 0 : 1)} ${UNITS[i]}`
-}
-
 export type DiskOk = { label: string; path: string; total: number; free: number; used: number }
 export type DiskErr = { label: string; path: string; error: string }
 export type DiskInfo = DiskOk | DiskErr

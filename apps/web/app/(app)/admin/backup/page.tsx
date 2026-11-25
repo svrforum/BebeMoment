@@ -3,6 +3,7 @@ import { AppHeader } from '@/components/shell/app-header'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Toggle } from '@/components/ui/toggle'
+import { formatBytes } from '@/lib/format-bytes'
 import { AlertTriangle, Download, RotateCcw, Trash2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
@@ -17,18 +18,6 @@ type Backup = {
   storageMode?: string
   dataBytes: number
   bundleBytes: number
-}
-
-function fmtBytes(n: number): string {
-  if (n < 1024) return `${n} B`
-  const u = ['KB', 'MB', 'GB', 'TB']
-  let v = n / 1024
-  let i = 0
-  while (v >= 1024 && i < u.length - 1) {
-    v /= 1024
-    i++
-  }
-  return `${v.toFixed(1)} ${u[i]}`
 }
 
 type Schedule = {
@@ -257,7 +246,7 @@ export default function BackupAdminPage() {
       setStatus(
         t('backup.done', {
           id: d.manifest.id,
-          size: fmtBytes(d.bundleBytes),
+          size: formatBytes(d.bundleBytes),
           mirror: d.remoteMirrored ? t('backup.remoteMirrored') : '',
         }),
       )
@@ -601,7 +590,7 @@ export default function BackupAdminPage() {
                           <div className="truncate text-sm">{b.id}</div>
                           <div className="text-[12px] text-base-500">
                             {b.type} · {new Date(b.createdAt).toLocaleString(locale)} ·{' '}
-                            {fmtBytes(b.dataBytes)}
+                            {formatBytes(b.dataBytes)}
                           </div>
                         </div>
                         <Button
@@ -646,7 +635,7 @@ export default function BackupAdminPage() {
                       </div>
                       <div className="text-[11px] tabular-nums text-base-500">
                         {t('backup.listMeta', {
-                          size: fmtBytes(b.bundleBytes),
+                          size: formatBytes(b.bundleBytes),
                           count: String(b.dataFileCount),
                         })}
                       </div>

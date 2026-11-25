@@ -1,18 +1,6 @@
 import os from 'node:os'
 import { describe, expect, it } from 'vitest'
-import { formatBytes, getSystemInfo } from './info'
-
-describe('formatBytes', () => {
-  it('사람이 읽는 단위로 변환한다', () => {
-    expect(formatBytes(0)).toBe('0 B')
-    expect(formatBytes(1536)).toBe('1.5 KB')
-    expect(formatBytes(1024 * 1024 * 1024)).toBe('1.0 GB')
-  })
-  it('잘못된 값은 -', () => {
-    expect(formatBytes(Number.NaN)).toBe('-')
-    expect(formatBytes(-5)).toBe('-')
-  })
-})
+import { getSystemInfo } from './info'
 
 describe('getSystemInfo', () => {
   it('CPU·메모리·디스크 정보를 채운다', async () => {

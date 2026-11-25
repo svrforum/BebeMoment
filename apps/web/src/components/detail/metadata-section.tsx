@@ -1,3 +1,4 @@
+import { formatBytes } from '@/lib/format-bytes'
 import { Camera, Image as ImgIcon, MapPin, User } from 'lucide-react'
 
 type Props = {
@@ -13,14 +14,6 @@ type Props = {
   gpsLng: number | null
   exifRaw: Record<string, unknown> | null
   babies: { id: string; name: string }[]
-}
-
-function formatSize(b: bigint | number): string {
-  const n = typeof b === 'bigint' ? Number(b) : b
-  if (n < 1024) return `${n} B`
-  if (n < 1024 * 1024) return `${(n / 1024).toFixed(1)} KB`
-  if (n < 1024 * 1024 * 1024) return `${(n / (1024 * 1024)).toFixed(1)} MB`
-  return `${(n / (1024 * 1024 * 1024)).toFixed(2)} GB`
 }
 
 function formatExposure(raw: Record<string, unknown> | null): string | null {
@@ -100,7 +93,7 @@ export function MetadataSection(p: Props) {
         primary={
           <span className="tabular-nums">
             {dimensions ? `${dimensions} · ` : ''}
-            {formatSize(p.sizeBytes)} {mime}
+            {formatBytes(p.sizeBytes)} {mime}
           </span>
         }
         last={lastKey === 'image'}
