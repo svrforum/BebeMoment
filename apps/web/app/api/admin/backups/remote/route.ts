@@ -1,7 +1,12 @@
 import { encryptSecret } from '@/lib/crypto'
 import { prismaPublic } from '@/lib/db-init'
 import { requireAdmin } from '@/lib/require-admin'
-import { type RemoteConfig, loadRemoteConfig, redactSecrets, testRemote } from '@/server/backup/remote'
+import {
+  type RemoteConfig,
+  loadRemoteConfig,
+  redactSecrets,
+  testRemote,
+} from '@/server/backup/remote'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
@@ -99,7 +104,7 @@ export async function POST(req: Request) {
 
     if (body.test) {
       const cfg = await effectiveConfig(body, secretEnvKey)
-      if (!cfg || !cfg.bucket || !cfg.accessKeyId || !cfg.secretAccessKey) {
+      if (!cfg?.bucket || !cfg.accessKeyId || !cfg.secretAccessKey) {
         return errorJsonKey('backup.remoteMissingCreds', 400)
       }
       await testRemote(cfg)

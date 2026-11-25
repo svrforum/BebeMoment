@@ -16,13 +16,18 @@
       // AI 어시스턴트 설정/스킬 (gitignore 대상, 소스 아님)
       "!**/.claude",
       "!**/*.md",
-      "!**/data",
-      "!**/pg",
+      // 런타임 볼륨(compose 가 ./data·./pg·./redis·./backups 로 마운트). 반드시 루트 기준 경로로 —
+      // "!**/data" 처럼 두면 app/api/widget/data·app/api/admin/backups 의 라우트까지 린트·포맷에서 빠진다.
+      "!data",
+      "!pg",
+      "!redis",
+      "!backups",
+      "!compose/data",
+      "!compose/pg",
+      "!compose/redis",
+      "!compose/backups",
       // 로컬 개발 데이터(라이브 DB 볼륨·브랜드 원본 SVG 등) — gitignore 대상이라 CI 에는 없다.
       "!.dev",
-      "!**/redis",
-      // 백업 번들·매니페스트가 쌓이는 런타임 디렉터리 (data/pg/redis 와 같은 부류)
-      "!**/backups",
       "!**/apps/web/public/sw.js",
       "!**/apps/web/public/sw.js.map",
       "!**/apps/web/public/workbox-*.js",

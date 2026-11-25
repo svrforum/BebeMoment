@@ -22,13 +22,16 @@ build/
 
 # Logs
 *.log
-logs/
+/logs/
 
 # Runtime data (docker volumes if dev setup) — 루트 앵커. 앵커 없이 두면 경로 어디든
 # data/ 디렉터리를 삼켜 apps/web/app/api/widget/data/route.ts 가 릴리스에서 통째로 빠졌다.
+# compose/docker-compose.yml 을 그 자리에서 띄우면 볼륨이 compose/ 아래에 생긴다.
 /data/
-pg/
-redis/
+/pg/
+/redis/
+/compose/pg/
+/compose/redis/
 .dev/
 
 # Editor
