@@ -1,19 +1,14 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { resolveContext } from '@/server/context'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { isAssetHiddenFromViewer } from '@/server/story/secret-assets'
+import { NextResponse } from 'next/server'
 import { parseDownloadQuality } from './quality'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
 
   const url = new URL(req.url)
   const quality = parseDownloadQuality(url.searchParams.get('q'))
@@ -22,7 +17,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   // family 역할은 비밀 스토리 사진을 다운로드(공유 저장 포함)할 수 없다 — 다른 노출
   // 지점과 동일한 경계(defense-in-depth: id 를 직접 쳐도 차단).
   if (
-    (ctx.membership?.role ?? 'family') === 'family' &&
+    ctx.membership.role === 'family' &&
     (await isAssetHiddenFromViewer('family', id, prismaPublic, ctx.family.id))
   ) {
     return errorJsonKey('notFound', 404)

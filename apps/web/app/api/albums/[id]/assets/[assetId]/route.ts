@@ -1,21 +1,15 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaPublic } from '@/lib/db-init'
 import { detachAssetFromAlbum } from '@/server/album/detach-asset'
-import { resolveContext } from '@/server/context'
-import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { errorJson } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 
 export async function DELETE(
   _req: Request,
   { params }: { params: Promise<{ id: string; assetId: string }> },
 ) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id, assetId } = await params
     const result = await detachAssetFromAlbum(

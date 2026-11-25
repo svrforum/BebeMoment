@@ -1,7 +1,6 @@
 import { errorKeyFromIssue } from '@/i18n/error-key'
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
-import { resolveContext } from '@/server/context'
 import { type ShareTarget, createShareLink } from '@/server/share/create'
 import { listMyShareLinks, listShareLinks } from '@/server/share/manage'
 import { isShareTtl } from '@/server/share/token'
@@ -10,18 +9,6 @@ import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { NextResponse } from 'next/server'
 import { ZodError, z } from 'zod'
-
-type CtxError = { errorKey: string; status: number }
-async function getCtx(): Promise<CtxError | { ctx: Awaited<ReturnType<typeof resolveContext>> }> {
-  const { session } = await getAuth()
-  if (!session) return { errorKey: 'unauthorized', status: 401 }
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return { errorKey: 'noFamily', status: 400 }
-  return { ctx }
-}
 
 async function canShareSchedule(capabilities: readonly string[]): Promise<boolean> {
   return (
@@ -75,34 +62,34 @@ function targetFromQuery(url: URL): ShareTarget | null {
 
 export async function GET(req: Request) {
   if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
-  const r = await getCtx()
-  if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   const url = new URL(req.url)
   // `?mine=1` — 본인이 발행한 링크만(선택 링크 포함). 타인 토큰 열거가 아니라 자기 회수용이라
   // share.create 게이트가 필요 없다. 선택 링크는 per-target 경로로는 안 보이던 갭을 메운다.
   if (url.searchParams.get('mine') === '1') {
-    const links = await listMyShareLinks(r.ctx.family!.id, r.ctx.user!.id, prismaPublic)
+    const links = await listMyShareLinks(ctx.family.id, ctx.user.id, prismaPublic)
     return NextResponse.json({ links })
   }
   // 공유 토큰은 인증 경계 밖 접근 자격 — 발행 권한(share.create) 없는 역할이 기존 토큰을
   // 열거(예: ?date 로)해 외부 유출하지 못하게, POST 와 동일하게 게이트.
-  if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
+  if (!ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
   const target = targetFromQuery(url)
   if (!target) return errorJsonKey('share.targetRequired', 400)
-  if (target.kind === 'schedule' && !(await canShareSchedule(r.ctx.capabilities)))
+  if (target.kind === 'schedule' && !(await canShareSchedule(ctx.capabilities)))
     return errorJsonKey('forbidden', 403)
-  const links = await listShareLinks(target, r.ctx.family!.id, prismaPublic)
+  const links = await listShareLinks(target, ctx.family.id, prismaPublic)
   return NextResponse.json({ links })
 }
 
 export async function POST(req: Request) {
   if (!(await isFeatureEnabled('share', prismaPublic))) return errorJsonKey('share.featureOff', 403)
-  const r = await getCtx()
-  if ('errorKey' in r) return errorJsonKey(r.errorKey, r.status)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   // 공유 링크 발행은 인증 경계 밖 노출이라 역할 게이트가 필요하다(owner/guardian 기본,
   // family 는 관리자가 share.create 를 부여한 경우만). 보기 전용 family 가 영구 공개
   // 링크를 만들던 갭을 막는다.
-  if (!r.ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
+  if (!ctx.capabilities.includes('share.create')) return errorJsonKey('forbidden', 403)
   try {
     const body = createSchema.parse(await req.json())
     const target: ShareTarget = body.storyId
@@ -120,10 +107,10 @@ export async function POST(req: Request) {
               : { kind: 'date', date: body.date as string }
     // 일정은 보호자 전용 기능이다. 공유 권한만으로는 부족하고, 그 일정을 볼 수 있는 사람이어야
     // 링크를 만든다 — 볼 수 없는 것을 밖으로 내보내는 경로가 생기면 안 된다.
-    if (target.kind === 'schedule' && !(await canShareSchedule(r.ctx.capabilities)))
+    if (target.kind === 'schedule' && !(await canShareSchedule(ctx.capabilities)))
       return errorJsonKey('forbidden', 403)
     const { token, expiresAt } = await createShareLink(
-      { target, familyId: r.ctx.family!.id, userId: r.ctx.user!.id, ttl: body.ttl },
+      { target, familyId: ctx.family.id, userId: ctx.user.id, ttl: body.ttl },
       prismaPublic,
       prismaMedia,
     )

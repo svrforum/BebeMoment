@@ -1,7 +1,6 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
-import { resolveContext } from '@/server/context'
 import { mergeManyPeople } from '@/server/people/list'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { NextResponse } from 'next/server'
@@ -21,15 +20,10 @@ const bodySchema = z.object({
  * 이름 변경과 같은 가족 공유 메타데이터 변경이라 person.rename 능력으로 게이트.
  */
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return await errorJsonKey('unauthorized', 401)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   if (!(await isFeatureEnabled('faces', prismaPublic)))
     return await errorJsonKey('featureOff.faces', 403)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family) return await errorJsonKey('noFamily', 400)
   if (!ctx.capabilities.includes('person.rename')) return await errorJsonKey('forbidden', 403)
   try {
     const { targetId, sourceIds } = bodySchema.parse(await req.json())

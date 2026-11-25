@@ -1,32 +1,20 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { deleteAlbum } from '@/server/album/delete'
 import { getAlbumWithBreadcrumbs } from '@/server/album/get'
 import { moveAlbum } from '@/server/album/move'
 import { updateAlbum } from '@/server/album/update'
-import { resolveContext } from '@/server/context'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { isFeatureEnabled } from '@/server/settings/features'
 import { NextResponse } from 'next/server'
 
-async function getCtx() {
-  const { session } = await getAuth()
-  if (!session) return { error: 'unauthorized', status: 401 } as const
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return { error: 'noFamily', status: 400 } as const
-  return { ctx } as const
-}
-
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const r = await getCtx()
-  if ('error' in r) return errorJsonKey(r.error, r.status as number)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     const album = await getAlbumWithBreadcrumbs(
-      { albumId: id, familyId: r.ctx.family!.id, viewerRole: r.ctx.membership?.role ?? 'family' },
+      { albumId: id, familyId: ctx.family.id, viewerRole: ctx.membership.role },
       prismaPublic,
     )
     if (!album) return errorJsonKey('album.notFound', 404)
@@ -43,8 +31,8 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
  *                                                 rewrite logic is explicit)
  */
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const r = await getCtx()
-  if ('error' in r) return errorJsonKey(r.error, r.status as number)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   if (!(await isFeatureEnabled('albums', prismaPublic)))
     return errorJsonKey('album.featureOff', 403)
   try {
@@ -61,8 +49,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
       const album = await moveAlbum(
         {
           albumId: id,
-          familyId: r.ctx.family!.id,
-          byUserId: r.ctx.user!.id,
+          familyId: ctx.family.id,
+          byUserId: ctx.user.id,
           newParentId: body.parentId ?? null,
         },
         prismaPublic,
@@ -76,8 +64,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
         const updated = await updateAlbum(
           {
             albumId: id,
-            familyId: r.ctx.family!.id,
-            byUserId: r.ctx.user!.id,
+            familyId: ctx.family.id,
+            byUserId: ctx.user.id,
             ...(body.name !== undefined ? { name: body.name } : {}),
             ...(body.description !== undefined ? { description: body.description } : {}),
             ...(body.coverAssetId !== undefined ? { coverAssetId: body.coverAssetId } : {}),
@@ -93,8 +81,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     const album = await updateAlbum(
       {
         albumId: id,
-        familyId: r.ctx.family!.id,
-        byUserId: r.ctx.user!.id,
+        familyId: ctx.family.id,
+        byUserId: ctx.user.id,
         ...(body.name !== undefined ? { name: body.name } : {}),
         ...(body.description !== undefined ? { description: body.description } : {}),
         ...(body.coverAssetId !== undefined ? { coverAssetId: body.coverAssetId } : {}),
@@ -110,8 +98,8 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 }
 
 export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const r = await getCtx()
-  if ('error' in r) return errorJsonKey(r.error, r.status as number)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   if (!(await isFeatureEnabled('albums', prismaPublic)))
     return errorJsonKey('album.featureOff', 403)
   try {
@@ -121,8 +109,8 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const result = await deleteAlbum(
       {
         albumId: id,
-        familyId: r.ctx.family!.id,
-        byUserId: r.ctx.user!.id,
+        familyId: ctx.family.id,
+        byUserId: ctx.user.id,
         cascade,
       },
       prismaPublic,

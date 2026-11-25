@@ -1,19 +1,13 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { softDeleteAsset } from '@/server/asset/soft-delete'
-import { resolveContext } from '@/server/context'
-import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { errorJson } from '@/lib/error-response'
 import { getPublisher } from '@/server/upload/pubsub'
 import { NextResponse } from 'next/server'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     await softDeleteAsset(

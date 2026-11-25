@@ -1,9 +1,7 @@
 import { getTranslations } from 'next-intl/server'
-import { errorJsonKey } from '@/lib/error-response'
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { resolveContext } from '@/server/context'
 import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
 import { NextResponse } from 'next/server'
@@ -16,13 +14,8 @@ export const dynamic = 'force-dynamic'
  * 그룹으로 변환해 반환한다(클라가 이어붙임). `until=YYYY-MM-DD` 면 그 날까지 한 번에(날짜 스크러버).
  */
 export async function GET(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return await errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.membership) return await errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
 
   const url = new URL(req.url)
   const cursor = url.searchParams.get('cursor') ?? undefined

@@ -1,7 +1,6 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { resolveContext } from '@/server/context'
 import { loadViewerBundle } from '@/server/asset/viewer-bundle'
 import { loadViewerDetail } from '@/server/asset/viewer-detail'
 import { resolveNeighborIds } from '@/server/asset/viewer-neighbors'
@@ -11,13 +10,8 @@ import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { NextResponse } from 'next/server'
 
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     const sp = new URL(req.url).searchParams
@@ -28,7 +22,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       {
         familyId: ctx.family.id,
         userId: ctx.user.id,
-        viewerRole: ctx.membership?.role ?? 'family',
+        viewerRole: ctx.membership.role,
         sort,
       },
       prismaPublic,
@@ -37,7 +31,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       await resolveAssetUuid(id, ctx.family.id, prismaMedia),
     )
     const neighborIds = neighbors?.ids
-    const viewerRole = ctx.membership?.role ?? 'family'
+    const viewerRole = ctx.membership.role
     const bundle = await loadViewerBundle(
       {
         assetId: id,

@@ -1,18 +1,12 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaPublic } from '@/lib/db-init'
-import { errorJson, errorJsonKey } from '@/lib/error-response'
-import { resolveContext } from '@/server/context'
+import { errorJson } from '@/lib/error-response'
 import { revokeInvite } from '@/server/invite/revoke'
 import { NextResponse } from 'next/server'
 
 export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const { id } = await params
     await revokeInvite(

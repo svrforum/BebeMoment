@@ -1,8 +1,6 @@
-import { getAuth } from '@/lib/auth'
-import { prismaPublic } from '@/lib/db-init'
+import { requireRouteContext } from '@/lib/route-context'
 import { errorJsonKey } from '@/lib/error-response'
 import { logger } from '@/lib/logger'
-import { resolveContext } from '@/server/context'
 import { toLogFields, uploadReportSchema } from '@/server/diagnostics/upload-report'
 import { NextResponse } from 'next/server'
 
@@ -17,13 +15,8 @@ export const dynamic = 'force-dynamic'
  * 에러를 덮지 않도록 호출부는 이 응답을 무시한다.
  */
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
 
   const parsed = uploadReportSchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return errorJsonKey('badRequest', 400)

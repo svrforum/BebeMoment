@@ -1,10 +1,9 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { errorJson, errorJsonKey } from '@/lib/error-response'
 import { logger } from '@/lib/logger'
 import { purgeAsset } from '@/server/asset/purge'
 import { purgeMany } from '@/server/asset/purge-many'
-import { resolveContext } from '@/server/context'
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
 import { NextResponse } from 'next/server'
@@ -18,13 +17,8 @@ export const dynamic = 'force-dynamic'
 const Body = z.object({ assetIds: z.array(z.string().uuid()).min(1).max(200) })
 
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user || !ctx.membership) return errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
 
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   if (!resolveCan(ctx.membership.role, 'asset.delete.any', familyCaps)) {

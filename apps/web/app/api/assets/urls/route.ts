@@ -1,8 +1,7 @@
 import { errorJsonKey } from '@/lib/error-response'
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
-import { resolveContext } from '@/server/context'
 import { resolveAssetUrlsForViewer } from '@/server/asset/urls-for-viewer'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -15,13 +14,8 @@ const bodySchema = z.object({ ids: z.array(z.string().uuid()).min(1).max(60) })
 // PictureImage 의 만료된 서명 URL 을 신선한 것으로 교체하기 위한 자가치유 엔드포인트.
 // 세션 인증 + 현재 가족 스코프 + 비밀 스토리 자산 제외(resolveAssetUrlsForViewer).
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return await errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.membership) return await errorJsonKey('noFamily', 400)
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
 
   const parsed = bodySchema.safeParse(await req.json().catch(() => null))
   if (!parsed.success) return await errorJsonKey('badRequest', 400)

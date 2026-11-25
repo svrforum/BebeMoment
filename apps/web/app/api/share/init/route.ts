@@ -1,8 +1,7 @@
-import { getAuth } from '@/lib/auth'
+import { requireRouteContext } from '@/lib/route-context'
 import { prismaPublic } from '@/lib/db-init'
-import { errorJson, errorJsonKey } from '@/lib/error-response'
+import { errorJson } from '@/lib/error-response'
 import { getMediaClient } from '@/lib/media-client'
-import { resolveContext } from '@/server/context'
 import { initUpload } from '@/server/upload/init-upload'
 import { NextResponse } from 'next/server'
 import { z } from 'zod'
@@ -17,15 +16,8 @@ const Body = z.object({
 // init. 1.0.20 부터는 공유받은 파일을 웹 업로드 흐름(startUpload)으로 넘기지만 옛 앱을 위해 남긴다.
 // 세션 쿠키로 인증하고, 권한·mime 검사·tus 주소는 startUpload 와 같은 initUpload 를 지난다.
 export async function POST(req: Request) {
-  const { session } = await getAuth()
-  if (!session) return errorJsonKey('unauthorized', 401)
-  const ctx = await resolveContext(
-    { userId: session.userId, currentFamilyId: session.currentFamilyId ?? null },
-    prismaPublic,
-  )
-  if (!ctx.family || !ctx.user || !ctx.membership) {
-    return errorJsonKey('noFamily', 400)
-  }
+  const ctx = await requireRouteContext()
+  if (ctx instanceof NextResponse) return ctx
   try {
     const input = Body.parse(await req.json())
     const result = await initUpload(
