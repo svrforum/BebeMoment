@@ -1,6 +1,5 @@
 import { prisma } from '@/lib/prisma'
 import { createRedisConnection } from '@/lib/redis'
-import { parseEnv } from '@bebe/config'
 import { ASSET_QUEUE } from '@bebe/core'
 import { Queue } from 'bullmq'
 import type { FastifyPluginAsync } from 'fastify'
@@ -8,6 +7,7 @@ import { z } from 'zod'
 import { MediaHttpError } from '../middleware/error-handler'
 import { assertServiceToken } from '../middleware/service-token'
 import { retryFailureReason } from '@/domain/retryable'
+import { getEnv } from '@/lib/env'
 import { getStorage } from '@/lib/storage'
 
 const UUID_RE = '^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$'
@@ -20,8 +20,7 @@ const bodySchema = z.object({ familyId: z.string().uuid() })
  * 있으므로 파생물·메타를 다시 생성한다. 변환(HEIC→JPEG)은 재시도에선 적용하지 않는다.
  */
 export const assetsRetryRoute: FastifyPluginAsync = async (app) => {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
-  const queue = new Queue(ASSET_QUEUE, { connection: createRedisConnection(env.REDIS_URL) })
+  const queue = new Queue(ASSET_QUEUE, { connection: createRedisConnection(getEnv().REDIS_URL) })
 
   app.post(`/media/v1/assets/:id(${UUID_RE})/retry`, async (req, reply) => {
     assertServiceToken(req.headers.authorization)

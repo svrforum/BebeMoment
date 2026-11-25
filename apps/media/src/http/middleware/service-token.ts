@@ -14,7 +14,7 @@ function unauthorized(): MediaHttpError {
 export function assertServiceToken(authHeader: string | undefined): void {
   const expected = mediaServiceToken()
   const prefix = 'Bearer '
-  if (!authHeader || !authHeader.startsWith(prefix)) {
+  if (!authHeader?.startsWith(prefix)) {
     throw unauthorized()
   }
   const provided = authHeader.slice(prefix.length)
