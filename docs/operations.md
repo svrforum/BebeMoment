@@ -407,6 +407,7 @@ docker compose logs app | jq -r 'select(.level=="error")'   # pino JSON, errors 
   `docker compose up -d`.
 - Stopping the container: `docker compose stop` sends SIGTERM to all three
   processes; media finishes in-flight transcodes (up to `MEDIA_SHUTDOWN_GRACE_MS`),
+  the notifications worker finishes running jobs (up to `WORKER_SHUTDOWN_GRACE_MS`),
   the supervisor waits up to `APP_SHUTDOWN_GRACE_S` and the compose file gives
   Docker a 60 s `stop_grace_period`. A clean stop logs `bebe-media shutting down`
   and exits 0.
@@ -424,7 +425,7 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `APP_HEAP_WEB_MB` | `768` | run-app.sh (passed) | Node `--max-old-space-size` for the web server. |
 | `APP_HEAP_MEDIA_MB` | `640` | run-app.sh (passed) | Same for the media service; sharp/ffmpeg use memory outside this heap. |
 | `APP_HEAP_WORKER_MB` | `256` | run-app.sh (passed) | Same for the notifications worker. |
-| `APP_SHUTDOWN_GRACE_S` | `45` | run-app.sh | How long the supervisor waits for the three processes after SIGTERM before SIGKILL. Keep it below `stop_grace_period` (60 s) and above `MEDIA_SHUTDOWN_GRACE_MS`. |
+| `APP_SHUTDOWN_GRACE_S` | `45` | run-app.sh | How long the supervisor waits for the three processes after SIGTERM before SIGKILL. Keep it below `stop_grace_period` (60 s) and above `MEDIA_SHUTDOWN_GRACE_MS` and `WORKER_SHUTDOWN_GRACE_MS`. |
 | `UV_THREADPOOL_SIZE` | `8` (media only) | run-app.sh | libuv thread pool of the media process (fs, zlib, crypto). |
 | `MEDIA_SHUTDOWN_GRACE_MS` | `30000` | media | Time given to in-flight thumbnail/transcode jobs on shutdown. |
 | `MEDIA_CONCURRENCY_THUMBNAIL` | `3` | media | Photo derivative jobs processed in parallel. Lower on 2-core NAS boxes. |
@@ -450,7 +451,7 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `TRUST_PROXY` | `true` | web (passed) | Trust `x-real-ip` / `x-forwarded-for` for the client IP. |
 | `SETUP_TOKEN` | unset | web (passed) | Required for the first signup when set (`/signup?setup=…`). |
 | `BACKUP_DIR` | `/backups` | web (passed) | Where backup bundles are written inside the container. |
-| `WORKER_SHUTDOWN_GRACE_MS` | `300000` (5 min) | worker | How long the notifications worker waits for running jobs after SIGTERM. Inside the shipped container the supervisor still stops it after `APP_SHUTDOWN_GRACE_S`. |
+| `WORKER_SHUTDOWN_GRACE_MS` | `30000` (30 s) | worker | How long the notifications worker waits for running jobs after SIGTERM before it force-closes them. Keep it below `APP_SHUTDOWN_GRACE_S` (45 s): the supervisor SIGKILLs anything still running when that runs out, so a longer value only means the worker never gets to its own forced close and disconnect. A backup that runs for minutes is cut by a container stop either way. |
 | `FACE_ML_URL` | `http://ml:8000` | media/web (passed) | The face-recognition sidecar. |
 | `PG_MEMORY_LIMIT` | `512m` | compose | Memory limit of the `postgres` container. |
 | `PG_SHARED_BUFFERS` | `256MB` | compose | Postgres `shared_buffers`; about a quarter to half of `PG_MEMORY_LIMIT`. |

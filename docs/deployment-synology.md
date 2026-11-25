@@ -79,7 +79,7 @@ services:
       postgres: { condition: service_healthy }
       redis: { condition: service_healthy }
     restart: unless-stopped
-    # 정지 시 진행 중인 영상 변환을 끝낼 시간(앱 내부 45s 대기보다 길게).
+    # 정지 시 진행 중인 영상 변환·알림 워커 잡을 끝낼 시간(앱 내부 45s 대기보다 길게).
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]

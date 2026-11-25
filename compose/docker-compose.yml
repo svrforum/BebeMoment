@@ -61,8 +61,9 @@ services:
       redis: { condition: service_healthy }
     restart: unless-stopped
     # stop 시 컨테이너 안 run-app.sh 가 세 프로세스에 TERM 을 넘기고 최대 45s(APP_SHUTDOWN_GRACE_S)
-    # 기다린다 — media 는 진행 중 트랜스코드를 30s 안에 끝낸다. 그보다 길어야 Docker 가 먼저
-    # SIGKILL 하지 않는다(기본 10s 면 잡이 잘린다).
+    # 기다린다 — media 는 진행 중 트랜스코드를(MEDIA_SHUTDOWN_GRACE_MS), 알림 워커는 진행 중
+    # 잡을(WORKER_SHUTDOWN_GRACE_MS) 각자 기본 30s 안에 끝낸다. 이 값은 45s 보다 길어야 Docker 가
+    # 먼저 SIGKILL 하지 않는다(기본 10s 면 잡이 잘린다).
     stop_grace_period: 60s
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:3000/api/health"]
