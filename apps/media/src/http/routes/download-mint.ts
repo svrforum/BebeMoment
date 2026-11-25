@@ -27,6 +27,11 @@ function deriveFilename(
   return { filename: replaceExt(original, '.mp4'), mimeType: 'video/mp4' }
 }
 
+// web 은 이 주소에서 경로만 떼어 MEDIA_INTERNAL_URL 로 받아 와 같은 출처로 흘려준다 — 오리진은
+// 아무도 따라가지 않는다. web 이 `new URL()` 로 읽어 절대 주소 꼴이어야 해서 고정값을 붙일
+// 뿐이다(PUBLIC_URL·MEDIA_PUBLIC_BASE_URL 을 읽을 이유가 없다).
+const MINT_URL_ORIGIN = 'http://localhost:3001'
+
 export const downloadMintRoute: FastifyPluginAsync = async (app) => {
   app.post('/media/v1/download/mint', async (req, reply) => {
     assertServiceToken(req.headers.authorization)
@@ -85,12 +90,7 @@ export const downloadMintRoute: FastifyPluginAsync = async (app) => {
       mimeType,
     })
 
-    const base = (
-      process.env.MEDIA_PUBLIC_BASE_URL ||
-      process.env.PUBLIC_URL ||
-      'http://localhost:3001'
-    ).replace(/\/$/, '')
-    const url = `${base}/media/v1/download/${token}`
+    const url = `${MINT_URL_ORIGIN}/media/v1/download/${token}`
     const payload = mintDownloadResponse.parse({ v: 1, url })
     reply.status(200).send(payload)
   })

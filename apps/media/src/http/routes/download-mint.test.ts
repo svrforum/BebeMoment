@@ -34,7 +34,6 @@ describe('POST /media/v1/download/mint — auto quality', () => {
   beforeAll(async () => {
     process.env.MEDIA_JWT_SECRET = SECRET
     process.env.MEDIA_SERVICE_TOKEN = TOKEN
-    process.env.MEDIA_PUBLIC_BASE_URL = 'http://localhost:3001'
     db = await startTestDb()
     process.env.DATABASE_URL = db.url
   }, 180_000)
@@ -177,6 +176,23 @@ describe('POST /media/v1/download/mint — auto quality', () => {
     expect(payload.quality).toBe('gallery')
     expect(payload.mimeType).toBe('image/jpeg')
     expect(payload.filename).toBe('a.jpg')
+  })
+
+  // web 은 경로만 떼어 내부 주소로 받아 온다. 오리진이 공개 주소 설정을 따라가면 별도 호스트
+  // 배포에서 web 이 엉뚱한 곳을 부르는 것처럼 읽힌다 — 늘 같은 내부 오리진이다.
+  test('발급 주소는 공개 주소 설정과 무관하게 내부 오리진 + 다운로드 경로다', async () => {
+    await createImage('image/jpeg', 'a.jpg')
+    const saved = process.env.MEDIA_PUBLIC_BASE_URL
+    process.env.MEDIA_PUBLIC_BASE_URL = 'https://media.example.com'
+    try {
+      const { url } = JSON.parse((await mint('original')).body) as { url: string }
+      const parsed = new URL(url)
+      expect(parsed.origin).toBe('http://localhost:3001')
+      expect(parsed.pathname).toMatch(/^\/media\/v1\/download\/[^/]+$/)
+    } finally {
+      if (saved === undefined) delete process.env.MEDIA_PUBLIC_BASE_URL
+      else process.env.MEDIA_PUBLIC_BASE_URL = saved
+    }
   })
 
   test('사진의 original 은 저장된 바이트 그대로다', async () => {

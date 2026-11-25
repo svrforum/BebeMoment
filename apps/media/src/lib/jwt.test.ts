@@ -46,7 +46,7 @@ describe('upload token', () => {
         maxBytes: 1,
         convertToCompatible: false,
       }),
-    ).rejects.toThrow(/32 bytes/)
+    ).rejects.toThrow(/MEDIA_JWT_SECRET/)
     process.env.MEDIA_JWT_SECRET = SECRET
   })
 

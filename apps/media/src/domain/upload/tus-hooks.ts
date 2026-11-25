@@ -1,9 +1,9 @@
 import { createReadStream } from 'node:fs'
 import fs from 'node:fs/promises'
 import path from 'node:path'
+import { getEnv } from '@/lib/env'
 import { getStorage } from '@/lib/storage'
 import type { UploadTokenPayload } from '@/lib/jwt'
-import { parseEnv } from '@bebe/config'
 import type { PrismaClient } from '@bebe/db-media'
 import type { StorageAdapter } from '@bebe/storage'
 import type { Upload } from '@tus/server'
@@ -17,7 +17,7 @@ import type pino from 'pino'
  */
 /** 거부·실패한 업로드의 tus 임시파일(+ .json 사이드카)을 best-effort 로 지운다. */
 export async function removeTusTmp(assetId: string): Promise<void> {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const env = getEnv()
   const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', assetId)
   await fs.unlink(tusPath).catch(() => {})
   await fs.unlink(`${tusPath}.json`).catch(() => {})
@@ -28,7 +28,7 @@ async function moveTusToFinal(args: {
   finalKey: string
   storage: StorageAdapter
 }): Promise<void> {
-  const env = parseEnv(process.env as Record<string, string | undefined>)
+  const env = getEnv()
   const tusPath = path.join(env.STORAGE_PATH, 'tus-tmp', args.assetId)
 
   if (env.STORAGE_MODE === 's3') {

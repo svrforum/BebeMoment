@@ -1,4 +1,5 @@
 import { SignJWT, jwtVerify } from 'jose'
+import { mediaJwtSecret } from './env'
 
 export type UploadTokenPayload = {
   iss: 'web'
@@ -18,13 +19,9 @@ export type SignUploadTokenArgs = Omit<UploadTokenPayload, 'iss' | 'aud' | 'scop
 
 const UPLOAD_TOKEN_TTL_SEC = 15 * 60
 
-/** 서명에 쓰는 비밀. 짧으면 서명도 검증도 하지 않는다(부팅 설정 오류를 조용히 넘기지 않게). */
+/** 서명에 쓰는 비밀. 없거나 짧으면 서명도 검증도 하지 않는다(설정 오류를 조용히 넘기지 않게). */
 export function requireMediaSecret(): string {
-  const raw = process.env.MEDIA_JWT_SECRET
-  if (!raw || raw.length < 32) {
-    throw new Error('MEDIA_JWT_SECRET must be at least 32 bytes')
-  }
-  return raw
+  return mediaJwtSecret()
 }
 
 function getSecret(): Uint8Array {

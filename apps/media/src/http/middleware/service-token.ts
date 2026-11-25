@@ -1,13 +1,6 @@
 import { timingSafeEqual } from 'node:crypto'
+import { mediaServiceToken } from '@/lib/env'
 import { MediaHttpError } from './error-handler'
-
-function getExpected(): string {
-  const raw = process.env.MEDIA_SERVICE_TOKEN
-  if (!raw || raw.length < 32) {
-    throw new Error('MEDIA_SERVICE_TOKEN must be at least 32 bytes')
-  }
-  return raw
-}
 
 function unauthorized(): MediaHttpError {
   return new MediaHttpError({
@@ -19,7 +12,7 @@ function unauthorized(): MediaHttpError {
 }
 
 export function assertServiceToken(authHeader: string | undefined): void {
-  const expected = getExpected()
+  const expected = mediaServiceToken()
   const prefix = 'Bearer '
   if (!authHeader || !authHeader.startsWith(prefix)) {
     throw unauthorized()

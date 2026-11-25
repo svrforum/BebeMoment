@@ -1,10 +1,11 @@
 import type { Env } from '@bebe/config'
-import { getEnv } from './lib/env'
+import { assertServerSecrets, getEnv } from './lib/env'
 import { logger } from './lib/logger'
 
 let env: Env
 try {
   env = getEnv()
+  assertServerSecrets(env)
 } catch (err) {
   logger.fatal({ err }, 'invalid environment')
   process.exit(1)

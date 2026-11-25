@@ -1,3 +1,4 @@
+import { mediaPublicBase } from '@/lib/env'
 import { signImageAccess } from '@/lib/image-access'
 import { signFileServeToken } from '@/lib/jwt'
 
@@ -12,9 +13,7 @@ export type SignedUrlArgs = {
 // http IP URL 이 섞여 막히는 mixed-content 문제도 없다. 미디어를 별도 호스트로 분리한
 // 경우에만 MEDIA_PUBLIC_BASE_URL 로 절대 URL 을 강제한다. (PUBLIC_URL 폴백은 제거 —
 // IP/스킴 불일치로 원격 도메인 사용자에게 이미지가 안 뜨는 회귀를 유발했다.)
-function publicBase(): string {
-  return (process.env.MEDIA_PUBLIC_BASE_URL || '').replace(/\/$/, '')
-}
+const publicBase = mediaPublicBase
 
 export async function buildSignedUrl(args: SignedUrlArgs): Promise<string> {
   const token = await signFileServeToken(args)
