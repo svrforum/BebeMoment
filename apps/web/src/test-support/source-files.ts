@@ -11,14 +11,14 @@ const SOURCE = /\.tsx?$/
 const TEST = /\.test\.tsx?$/
 
 /**
- * `dirs`(apps/web 기준) 아래의 .ts/.tsx 소스. 테스트 파일은 뺀다.
+ * `dirs`(apps/web 기준, '.' 이면 전체) 아래의 .ts/.tsx 소스. 테스트 파일은 뺀다.
  * 돌려주는 경로도 apps/web 기준이고 구분자는 늘 '/' 라 허용 목록과 그대로 비교된다.
  */
 export function sourceFiles(...dirs: string[]): string[] {
   const out: string[] = []
   const walk = (rel: string): void => {
     for (const entry of readdirSync(path.join(WEB_ROOT, rel), { withFileTypes: true })) {
-      const child = `${rel}/${entry.name}`
+      const child = rel ? `${rel}/${entry.name}` : entry.name
       if (entry.isDirectory()) {
         if (!SKIP_DIRS.has(entry.name)) walk(child)
       } else if (SOURCE.test(entry.name) && !TEST.test(entry.name)) {
@@ -26,7 +26,7 @@ export function sourceFiles(...dirs: string[]): string[] {
       }
     }
   }
-  for (const dir of dirs) walk(dir.replace(/\/+$/, ''))
+  for (const dir of dirs) walk(dir === '.' ? '' : dir.replace(/\/+$/, ''))
   return out.sort()
 }
 
