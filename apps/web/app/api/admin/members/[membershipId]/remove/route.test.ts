@@ -45,7 +45,6 @@ vi.mock('@/lib/db-init', () => ({
 beforeAll(async () => {
   state.db = await startFullTestDb()
   process.env.DATABASE_URL = state.db.url
-  process.env.REDIS_URL ??= 'redis://localhost:6379'
   process.env.SECRET_KEY ??= 'c0ffee1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
   process.env.PUBLIC_URL ??= 'http://localhost:3000'
 }, 120_000)
