@@ -17,6 +17,7 @@
     "lint": "biome check .",
     "format": "biome format --write .",
     "check:lines": "scripts/check-line-limit.sh",
+    "verify": "pnpm lint && pnpm typecheck && pnpm check:lines && scripts/check-compose-doc-env.sh && pnpm -r --filter '!@bebe/e2e' test && TZ=Asia/Seoul pnpm --filter @bebe/core test && pnpm --filter @bebe/web build",
     "licenses": "pnpm licenses list --prod",
     "licenses:check": "scripts/check-licenses.sh",
     "db:migrate": "pnpm --filter @bebe/db-public migrate:deploy && pnpm --filter @bebe/db-public generate && pnpm --filter @bebe/db-media migrate:deploy && pnpm --filter @bebe/db-media generate",
