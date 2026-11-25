@@ -193,6 +193,35 @@ describe('family 역할은 비밀 앨범과 그 아래 앨범을 어느 경로�
   })
 })
 
+// 지운 앨범은 비밀 판정(살아 있는 앨범만 본다)을 그냥 지나친다. 뷰어 이웃 목록
+// (ctx=album:<id>)은 이 두 함수만 거치므로, 지운 비밀 앨범의 UUID 하나로 그 안의 사진 순서가 드러났다.
+describe.each(['family', 'owner'] as const)(
+  '%s — 지운 앨범의 사진·스토리 목록은 비어 있다',
+  (role) => {
+    it('비밀 앨범을 하위째 지운 뒤, 그리고 공개 앨범을 지운 뒤', async () => {
+      const s = await setup()
+      await db.prismaPublic.album.updateMany({
+        where: { familyId: s.familyId, id: { in: [s.hidden.id, s.child.id, s.grandchild.id] } },
+        data: { deletedAt: new Date() },
+      })
+      await db.prismaPublic.album.update({
+        where: { id: s.open.id },
+        data: { deletedAt: new Date() },
+      })
+      const media = new FakeMediaClient()
+      for (const albumId of [s.child.id, s.open.id]) {
+        const args = { albumId, familyId: s.familyId, viewerRole: role }
+        expect(await listAlbumAssets(args, db.prismaPublic, db.prismaMedia, media)).toEqual({
+          assets: [],
+          total: 0,
+          truncated: false,
+        })
+        expect(await listAlbumEntries(args, db.prismaPublic, db.prismaMedia, media)).toEqual([])
+      }
+    })
+  },
+)
+
 describe('하위 앨범 수', () => {
   // 공개 앨범 아래 비밀 자식이 하나 있다. family 에게 "하위 앨범 2개" 라고 보여 주면 열 수 없는
   // 앨범이 하나 더 있다는 사실이 드러난다 — 목록·검색·상세가 같은 수를 내야 한다.

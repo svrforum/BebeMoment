@@ -38,8 +38,8 @@ export async function isAlbumSecretOrUnderSecret(
 /**
  * family 역할에게 이 앨범이 비밀(자신 또는 조상이 secret)인지 — 즉 숨겨야 하는지.
  * owner/guardian 은 항상 false(전부 보임). 존재하지 않는 앨범은 false(호출부가 별도 처리).
- * 읽기 경로(자식 목록·사진·스토리·통합 검색)가 이걸로 막는다(트리·상세·앨범 검색은 이미 읽어
- * 온 행으로 직접 판정한다). 쓰기는 findVisibleAlbumOrThrow 로 앨범을 찾는다.
+ * 자식 목록·통합 검색이 이걸로 막는다(트리·상세·앨범 검색은 이미 읽어 온 행으로 직접 판정하고,
+ * 사진·스토리 목록은 isAlbumContentHiddenFromViewer, 쓰기는 findVisibleAlbumOrThrow 를 쓴다).
  */
 export async function isAlbumSecretForViewer(
   args: { albumId: string; familyId: string; viewerRole: Role },
@@ -47,6 +47,24 @@ export async function isAlbumSecretForViewer(
 ): Promise<boolean> {
   if (args.viewerRole !== 'family') return false
   return isAlbumSecretOrUnderSecret({ albumId: args.albumId, familyId: args.familyId }, prisma)
+}
+
+/**
+ * 앨범의 사진·스토리 목록을 이 뷰어에게 비워 보여야 하는지 — 없거나 지운 앨범(누구에게나),
+ * 그리고 family 에게 비밀인 앨범. 지운 앨범은 isAlbumSecretForViewer(살아 있는 앨범만 본다)를
+ * 그냥 지나치므로 여기서 함께 막는다.
+ */
+export async function isAlbumContentHiddenFromViewer(
+  args: { albumId: string; familyId: string; viewerRole: Role },
+  prisma: AlbumReader,
+): Promise<boolean> {
+  const album = await prisma.album.findFirst({
+    where: { id: args.albumId, familyId: args.familyId, deletedAt: null },
+    select: { secret: true, path: true },
+  })
+  if (!album) return true
+  if (args.viewerRole !== 'family') return false
+  return isSecretRow(album, args.familyId, prisma)
 }
 
 /**

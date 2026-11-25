@@ -4,7 +4,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { Story, StoryAsset, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
-import { isAlbumSecretForViewer } from './secret-visibility'
+import { isAlbumContentHiddenFromViewer } from './secret-visibility'
 
 export type AlbumEntry = Story & {
   assets: (StoryAsset & { asset: AssetWithUrls | null })[]
@@ -15,7 +15,8 @@ const DEFAULT_LIMIT = 200
 /**
  * List diary entries (stories) attached to an album, hydrated with their
  * photos' signed URLs so the album view can render StoryCard. Preserves the
- * album's link order. family 역할에겐 비밀 앨범(또는 비밀 조상 아래 앨범)이 빈 앨범이다.
+ * album's link order. family 역할에겐 비밀 앨범(또는 비밀 조상 아래 앨범)이, 누구에게나 지운
+ * 앨범이 빈 앨범이다.
  */
 export async function listAlbumEntries(
   args: { albumId: string; familyId: string; limit?: number; viewerRole: Role },
@@ -23,7 +24,7 @@ export async function listAlbumEntries(
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<AlbumEntry[]> {
-  if (await isAlbumSecretForViewer(args, prismaPublic)) return []
+  if (await isAlbumContentHiddenFromViewer(args, prismaPublic)) return []
   const links = await prismaPublic.albumStory.findMany({
     where: { albumId: args.albumId, familyId: args.familyId },
     orderBy: [{ sortIndex: 'asc' }, { addedAt: 'asc' }],
