@@ -3,6 +3,7 @@ import { SnsButton } from '@/components/auth/sns-brand'
 import { Button } from '@/components/ui/button'
 import { oidcLoginErrorKey } from '@/lib/oidc-login-error'
 import { clearPhotoCache } from '@/lib/photo-cache'
+import { safeNextPath } from '@/lib/safe-next-path'
 import { Eye, EyeOff } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import Link from 'next/link'
@@ -13,13 +14,10 @@ type Props = {
   passwordEnabled: boolean
 }
 
-// 로그인 후 돌아갈 경로. open-redirect 방지: 첫 글자가 '/' 이고 그 다음이 '/'·'\\' 가 아닌
-// 같은-출처 절대경로만 허용(`//evil`·`/\evil` 같은 프로토콜-상대/백슬래시 우회 차단).
+// 로그인 후 돌아갈 경로 — 같은 출처 경로만(open-redirect 방지).
 function safeNext(): string {
   if (typeof window === 'undefined') return '/'
-  const p = new URLSearchParams(window.location.search).get('next')
-  if (p && /^\/(?![/\\])/.test(p)) return p
-  return '/'
+  return safeNextPath(new URLSearchParams(window.location.search).get('next')) ?? '/'
 }
 
 export function LoginForm({ oidcProviders, passwordEnabled }: Props) {

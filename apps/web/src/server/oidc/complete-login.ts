@@ -1,4 +1,5 @@
 import { logger } from '@/lib/logger'
+import { safeNextPath } from '@/lib/safe-next-path'
 import { createAppHandoff } from '@/server/auth/app-handoff'
 import {
   isBootstrapSetupAllowed,
@@ -12,7 +13,6 @@ import { type LinkOrCreateInput, findLinkedUser, linkOrCreateUser } from './call
 import { tryDecryptClientSecret } from './client-secret'
 import type { IdentityRequest, VerifiedIdentity } from './identity'
 import { linkIdentityToUser } from './link'
-import { safeNextPath } from './next-path'
 
 // 시작 라우트가 심어 두고 콜백이 읽는 1회용 쿠키 값들.
 export type OidcFlowCookies = {

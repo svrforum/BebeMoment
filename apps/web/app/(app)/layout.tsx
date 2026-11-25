@@ -5,6 +5,7 @@ import { SideNav } from '@/components/shell/side-nav'
 import { WidgetRegistrar } from '@/components/widget/widget-registrar'
 import { FeaturesProvider } from '@/lib/features'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
+import { safeNextPath } from '@/lib/safe-next-path'
 import { getContext } from '@/server/context'
 import { getSetting } from '@/server/settings/get'
 import { getFeatureFlags } from '@/server/settings/features'
@@ -26,9 +27,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (!ctx.user) {
     // 미로그인으로 보호 페이지(공유된 /detail/52 등)에 들어오면 로그인 후 그 자리로
     // 돌려보내도록 ?next= 를 붙인다. 경로는 미들웨어가 심은 x-pathname 에서 읽는다.
-    const path = (await headers()).get('x-pathname') ?? ''
-    // 같은-출처 절대경로만 (`//`·`/\` 프로토콜-상대 우회 차단).
-    const next = /^\/(?![/\\])/.test(path) ? path : ''
+    const next = safeNextPath((await headers()).get('x-pathname'))
     redirect(next ? `/login?next=${encodeURIComponent(next)}` : '/login')
   }
   if (!ctx.family) redirect('/onboarding')
