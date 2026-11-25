@@ -116,14 +116,14 @@ describe('lastSeenOnGroupAxis', () => {
   })
 
   it('촬영순이면 마지막 방문(실제 순간)을 벽시계로 옮겨 촬영 시각과 비교하게 한다', () => {
-    // 2026-10-12 10:00 KST 에 마지막으로 봤다.
-    expect(lastSeenOnGroupAxis(new Date('2026-10-12T01:00:00Z'), 'taken')?.toISOString()).toBe(
-      '2026-10-12T10:00:00.000Z',
+    // 2030-03-04 10:00 KST 에 마지막으로 봤다.
+    expect(lastSeenOnGroupAxis(new Date('2030-03-04T01:00:00Z'), 'taken')?.toISOString()).toBe(
+      '2030-03-04T10:00:00.000Z',
     )
   })
 
   it('업로드순은 둘 다 실제 순간이라 그대로 둔다', () => {
-    const at = new Date('2026-10-12T01:00:00Z')
+    const at = new Date('2030-03-04T01:00:00Z')
     expect(lastSeenOnGroupAxis(at, 'uploaded')).toBe(at)
   })
 

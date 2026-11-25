@@ -66,11 +66,11 @@ describe('isSubmittableDayKey', () => {
 
 describe('todayAsUtcDate', () => {
   it('오늘의 벽시계 날짜를 UTC 자정으로 — 생일·촬영 시각과 같은 기준으로 센다', () => {
-    expect(todayAsUtcDate(new Date(2026, 9, 16, 0, 30)).toISOString()).toBe(
-      '2026-10-16T00:00:00.000Z',
+    expect(todayAsUtcDate(new Date(2030, 6, 14, 0, 30)).toISOString()).toBe(
+      '2030-07-14T00:00:00.000Z',
     )
-    expect(todayAsUtcDate(new Date(2026, 9, 16, 23, 59)).toISOString()).toBe(
-      '2026-10-16T00:00:00.000Z',
+    expect(todayAsUtcDate(new Date(2030, 6, 14, 23, 59)).toISOString()).toBe(
+      '2030-07-14T00:00:00.000Z',
     )
   })
 })

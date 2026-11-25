@@ -194,13 +194,13 @@ describe('listMemories', () => {
 
   it('KST 새벽에도 오늘 날짜의 추억이다 — 호출부가 넘기는 지금 시각은 UTC 로 아직 어제다', async () => {
     const { user, family } = await setup()
-    // 촬영 시각은 벽시계를 UTC 필드에 담는다 — 1년 전 10/16 아침, 그리고 그 전날.
-    await makeAsset(family.id, user.id, new Date('2025-10-16T07:00:00Z'))
-    await makeAsset(family.id, user.id, new Date('2025-10-15T07:00:00Z'))
+    // 촬영 시각은 벽시계를 UTC 필드에 담는다 — 1년 전 7/14 아침, 그리고 그 전날.
+    await makeAsset(family.id, user.id, new Date('2029-07-14T07:00:00Z'))
+    await makeAsset(family.id, user.id, new Date('2029-07-13T07:00:00Z'))
 
     const groups = await listMemories(
-      // 2026-10-16 08:30 KST
-      { familyId: family.id, today: new Date('2026-10-15T23:30:00Z'), viewerRole: 'owner' },
+      // 2030-07-14 08:30 KST
+      { familyId: family.id, today: new Date('2030-07-13T23:30:00Z'), viewerRole: 'owner' },
       db.prismaMedia,
       db.prismaPublic,
       new FakeMediaClient(),
@@ -208,7 +208,7 @@ describe('listMemories', () => {
 
     expect(groups.map((g) => g.interval)).toEqual([{ kind: 'year', n: 1 }])
     expect(groups[0]?.assets.map((a) => a.takenAt.toISOString())).toEqual([
-      '2025-10-16T07:00:00.000Z',
+      '2029-07-14T07:00:00.000Z',
     ])
   })
 
