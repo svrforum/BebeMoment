@@ -13,10 +13,11 @@ dependencies never churn the monorepo's React-pinned lockfile.
 - **Server URL onboarding** (`www/onboarding.js`): enter `https://your-server`,
   validated against `/api/health`, persisted in Capacitor Preferences; the
   WebView then loads the server.
-- **BebePush plugin** (`android/.../BebePushPlugin.java`): initializes a secondary
-  `FirebaseApp` from the admin-provided public Firebase config (fetched by the web
-  app from `/api/push/fcm-config`) and returns the FCM device token. The web app
-  POSTs it to `/api/notifications/register-device`.
+- **Native push registration** (`android/.../ServerSync.java`): reads the
+  admin-provided public Firebase config from `/api/push/fcm-config`, initializes a
+  secondary `FirebaseApp` and POSTs the FCM device token to
+  `/api/notifications/register-device` with the session cookie. The remote server
+  page has no Capacitor bridge, so the web app does not take part.
 - **BebeMessagingService**: shows incoming pushes and deep-links into the WebView
   via the notification's `data.url`.
 
