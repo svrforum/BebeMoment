@@ -1,9 +1,9 @@
+import { createAsset } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { setSetting } from '../settings/set'
-import { createAsset } from './create'
 import { softDeleteAsset } from './soft-delete'
 
 let db: FullTestDb

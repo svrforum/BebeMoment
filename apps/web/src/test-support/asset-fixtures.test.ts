@@ -1,8 +1,8 @@
-import { type FullTestDb, startFullTestDb } from '@/test-support/db'
+import { signup } from '@/server/auth/signup'
+import { createFamily } from '@/server/family/create'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { signup } from '../auth/signup'
-import { createFamily } from '../family/create'
-import { createAsset } from './create'
+import { createAsset, updateAssetStatus } from './asset-fixtures'
+import { type FullTestDb, startFullTestDb } from './db'
 
 let db: FullTestDb
 
@@ -29,19 +29,24 @@ async function setup() {
   return { user, family }
 }
 
+const IMAGE = {
+  kind: 'image',
+  originalFilename: 'photo.jpg',
+  mimeType: 'image/jpeg',
+  originalKey: 'placeholder',
+  sizeBytes: 0n,
+  sha256: 'a'.repeat(64),
+  takenAtSource: 'uploaded',
+} as const
+
 describe('createAsset', () => {
   it('creates asset row with status=uploading', async () => {
     const { user, family } = await setup()
     const asset = await createAsset(
       {
+        ...IMAGE,
         familyId: family.id,
         uploadedByUserId: user.id,
-        kind: 'image',
-        originalFilename: 'photo.jpg',
-        mimeType: 'image/jpeg',
-        originalKey: 'placeholder',
-        sizeBytes: 0n,
-        sha256: 'a'.repeat(64),
         takenAt: new Date('2026-01-01'),
         takenAtSource: 'manual',
       },
@@ -61,18 +66,7 @@ describe('createAsset', () => {
     )
     await expect(
       createAsset(
-        {
-          familyId: family.id,
-          uploadedByUserId: outsider.id,
-          kind: 'image',
-          originalFilename: 'photo.jpg',
-          mimeType: 'image/jpeg',
-          originalKey: 'placeholder',
-          sizeBytes: 0n,
-          sha256: 'a'.repeat(64),
-          takenAt: new Date(),
-          takenAtSource: 'uploaded',
-        },
+        { ...IMAGE, familyId: family.id, uploadedByUserId: outsider.id, takenAt: new Date() },
         db.prismaPublic,
         db.prismaMedia,
       ),
@@ -90,21 +84,54 @@ describe('createAsset', () => {
     })
     await expect(
       createAsset(
-        {
-          familyId: family.id,
-          uploadedByUserId: fam.id,
-          kind: 'image',
-          originalFilename: 'photo.jpg',
-          mimeType: 'image/jpeg',
-          originalKey: 'placeholder',
-          sizeBytes: 0n,
-          sha256: 'a'.repeat(64),
-          takenAt: new Date(),
-          takenAtSource: 'uploaded',
-        },
+        { ...IMAGE, familyId: family.id, uploadedByUserId: fam.id, takenAt: new Date() },
         db.prismaPublic,
         db.prismaMedia,
       ),
     ).rejects.toThrow('asset.uploadDenied')
+  })
+})
+
+describe('updateAssetStatus', () => {
+  async function uploading() {
+    const { user, family } = await setup()
+    const asset = await createAsset(
+      {
+        ...IMAGE,
+        familyId: family.id,
+        uploadedByUserId: user.id,
+        originalKey: 'k',
+        sizeBytes: 100n,
+        takenAt: new Date(),
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+    return { asset, family }
+  }
+
+  it('transitions to ready with derivatives', async () => {
+    const { asset, family } = await uploading()
+    const updated = await updateAssetStatus(
+      {
+        assetId: asset.id,
+        familyId: family.id,
+        status: 'ready',
+        derivatives: { thumb_sm: 'k-sm.webp' },
+      },
+      db.prismaMedia,
+    )
+    expect(updated.status).toBe('ready')
+    expect(updated.derivatives).toEqual({ thumb_sm: 'k-sm.webp' })
+  })
+
+  it('transitions to failed with error message', async () => {
+    const { asset, family } = await uploading()
+    const updated = await updateAssetStatus(
+      { assetId: asset.id, familyId: family.id, status: 'failed', processingError: 'OOM' },
+      db.prismaMedia,
+    )
+    expect(updated.status).toBe('failed')
+    expect(updated.processingError).toBe('OOM')
   })
 })

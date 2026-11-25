@@ -1,14 +1,13 @@
 import { buildTimelineGroups } from '@/server/timeline/build-groups'
 import { listTimeline } from '@/server/timeline/merged-list'
+import { createAsset, updateAssetStatus } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'
-import { createAsset } from './create'
 import { timelineNeighborIds } from './timeline-neighbors'
-import { updateAssetStatus } from './update-status'
 
 let db: FullTestDb
 

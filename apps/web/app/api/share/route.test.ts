@@ -1,9 +1,8 @@
-import { createAsset } from '@/server/asset/create'
-import { updateAssetStatus } from '@/server/asset/update-status'
 import { signup } from '@/server/auth/signup'
 import { createFamily } from '@/server/family/create'
 import { setSetting } from '@/server/settings/set'
 import { createShareLink } from '@/server/share/create'
+import { createAsset, updateAssetStatus } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
 

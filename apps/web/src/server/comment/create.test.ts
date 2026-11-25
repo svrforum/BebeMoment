@@ -1,7 +1,7 @@
+import { createAsset } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import type { NotificationJob } from '@bebe/core'
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'

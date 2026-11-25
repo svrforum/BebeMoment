@@ -1,7 +1,6 @@
+import { createAsset, updateAssetStatus } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createAsset } from '../asset/create'
-import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { getDateAssetIds } from './date-assets'

@@ -1,7 +1,7 @@
+import { createAsset } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
 import { createStoryEntry } from '../story/create'
 import { createFamily } from '../family/create'

@@ -1,11 +1,10 @@
+import { createAsset, updateAssetStatus } from '@/test-support/asset-fixtures'
 import { randomUUID } from 'node:crypto'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { createStoryEntry } from '../story/create'
-import { createAsset } from './create'
-import { updateAssetStatus } from './update-status'
 import { resolveStoryViewerCtx } from './viewer-story-ctx'
 
 let db: FullTestDb
