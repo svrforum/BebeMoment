@@ -81,10 +81,11 @@ docker compose up -d
 
 ## 트러블슈팅
 
-### 페이지가 500 / `MEDIA_SERVICE_TOKEN env required`
-미디어를 부르는 페이지(타임라인·상세)가 500 나고 로그에 `MEDIA_SERVICE_TOKEN env required` 가 보이면, 컨테이너에 `MEDIA_SERVICE_TOKEN`·`MEDIA_JWT_SECRET` 가 안 들어간 것이다.
-- 루트 `.env` 는 **gitignore 이자 dockerignore** 대상이라 이미지에 포함되지 않는다. 이 값들은 반드시 **런타임 env**(compose `environment:` / Synology Container Manager 환경변수)로 줘야 한다.
-- `/api/health` 는 미디어를 안 거쳐 200 으로 남으므로 헬스체크만으론 못 잡는다 — 실제 사진 페이지로 확인할 것.
+### 컨테이너가 계속 재시작됨 / `media exited during startup`
+`docker compose logs app` 에 `[run-app] media exited during startup` 이 보이고 컨테이너가 재시작을 되풀이하면(포트 3000 은 응답이 없다) 미디어 서비스가 기동하자마자 종료한 것이다. 이유는 그 바로 앞의 미디어 로그에 있다.
+- `invalid environment` 와 `MEDIA_SERVICE_TOKEN, MEDIA_JWT_SECRET must be set (32+ characters) when MEDIA_ROLE=both`(빠진 것만 나열된다) — 컨테이너에 `MEDIA_SERVICE_TOKEN`·`MEDIA_JWT_SECRET` 가 안 들어갔다. 미디어는 이 둘 없이는 업로드도 사진 주소 서명도 못 하므로 반쯤 뜬 채로 두지 않고 기동에서 멈춘다.
+- `Invalid environment:` 와 변수 이름 — 값이 32자보다 짧거나 예시값(`change-me…`)이다. `openssl rand -hex 32` 로 새로 만든다.
+- `.env` 를 고쳤으면 `docker compose up -d` 로 컨테이너를 다시 만든다(`restart` 는 바뀐 env 를 읽지 않는다). 루트 `.env` 는 **gitignore 이자 dockerignore** 대상이라 이미지에 포함되지 않는다 — 이 값들은 반드시 **런타임 env**(compose `environment:` / Synology Container Manager 환경변수)로 줘야 한다.
 
 ### 페이지는 뜨는데 사진이 안 뜸 (썸네일 깨짐)
 서명 URL 이 노출되지 않은 포트(예: `:3001`)나 다른 오리진(http IP ↔ https 도메인)을 가리키는 경우다.

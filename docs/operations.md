@@ -395,9 +395,16 @@ docker compose logs app | jq -r 'select(.level=="error")'   # pino JSON, errors 
   `--log-opt max-size=20m --log-opt max-file=5`.
 - Health: `GET /api/health` is a **liveness** check (DB only) used by the
   container healthcheck. For monitoring, `GET /api/health?deep=1` is a
-  **readiness** check that also pings the media service — use it to catch the
-  "photos 500 but health green" case (usually missing `MEDIA_SERVICE_TOKEN` /
-  `MEDIA_JWT_SECRET`).
+  **readiness** check that also pings the media service — use it to catch a
+  media service that hangs while the web server still answers.
+- Missing `MEDIA_SERVICE_TOKEN` / `MEDIA_JWT_SECRET` stops the container at boot
+  instead: media logs `invalid environment` with `MEDIA_SERVICE_TOKEN,
+  MEDIA_JWT_SECRET must be set (32+ characters) when MEDIA_ROLE=both` (only the
+  missing ones are listed), the supervisor logs `[run-app] media exited during
+  startup` and exits, and Docker keeps restarting the container. A value that is
+  too short or a placeholder fails earlier with `Invalid environment:` and the
+  variable's name. Set them in `.env` and recreate the container with
+  `docker compose up -d`.
 - Stopping the container: `docker compose stop` sends SIGTERM to all three
   processes; media finishes in-flight transcodes (up to `MEDIA_SHUTDOWN_GRACE_MS`),
   the supervisor waits up to `APP_SHUTDOWN_GRACE_S` and the compose file gives
