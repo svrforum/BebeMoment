@@ -26,10 +26,16 @@ build/
 
 # Runtime data (docker volumes if dev setup) — 루트 앵커. 앵커 없이 두면 경로 어디든
 # data/ 디렉터리를 삼켜 apps/web/app/api/widget/data/route.ts 가 릴리스에서 통째로 빠졌다.
-# compose/docker-compose.yml 을 그 자리에서 띄우면 볼륨이 compose/ 아래에 생긴다.
+# compose/docker-compose.yml 을 그 자리에서 띄우면 볼륨이 compose/ 아래에 생긴다 — 가족 사진
+# 원본(data)·DB 덤프가 든 백업(backups)·얼굴 모델(ml-models)이라 `git add -A` 에 딸려 가면 안 된다.
 /data/
+/backups/
+/ml-models/
 /pg/
 /redis/
+/compose/data/
+/compose/backups/
+/compose/ml-models/
 /compose/pg/
 /compose/redis/
 .dev/
