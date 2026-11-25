@@ -1,12 +1,9 @@
 'use client'
-import { collectAssetIds } from '@/components/upload/collect-asset-ids'
-import { createdAssetIds } from '@/components/upload/created-asset-ids'
-import { reportUploadFailure } from '@/components/upload/report-failure'
-import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { ReorderRow } from '@/components/upload/reorder-row'
 import { UploadEditor } from '@/components/upload/upload-editor'
 import { useUploadManager } from '@/components/upload/upload-manager'
 import { useOrderedKeys } from '@/components/upload/use-ordered-keys'
+import { useStorySubmit } from '@/components/upload/use-story-submit'
 import { Input, Label } from '@/components/ui/input'
 import { pickThumbUrl, pickVideoPosterUrl } from '@/lib/asset-url'
 import { isSubmittableDayKey, localDayKey } from '@/lib/day-key'
@@ -76,18 +73,8 @@ export function StoryEditForm({
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('story')
-  const {
-    files,
-    addFiles,
-    removeFile,
-    clearStaged,
-    startStagedUploads,
-    replaceFileData,
-    abortUploads,
-    pauseAutoDismiss,
-  } = useUploadManager()
-  const filesRef = useRef(files)
-  filesRef.current = files
+  const { files, addFiles, removeFile, clearStaged, replaceFileData } = useUploadManager()
+  const submitStory = useStorySubmit('story-edit')
 
   const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
 
@@ -218,94 +205,65 @@ export function StoryEditForm({
     }
     if (submitting) return
     setSubmitting(true)
-    // 컴포저와 같은 이유로 자동정리를 멈춘다(빠른 사진이 제출 전에 정리되는 것 방지).
-    pauseAutoDismiss(true)
-    try {
-      // 스토리에 추가하는 사진 — 개별 '사진 추가' 푸시 생략(스토리 콘텐츠로 묶음).
+    // 통합 순서(order)에서 신규(n:fileId)만 추려 assetId 를 모으고, 그 순서대로
+    // 기존(e:assetId)과 섞어 최종 assetIds 를 만든다 — 드래그한 순서 그대로 저장.
+    const newFileIds = orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2))
+    const r = await submitStory({
+      fileIds: newFileIds,
       // 컴포저와 같은 이유 — 올린 뒤 서버가 날짜를 거절하면 실패 처리가 방금 올린
       // 사진을 휴지통으로 되돌린다. 보내기 전에 막는다.
-      if (!isSubmittableDayKey(entryDate)) {
-        throw new Error(t('edit.entryDateInvalid'))
+      invalid: isSubmittableDayKey(entryDate) ? null : t('edit.entryDateInvalid'),
+      save: async (newAssetIds) => {
+        const assetIdByFileId = new Map(newFileIds.map((fid, i) => [fid, newAssetIds[i]]))
+        const assetIds = orderRef.current
+          .map((k) => (k.startsWith('e:') ? k.slice(2) : assetIdByFileId.get(k.slice(2))))
+          .filter((id): id is string => typeof id === 'string')
+        const res = await fetch(`/api/story/${entryId}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          // visibility 는 바꿨을 때만 보낸다 — 같은 값이라도 보내면 서버가 family 역할의
+          // 편집을 "공개 범위 변경"으로 보고 거절한다(guardian 전용).
+          body: JSON.stringify({
+            body: trimmed || ' ',
+            assetIds,
+            ...(visibility !== defaultVisibility ? { visibility } : {}),
+            ...(entryDate !== defaultEntryDate ? { entryDate } : {}),
+          }),
+        })
+        if (!res.ok) {
+          const err = await res.json().catch(() => ({}))
+          throw new Error((err as { error?: string }).error ?? t('edit.saveFailed'))
+        }
+        return (await res.json().catch(() => ({}))) as { publicNo?: number }
+      },
+    })
+    if (!r.ok) {
+      // 실패하면 이번에 새로 올린 사진은 휴지통으로 되돌아가고(기존 사진은 그대로) 매니저에서도
+      // 빠진다 — 첨부로 남겨 두면 다시 눌러도 시작할 게 없어 같은 실패만 반복된다.
+      if (r.dropped.length > 0) {
+        const gone = new Set(r.dropped)
+        setAttachments((prev) => {
+          for (const a of prev)
+            if (gone.has(a.fileId) && a.previewUrl) URL.revokeObjectURL(a.previewUrl)
+          return prev.filter((a) => !gone.has(a.fileId))
+        })
       }
-      if (attachments.length > 0) startStagedUploads({ notify: false })
-      // 통합 순서(order)에서 신규(n:fileId)만 추려 assetId 를 모으고, 그 순서대로
-      // 기존(e:assetId)과 섞어 최종 assetIds 를 만든다 — 드래그한 순서 그대로 저장.
-      const newFileIds = orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2))
-      const newAssetIds = await collectAssetIds(() => filesRef.current, newFileIds)
-      if (newAssetIds.length !== newFileIds.length) {
-        throw new Error(t('edit.uploadNotReady'))
-      }
-      const assetIdByFileId = new Map(newFileIds.map((fid, i) => [fid, newAssetIds[i]]))
-      const assetIds = orderRef.current
-        .map((k) => (k.startsWith('e:') ? k.slice(2) : assetIdByFileId.get(k.slice(2))))
-        .filter((id): id is string => typeof id === 'string')
-      const res = await fetch(`/api/story/${entryId}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        // visibility 는 바꿨을 때만 보낸다 — 같은 값이라도 보내면 서버가 family 역할의
-        // 편집을 "공개 범위 변경"으로 보고 거절한다(guardian 전용).
-        body: JSON.stringify({
-          body: trimmed || ' ',
-          assetIds,
-          ...(visibility !== defaultVisibility ? { visibility } : {}),
-          ...(entryDate !== defaultEntryDate ? { entryDate } : {}),
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? t('edit.saveFailed'))
-      }
-      const saved = (await res.json().catch(() => ({}))) as { publicNo?: number }
-      router.push(`/story/${saved.publicNo ?? entryId}`)
-      router.refresh()
-    } catch (e) {
-      // 저장이 실패하면 이번에 새로 올린 사진도 되돌린다 — 스토리엔 안 붙고 타임라인에만
-      // 개별로 남는 사진이 생기는 걸 막는다(기존 사진은 건드리지 않는다).
-      // 스냅샷이 먼저 — abortUploads 가 이 배치를 파일 목록에서 지운다.
-      const batchFileIds = orderRef.current.filter((k) => k.startsWith('n:')).map((k) => k.slice(2))
-      const created = createdAssetIds(filesRef.current, batchFileIds)
-      await abortUploads(batchFileIds)
-      const undone = created.length > 0 ? await rollbackAssets(created) : null
-      const base = (e as Error).message
-      void reportUploadFailure({
-        flow: 'story-edit',
-        step: base === t('edit.uploadNotReady') ? 'collect-asset-ids' : 'story-patch',
-        message: base,
-        counts: {
-          staged: attachments.length,
-          created: created.length,
-          rolledBack: undone?.removed ?? 0,
-          rollbackFailed: undone?.failed.length ?? 0,
-        },
-        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
-      })
-      toast({
-        title: undone?.failed.length
-          ? t('edit.rolledBackPartly', { count: undone.failed.length, error: base })
-          : undone && undone.removed > 0
-            ? t('edit.rolledBack', { count: undone.removed, error: base })
-            : base,
-        variant: 'danger',
-      })
       setSubmitting(false)
-    } finally {
-      // 성공하면 이동해 버리므로 여기서 반드시 푼다 — 안 풀면 자동정리가 영영 멈춘 채로
-      // 남아 다음 업로드의 완료 카드가 사라지지 않는다.
-      pauseAutoDismiss(false)
+      return
     }
+    // 성공하면 이동하므로 submitting 은 풀지 않는다 — 떠나기 전 두 번 눌러 다시 저장하지 않게.
+    router.push(`/story/${r.saved.publicNo ?? entryId}`)
+    router.refresh()
   }, [
     body,
     photoCount,
-    attachments,
     entryId,
     visibility,
     defaultVisibility,
     entryDate,
     defaultEntryDate,
     submitting,
-    startStagedUploads,
-    abortUploads,
-    pauseAutoDismiss,
+    submitStory,
     router,
     toast,
     t,

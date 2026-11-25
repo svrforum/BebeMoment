@@ -881,6 +881,7 @@
       "attachFiles": "Pick from files",
       "rolledBack": "Couldn't save — the {count} newly uploaded photo(s) were moved to the trash. ({error})",
       "rolledBackPartly": "Couldn't save — {count} photo(s) could not be undone. ({error})",
+      "reattach": "Please add the new photos again — {count} were cleared and cannot be re-sent. ({error})",
       "entryDate": "Story date",
       "entryDateInvalid": "Check the date — it must be today or earlier"
     },

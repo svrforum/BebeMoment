@@ -1,12 +1,8 @@
 'use client'
 import dynamic from 'next/dynamic'
 import { smoothScroll } from '@/lib/motion'
-import { collectAssetIds } from '@/components/upload/collect-asset-ids'
-import { createdAssetIds } from '@/components/upload/created-asset-ids'
-import { reportUploadFailure } from '@/components/upload/report-failure'
-import { partitionStaleAttachments } from '@/components/upload/stale-attachments'
-import { rollbackAssets } from '@/components/upload/rollback-assets'
 import { useUploadManager } from '@/components/upload/upload-manager'
+import { useStorySubmit } from '@/components/upload/use-story-submit'
 import { Input, Label } from '@/components/ui/input'
 import { isSubmittableDayKey, localDayKey } from '@/lib/day-key'
 import { useToast } from '@/lib/toast'
@@ -98,20 +94,8 @@ export function TimelineComposer({
   const tu = useTranslations('upload')
   const router = useRouter()
   const toast = useToast()
-  const {
-    files,
-    addFiles,
-    removeFile,
-    clearStaged,
-    startStagedUploads,
-    replaceFileData,
-    abortUploads,
-    pauseAutoDismiss,
-  } = useUploadManager()
-  // 최신 매니저 files 를 ref 로 — submit 의 async 대기 루프가 닫힌(stale)
-  // attachments 대신 실시간 assetId 를 읽을 수 있게.
-  const filesRef = useRef(files)
-  filesRef.current = files
+  const { files, addFiles, removeFile, clearStaged, replaceFileData } = useUploadManager()
+  const submitStory = useStorySubmit('timeline-composer')
 
   const canPostGuardian = viewerRole === 'owner' || viewerRole === 'guardian'
 
@@ -301,83 +285,45 @@ export function TimelineComposer({
     }
     if (submitting) return
     setSubmitting(true)
-    // 제출이 끝날 때까지 자동정리를 멈춘다. 사진이 빨리 처리되면 assetId 를 모으기도 전에
-    // uppy.cancelAll() 이 돌아 파일 목록이 비고, 그러면 "업로드 준비가 끝나지 않았어요"만
-    // 반복된다 — 게다가 attachments 는 죽은 fileId 를 붙들고 있어 다시 눌러도 안 된다.
-    pauseAutoDismiss(true)
     try {
-      // 이제(편집 끝난 뒤) 업로드 시작 — 편집된 데이터로 올라간다. notify:false 로 올려
-      // 개별 '사진 추가' 푸시를 막는다 — 스토리 생성이 보내는 푸시 하나로 갈음(중복 방지).
-      // 사진을 올리기 전에 날짜부터 본다. 올린 뒤 서버가 거절하면 실패 처리가 이미
-      // 올라간 사진을 전부 휴지통으로 되돌린다 — 날짜 오타의 대가로는 너무 크다.
-      if (!isSubmittableDayKey(entryDate)) {
-        throw new Error(t('composer.entryDateInvalid'))
-      }
-      if (attachments.length > 0) startStagedUploads({ notify: false })
-      const fileIds = attachments.map((a) => a.fileId)
-      // assetId 는 매니저 files 의 meta 로 들어온다. 닫힌 attachments 가 아니라
-      // filesRef(매 렌더 갱신)에서 읽는다(공유 헬퍼).
-      const finalAssetIds = await collectAssetIds(() => filesRef.current, fileIds)
-      if (finalAssetIds.length !== fileIds.length) {
-        throw new Error(t('composer.uploadNotReady'))
-      }
-
-      const res = await fetch('/api/story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          babyId,
-          entryDate: entryDate,
-          body: trimmed || ' ',
-          ...(visibility !== 'family' ? { visibility } : {}),
-          ...(finalAssetIds.length > 0 ? { assetIds: finalAssetIds } : {}),
-        }),
-      })
-      if (!res.ok) {
-        const err = await res.json().catch(() => ({}))
-        throw new Error((err as { error?: string }).error ?? t('composer.submitFailed'))
-      }
-      reset()
-      router.refresh()
-    } catch (e) {
-      // 스토리가 없으면 사진도 없어야 한다 — 실패한 제출의 사진이 타임라인에 개별로
-      // 남으면 사용자가 손으로 지워야 한다(upload-dashboard 와 같은 규칙).
-      // 스냅샷이 먼저 — abortUploads 가 이 배치를 파일 목록에서 지운다.
-      const batchFileIds = attachments.map((a) => a.fileId)
-      const created = createdAssetIds(filesRef.current, batchFileIds)
-      await abortUploads(batchFileIds)
-      const undone = created.length > 0 ? await rollbackAssets(created) : null
-      // 매니저가 이미 치운 첨부는 다시 눌러도 시작할 게 없다 — 목록에서 빼서 막다른 길을
-      // 만들지 않는다(사용자는 다시 담으면 된다).
-      const { live, staleCount } = partitionStaleAttachments(filesRef.current, attachments)
-      if (staleCount > 0) setAttachments(live)
-      const base = (e as Error).message
-      void reportUploadFailure({
-        flow: 'timeline-composer',
-        step: base === t('composer.uploadNotReady') ? 'collect-asset-ids' : 'story-post',
-        message: base,
-        counts: {
-          staged: attachments.length,
-          created: created.length,
-          rolledBack: undone?.removed ?? 0,
-          rollbackFailed: undone?.failed.length ?? 0,
-          stale: staleCount,
+      const r = await submitStory({
+        fileIds: attachments.map((a) => a.fileId),
+        // 사진을 올리기 전에 날짜부터 본다. 올린 뒤 서버가 거절하면 실패 처리가 이미
+        // 올라간 사진을 전부 휴지통으로 되돌린다 — 날짜 오타의 대가로는 너무 크다.
+        invalid: isSubmittableDayKey(entryDate) ? null : t('composer.entryDateInvalid'),
+        save: async (assetIds) => {
+          const res = await fetch('/api/story', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              babyId,
+              entryDate: entryDate,
+              body: trimmed || ' ',
+              ...(visibility !== 'family' ? { visibility } : {}),
+              ...(assetIds.length > 0 ? { assetIds } : {}),
+            }),
+          })
+          if (!res.ok) {
+            const err = await res.json().catch(() => ({}))
+            throw new Error((err as { error?: string }).error ?? t('composer.submitFailed'))
+          }
         },
-        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
       })
-      toast({
-        title: undone?.failed.length
-          ? t('composer.rolledBackPartly', { count: undone.failed.length, error: base })
-          : undone && undone.removed > 0
-            ? t('composer.rolledBack', { count: undone.removed, error: base })
-            : staleCount > 0
-              ? t('composer.reattach', { count: staleCount, error: base })
-              : base,
-        variant: 'danger',
-      })
+      if (r.ok) {
+        reset()
+        router.refresh()
+      } else if (r.dropped.length > 0) {
+        // 매니저가 치운 첨부는 다시 눌러도 시작할 게 없다 — 목록에서 빼서 막다른 길을
+        // 만들지 않는다(사용자는 다시 담으면 된다).
+        const gone = new Set(r.dropped)
+        setAttachments((prev) => {
+          for (const a of prev)
+            if (gone.has(a.fileId) && a.previewUrl) URL.revokeObjectURL(a.previewUrl)
+          return prev.filter((a) => !gone.has(a.fileId))
+        })
+      }
     } finally {
       setSubmitting(false)
-      pauseAutoDismiss(false)
     }
   }, [
     body,
@@ -389,9 +335,7 @@ export function TimelineComposer({
     router,
     toast,
     submitting,
-    startStagedUploads,
-    abortUploads,
-    pauseAutoDismiss,
+    submitStory,
     t,
   ])
 

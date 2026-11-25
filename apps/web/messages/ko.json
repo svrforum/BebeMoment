@@ -881,6 +881,7 @@
       "attachFiles": "파일에서 선택",
       "rolledBack": "저장하지 못했어요 — 새로 올린 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
       "rolledBackPartly": "저장하지 못했어요 — 사진 {count}장은 되돌리지 못했어요. ({error})",
+      "reattach": "새로 담은 사진을 다시 담아주세요 — {count}장이 정리돼 다시 올릴 수 없어요. ({error})",
       "entryDate": "이야기 날짜",
       "entryDateInvalid": "날짜를 확인해주세요 — 오늘까지의 날짜만 고를 수 있어요"
     },
