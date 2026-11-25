@@ -25,6 +25,9 @@ export default defineConfig({
       '@/': `${path.resolve(__dirname, 'src')}/`,
     },
   },
+  // tsconfig 의 jsx: preserve 는 Next 가 JSX 를 직접 컴파일하라는 뜻이다. 테스트에선 변환할 주체가
+  // 없어 .tsx 를 못 읽으므로 여기서만 자동 런타임(react/jsx-runtime)으로 바꾼다.
+  oxc: { jsx: { runtime: 'automatic' } },
   test: {
     environment: 'node',
     testTimeout: 120_000,
