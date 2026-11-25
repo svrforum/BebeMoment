@@ -63,7 +63,7 @@ export async function loadRemoteConfig(
   // 꺼져 있는 것만 null 이다. 켜져 있는데 못 쓰는 상태는 **던진다** — 예전엔 둘을 똑같이
   // null 로 돌려줘서, runBackup 의 `if (cfg)` 가 조용히 건너뛰고 catch 도 안 타 last_error 가
   // 비었다. 그러면 매일 백업이 "성공"으로 찍히고 관리자 화면은 원격이 켜져 있다고 안심시키는데
-  // 실제로는 로컬에만 쌓인다(§2#6 조용한 실패 금지).
+  // 실제로는 로컬에만 쌓인다(조용한 실패).
   if (!enabled) return null
   const bucket = await getSetting('backup.remote.bucket', z.string(), '', prisma)
   const accessKeyId = await getSetting('backup.remote.access_key', z.string(), '', prisma)

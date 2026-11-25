@@ -4,7 +4,8 @@ packages:
   - "e2e"
 
 # pnpm 10+ 부터 설정이 package.json 의 "pnpm" 필드에서 이리로 이동했다.
-# React 중복 방지(§17#17) — 단일 버전 핀. 의존성 추가로 React 가 갈라지면 여기서 갱신.
+# React 중복 방지 — 단일 버전 핀(두 벌이 되면 next build 의 프리렌더가 깨진다).
+# 의존성 추가로 React 가 갈라지면 여기서 갱신.
 overrides:
   react: 19.2.6
   react-dom: 19.2.6

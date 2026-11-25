@@ -337,7 +337,7 @@ export function ViewerShell({
           {...(canDelete ? { onDelete: () => setConfirmDeleteOpen(true) } : {})}
         />
         <ViewerImage
-          // takenAt 은 벽시계-as-UTC(§17#45) — UTC 로 읽어야 찍은 날짜 그대로 나온다.
+          // takenAt 은 벽시계-as-UTC — UTC 로 읽어야 찍은 날짜 그대로 나온다.
           currentAlt={t(currentSlim.kind === 'video' ? 'videoAlt' : 'photoAlt', {
             date: metaState.takenAt.toLocaleDateString(locale, {
               dateStyle: 'long',

@@ -53,7 +53,7 @@ function dateOrNull(day: string | null | undefined): Date | null {
 
 /**
  * 아기 id 는 클라이언트가 보낸 값이라 가족 경계를 넘을 수 있다. FK 는 babies(id) 만 보고
- * family_id 는 보지 않으므로 여기서 막지 않으면 남의 가족 아기가 붙는다(§8). 없는 id 는
+ * family_id 는 보지 않으므로 여기서 막지 않으면 남의 가족 아기가 붙는다. 없는 id 는
  * FK 위반으로 터지는데, 그건 사용자에게 아무 말도 못 해 주는 실패라 미리 걸러 낸다.
  */
 async function assertBabyInFamily(
@@ -102,7 +102,7 @@ export async function createScheduleEntry(
       entryId: entry.id,
       title: entry.title,
       // 날짜·시각은 **벽시계 그대로** 싣는다. 워커가 문구를 만들 때 시간대를 다시 유도하면
-      // 안 된다(§2.5) — 저장된 문자열과 분을 그대로 넘겨 그 자리에서 포맷한다.
+      // 안 된다 — 저장된 문자열과 분을 그대로 넘겨 그 자리에서 포맷한다.
       ...(input.onDate ? { onDate: input.onDate } : {}),
       ...(input.startMinute != null ? { startMinute: String(input.startMinute) } : {}),
     },

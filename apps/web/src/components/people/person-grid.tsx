@@ -26,7 +26,7 @@ export function PersonGrid({
   const [picking, setPicking] = useState(false)
   const [selected, setSelected] = useState<string[]>([])
   const [merging, setMerging] = useState(false)
-  // 페이지 래퍼(.section-enter)가 transform 을 남겨 fixed 의 기준이 돼 버린다(§17#19) —
+  // 페이지 래퍼(.section-enter)가 transform 을 남겨 fixed 의 기준이 돼 버린다 —
   // 그대로 두면 합치기 바가 화면 아래로 밀린다. body 로 포털해서 화면에 고정한다.
   const [mounted, setMounted] = useState(false)
   useEffect(() => setMounted(true), [])

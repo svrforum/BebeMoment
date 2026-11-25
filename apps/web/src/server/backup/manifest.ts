@@ -16,7 +16,7 @@ export type BackupManifest = {
   includesDerivatives?: boolean
   /**
    * 백업 시점의 스토리지 모드. 's3' 면 이 번들에 **사진이 한 장도 없다** — 백업은
-   * STORAGE_PATH 를 파일시스템으로 직접 읽는데 s3 모드에선 그 경로가 비어 있기 때문(§10).
+   * STORAGE_PATH 를 파일시스템으로 직접 읽는데 s3 모드에선 그 경로가 비어 있기 때문.
    * 옛 백업엔 없을 수 있음.
    */
   storageMode?: string

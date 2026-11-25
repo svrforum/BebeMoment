@@ -18,7 +18,7 @@ const MAX_FACES = 64
 // ML 사이드카 응답은 신뢰 경계 밖 입력이다. embedding 은 정확히 vector(512) 길이의
 // 유한수여야 하고(아니면 pgvector insert 가 잡 전체를 죽인다 — 멱등 DELETE 직후라
 // 부분 데이터 손실), bbox 는 0..1 클램프, 얼굴 수는 상한을 둔다(DoS). 잘못된 얼굴은
-// 스킵하되 잡은 살린다(§6: 한 얼굴 때문에 자산 전체를 잃지 않는다).
+// 스킵하되 잡은 살린다(한 얼굴 때문에 자산 전체를 잃지 않는다).
 const clamp01 = (v: number): number => Math.min(1, Math.max(0, v))
 
 const MlFaceSchema = z.object({

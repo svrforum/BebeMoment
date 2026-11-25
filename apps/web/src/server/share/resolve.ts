@@ -9,7 +9,7 @@ export type ShareResolution =
 
 /**
  * 공개 공유 라우트(/s/<token>)용 토큰 해석. 세션/familyId 없는 무인증 라우트라 tenant
- * 미들웨어를 raw 쿼리로 우회한다(§8, isRegistrationOpen 패턴). 만료·해제 상태를 구분.
+ * 미들웨어를 raw 쿼리로 우회한다(isRegistrationOpen 패턴). 만료·해제 상태를 구분.
  * 단일 컬럼이 모두 null 이면 선택(컬렉션) — share_link_assets 에서 자산 id 를 순서대로 읽는다.
  * target_date 에 그 자식 row 가 딸려 있으면 추억(날짜 + 고정된 사진 목록), 없으면 날짜 공유다.
  * 유효하면 last_accessed_at 갱신(best-effort).

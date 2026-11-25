@@ -33,7 +33,7 @@ export default async function WidgetSettingsPage() {
   const liveSet = new Set(live.map((a) => a.id))
   const orderedIds = collectionIds.filter((id) => liveSet.has(id))
   // 새 asset 노출 지점 — 비밀 스토리 사진을 family 역할에게 내주지 않게 반드시 이 헬퍼로
-  // URL 을 받는다(§21). 담은 뒤에 비밀 스토리로 묶인 사진이 여기로 새던 경로였다.
+  // URL 을 받는다. 담은 뒤에 비밀 스토리로 묶인 사진이 여기로 새던 경로였다.
   const urls = orderedIds.length
     ? await resolveAssetUrlsForViewer(
         {

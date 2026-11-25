@@ -65,7 +65,7 @@ def get_model():
                         providers=["CPUExecutionProvider"],
                     )
                     m.prepare(ctx_id=-1, det_size=(DET_SIZE, DET_SIZE), det_thresh=DET_THRESH)
-                except Exception as e:  # 모델 다운로드 실패 등 — 조용히 죽지 않는다(§6).
+                except Exception as e:  # 모델 다운로드 실패 등 — 조용히 죽지 않는다.
                     _load_error = f"{type(e).__name__}: {e}"
                     raise
                 _model = m
@@ -77,7 +77,7 @@ def _warm():
     try:
         get_model()
     except Exception as e:
-        # 삼키지 않는다(§6) — 로그로 남기고 /health.modelError 로도 보인다.
+        # 삼키지 않는다 — 로그로 남기고 /health.modelError 로도 보인다.
         # 첫 요청이 오면 다시 시도한다.
         print(f"model load failed: {type(e).__name__}: {e}", file=sys.stderr, flush=True)
 

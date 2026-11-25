@@ -46,7 +46,7 @@ export function MemberActionsMenu({ member }: { member: FamilyMember }) {
   }
 
   // 드롭다운은 카드의 `overflow-hidden`(둥근 모서리 마스킹)에 잘려 빈 흰 박스로만
-  // 보였다. body 로 포털 + 버튼 위치 기준 fixed 배치해 클리핑을 벗어난다(§17#19 패턴).
+  // 보였다. body 로 포털 + 버튼 위치 기준 fixed 배치해 클리핑을 벗어난다.
   const toggle = () => {
     if (!open && triggerRef.current) {
       const r = triggerRef.current.getBoundingClientRect()

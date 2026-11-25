@@ -154,7 +154,7 @@ test.describe('bebe-moment P1+P2+P3 smoke', () => {
     await expect(page.getByRole('heading', { name: /휴지통/ })).toBeVisible()
     await expect(page.getByText(/휴지통이 비어/)).toBeVisible()
 
-    // 단일 가족 모델에서 owner 는 곧 인스턴스 관리자다(§9) — 예전 테스트는 owner 도
+    // 단일 가족 모델에서 owner 는 곧 인스턴스 관리자다 — 예전 테스트는 owner 도
     // /admin 에서 404 를 받을 거라 단언했는데, 그건 그 규칙이 생기기 전 이야기다.
     await page.goto('/admin')
     await expect(page.getByRole('heading', { name: /관리자/ }).first()).toBeVisible({

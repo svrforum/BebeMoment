@@ -87,7 +87,7 @@ export function ViewerImage({
 
   if (noMedia) {
     // 왜 못 보여주는지 구분해서 말한다 — 업로드가 끊긴 자산에 영원히 '처리 중'이라고
-    // 하면 사용자는 "영상이 재생 안 된다"로 겪고 기다릴 수도, 고칠 수도 없다(§6).
+    // 하면 사용자는 "영상이 재생 안 된다"로 겪고 기다릴 수도, 고칠 수도 없다.
     return (
       <div className="flex h-full w-full items-center justify-center px-8 text-center text-sm text-base-400">
         {current.status === 'failed' ? t('video.uploadIncomplete') : t('video.processing')}
@@ -459,7 +459,7 @@ function SlideContent({
     ? ({ viewTransitionName: `asset-${slim.id}` } as CSSProperties)
     : undefined
 
-  // ⚠️ 뷰어 줌 전용 bare <img> (§12 PictureImage 예외). Swiper Zoom 은
+  // ⚠️ 뷰어 줌 전용 bare <img> (PictureImage 를 쓰지 않는 예외). Swiper Zoom 은
   // `.swiper-zoom-container 의 *직접 자식* <img>` 를 타겟·측정한다(zoom.css 의 `> img`
   // 규칙 + JS). PictureImage 의 `span(overflow:hidden) > picture > img` 구조를 쓰면
   // ⓐ Swiper 가 inline `<picture>` 를 줌 타겟으로 잡아 offsetWidth 가 부정확하고

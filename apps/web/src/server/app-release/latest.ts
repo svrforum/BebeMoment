@@ -8,7 +8,7 @@ export type AppRelease = { version: string; url: string }
 /**
  * 최신 안드로이드 릴리스를 서버가 조회한다.
  *
- * ⚠️ 브라우저에서 api.github.com 을 직접 부르면 CSP 의 `connect-src 'self'` 가 막는다(§17#31) —
+ * ⚠️ 브라우저에서 api.github.com 을 직접 부르면 CSP 의 `connect-src 'self'` 가 막는다 —
  * 업데이트 배너가 그래서 몇 달간 조용히 죽어 있었다. 클라이언트는 반드시 우리 라우트를 거친다.
  * 서버가 캐시하므로 한 집에서 여러 기기가 GitHub 익명 레이트리밋(시간당 60)을 나눠 쓰지도 않는다.
  *

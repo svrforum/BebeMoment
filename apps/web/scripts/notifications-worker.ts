@@ -76,7 +76,7 @@ const WIDGET_TOKEN_PURGE_JOB = 'widget-token-purge'
 /**
  * 자동 휴지통 비우기 — retention.trash_days 를 넘긴 소프트삭제 자산을 영구 삭제한다.
  * media 가 바이트를 지워야 하므로 web 은 만료 자산 id 만 추려 media purge 라우트를
- * 호출한다(§17#10 경계). 가족별 스코프 쿼리로 tenant 미들웨어 통과. 0 이면 비활성.
+ * 호출한다. 가족별 스코프 쿼리로 tenant 미들웨어 통과. 0 이면 비활성.
  */
 async function runTrashPurge(): Promise<void> {
   const days = await getSetting('retention.trash_days', z.number().finite(), 30, prismaPublic)
@@ -170,7 +170,7 @@ async function resolveNotifContext(job: NotificationJob): Promise<NotifContext> 
  */
 /**
  * 전 가족을 훑는 스캔용 가족 목록. Family 는 tenant 스코프 모델이라 필터 없는 findMany 는
- * 확장이 막는다(dev throw · prod 경고) — §8 이 정한 대로 전역 조회만 $queryRaw 로 우회한다.
+ * 확장이 막는다(dev throw · prod 경고) — 그래서 전역 조회만 $queryRaw 로 우회한다.
  * (같은 이유로 isRegistrationOpen 도 raw 를 쓴다.)
  */
 async function allFamilyIds(): Promise<{ id: string }[]> {
@@ -433,8 +433,8 @@ async function main(): Promise<void> {
     async (job: Job<NotificationJob>) => {
       // 얼굴 인식(옵트인) — 새 사진이 ready 되면(asset.uploaded) features.faces 켜진
       // 인스턴스만 face-detect 잡을 enqueue. media 는 public 설정을 못 읽으므로 web 이
-      // 게이팅한다(§17#10 upload.convert_to_compatible 와 동일 패턴). 푸시 게이트와
-      // 무관하게 항상 시도(알림 수신자 0명이어도 얼굴 인식은 돈다).
+      // 게이팅한다(upload.convert_to_compatible 를 잡 페이로드에 싣는 것과 같은 패턴).
+      // 푸시 게이트와 무관하게 항상 시도(알림 수신자 0명이어도 얼굴 인식은 돈다).
       if (job.data.type === 'asset.uploaded') {
         const assetId = job.data.payload.assetId
         if (assetId && (await isFeatureEnabled('faces', prismaPublic))) {
@@ -479,7 +479,8 @@ async function main(): Promise<void> {
       } else if (!digestExempt) {
         if (!shouldSendImmediate(delivery, hour)) {
           // 조용한 시간이면 버리고, 다이제스트 모드면 스캔이 모아 보낸다 — 다만 스캔이 세지
-          // 않는 종류(일정 등)는 여기서 영영 사라진다. 어느 쪽이든 흔적은 남긴다(§6.5.1).
+          // 않는 종류(일정 등)는 여기서 영영 사라진다. 어느 쪽이든 흔적은 남긴다 — 로그가
+          // 없으면 '안 왔다'의 원인을 알 수 없다.
           logDeliveryDrop(
             job.data,
             inQuietHours(delivery, hour) ? 'quiet hours' : `delivery mode ${delivery.mode}`,
@@ -625,7 +626,7 @@ async function main(): Promise<void> {
         enqueueNotificationOrThrow,
       )
       // 유휴 틱은 조용히 — 분당 한 줄이면 로그가 쓸모없어진다. 보낸 것과 구간을 지나
-      // 건너뛴 것, 큐에 못 넣은 것은 남긴다(조용한 실패 금지 §2#6).
+      // 건너뛴 것, 큐에 못 넣은 것은 남긴다(조용한 실패 금지).
       if (sent > 0 || skipped > 0 || failed > 0) {
         console.log(`[reminder-tick] sent=${sent} skipped_past=${skipped} failed=${failed}`)
       }
@@ -637,7 +638,7 @@ async function main(): Promise<void> {
   })
 
   // 반복 작업은 스케줄러 id 고정 → 멱등(재기동해도 하나만). 크론은 컨테이너 로컬시각
-  // 기준이라 TZ=Asia/Seoul 이 걸려 있어야 의도한 시각에 돈다(§16).
+  // 기준이라 TZ=Asia/Seoul 이 걸려 있어야 의도한 시각에 돈다.
   const maintenanceQueue = new Queue(MAINTENANCE_QUEUE, { connection })
   const synced = await syncJobSchedulers(maintenanceQueue, [
     // 매일 09:00 추억 스캔.

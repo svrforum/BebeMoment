@@ -53,7 +53,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   if (chosenName) cookieStore.set('oidc_name', chosenName.slice(0, 60), cookieOpts)
 
   // 앱(Custom Tab) 플로우 — challenge(=sha256(verifier))가 오면 콜백이 세션 쿠키 대신
-  // 1회용 핸드오프 코드를 발급해 bebe://auth 딥링크로 앱에 돌려준다(§SNS 앱 로그인).
+  // 1회용 핸드오프 코드를 발급해 bebe://auth 딥링크로 앱에 돌려준다.
   const appChallenge = reqUrl.searchParams.get('app_challenge')
   if (appChallenge) cookieStore.set('oidc_app_challenge', appChallenge.slice(0, 200), cookieOpts)
 
@@ -73,7 +73,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   }
 
   // 표준 OIDC: discovery + nonce. discovery 는 IdP 로의 네트워크 호출이라 실패할 수 있다 —
-  // 던지면 500 이므로 로그인 화면으로 되돌린다(§조용한 실패 금지: 코드로 안내).
+  // 던지면 500 이므로 로그인 화면으로 되돌린다(조용히 실패하지 않고 오류 코드로 안내한다).
   let disc: Awaited<ReturnType<typeof fetchDiscovery>>
   try {
     disc = await fetchDiscovery(provider.issuer)

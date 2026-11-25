@@ -15,7 +15,7 @@ function sourceFiles(dir: string): string[] {
   return out
 }
 
-/** 주석을 지운 소스 — 주석의 한국어는 허용(§6.6 은 한/영 혼용 OK). */
+/** 주석을 지운 소스 — 주석의 한국어는 허용(주석은 한/영 혼용 OK). */
 function stripComments(src: string): string {
   let out = ''
   let state: 'code' | 'line' | 'block' | 'str' = 'code'

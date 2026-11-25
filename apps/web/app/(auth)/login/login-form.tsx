@@ -29,7 +29,7 @@ export function LoginForm({ oidcProviders, passwordEnabled }: Props) {
   const [submitting, setSubmitting] = useState(false)
   // OIDC 콜백/시작 라우트가 실패 시 `/login?error=<code>` 로 되돌린다 — 그 코드를 사람이
   // 읽을 메시지로 보여줘 조용한 실패(빈 로그인 화면)를 없앤다. (읽기 client-side:
-  // searchParams-only 네비게이션 캐시 이슈 회피 — [[next-searchparams-client-cache]].)
+  // searchParams 만 다른 이동은 캐시된 셸을 재사용해 서버가 읽은 값이 낡는다.)
   const [oidcError, setOidcError] = useState<string | null>(null)
   // OIDC(카카오 등) 로그인도 로그인 후 원래 보려던 곳으로 복귀하도록 next 를 실어 보낸다
   // (비번 로그인은 safeNext 가 처리). 마운트 후 URL 의 next 를 읽어 쿼리스트링으로.

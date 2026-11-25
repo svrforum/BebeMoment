@@ -212,7 +212,7 @@ export async function listTimeline(
     ),
   )
   // 타임라인은 격자 썸네일과 스토리 카드 표지만 그린다 — display1080·원본까지 서명해
-  // 내려보내면 한 페이지에 URL 텍스트만 수백 KB 다(§signed-url tiers).
+  // 내려보내면 한 페이지에 URL 텍스트만 수백 KB 다.
   const signUrls = params.signUrls ?? true
   const urlsMap =
     signUrls && allIds.length

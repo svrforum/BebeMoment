@@ -2,8 +2,8 @@ import { z } from 'zod'
 
 export const VERSION = 1 as const
 
-// 파일 서빙 signed URL 은 기본이 **루트 상대 경로** — 단일 포트 오리진 무관 로딩
-// (§signed-url). 이미지 파생물은 `/media/v1/img/<assetId>/<이름>/<토큰>`(자산당 서명 하나),
+// 파일 서빙 signed URL 은 기본이 **루트 상대 경로** — 단일 포트 오리진 무관 로딩.
+// 이미지 파생물은 `/media/v1/img/<assetId>/<이름>/<토큰>`(자산당 서명 하나),
 // 원본·영상은 `/media/v1/files/<jwt>`. 미디어를 별도 호스트로 분리하면 절대 URL 일 수도
 // 있어 둘 다 허용한다. 주소의 모양에 기대는 코드는 서비스워커의 사진 캐시뿐이다.
 const mediaUrl = z.string().refine((s) => s.startsWith('/') || /^https?:\/\//.test(s), {

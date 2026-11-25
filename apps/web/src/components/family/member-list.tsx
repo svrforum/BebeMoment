@@ -13,7 +13,7 @@ const ROLE_CLASS: Record<Role, string> = {
 function Avatar({ member }: { member: FamilyMember }) {
   if (member.avatarPath) {
     return (
-      // biome-ignore lint/performance/noImgElement: 아바타는 우리가 생성한 작은 이미지 — next/image 불필요(§17.3 unoptimized)
+      // biome-ignore lint/performance/noImgElement: 아바타는 우리가 생성한 작은 이미지 — next/image 불필요(이미지 최적화를 꺼 둔 앱)
       <img
         src={member.avatarPath}
         alt=""

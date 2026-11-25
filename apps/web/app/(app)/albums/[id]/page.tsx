@@ -40,7 +40,7 @@ export default async function AlbumDetailPage({ params }: { params: Promise<{ id
   )
   if (!album) notFound()
 
-  // 비밀 앨범은 공유 불가(§21 — family 역할에게 숨김). 공유 기능 플래그도 게이트.
+  // 비밀 앨범은 공유 불가(family 역할에게도 숨기는 앨범이다). 공유 기능 플래그도 게이트.
   const shareEnabled = !album.secret && (await isFeatureEnabled('share', prismaPublic))
 
   const [children, assetsResult, entries] = await Promise.all([

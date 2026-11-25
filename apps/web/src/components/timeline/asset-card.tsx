@@ -257,7 +257,7 @@ export function AssetCard({
   )
   const styleProp = { viewTransitionName: `asset-${id}` } as CSSProperties
 
-  // 실패한 자산은 막다른 길이 되지 않게 — 재시도·삭제 어포던스를 타일에 직접 노출(§6).
+  // 실패한 자산은 막다른 길이 되지 않게 — 재시도·삭제 어포던스를 타일에 직접 노출.
   if (status === 'failed' && !selectionMode) {
     return (
       <div

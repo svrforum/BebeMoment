@@ -12,7 +12,7 @@ const PROCESSING_STALE_MS = 12 * 60 * 60 * 1000
  * 쌓인다. 기준 시간(기본 6시간)보다 오래된 uploading 을 `failed` 로 표시한다.
  *
  * 가족 경계를 넘는 전역 스윕이라 raw SQL 로 — tenant 미들웨어($extends)는 모델
- * 오퍼레이션만 가로채고 $executeRaw 는 통과한다(§8, isRegistrationOpen 과 동일 패턴).
+ * 오퍼레이션만 가로채고 $executeRaw 는 통과한다(isRegistrationOpen 과 동일 패턴).
  * 반환값은 정리된 행 수.
  */
 export async function reapStaleUploads(

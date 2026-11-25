@@ -101,7 +101,7 @@ export default async function SettingsPage() {
         {/* 계정 */}
         <div className="flex items-center gap-3 rounded-2xl border border-base-200/70 bg-base-0 px-4 py-4 shadow-card dark:border-base-800/70 dark:bg-base-900">
           {user.avatarPath ? (
-            // biome-ignore lint/performance/noImgElement: 작은 아바타 — unoptimized 정책(§17.3)
+            // biome-ignore lint/performance/noImgElement: 작은 아바타 — 이미지 최적화를 꺼 둔 앱이라 next/image 가 할 일이 없다
             <img src={user.avatarPath} alt="" className="h-12 w-12 rounded-full object-cover" />
           ) : (
             <div className="flex h-12 w-12 items-center justify-center rounded-full bg-point-500/15 text-[18px] font-semibold text-point-500">

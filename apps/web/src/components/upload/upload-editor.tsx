@@ -144,7 +144,7 @@ export function UploadEditor({
       onApply(fileId, blob)
       onClose()
     } catch (e) {
-      // 캔버스 2D 컨텍스트·디코드 실패 등 — 조용히 멈추지 않고 알린다(§6). 시트는
+      // 캔버스 2D 컨텍스트·디코드 실패 등 — 조용히 멈추지 않고 알린다. 시트는
       // 닫지 않아 사용자가 다시 시도하거나 취소할 수 있게 한다.
       toast({
         title: t('editor.applyFailed'),

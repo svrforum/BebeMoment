@@ -41,7 +41,7 @@ async function readSchedule(prisma: PrismaClient): Promise<ScheduleSettings> {
 
 /**
  * 매시간 틱 — 스케줄 설정을 읽어 지금 백업할지 판단하고, 맞으면 백업 생성 + 보존 정리 +
- * 원격 미러(있으면). 실패는 조용히 삼키지 않고 settings 에 기록(§2#6).
+ * 원격 미러(있으면). 실패는 조용히 삼키지 않고 settings 에 기록.
  */
 export async function runScheduledBackupTick(
   now: Date,

@@ -47,7 +47,7 @@ export async function createShareLink(
       select: { id: true },
     })
     if (!album) throw new ServiceError(404, 'share.albumNotFound')
-    // 자신뿐 아니라 비밀 조상 아래 앨범도 공개 불가(§21 — 트리에서 숨겨진 앨범의
+    // 자신뿐 아니라 비밀 조상 아래 앨범도 공개 불가(트리에서 숨겨진 앨범의
     // 이름·표지·장수가 인증 경계 밖으로 새지 않게).
     if (
       await isAlbumSecretOrUnderSecret(

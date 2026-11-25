@@ -193,7 +193,7 @@ function scheduleWallClock(
 
 /**
  * 잡이 발송까지 못 간 이유를 남긴다. 조용히 return 하면 '보냈는데 안 왔다'와 '아예 안 보냈다'를
- * 구분할 수 없고, 일정 알림은 원장이 이미 '보냄'으로 굳은 뒤라 재현 말고는 방법이 없다(§6.5.1).
+ * 구분할 수 없고, 일정 알림은 원장이 이미 '보냄'으로 굳은 뒤라 재현 말고는 방법이 없다.
  */
 function logDrop(job: NotificationJob, reason: string, extra?: Record<string, unknown>): void {
   logger.info(

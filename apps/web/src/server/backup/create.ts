@@ -156,7 +156,7 @@ export async function createBackup(
   const id = makeBackupId(type, args.now)
   // ⚠️ 백업은 STORAGE_PATH 를 파일시스템으로 직접 읽는다(@bebe/storage 어댑터 미사용).
   // s3 모드면 /data 가 비어 있어 사진이 한 장도 안 담긴다 — DB 만 든 번들이 만들어지고
-  // 화면은 "사진+영상"이라고 말한다. 조용히 두지 않고 매니페스트에 남긴다(§10).
+  // 화면은 "사진+영상"이라고 말한다. 조용히 두지 않고 매니페스트에 남긴다.
   const storageMode = process.env.STORAGE_MODE ?? 'local'
   // 작업 디렉터리는 번들과 같은 볼륨(BACKUP_DIR/.work) — 덤프·매니페스트가 컨테이너 쓰기
   // 레이어가 아니라 백업 볼륨에 놓이고, 여유 확인도 한 볼륨만 보면 된다.

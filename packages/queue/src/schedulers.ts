@@ -3,7 +3,7 @@ import type { JobSchedulerTemplateOptions, Queue } from 'bullmq'
 export type JobSchedulerSpec = {
   /** 스케줄러 id. 생성되는 잡의 이름으로도 쓴다 — 워커가 job.name 으로 분기한다. */
   id: string
-  /** cron 표현식. tz 를 주지 않으므로 컨테이너 로컬시각 기준이다(TZ env, §16). */
+  /** cron 표현식. tz 를 주지 않으므로 컨테이너 로컬시각 기준이다(TZ env). */
   pattern: string
   data?: Record<string, unknown>
   opts?: JobSchedulerTemplateOptions
@@ -20,7 +20,7 @@ export type SchedulerQueue = Pick<
  *
  * bullmq 는 레거시 repeatable(v5 의 `repeat` 옵션)과 job scheduler 를 같은 zset
  * (`<prefix>:<queue>:repeat`)에 담는다. 둘이 공존하면 같은 크론이 두 번 돌고, bullmq 6 은
- * 레거시 항목을 더 이상 진행시키지 못해 스케줄이 조용히 사라진다(§2#6 조용한 실패 금지).
+ * 레거시 항목을 더 이상 진행시키지 못해 스케줄이 조용히 사라진다(조용한 실패).
  * 그래서 선언한 spec 밖의 항목은 전부 걷어낸다 — removeJobScheduler 는 레거시 키에도
  * 동작한다(같은 zset 멤버와 `repeat:<key>:<millis>` 예약 잡을 함께 지우는 스크립트라,
  * jobId 로 등록한 우리 레거시 항목과 키 모양이 같다).

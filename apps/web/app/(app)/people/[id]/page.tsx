@@ -35,7 +35,7 @@ export default async function PersonDetailPage({ params }: { params: Promise<{ i
   )
   if (!person) notFound()
 
-  // 같은 사진에 함께 나온 사람 — 합칠지 새 사람으로 둘지 판단하는 단서(§people).
+  // 같은 사진에 함께 나온 사람 — 합칠지 새 사람으로 둘지 판단하는 단서.
   const cooccurrence = await listCooccurringPeople(
     { familyId: ctx.family.id, personId: person.id, viewerRole: ctx.membership?.role ?? 'family' },
     prismaMedia,

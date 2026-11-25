@@ -80,7 +80,7 @@ function PreviewSlide({
     )
   }
 
-  // ⚠️ 줌 전용 bare <img> (§12 PictureImage 예외). Swiper Zoom 은 `.swiper-zoom-container`
+  // ⚠️ 줌 전용 bare <img> (PictureImage 를 쓰지 않는 예외). Swiper Zoom 은 `.swiper-zoom-container`
   // 의 직접 자식 <img> 를 타겟·측정한다 — 래퍼를 끼우면 줌/팬이 어긋난다. 소스도 로컬
   // blob URL 이라 파생물 협상·next/image 자체가 무의미.
   return (
@@ -158,7 +158,7 @@ export function UploadPreviewViewer({
 
   // 업로드 시트(vaul/framer)는 transform 으로 애니메이션해 `position:fixed` 의 컨테이닝
   // 블록이 된다 — 시트 안에 그리면 뷰어가 시트 크기에 갇힌다. body 로 포털하고,
-  // 시트가 modal 이라 body 에 걸어둔 pointer-events:none 를 여기서 되살린다(§17.19).
+  // 시트가 modal 이라 body 에 걸어둔 pointer-events:none 를 여기서 되살린다.
   return createPortal(
     <div
       className="fixed inset-x-0 top-0 z-[60] flex flex-col bg-black pointer-events-auto"

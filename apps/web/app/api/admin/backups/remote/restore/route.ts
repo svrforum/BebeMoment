@@ -43,7 +43,7 @@ const PostSchema = z.object({ id: z.string() })
  * 원격에서 복구 체인(베이스 full → 대상)을 로컬 백업 디렉터리로 가져온다.
  *
  * 가져오기만 하고 복구는 하지 않는다 — 복구는 돌아가는 앱이 없는 상태에서 CLI 로 해야
- * 하고(§bebe-restore), 여기서 바로 덮어쓰면 자기 자신을 밟는다.
+ * 하고(bebe-restore), 여기서 바로 덮어쓰면 자기 자신을 밟는다.
  */
 export async function POST(req: Request) {
   const ctx = await requireAdmin()

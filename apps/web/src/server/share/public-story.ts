@@ -6,7 +6,7 @@ import { listSecretAssetIds } from '../story/secret-assets'
 // og:image 는 외부 크롤러(카톡·페북)가 가져가므로 반드시 공개 절대 URL이어야 한다. media 가
 // 내부(localhost)·루트-상대 URL 을 줄 수 있어, 경로만 떼어 baseUrl(요청 도메인)로 재절대화.
 // baseUrl 은 PUBLIC_URL(LAN일 수 있음)이 아니라 크롤러가 실제로 친 도메인(x-forwarded-host)
-// 을 써야 외부에서 받을 수 있다(§17#28, 리버스 프록시 뒤 도메인≠PUBLIC_URL).
+// 을 써야 외부에서 받을 수 있다(리버스 프록시 뒤 도메인≠PUBLIC_URL).
 export function toAbsolute(u: string | null, baseUrl: string): string | null {
   if (!u) return null
   const base = baseUrl.replace(/\/$/, '')
@@ -31,7 +31,7 @@ export type PublicStoryPreview = {
 
 /**
  * 공유 링크용 공개 스토리 프리뷰(OG 태그·랜딩). 세션/familyId 없는 공개 라우트라 tenant
- * 미들웨어를 raw 쿼리로 우회한다(§8, isRegistrationOpen 과 동일 패턴). storyId 는 공유
+ * 미들웨어를 raw 쿼리로 우회한다(isRegistrationOpen 과 동일 패턴). storyId 는 공유
  * 토큰 해석(resolveShareLink)에서 받은 UUID. **family-공개(visibility='family') 스토리만**
  * — 발급 후 guardians 전용으로 바뀌면 null(프리뷰 차단, 방어). 대표사진은 story_assets.order
  * 가 가장 앞선 ready 자산. og:image 는 미디어 signed display URL을 그대로 쓴다(JWT 가 URL 에

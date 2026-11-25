@@ -14,8 +14,8 @@ export type PublicAlbumPreview = {
 }
 
 /**
- * 공유 링크용 공개 앨범 프리뷰(OG 태그·랜딩). 무인증 라우트라 prismaPublic raw(tenant 우회,
- * §8)로 앨범·가족명·표지·사진수를 조회한다. **비밀(secret)·삭제 앨범은 null**(발급 후
+ * 공유 링크용 공개 앨범 프리뷰(OG 태그·랜딩). 무인증 라우트라 prismaPublic raw 쿼리(tenant
+ * 우회)로 앨범·가족명·표지·사진수를 조회한다. **비밀(secret)·삭제 앨범은 null**(발급 후
  * 비밀 전환 시 차단, 방어). 표지는 cover_asset_id, 없으면 sort_index 가장 앞 자산. og:image 는
  * media display jpeg signed URL 을 요청 도메인 절대 URL 로.
  */
@@ -41,7 +41,7 @@ export async function getPublicAlbumPreview(
   const row = rows[0]
   if (!row) return null
 
-  // 발급 후 부모가 비밀로 전환됐을 수 있다 — 비밀 조상 아래 앨범이면 프리뷰 차단(§21).
+  // 발급 후 부모가 비밀로 전환됐을 수 있다 — 비밀 조상 아래 앨범이면 프리뷰 차단.
   if (await isAlbumSecretOrUnderSecret({ albumId, familyId }, prismaPublic)) return null
 
   // 비밀 스토리에 속한 사진은 공개 앨범 프리뷰의 표지·장수에서도 제외한다.

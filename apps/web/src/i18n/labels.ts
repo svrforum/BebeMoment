@@ -3,7 +3,7 @@ import { MILESTONE_PRESETS, isValidPresetKey } from '@bebe/core'
 
 /**
  * core 가 돌려주는 구조값을 문장으로 바꾸는 곳. core 는 web·media·워커 공용이라 next-intl 을
- * 못 쓰므로(§6.5) 표기는 전부 여기와 카탈로그가 맡는다.
+ * 못 쓰므로 표기는 전부 여기와 카탈로그가 맡는다.
  *
  * `t` 는 해당 네임스페이스로 바인딩된 번역 함수 — 요청 안에서는 `useTranslations`/
  * `getTranslations`, 요청 밖(위젯·워커)에서는 `getServerTranslator(locale, ns)`.

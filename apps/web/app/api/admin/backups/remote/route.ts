@@ -49,7 +49,7 @@ export async function GET() {
     bucket,
     prefix,
     accessKey,
-    // 시크릿은 절대 반환하지 않음 — 설정 여부만(§17#7/#23).
+    // 시크릿은 절대 반환하지 않음 — 설정 여부만.
     secretConfigured: enc.length > 0,
     usable,
     configError,

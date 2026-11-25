@@ -37,7 +37,7 @@ export async function loadCalendarMonth(
   const end = new Date(Date.UTC(year, month + 1, 1))
 
   // 일정은 이 SSR 페이로드에 함께 싣는다 — 이 화면에는 클라이언트 데이터 페칭이 없다.
-  // 기능이 꺼져 있으면 조회조차 하지 않는다(§5 — UI 와 서버 양쪽에서 막는다).
+  // 기능이 꺼져 있으면 조회조차 하지 않는다(기능 플래그는 UI 와 서버 양쪽에서 막는다).
   const schedule = args.schedule
     ? await listScheduleMonth({ familyId, year, month }, prismaPublic)
     : { days: [], entries: [] }

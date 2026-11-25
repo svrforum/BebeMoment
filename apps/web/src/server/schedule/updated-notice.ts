@@ -25,7 +25,7 @@ export async function notifyScheduleUpdated(
     payload: {
       entryId: input.entryId,
       title: after.title.trim(),
-      // 추가 알림과 같은 모양 — 벽시계 문자열과 분을 그대로 싣는다(§2.5).
+      // 추가 알림과 같은 모양 — 벽시계 문자열과 분을 그대로 싣는다.
       ...(after.onDate ? { onDate: after.onDate } : {}),
       ...(after.onDate && after.startMinute != null
         ? { startMinute: String(after.startMinute) }

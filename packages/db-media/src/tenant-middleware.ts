@@ -74,7 +74,7 @@ function dataHasFamilyId(data: unknown): boolean {
 function reportMissing(model: string, operation: string, mode: Mode): void {
   const msg = `[tenant-middleware:media] ${model}.${operation} called without familyId filter`
   if (mode === 'throw') throw new Error(msg)
-  // TODO: route through pino to honor §17#7 secret-masking. Adding pino here
+  // TODO: route through pino so its secret masking applies. Adding pino here
   // would introduce a new cross-package dependency for db-media — left as a
   // follow-up. The middleware never logs payload values, only the model name
   // and operation, so there is no secret-leak path through this warn.

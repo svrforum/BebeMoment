@@ -9,7 +9,7 @@ export { DEFAULT_LOCALE, LOCALES, LOCALE_COOKIE, isLocale } from './locales'
 export type { Locale } from './locales'
 
 // 라우팅 없는(쿠키 기반) 로케일 — 사용자가 설정에서 고른 `locale` 쿠키 우선, 없으면 브라우저
-// Accept-Language 로 추정(en* → en, 그 외 → ko). 테마와 동일한 "URL 안 바꾸는" 방식(§i18n).
+// Accept-Language 로 추정(en* → en, 그 외 → ko). 테마와 동일한 "URL 안 바꾸는" 방식.
 export async function resolveLocale(): Promise<Locale> {
   const cookieLocale = (await cookies()).get(LOCALE_COOKIE)?.value
   if (isLocale(cookieLocale)) return cookieLocale

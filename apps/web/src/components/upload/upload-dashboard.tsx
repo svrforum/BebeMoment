@@ -153,7 +153,7 @@ export function UploadDashboard({
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
       // FileList 는 라이브 객체라 value='' 로 비우면 같이 비워진다. addFiles 가
-      // 내부에서 즉시 스냅샷하지만, 안전을 호출부에 두어 Array.from 으로 먼저 고정한다(§17.20).
+      // 내부에서 즉시 스냅샷하지만, 안전을 호출부에 두어 Array.from 으로 먼저 고정한다.
       if (e.target.files) addFiles(Array.from(e.target.files))
       e.target.value = ''
     },

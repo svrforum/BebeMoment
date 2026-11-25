@@ -44,7 +44,7 @@ export async function acceptInvite(
       throw new ConflictError('invite.alreadyMember')
     }
 
-    // 업데이트 where 는 tenant 미들웨어(§8)가 허용하는 키로: Membership 은 familyId 를
+    // 업데이트 where 는 tenant 미들웨어가 허용하는 키로: Membership 은 familyId 를
     // 담은 compound(familyId_userId), Invite 는 token. by-id 업데이트는 familyId 필터가
     // 없어 dev(throw) 에서 막힌다.
     const membership = existing
