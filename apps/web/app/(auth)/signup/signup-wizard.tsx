@@ -8,6 +8,7 @@ import { useTranslations } from 'next-intl'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Suspense, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { classifySignupError } from './signup-error'
 
 type Step = 'username' | 'password' | 'name' | 'email' | 'optional'
 const STEPS_OWNER: Step[] = ['username', 'password', 'name', 'email']
@@ -149,20 +150,15 @@ function SignupWizardInner({
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         const message = data.error ?? t('signup.failed')
         lastError = message
-        // 서버는 요청 로케일로 번역한 문장을 돌려준다 — 같은 카탈로그 문장과 비교해야
-        // 영어 화면에서도 판별이 맞는다.
-        const usernameTaken = tErr('usernameTaken')
+        const rejection = classifySignupError(message, tErr)
         // 자동 생성 중 username 충돌이면 재시도, 그 외(이메일 충돌·검증 등)는 즉시 중단.
-        if (shouldAutogen && message === usernameTaken) {
+        if (shouldAutogen && rejection.usernameTaken) {
           attempt++
           continue
         }
         setError(message)
         setSubmitting(false)
-        if (
-          !invited &&
-          [usernameTaken, tErr('usernameInvalid'), tErr('usernameRequired')].includes(message)
-        ) {
+        if (!invited && rejection.usernameStep) {
           setDir(-1)
           setStep('username')
         }
