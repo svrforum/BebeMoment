@@ -75,6 +75,3 @@ export function buildAuth(prisma: PrismaClient, opts: BuildAuthOpts = {}) {
 }
 
 export const auth = buildAuth(prismaPublic as unknown as PrismaClient, { withNextCookies: true })
-
-export type AuthSession = typeof auth.$Infer.Session.session
-export type AuthUser = typeof auth.$Infer.Session.user

@@ -1,8 +1,9 @@
-import { GRID_URL_TIERS, type GridAssetUrls, toGridUrls } from '@/lib/asset-url'
+import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
+import type { PersonCover } from './list'
 
 export type CooccurringPerson = {
   id: string
@@ -10,10 +11,8 @@ export type CooccurringPerson = {
   /** 이 사람과 함께 찍힌 사진 수(사진 단위, 얼굴 수 아님). */
   photoCount: number
   /** 얼굴 동그라미용 — 그 사람의 대표 얼굴(가장 점수 높은)과 크롭 위치. */
-  cover: { assetId: string; urls: GridAssetUrls | null; bbox: FaceBox } | null
+  cover: PersonCover | null
 }
-
-export type FaceBox = { x: number; y: number; w: number; h: number }
 
 export type Cooccurrence = {
   /** 사진 id → 그 사진에 함께 있는 다른 사람들(함께 찍힌 사진이 많은 순). */

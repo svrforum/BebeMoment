@@ -1,9 +1,7 @@
-import { type GithubRelease, pickAndroidRelease } from '@/lib/app-release'
+import { type AppRelease, type GithubRelease, pickAndroidRelease } from '@/lib/app-release'
 
 const REPO = 'svrforum/BebeMoment'
 const CACHE_SECONDS = 1800
-
-export type AppRelease = { version: string; url: string }
 
 /**
  * 최신 안드로이드 릴리스를 서버가 조회한다.
