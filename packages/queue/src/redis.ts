@@ -1,7 +1,12 @@
 import IORedis from 'ioredis'
 
+// localhost 기본값을 두지 않는다 — 개발 머신에서는 그 포트가 운영 Redis 인 경우가 있어,
+// REDIS_URL 없이 돈 테스트가 운영 큐에 잡을 넣었다. 운영 프로세스는 env 스키마가 이미
+// REDIS_URL 을 요구하므로, 빠졌다면 엉뚱한 곳에 붙기보다 바로 실패하는 편이 맞다.
 function resolveUrl(url?: string): string {
-  return url ?? process.env.REDIS_URL ?? 'redis://localhost:6379'
+  const resolved = url ?? process.env.REDIS_URL
+  if (!resolved) throw new Error('REDIS_URL is not set')
+  return resolved
 }
 
 /**

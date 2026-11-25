@@ -22,10 +22,11 @@ describe('createRedisConnection', () => {
     expect(ctor).toHaveBeenCalledWith('redis://from-env:6379', { maxRetriesPerRequest: null })
   })
 
-  it('아무것도 없으면 localhost 기본값으로 폴백한다', () => {
+  it('url 도 REDIS_URL 도 없으면 어디에도 연결하지 않고 던진다', () => {
     delete process.env.REDIS_URL
-    createRedisConnection()
-    expect(ctor).toHaveBeenCalledWith('redis://localhost:6379', { maxRetriesPerRequest: null })
+    expect(() => createRedisConnection()).toThrow(/REDIS_URL/)
+    expect(() => createRedisSubscriber()).toThrow(/REDIS_URL/)
+    expect(ctor).not.toHaveBeenCalled()
   })
 })
 
