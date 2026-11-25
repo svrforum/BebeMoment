@@ -1,5 +1,6 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
+import { copyText } from '@/lib/clipboard'
 import { useToast } from '@/lib/toast'
 import { Copy } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -40,15 +41,12 @@ export function ResetPasswordModal({ open, onOpenChange, membershipId, displayNa
 
   const copy = async () => {
     if (!url) return
-    if (navigator.clipboard?.writeText) {
-      try {
-        await navigator.clipboard.writeText(url)
-        setCopied(true)
-        setTimeout(() => setCopied(false), 1500)
-        return
-      } catch {}
+    if (!(await copyText(url))) {
+      toast({ title: t('resetModal.copyError'), variant: 'danger' })
+      return
     }
-    toast({ title: t('resetModal.copyError'), variant: 'danger' })
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   const close = () => {

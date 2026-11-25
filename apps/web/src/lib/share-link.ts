@@ -3,6 +3,7 @@
 // ShareSheet(스토리·사진·앨범) 공용.
 
 import { appShareUrl, supportsAppShare } from './app-share'
+import { copyText } from './clipboard'
 
 type CapacitorWindow = Window & {
   Capacitor?: {
@@ -57,33 +58,6 @@ async function webShare(url: string, title: string): Promise<boolean> {
     return true
   } catch (e) {
     if (e instanceof DOMException && e.name === 'AbortError') return true
-    return false
-  }
-}
-
-export async function copyText(text: string): Promise<boolean> {
-  try {
-    if (navigator.clipboard?.writeText && window.isSecureContext) {
-      await navigator.clipboard.writeText(text)
-      return true
-    }
-  } catch {
-    // fall through to legacy
-  }
-  try {
-    const ta = document.createElement('textarea')
-    ta.value = text
-    ta.setAttribute('readonly', '')
-    ta.style.position = 'fixed'
-    ta.style.top = '0'
-    ta.style.opacity = '0'
-    document.body.appendChild(ta)
-    ta.select()
-    ta.setSelectionRange(0, text.length)
-    const ok = document.execCommand('copy')
-    document.body.removeChild(ta)
-    return ok
-  } catch {
     return false
   }
 }

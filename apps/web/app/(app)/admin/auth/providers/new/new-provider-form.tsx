@@ -1,6 +1,8 @@
 'use client'
 import { Button } from '@/components/ui/button'
+import { copyText } from '@/lib/clipboard'
 import { cn } from '@/lib/cn'
+import { useToast } from '@/lib/toast'
 import { Check, Copy, ExternalLink } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
@@ -124,6 +126,8 @@ function uuidv4(): string {
 
 export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   const t = useTranslations('admin')
+  const tc = useTranslations('common')
+  const toast = useToast()
   const router = useRouter()
   const PRESETS = useMemo(() => buildPresets(t), [t])
   const [selected, setSelected] = useState<PresetKey | null>(null)
@@ -164,7 +168,10 @@ export function NewProviderForm({ publicUrl }: { publicUrl: string }) {
   }
 
   async function copyUri() {
-    await navigator.clipboard.writeText(redirectUri)
+    if (!(await copyText(redirectUri))) {
+      toast({ title: tc('copyFailed'), variant: 'danger' })
+      return
+    }
     setCopied(true)
     setTimeout(() => setCopied(false), 2000)
   }

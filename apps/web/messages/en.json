@@ -24,6 +24,7 @@
       "clear": "Clear"
     },
     "confirm": "OK",
+    "copyFailed": "Couldn't copy. Select the text and copy it yourself.",
     "loading": "Loading…",
     "notFound": {
       "title": "Page not found",

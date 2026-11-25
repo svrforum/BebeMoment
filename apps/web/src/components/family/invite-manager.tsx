@@ -2,6 +2,8 @@
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
 import { Label } from '@/components/ui/input'
+import { copyText } from '@/lib/clipboard'
+import { useToast } from '@/lib/toast'
 import { Check, Copy, QrCode, Share2 } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
 import { useEffect, useState } from 'react'
@@ -16,7 +18,9 @@ type Invite = {
 
 export function InviteManager() {
   const t = useTranslations('family')
+  const tc = useTranslations('common')
   const locale = useLocale()
+  const toast = useToast()
   const [invites, setInvites] = useState<Invite[]>([])
   const [role, setRole] = useState<'guardian' | 'family'>('family')
   const [lastToken, setLastToken] = useState<string | null>(null)
@@ -96,13 +100,12 @@ export function InviteManager() {
 
   async function copyLink() {
     if (!lastLink) return
-    try {
-      await navigator.clipboard.writeText(lastLink)
-      setCopied(true)
-      setTimeout(() => setCopied(false), 1500)
-    } catch {
-      // clipboard 차단 환경 — 사용자가 직접 복사
+    if (!(await copyText(lastLink))) {
+      toast({ title: tc('copyFailed'), variant: 'danger' })
+      return
     }
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
   }
 
   async function shareLink() {
