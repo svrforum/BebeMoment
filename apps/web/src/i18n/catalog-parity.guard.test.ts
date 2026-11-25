@@ -6,7 +6,13 @@ import ts from 'typescript'
 import { beforeAll, describe, expect, it } from 'vitest'
 import en from '../../messages/en.json'
 import ko from '../../messages/ko.json'
-import { parseSource, sourceFiles, walkNodes } from '../test-support/source-files'
+import {
+  lineOf,
+  parseSource,
+  parseText,
+  sourceFiles,
+  walkNodes,
+} from '../test-support/source-files'
 
 const CATALOGS = { ko, en } as const
 const LOCALES = Object.keys(CATALOGS) as (keyof typeof CATALOGS)[]
@@ -46,22 +52,96 @@ async function loadBuild(build: 'production' | 'development'): Promise<Render> {
   }
 }
 
-/** `t.rich('a.b', …)`·`t.markup('a.b', …)` 의 리터럴 키. 앞의 네임스페이스는 호출마다 달라 꼬리만 안다. */
-function richKeys(): string[] {
-  const keys: string[] = []
-  for (const rel of sourceFiles('src', 'app')) {
-    walkNodes(parseSource(rel), (node) => {
-      if (
-        ts.isCallExpression(node) &&
-        ts.isPropertyAccessExpression(node.expression) &&
-        (node.expression.name.text === 'rich' || node.expression.name.text === 'markup') &&
-        node.arguments[0] &&
-        ts.isStringLiteralLike(node.arguments[0])
+const TRANSLATOR_FACTORIES = new Set(['useTranslations', 'getTranslations'])
+
+/**
+ * 번역기 초기화식(`useTranslations('ns')`·`await getTranslations('ns')`·
+ * `getTranslations({ locale, namespace: 'ns' })`)의 네임스페이스. 인자가 없거나 객체에 namespace 가
+ * 없으면 루트(''). 이 모양이 아니면 undefined.
+ */
+function namespaceOfInitializer(init: ts.Expression | undefined): string | undefined {
+  if (!init) return undefined
+  if (ts.isAwaitExpression(init) || ts.isParenthesizedExpression(init))
+    return namespaceOfInitializer(init.expression)
+  if (!ts.isCallExpression(init) || !ts.isIdentifier(init.expression)) return undefined
+  if (!TRANSLATOR_FACTORIES.has(init.expression.text)) return undefined
+  const [arg] = init.arguments
+  if (!arg) return ''
+  if (ts.isStringLiteralLike(arg)) return arg.text
+  if (!ts.isObjectLiteralExpression(arg)) return undefined
+  const ns = arg.properties.find(
+    (p) => ts.isPropertyAssignment(p) && ts.isIdentifier(p.name) && p.name.text === 'namespace',
+  )
+  if (!ns) return ''
+  return ts.isPropertyAssignment(ns) && ts.isStringLiteralLike(ns.initializer)
+    ? ns.initializer.text
+    : undefined
+}
+
+/**
+ * `t.rich(…)` 의 받는 쪽 `t` 를 가장 가까운 스코프부터 거슬러 올라가 그 선언의 초기화식에서
+ * 네임스페이스를 읽는다. 매개변수로 넘겨받았거나 다른 모양으로 만든 번역기면 undefined.
+ */
+function namespaceOfReceiver(receiver: ts.Expression): string | undefined {
+  if (!ts.isIdentifier(receiver)) return undefined
+  const name = receiver.text
+  for (let scope: ts.Node | undefined = receiver.parent; scope; scope = scope.parent) {
+    if (ts.isFunctionLike(scope)) {
+      const param = scope.parameters.find((p) => ts.isIdentifier(p.name) && p.name.text === name)
+      if (param) return undefined
+    }
+    if (!ts.isBlock(scope) && !ts.isSourceFile(scope) && !ts.isModuleBlock(scope)) continue
+    for (const stmt of scope.statements) {
+      if (!ts.isVariableStatement(stmt)) continue
+      const decl = stmt.declarationList.declarations.find(
+        (d) => ts.isIdentifier(d.name) && d.name.text === name,
       )
-        keys.push(node.arguments[0].text)
-    })
+      if (decl) return namespaceOfInitializer(decl.initializer)
+    }
   }
-  return keys
+  return undefined
+}
+
+type RichKeys = {
+  /** 네임스페이스까지 붙인 카탈로그 전체 경로. */
+  exact: string[]
+  /** 네임스페이스를 못 읽은 호출 — 키 꼬리만 안다. */
+  tails: { key: string; where: string }[]
+}
+
+/** 한 파일의 `t.rich('a.b', …)`·`t.markup('a.b', …)` 리터럴 키. */
+function richKeysIn(sf: ts.SourceFile, rel: string): RichKeys {
+  const out: RichKeys = { exact: [], tails: [] }
+  walkNodes(sf, (node) => {
+    if (
+      !ts.isCallExpression(node) ||
+      !ts.isPropertyAccessExpression(node.expression) ||
+      (node.expression.name.text !== 'rich' && node.expression.name.text !== 'markup')
+    )
+      return
+    const [first] = node.arguments
+    if (!first || !ts.isStringLiteralLike(first)) return
+    const ns = namespaceOfReceiver(node.expression.expression)
+    if (ns === undefined) out.tails.push({ key: first.text, where: `${rel}:${lineOf(sf, node)}` })
+    else out.exact.push(ns ? `${ns}.${first.text}` : first.text)
+  })
+  return out
+}
+
+function richKeys(): RichKeys {
+  const all: RichKeys = { exact: [], tails: [] }
+  for (const rel of sourceFiles('src', 'app')) {
+    const found = richKeysIn(parseSource(rel), rel)
+    all.exact.push(...found.exact)
+    all.tails.push(...found.tails)
+  }
+  return all
+}
+
+/** 이 카탈로그 키를 t.rich·t.markup 이 그리는지 — 네임스페이스를 못 읽은 호출만 꼬리로 맞춘다. */
+function drawnAsRich(key: string, rich: RichKeys): boolean {
+  if (rich.exact.includes(key)) return true
+  return rich.tails.some((r) => key === r.key || key.endsWith(`.${r.key}`))
 }
 
 type Leaf = string | unknown[]
@@ -251,15 +331,62 @@ describe('개발·프로덕션 빌드에서 같은 문장이 보인다', () => {
   /** `t()` 로 부르면 개발은 키 경로를, 프로덕션은 `<b>` 를 글자 그대로 보여 준다. */
   it('꺾쇠(<)는 t.rich·t.markup 으로 그리는 문장의 태그로만 쓴다', () => {
     const rich = richKeys()
-    expect(rich.length).toBeGreaterThan(20)
+    expect(rich.exact.length).toBeGreaterThan(20)
+    if (rich.tails.length > 0)
+      console.info(
+        `네임스페이스를 못 읽어 키 꼬리로만 맞춘 t.rich·t.markup 호출:\n${rich.tails
+          .map((r) => `  ${r.where} '${r.key}'`)
+          .join('\n')}`,
+      )
     const offenders = new Set<string>()
     for (const locale of LOCALES) {
       for (const [key, value] of flatten(CATALOGS[locale])) {
         if (typeof value !== 'string' || !value.includes('<')) continue
-        if (!rich.some((r) => key === r || key.endsWith(`.${r}`))) offenders.add(key)
+        if (!drawnAsRich(key, rich)) offenders.add(key)
       }
     }
     expect([...offenders]).toEqual([])
+  })
+})
+
+describe('t.rich·t.markup 키의 네임스페이스', () => {
+  const sample = parseText(
+    'x.tsx',
+    `function A() {
+  const t = useTranslations('admin')
+  return t.rich('guide.step', {})
+}
+async function B() {
+  const t = await getTranslations({ locale: 'en', namespace: 'settings' })
+  const root = await getTranslations()
+  return [t.markup('guide.step', {}), root.rich('family.hint', {})]
+}
+function C({ t }: { t: Translator }) {
+  return t.rich('x.y', {})
+}
+function D(t: Translator) {
+  const inner = () => t.rich('p.q', {})
+  return inner
+}`,
+  )
+
+  it('받는 쪽 선언(문자열·객체 인자·인자 없음)에서 네임스페이스를 읽고, 넘겨받은 번역기는 꼬리로 남긴다', () => {
+    expect(richKeysIn(sample, 'x.tsx')).toEqual({
+      exact: ['admin.guide.step', 'settings.guide.step', 'family.hint'],
+      tails: [
+        { key: 'x.y', where: 'x.tsx:11' },
+        { key: 'p.q', where: 'x.tsx:14' },
+      ],
+    })
+  })
+
+  it('네임스페이스를 읽었으면 다른 네임스페이스의 같은 꼬리 키는 통과시키지 않는다', () => {
+    const rich = richKeysIn(sample, 'x.tsx')
+    expect(drawnAsRich('admin.guide.step', rich)).toBe(true)
+    expect(drawnAsRich('settings.guide.step', rich)).toBe(true)
+    expect(drawnAsRich('family.guide.step', rich)).toBe(false)
+    expect(drawnAsRich('other.family.hint', rich)).toBe(false)
+    expect(drawnAsRich('any.x.y', rich)).toBe(true)
   })
 })
 
