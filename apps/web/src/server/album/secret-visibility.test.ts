@@ -103,6 +103,7 @@ async function setup() {
 
   return {
     familyId: family.id,
+    userId: user.id,
     assetId: asset.id,
     storyId: story.id,
     hidden,
@@ -189,6 +190,49 @@ describe('family 역할은 비밀 앨범과 그 아래 앨범을 어느 경로�
 
     expect(await entries(s.child.id)).toEqual([])
     expect((await entries(s.open.id)).map((e) => e.id)).toEqual([s.storyId])
+  })
+})
+
+describe('하위 앨범 수', () => {
+  // 공개 앨범 아래 비밀 자식이 하나 있다. family 에게 "하위 앨범 2개" 라고 보여 주면 열 수 없는
+  // 앨범이 하나 더 있다는 사실이 드러난다 — 목록·검색·상세가 같은 수를 내야 한다.
+  async function childCounts(viewerRole: 'owner' | 'guardian' | 'family') {
+    const s = await setup()
+    await createAlbum(
+      {
+        familyId: s.familyId,
+        byUserId: s.userId,
+        name: 'Trip open hidden child',
+        parentId: s.open.id,
+        secret: true,
+      },
+      db.prismaPublic,
+    )
+    const listed = await listAlbums(
+      { familyId: s.familyId, parentId: null, viewerRole },
+      db.prismaPublic,
+    )
+    const found = await searchAlbums(
+      { familyId: s.familyId, q: 'Trip open', viewerRole },
+      db.prismaPublic,
+    )
+    const detail = await getAlbumWithBreadcrumbs(
+      { albumId: s.open.id, familyId: s.familyId, viewerRole },
+      db.prismaPublic,
+    )
+    return {
+      listed: listed.find((a) => a.id === s.open.id)?.childCount,
+      searched: found.find((a) => a.id === s.open.id)?.childCount,
+      detail: detail?.childCount,
+    }
+  }
+
+  it('family 에겐 비밀 자식을 세지 않는다', async () => {
+    expect(await childCounts('family')).toEqual({ listed: 1, searched: 1, detail: 1 })
+  })
+
+  it.each(['owner', 'guardian'] as const)('%s 에겐 비밀 자식도 센다', async (role) => {
+    expect(await childCounts(role)).toEqual({ listed: 2, searched: 2, detail: 2 })
   })
 })
 

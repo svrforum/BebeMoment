@@ -42,7 +42,13 @@ export async function searchAlbums(
   const [childCounts, assetCounts] = await Promise.all([
     prismaPublic.album.groupBy({
       by: ['parentId'],
-      where: { familyId: args.familyId, parentId: { in: ids }, deletedAt: null },
+      where: {
+        familyId: args.familyId,
+        parentId: { in: ids },
+        deletedAt: null,
+        // 걸러 낸 결과는 비밀 조상이 없으니, family 가 못 여는 자식은 비밀인 자식뿐이다.
+        ...(args.viewerRole === 'family' ? { secret: false } : {}),
+      },
       _count: { _all: true },
     }),
     prismaPublic.albumAsset.groupBy({

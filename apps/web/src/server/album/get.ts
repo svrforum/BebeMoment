@@ -43,7 +43,13 @@ export async function getAlbumWithBreadcrumbs(
 
   const [childCount, assetCount] = await Promise.all([
     prismaPublic.album.count({
-      where: { familyId: args.familyId, parentId: album.id, deletedAt: null },
+      where: {
+        familyId: args.familyId,
+        parentId: album.id,
+        deletedAt: null,
+        // 여기까지 왔으면 이 앨범과 조상은 공개다 — family 가 못 여는 자식은 비밀인 자식뿐.
+        ...(args.viewerRole === 'family' ? { secret: false } : {}),
+      },
     }),
     prismaPublic.albumAsset.count({
       where: { familyId: args.familyId, albumId: album.id },

@@ -34,7 +34,8 @@ export type AlbumListItem = {
  * 전부 본다. 캐시는 role-agnostic(전체) 로 둔 뒤 호출 측에서 viewerRole 로
  * 후처리 — listAlbumTree 와 같은 패턴. 부모 자체가 비밀이거나 비밀 조상 아래면 자식 목록은
  * 통째로 비운다 — 자식의 secret 플래그만 보면 `?parentId=<비밀 앨범>` 으로 그 안의 평범한
- * 하위 앨범이 드러난다.
+ * 하위 앨범이 드러난다. 하위 앨범 수도 family 에겐 비밀 자식을 뺀 수다(열 수 없는 앨범이
+ * 있다는 사실이 숫자로 새지 않게).
  */
 export async function listAlbums(
   args: { familyId: string; parentId: string | null; viewerRole: Role },
@@ -49,17 +50,28 @@ export async function listAlbums(
   }
   const all = await unstable_cache(
     () => listAlbumsRaw(familyId, parentId, prismaPublic),
-    ['album-list', familyId, parentId ?? 'root'],
+    // 담기는 모양이 바뀌면 키도 바꾼다 — 배포 직후 옛 모양의 캐시가 돌아오면 안 된다.
+    ['album-list-v2', familyId, parentId ?? 'root'],
     { revalidate: 60, tags: [`albums:${familyId}`] },
   )()
-  return viewerRole === 'family' ? all.filter((a) => !a.secret) : all
+  const family = viewerRole === 'family'
+  return all
+    .filter((a) => !family || !a.secret)
+    .map(({ childCounts, ...a }) => ({
+      ...a,
+      childCount: family ? childCounts.open : childCounts.all,
+    }))
+}
+
+type RawAlbumListItem = Omit<AlbumListItem, 'childCount'> & {
+  childCounts: { all: number; open: number }
 }
 
 async function listAlbumsRaw(
   familyId: string,
   parentId: string | null,
   prismaPublic: PrismaPublic,
-): Promise<AlbumListItem[]> {
+): Promise<RawAlbumListItem[]> {
   const albums = await prismaPublic.album.findMany({
     where: {
       familyId,
@@ -74,7 +86,7 @@ async function listAlbumsRaw(
 
   const [childCounts, assetCounts] = await Promise.all([
     prismaPublic.album.groupBy({
-      by: ['parentId'],
+      by: ['parentId', 'secret'],
       where: { familyId, parentId: { in: ids }, deletedAt: null },
       _count: { _all: true },
     }),
@@ -85,7 +97,14 @@ async function listAlbumsRaw(
     }),
   ])
 
-  const childByParent = new Map(childCounts.map((c) => [c.parentId, c._count._all]))
+  const childByParent = new Map<string, { all: number; open: number }>()
+  for (const c of childCounts) {
+    if (!c.parentId) continue
+    const n = childByParent.get(c.parentId) ?? { all: 0, open: 0 }
+    n.all += c._count._all
+    if (!c.secret) n.open += c._count._all
+    childByParent.set(c.parentId, n)
+  }
   const assetByAlbum = new Map(assetCounts.map((c) => [c.albumId, c._count._all]))
 
   return albums.map((a) => ({
@@ -97,7 +116,7 @@ async function listAlbumsRaw(
     secret: a.secret,
     depth: a.depth,
     path: a.path,
-    childCount: childByParent.get(a.id) ?? 0,
+    childCounts: childByParent.get(a.id) ?? { all: 0, open: 0 },
     assetCount: assetByAlbum.get(a.id) ?? 0,
     createdAt: a.createdAt.getTime(),
   }))
