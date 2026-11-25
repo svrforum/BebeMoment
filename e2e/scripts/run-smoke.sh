@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-# 3100 은 다른 서비스와 겹치기 쉬워 피한다.
+# 3100 처럼 흔한 포트는 다른 서비스와 겹치기 쉬워 피한다.
 PORT="${PORT:-3199}"
 export PORT
 
@@ -32,13 +32,14 @@ export MEDIA_PORT=3101
 export MEDIA_INTERNAL_URL="http://127.0.0.1:3101"
 # media 프로세스도 PUBLIC_URL 을 봐야 한다 — tus/파일 URL 을 이걸로 만든다. 예전엔 web
 # 서브셸에만 넣어서 media 가 기본값(localhost:3001)으로 URL 을 만들었고, 브라우저가 아무것도
-# 없는 포트로 업로드를 보내 "등록만 되고 끝나지 않는" 실패가 됐다(§17#28 과 같은 함정).
+# 없는 포트로 업로드를 보내 "등록만 되고 끝나지 않는" 실패가 됐다.
 export PUBLIC_URL="http://localhost:$PORT"
 # ⚠️ .env 에 남아 있는 stale 한 MEDIA_PUBLIC_BASE_URL(…:3001, Caddy 시절 값)을 반드시 지운다.
 # 두면 tus URL 이 외부 오리진(192.168.x.x:3001)이 되고 CSP connect-src 'self' 가 막아
-# 업로드가 등록만 되고 끝나지 않는다 — 화면엔 아무 말도 안 나온다(§17#28·§17#31).
+# 업로드가 등록만 되고 끝나지 않는다 — CSP 위반은 예외가 아니라서 화면엔 아무 말도 안 나온다.
 # unset 으로는 부족하다 — Next 가 apps/web/.env(루트 .env 심링크)를 스스로 읽어 되살린다.
-# 프로세스 env 가 .env 보다 우선하므로 빈 값으로 덮어쓴다(빈 값이면 PUBLIC_URL 로 폴백).
+# 프로세스 env 가 .env 보다 우선하므로 빈 값으로 덮어쓴다(빈 값이면 미디어 URL 이 상대 경로
+# /media/… 가 되어 같은 오리진으로 간다).
 # 스토리지도 e2e 전용 경로로 — CI 엔 .env 가 없어 STORAGE_PATH 가 기본값 /data 가 되는데
 # 러너엔 그 경로가 없어 tus 가 파일을 못 쓰고, 업로드가 "등록만 되고 끝나지 않는" 실패가 된다.
 export STORAGE_PATH="$ROOT/.dev/e2e-data"
@@ -60,6 +61,31 @@ else
   # 스펙의 resetDatabase 도 같은 방식으로 docker 를 불러야 한다.
   export BEBE_E2E_SUDO=1
 fi
+
+# 다른 설정으로 돈 next dev 가 남긴 apps/web/.next/dev(Turbopack 캐시)를 이어 쓰면 "HMR hash
+# mismatch" 로 페이지가 끝없이 새로고침되고, 모든 테스트가 가입 화면에서 죽는다 — 코드 버그처럼
+# 보이지만 캐시 탓이다. 그래서 매번 비우고 시작한다. 단 그 캐시를 지금 쓰는 dev 서버(검증용 등)가
+# 살아 있으면 지우는 순간 그 서버가 깨지고, Next 도 같은 디렉터리의 두 번째 dev 서버를 거부한다.
+# 그때는 이유를 말하고 멈춘다. 살아 있는 서버는 .next/dev/lock 에 pid 와 주소를 적어 두고,
+# 정상 종료하면 그 파일을 지운다.
+WEB_DEV_CACHE="$ROOT/apps/web/.next/dev"
+if [[ -f "$WEB_DEV_CACHE/lock" ]]; then
+  OTHER_PID="" OTHER_URL=""
+  read -r OTHER_PID OTHER_URL < <(
+    node -e 'try { const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); console.log(`${j.pid ?? ""} ${j.appUrl ?? ""}`) } catch {}' \
+      "$WEB_DEV_CACHE/lock" 2>/dev/null
+  ) || true
+  # pid 는 재사용될 수 있으니 그 프로세스가 실제로 next 인지까지 본다.
+  OTHER_ARGS=""
+  [[ "$OTHER_PID" =~ ^[0-9]+$ ]] && OTHER_ARGS="$(ps -o args= -p "$OTHER_PID" 2>/dev/null || true)"
+  if [[ "$OTHER_ARGS" == *next* ]]; then
+    echo "!! 중단: apps/web 의 다른 next dev 가 실행 중입니다 (pid $OTHER_PID, ${OTHER_URL:-주소 모름})."
+    echo "!!   e2e 서버와 .next/dev 캐시를 같이 쓰게 되어 함께 돌릴 수 없습니다."
+    echo "!!   그 서버를 먼저 내린 뒤 다시 실행하세요: kill $OTHER_PID"
+    exit 1
+  fi
+fi
+rm -rf "$WEB_DEV_CACHE"
 
 cleanup() {
   echo "== cleanup =="
