@@ -333,6 +333,20 @@ describe('지우기 cascade', () => {
     ).toEqual({ removedAlbums: 1, removedAttachments: 0 })
   })
 
+  it('보호자에겐 비밀 스토리 사진도 세어 하위째 지우기를 묻는다', async () => {
+    const s = await setup()
+    await db.prismaPublic.story.update({
+      where: { id: s.story.id },
+      data: { visibility: 'guardians', assets: { create: [{ assetId: s.asset.id, order: 0 }] } },
+    })
+    await expect(
+      deleteAlbum(
+        { albumId: s.hidden.id, familyId: s.familyId, byUserId: s.owner.id },
+        db.prismaPublic,
+      ),
+    ).rejects.toMatchObject({ message: 'album.hasContents', values: { albums: 0, photos: 1 } })
+  })
+
   it('비밀 앨범이 없으면 family 도 자기 앨범을 하위째 지운다', async () => {
     const s = await setup()
     const mine = await createAlbum(

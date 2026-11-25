@@ -10,6 +10,8 @@ export type ActionFailure = {
   errorKey: string
   /** 카탈로그 키가 아닌 서비스 메시지(예: `throw new Error('...')`)를 그대로 실어 보낼 때. */
   message?: string
+  /** `errorKey` 문장의 ICU 자리(`{count}`)에 들어갈 값 — 서비스 에러가 실어 보낸다. */
+  values?: Record<string, string | number>
 }
 
 export type ActionResult<T = void> = { ok: true; data: T } | ActionFailure
@@ -18,12 +20,12 @@ export type ActionResult<T = void> = { ok: true; data: T } | ActionFailure
 export type FormActionState = ActionFailure | null
 
 type Translator = {
-  (key: string): string
+  (key: string, values?: Record<string, string | number>): string
   has: (key: string) => boolean
 }
 
 /** 클라이언트가 실패를 사람이 읽을 문장으로 — 카탈로그 키면 번역, 아니면 서버 메시지. */
 export function actionErrorText(t: Translator, failure: ActionFailure): string {
-  if (t.has(failure.errorKey)) return t(failure.errorKey)
+  if (t.has(failure.errorKey)) return t(failure.errorKey, failure.values)
   return failure.message ?? t('errors.badRequest')
 }

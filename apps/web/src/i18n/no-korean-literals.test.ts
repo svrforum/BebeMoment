@@ -6,10 +6,10 @@ const HANGUL = /[가-힯ᄀ-ᇿ㄰-㆏]/
 
 /**
  * 아직 카탈로그로 못 옮긴 곳. **여기 새 항목을 추가하지 말 것** — 새 사용자 문구는
- * `errors.<key>`(ServiceError·zod 메시지) 나 네임스페이스 키로 만든다.
+ * `errors.<key>`(ServiceError·zod 메시지) 나 네임스페이스 키로 만든다. 개수·이름이 들어가는
+ * 문구는 ICU 자리(`{count}`)를 둔 키로 만들고 값은 `new ConflictError(key, { count })` 처럼
+ * 에러에 실어 보낸다(errorJson·withActionLog 가 채워 번역한다).
  *
- * - `src/server/album/*`: 세 문구 모두 개수·깊이가 들어가는 동적 메시지라 ICU placeholder
- *   키가 필요하다(`errors.album.maxDepth` / `errors.album.hasChildren`).
  * - `src/server/backup/*`: 관리자 복구 콘솔과 컨테이너 stdout 으로 나가는 **운영자용
  *   진행 로그·진단 문자열**이다(psql stderr, 체인 id, 경로). 요청 로케일이 없는 CLI
  *   복구 경로에서도 같은 코드가 돌아 별도 설계가 필요하다.
@@ -22,9 +22,6 @@ const HANGUL = /[가-힯ᄀ-ᇿ㄰-㆏]/
 const ALLOWLIST = [
   'app/global-error.tsx',
   'src/components/auth/sns-brand-keywords.ts',
-  'src/server/album/create.ts',
-  'src/server/album/delete.ts',
-  'src/server/album/move.ts',
   'src/server/backup/chain.ts',
   'src/server/backup/remote.ts',
   'src/server/backup/restore.ts',

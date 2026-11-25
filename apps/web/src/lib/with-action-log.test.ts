@@ -1,5 +1,8 @@
+import { createTranslator } from 'next-intl'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import { z } from 'zod'
+import en from '../../messages/en.json'
+import ko from '../../messages/ko.json'
 
 const logged = vi.hoisted(() => ({
   info: vi.fn(),
@@ -9,7 +12,8 @@ const logged = vi.hoisted(() => ({
 vi.mock('@/lib/logger', () => ({ logger: logged }))
 
 const { withActionLog, actionReject } = await import('./with-action-log')
-const { ServiceError } = await import('@/server/error')
+const { ConflictError, ServiceError } = await import('@/server/error')
+const { actionErrorText } = await import('./action-result')
 const { redirect } = await import('next/navigation')
 
 describe('withActionLog', () => {
@@ -38,6 +42,31 @@ describe('withActionLog', () => {
       }),
       'action rejected',
     )
+  })
+
+  it('ServiceError 의 값은 실패에 실려 클라이언트가 문장에 채워 번역한다', async () => {
+    const values = { albums: 2, photos: 3 }
+    const r = await withActionLog('t.values', async () => {
+      throw new ConflictError('album.hasContents', values)
+    })
+    expect(r).toEqual({ ok: false, status: 409, errorKey: 'errors.album.hasContents', values })
+    expect(logged.warn).toHaveBeenCalledWith(
+      expect.objectContaining({ key: 'errors.album.hasContents', values }),
+      'action rejected',
+    )
+    if (r.ok) throw new Error('실패여야 한다')
+    for (const [locale, messages] of [
+      ['ko', ko],
+      ['en', en],
+    ] as const) {
+      const t = createTranslator({ locale, messages }) as unknown as Parameters<
+        typeof actionErrorText
+      >[0]
+      const text = actionErrorText(t, r)
+      expect(text).toBe(t('errors.album.hasContents', values))
+      expect(text).toContain('3')
+      expect(text).not.toContain('{')
+    }
   })
 
   it('401 은 info 로 — 미로그인 요청은 상시라 warn 을 채우면 진짜 문제가 묻힌다', async () => {

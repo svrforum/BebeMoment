@@ -78,9 +78,10 @@ export async function deleteAlbum(
       ])
 
       if ((childCount > 0 || attachmentCount > 0) && !input.cascade) {
-        throw new ConflictError(
-          `앨범에 ${childCount}개 하위 앨범, ${attachmentCount}장 사진이 있어요. cascade 가 필요해요.`,
-        )
+        throw new ConflictError('album.hasContents', {
+          albums: childCount,
+          photos: attachmentCount,
+        })
       }
 
       const now = new Date()

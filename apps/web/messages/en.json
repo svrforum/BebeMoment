@@ -1981,6 +1981,9 @@
       "moveTargetNotFound": "Destination not found",
       "descendantParent": "A sub-album can't be the parent",
       "duplicateNameAtTarget": "An album with this name already exists at the destination",
+      "maxDepth": "Albums can't nest more than {levels} levels deep",
+      "moveMaxDepth": "Moving it there would nest albums more than {levels} levels deep",
+      "hasContents": "This album has {albums, plural, one {# sub-album} other {# sub-albums}} and {photos, plural, one {# photo} other {# photos}}. Confirm deleting them too first",
       "permissionDenied": "You don't have permission",
       "featureOff": "Albums are turned off"
     },

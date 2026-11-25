@@ -91,7 +91,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       })
       const subtreeDepth = (deepest._max.depth ?? album.depth) - album.depth
       if (newParentDepth + 1 + subtreeDepth > MAX_DEPTH) {
-        throw new ConflictError(`이동하면 최대 깊이 (${MAX_DEPTH + 1}단계) 를 넘어가요`)
+        throw new ConflictError('album.moveMaxDepth', { levels: MAX_DEPTH + 1 })
       }
 
       // 숨긴 형제와 이름이 겹쳐도 거절한다 — 형제 이름은 유일 인덱스가 지키고, 이름은 내용이 아니다.

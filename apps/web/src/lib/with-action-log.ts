@@ -30,7 +30,10 @@ export function actionReject(status: number, errorKey: string): ActionRejection 
 function expectedFailure(e: unknown): ActionFailure | null {
   if (e instanceof ActionRejection) return actionFailure(e.status, e.errorKey)
   // 서비스는 `errors` 네임스페이스 상대 키로 던진다(errorJson 과 같은 규약).
-  if (e instanceof ServiceError) return actionFailure(e.status, `errors.${e.message}`)
+  if (e instanceof ServiceError) {
+    const failure = actionFailure(e.status, `errors.${e.message}`)
+    return e.values ? { ...failure, values: e.values } : failure
+  }
   if (e instanceof ZodError) {
     const first = e.issues[0]?.message ?? ''
     return actionFailure(400, CATALOG_KEY.test(first) ? first : 'errors.invalidInput')
@@ -74,6 +77,7 @@ export async function withActionLog<T>(
         action,
         status: failure.status,
         key: failure.errorKey,
+        ...(failure.values ? { values: failure.values } : {}),
         ...(failure.message ? { err: failure.message.slice(0, 300) } : {}),
       },
       'action rejected',

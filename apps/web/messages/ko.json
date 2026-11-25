@@ -1981,6 +1981,9 @@
       "moveTargetNotFound": "이동할 위치를 찾을 수 없어요",
       "descendantParent": "하위 앨범을 부모로 둘 수 없어요",
       "duplicateNameAtTarget": "이동할 위치에 같은 이름의 앨범이 이미 있어요",
+      "maxDepth": "최대 깊이({levels}단계)를 넘어요",
+      "moveMaxDepth": "옮기면 최대 깊이({levels}단계)를 넘어가요",
+      "hasContents": "앨범에 하위 앨범 {albums}개, 사진 {photos}장이 있어요. 함께 지울지 먼저 확인해 주세요",
       "permissionDenied": "권한이 없어요",
       "featureOff": "앨범 기능이 꺼져 있어요"
     },

@@ -52,7 +52,7 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
       'album.parentNotFound',
     )
     if (parent.depth >= MAX_DEPTH) {
-      throw new ConflictError(`최대 깊이 (${MAX_DEPTH + 1}단계) 를 넘어요`)
+      throw new ConflictError('album.maxDepth', { levels: MAX_DEPTH + 1 })
     }
     parentPath = parent.path
     parentDepth = parent.depth
