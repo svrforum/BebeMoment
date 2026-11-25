@@ -1,5 +1,6 @@
 import { lookup } from 'node:dns/promises'
 import net from 'node:net'
+import { envValue } from '@bebe/config'
 
 const DEFAULT_TIMEOUT_MS = 8000
 
@@ -44,7 +45,7 @@ export async function assertSafeOutboundUrl(raw: string): Promise<URL> {
   if (url.protocol !== 'https:' && url.protocol !== 'http:') {
     throw new Error(`Blocked outbound scheme: ${url.protocol}`)
   }
-  if (process.env.OIDC_ALLOW_LOCAL_FETCH === 'true') return url
+  if (envValue(process.env, 'OIDC_ALLOW_LOCAL_FETCH')) return url
 
   const host = url.hostname.replace(/^\[|\]$/g, '') // strip IPv6 brackets
   let addresses: string[]

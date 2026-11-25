@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import { assertSafeOutboundUrl } from './safe-fetch'
 
 describe('assertSafeOutboundUrl', () => {
@@ -29,5 +29,21 @@ describe('assertSafeOutboundUrl', () => {
 
   it('allows a private-LAN IdP (internal self-hosted)', async () => {
     await expect(assertSafeOutboundUrl('https://10.1.2.3/openid')).resolves.toBeInstanceOf(URL)
+  })
+
+  describe('OIDC_ALLOW_LOCAL_FETCH', () => {
+    afterEach(() => {
+      vi.unstubAllEnvs()
+    })
+
+    it.each(['true', '1'])('%j lets a loopback IdP through', async (value) => {
+      vi.stubEnv('OIDC_ALLOW_LOCAL_FETCH', value)
+      await expect(assertSafeOutboundUrl('http://127.0.0.1:8080/x')).resolves.toBeInstanceOf(URL)
+    })
+
+    it('"false" keeps the guard', async () => {
+      vi.stubEnv('OIDC_ALLOW_LOCAL_FETCH', 'false')
+      await expect(assertSafeOutboundUrl('http://127.0.0.1:8080/x')).rejects.toThrow()
+    })
   })
 })

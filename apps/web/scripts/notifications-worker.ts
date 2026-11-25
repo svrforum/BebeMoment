@@ -384,6 +384,7 @@ function logDeliveryDrop(job: NotificationJob, reason: string, hour: number): vo
 async function main(): Promise<void> {
   const secretKey = process.env.SECRET_KEY
   if (!secretKey) throw new Error('SECRET_KEY required')
+  const graceMs = shutdownGraceMs(process.env)
   const contact = `mailto:${process.env.ADMIN_USER_EMAIL?.split(',')[0] ?? 'admin@bebe.local'}`
 
   // VAPID 키가 없거나(미설정) 복호화 불가(SECRET_KEY 회전 후)면 web-push 가 throw 한다.
@@ -688,7 +689,6 @@ async function main(): Promise<void> {
     if (stopping) return
     stopping = true
     clearInterval(schedulerRecheck)
-    const graceMs = shutdownGraceMs(process.env.WORKER_SHUTDOWN_GRACE_MS)
     console.log(`[notifications-worker] ${signal} — closing workers (grace ${graceMs}ms)`)
     const result = await closeWithGrace(
       [() => worker.close(), () => maintenance.close(), () => reminders.close()],

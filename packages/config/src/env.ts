@@ -39,132 +39,159 @@ function looksLikePlaceholderSecret(value: string): boolean {
 
 const positiveInt = z.coerce.number().int().positive()
 
-const EnvSchema = z
-  .object({
-    DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
-    DATABASE_URL_WEB: z.string().url().or(z.string().startsWith('postgres')).optional(),
-    DATABASE_URL_MEDIA: z.string().url().or(z.string().startsWith('postgres')).optional(),
-    REDIS_URL: z.string().startsWith('redis'),
-    SECRET_KEY: z.string().min(32, 'SECRET_KEY must be at least 32 characters (recommend 64 hex)'),
-    PUBLIC_URL: z.string().url(),
-    MEDIA_INTERNAL_URL: z.string().url().optional(),
-    MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
-    NEXT_PUBLIC_MEDIA_BASE_URL: z.string().url().optional(),
-    MEDIA_SERVICE_TOKEN: z.string().min(32).optional(),
-    MEDIA_JWT_SECRET: z.string().min(32).optional(),
-    BEBE_WEB_DB_PASSWORD: z.string().min(8).optional(),
-    BEBE_MEDIA_DB_PASSWORD: z.string().min(8).optional(),
-    PORT: z.coerce.number().int().positive().default(3000),
-    STORAGE_MODE: z.enum(['local', 's3']).default('local'),
-    STORAGE_PATH: z.string().default('/data'),
-    STORAGE_S3_ENDPOINT: z.string().url().optional(),
-    STORAGE_S3_BUCKET: z.string().optional(),
-    STORAGE_S3_ACCESS_KEY: z.string().optional(),
-    STORAGE_S3_SECRET_KEY: z.string().optional(),
-    STORAGE_S3_REGION: z.string().default('us-east-1'),
-    PUID: z.coerce.number().int().default(1000),
-    PGID: z.coerce.number().int().default(1000),
-    ADMIN_USER_EMAIL: z.string().optional(),
-    // 설정 시 최초(부트스트랩) 가입에 이 토큰이 필요 — 공개 URL 첫 소유자 선점 방어.
-    SETUP_TOKEN: z.string().optional(),
-    // 공유/OG 절대 URL 에 신뢰할 추가 호스트(쉼표). 기본은 PUBLIC_URL 호스트만.
-    SHARE_ALLOWED_HOSTS: z.string().optional(),
-    LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
-    TRUST_PROXY: envBool(true),
-    NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
-    // ── 미디어 서비스 튜닝 노브 ──
-    // 여기 없는 값을 process.env 로 직접 읽으면 오타·비숫자가 NaN 으로 조용히 흘러 들어간다.
-    // 잘못된 값은 부팅에서 거부한다(web 도 같은 스키마를 쓰므로 web 부팅에서도 보인다).
-    MEDIA_ROLE: z.enum(['server', 'worker', 'both']).default('both'),
-    MEDIA_HOST: z.string().default('0.0.0.0'),
-    MEDIA_PORT: positiveInt.default(3001),
-    MEDIA_CONCURRENCY_THUMBNAIL: positiveInt.default(3),
-    MEDIA_CONCURRENCY_VIDEO: positiveInt.default(1),
-    MEDIA_FACES_CONCURRENCY: positiveInt.default(1),
-    MEDIA_SHUTDOWN_GRACE_MS: positiveInt.default(30_000),
-    MEDIA_MAX_UPLOAD_BYTES: positiveInt.default(5 * 1024 * 1024 * 1024),
-    MEDIA_FAMILY_QUOTA_BYTES: z.coerce.number().int().nonnegative().default(0),
-    MEDIA_MAX_INPUT_PIXELS: positiveInt.default(64_000_000),
-    // 기본 30분. 청크마다 자산 행을 미는 하트비트(domain/upload/progress.ts)가 생겨
-    // "느린 망에서 아직 올라오는 중"과 "죽은 업로드"를 구분할 수 있으므로 짧게 잡는다 —
-    // 업로드 토큰 TTL(15분)보다 길어 대기 중인 파일도 안전하다.
-    MEDIA_STALE_UPLOAD_HOURS: z.coerce.number().positive().default(0.5),
-    MEDIA_STALE_PROCESSING_HOURS: z.coerce.number().positive().default(12),
-    MEDIA_DERIVATIVES_INCLUDE_AVIF: envBool(true),
-    MEDIA_AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(3),
-    MEDIA_VIPS_THREADS: positiveInt.optional(),
-    MEDIA_FFMPEG_THREADS: positiveInt.optional(),
-    MEDIA_URL_CACHE: z.enum(['on', 'off']).default('on'),
-    FACE_ML_URL: z.string().url().default('http://ml:8000'),
-  })
-  .transform((env) => ({
-    ...env,
-    ADMIN_USER_EMAILS: env.ADMIN_USER_EMAIL
-      ? env.ADMIN_USER_EMAIL.split(',')
-          .map((e) => e.trim())
-          .filter(Boolean)
-      : [],
-  }))
-  .superRefine((env, ctx) => {
-    // 자리표시자·저엔트로피 시크릿 거부는 **프로덕션에서만** — dev/test 는 dev_secret 류
-    // 로컬 기본값으로 돌아가야 하므로(로컬 워크플로 보존). 실제 공개 배포는 NODE_ENV=production.
-    if (env.NODE_ENV === 'production') {
-      const gen = 'generate one with: openssl rand -hex 32'
-      if (looksLikePlaceholderSecret(env.SECRET_KEY)) {
+const EnvFields = z.object({
+  DATABASE_URL: z.string().url().or(z.string().startsWith('postgres')),
+  DATABASE_URL_WEB: z.string().url().or(z.string().startsWith('postgres')).optional(),
+  DATABASE_URL_MEDIA: z.string().url().or(z.string().startsWith('postgres')).optional(),
+  REDIS_URL: z.string().startsWith('redis'),
+  SECRET_KEY: z.string().min(32, 'SECRET_KEY must be at least 32 characters (recommend 64 hex)'),
+  PUBLIC_URL: z.string().url(),
+  MEDIA_INTERNAL_URL: z.string().url().optional(),
+  MEDIA_PUBLIC_BASE_URL: z.string().url().optional(),
+  NEXT_PUBLIC_MEDIA_BASE_URL: z.string().url().optional(),
+  MEDIA_SERVICE_TOKEN: z.string().min(32).optional(),
+  MEDIA_JWT_SECRET: z.string().min(32).optional(),
+  BEBE_WEB_DB_PASSWORD: z.string().min(8).optional(),
+  BEBE_MEDIA_DB_PASSWORD: z.string().min(8).optional(),
+  PORT: z.coerce.number().int().positive().default(3000),
+  STORAGE_MODE: z.enum(['local', 's3']).default('local'),
+  STORAGE_PATH: z.string().default('/data'),
+  STORAGE_S3_ENDPOINT: z.string().url().optional(),
+  STORAGE_S3_BUCKET: z.string().optional(),
+  STORAGE_S3_ACCESS_KEY: z.string().optional(),
+  STORAGE_S3_SECRET_KEY: z.string().optional(),
+  STORAGE_S3_REGION: z.string().default('us-east-1'),
+  PUID: z.coerce.number().int().default(1000),
+  PGID: z.coerce.number().int().default(1000),
+  ADMIN_USER_EMAIL: z.string().optional(),
+  // 설정 시 최초(부트스트랩) 가입에 이 토큰이 필요 — 공개 URL 첫 소유자 선점 방어.
+  SETUP_TOKEN: z.string().optional(),
+  // 공유/OG 절대 URL 에 신뢰할 추가 호스트(쉼표). 기본은 PUBLIC_URL 호스트만.
+  SHARE_ALLOWED_HOSTS: z.string().optional(),
+  LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
+  TRUST_PROXY: envBool(true),
+  NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+  // ── 미디어 서비스 튜닝 노브 ──
+  // 여기 없는 값을 process.env 로 직접 읽으면 오타·비숫자가 NaN 으로 조용히 흘러 들어간다.
+  // 잘못된 값은 부팅에서 거부한다(web 도 같은 스키마를 쓰므로 web 부팅에서도 보인다).
+  MEDIA_ROLE: z.enum(['server', 'worker', 'both']).default('both'),
+  MEDIA_HOST: z.string().default('0.0.0.0'),
+  MEDIA_PORT: positiveInt.default(3001),
+  MEDIA_CONCURRENCY_THUMBNAIL: positiveInt.default(3),
+  MEDIA_CONCURRENCY_VIDEO: positiveInt.default(1),
+  MEDIA_FACES_CONCURRENCY: positiveInt.default(1),
+  MEDIA_SHUTDOWN_GRACE_MS: positiveInt.default(30_000),
+  MEDIA_MAX_UPLOAD_BYTES: positiveInt.default(5 * 1024 * 1024 * 1024),
+  MEDIA_FAMILY_QUOTA_BYTES: z.coerce.number().int().nonnegative().default(0),
+  MEDIA_MAX_INPUT_PIXELS: positiveInt.default(64_000_000),
+  // 기본 30분. 청크마다 자산 행을 미는 하트비트(domain/upload/progress.ts)가 생겨
+  // "느린 망에서 아직 올라오는 중"과 "죽은 업로드"를 구분할 수 있으므로 짧게 잡는다 —
+  // 업로드 토큰 TTL(15분)보다 길어 대기 중인 파일도 안전하다.
+  MEDIA_STALE_UPLOAD_HOURS: z.coerce.number().positive().default(0.5),
+  MEDIA_STALE_PROCESSING_HOURS: z.coerce.number().positive().default(12),
+  MEDIA_DERIVATIVES_INCLUDE_AVIF: envBool(true),
+  MEDIA_AVIF_EFFORT: z.coerce.number().int().min(0).max(9).default(3),
+  MEDIA_VIPS_THREADS: positiveInt.optional(),
+  MEDIA_FFMPEG_THREADS: positiveInt.optional(),
+  MEDIA_URL_CACHE: z.enum(['on', 'off']).default('on'),
+  FACE_ML_URL: z.string().url().default('http://ml:8000'),
+  // ── web · 알림 워커 ──
+  // 사용자당 동시 가족 이벤트 스트림(/api/stream/family, 각각 Redis 구독 하나). 넘으면 429.
+  SSE_MAX_PER_USER: positiveInt.default(5),
+  // OIDC 요청의 SSRF 가드(loopback·link-local 차단)를 푼다. 사설 LAN 주소는 원래 허용된다.
+  OIDC_ALLOW_LOCAL_FETCH: envBool(false),
+  BACKUP_DIR: z.string().default('/backups'),
+  // run-app.sh 의 APP_SHUTDOWN_GRACE_S 보다 짧아야 워커가 강제 종료까지 마친다.
+  WORKER_SHUTDOWN_GRACE_MS: positiveInt.default(30_000),
+})
+
+const EnvSchema = EnvFields.transform((env) => ({
+  ...env,
+  ADMIN_USER_EMAILS: env.ADMIN_USER_EMAIL
+    ? env.ADMIN_USER_EMAIL.split(',')
+        .map((e) => e.trim())
+        .filter(Boolean)
+    : [],
+})).superRefine((env, ctx) => {
+  // 자리표시자·저엔트로피 시크릿 거부는 **프로덕션에서만** — dev/test 는 dev_secret 류
+  // 로컬 기본값으로 돌아가야 하므로(로컬 워크플로 보존). 실제 공개 배포는 NODE_ENV=production.
+  if (env.NODE_ENV === 'production') {
+    const gen = 'generate one with: openssl rand -hex 32'
+    if (looksLikePlaceholderSecret(env.SECRET_KEY)) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SECRET_KEY'],
+        message: `SECRET_KEY looks like a placeholder/example value — ${gen}`,
+      })
+    } else if (new Set(env.SECRET_KEY).size < 8) {
+      ctx.addIssue({
+        code: 'custom',
+        path: ['SECRET_KEY'],
+        message: `SECRET_KEY is too low-entropy (repeated characters) — ${gen}`,
+      })
+    }
+    for (const key of ['MEDIA_SERVICE_TOKEN', 'MEDIA_JWT_SECRET'] as const) {
+      const v = env[key]
+      if (v && looksLikePlaceholderSecret(v)) {
         ctx.addIssue({
           code: 'custom',
-          path: ['SECRET_KEY'],
-          message: `SECRET_KEY looks like a placeholder/example value — ${gen}`,
+          path: [key],
+          message: `${key} looks like a placeholder/example value — ${gen}`,
         })
-      } else if (new Set(env.SECRET_KEY).size < 8) {
+      }
+    }
+  }
+  if (env.STORAGE_MODE === 's3') {
+    for (const key of [
+      'STORAGE_S3_ENDPOINT',
+      'STORAGE_S3_BUCKET',
+      'STORAGE_S3_ACCESS_KEY',
+      'STORAGE_S3_SECRET_KEY',
+    ] as const) {
+      if (!env[key]) {
         ctx.addIssue({
           code: 'custom',
-          path: ['SECRET_KEY'],
-          message: `SECRET_KEY is too low-entropy (repeated characters) — ${gen}`,
+          path: [key],
+          message: `${key} is required when STORAGE_MODE=s3`,
         })
       }
-      for (const key of ['MEDIA_SERVICE_TOKEN', 'MEDIA_JWT_SECRET'] as const) {
-        const v = env[key]
-        if (v && looksLikePlaceholderSecret(v)) {
-          ctx.addIssue({
-            code: 'custom',
-            path: [key],
-            message: `${key} looks like a placeholder/example value — ${gen}`,
-          })
-        }
-      }
     }
-    if (env.STORAGE_MODE === 's3') {
-      for (const key of [
-        'STORAGE_S3_ENDPOINT',
-        'STORAGE_S3_BUCKET',
-        'STORAGE_S3_ACCESS_KEY',
-        'STORAGE_S3_SECRET_KEY',
-      ] as const) {
-        if (!env[key]) {
-          ctx.addIssue({
-            code: 'custom',
-            path: [key],
-            message: `${key} is required when STORAGE_MODE=s3`,
-          })
-        }
-      }
-    }
-  })
+  }
+})
 
 export type Env = z.infer<typeof EnvSchema>
 
-export function parseEnv(input: Record<string, string | undefined>): Env {
+type EnvInput = Readonly<Record<string, string | undefined>>
+type EnvFieldValues = z.output<typeof EnvFields>
+
+function invalidEnv(issues: ReadonlyArray<{ path: PropertyKey[]; message: string }>): Error {
+  const lines = issues.map((i) => `  - ${i.path.map(String).join('.')}: ${i.message}`).join('\n')
+  return new Error(`Invalid environment:\n${lines}`)
+}
+
+export function parseEnv(input: EnvInput): Env {
   // 빈 문자열 env 는 "미설정"으로 취급한다. compose 가 `${VAR:-}` 로 빈값을 넘기면
   // optional().url()·enum 등이 '' 를 거부해 부팅이 깨졌다(미설정이면 통과/기본값 적용).
   const cleaned: Record<string, string | undefined> = {}
   for (const [key, value] of Object.entries(input)) cleaned[key] = value === '' ? undefined : value
   const result = EnvSchema.safeParse(cleaned)
-  if (!result.success) {
-    const issues = result.error.issues
-      .map((i) => `  - ${i.path.join('.')}: ${i.message}`)
-      .join('\n')
-    throw new Error(`Invalid environment:\n${issues}`)
-  }
+  if (!result.success) throw invalidEnv(result.error.issues)
   return result.data
+}
+
+/**
+ * 키 하나를 같은 정의(기본값·검증)로 읽는다. 전체 검증은 각 프로세스가 부팅 때 parseEnv 로
+ * 한다 — 이건 상관없는 키 때문에 멈추면 안 되는 곳용이다. 예: 복구 CLI 는 새 기기의 자리표시자
+ * SECRET_KEY 로도 백업 위치를 읽어야 한다. 키 사이 규칙(superRefine)은 보지 않는다.
+ */
+export function envValue<K extends keyof EnvFieldValues>(
+  input: EnvInput,
+  key: K,
+): EnvFieldValues[K] {
+  const raw = input[key]
+  const result = EnvFields.shape[key].safeParse(raw === '' ? undefined : raw)
+  if (!result.success) {
+    throw invalidEnv(result.error.issues.map((i) => ({ ...i, path: [key, ...i.path] })))
+  }
+  return result.data as EnvFieldValues[K]
 }

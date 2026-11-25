@@ -13,15 +13,22 @@ function supervisorGraceMs(): number {
 
 describe('shutdownGraceMs', () => {
   it('defaults to thirty seconds and honours a positive override', () => {
-    expect(shutdownGraceMs(undefined)).toBe(30_000)
-    expect(shutdownGraceMs('1500')).toBe(1500)
-    expect(shutdownGraceMs('nope')).toBe(30_000)
-    expect(shutdownGraceMs('0')).toBe(30_000)
+    expect(shutdownGraceMs({})).toBe(30_000)
+    expect(shutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: '' })).toBe(30_000)
+    expect(shutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: '1500' })).toBe(1500)
+  })
+
+  it('refuses a value that is not a positive integer instead of quietly using the default', () => {
+    for (const bad of ['nope', '0', '-5', '1.5']) {
+      expect(() => shutdownGraceMs({ WORKER_SHUTDOWN_GRACE_MS: bad })).toThrow(
+        /WORKER_SHUTDOWN_GRACE_MS/,
+      )
+    }
   })
 
   it('leaves the worker time to force-close before the supervisor kills it', () => {
     // 상한을 넘기면 워커는 강제 close·큐 close·Redis 끊기를 더 한다 — 그 몫으로 10초를 남긴다.
-    expect(shutdownGraceMs(undefined) + 10_000).toBeLessThanOrEqual(supervisorGraceMs())
+    expect(shutdownGraceMs({}) + 10_000).toBeLessThanOrEqual(supervisorGraceMs())
   })
 })
 

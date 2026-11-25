@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseEnv } from './env'
+import { envValue, parseEnv } from './env'
 
 // realistic strong key (64 hex, high distinct-char count) — not a placeholder, passes the guard
 const STRONG = '9f86d081884c7d659a2feaa0c55ad015a3bf4f1b2b0b822cd15d6c15b0f00a08'
@@ -251,5 +251,82 @@ describe('media knobs', () => {
     expect(() => parseEnv({ ...base, MEDIA_FAMILY_QUOTA_BYTES: '-1' })).toThrow(
       /MEDIA_FAMILY_QUOTA_BYTES/,
     )
+  })
+})
+
+describe('web and worker knobs', () => {
+  const base = {
+    DATABASE_URL: 'postgres://localhost:5432/bebe',
+    REDIS_URL: 'redis://localhost:6379',
+    SECRET_KEY: STRONG,
+    PUBLIC_URL: 'http://localhost:3000',
+  }
+
+  it('applies the documented defaults when unset or empty', () => {
+    for (const env of [
+      parseEnv(base),
+      parseEnv({
+        ...base,
+        SSE_MAX_PER_USER: '',
+        OIDC_ALLOW_LOCAL_FETCH: '',
+        BACKUP_DIR: '',
+        WORKER_SHUTDOWN_GRACE_MS: '',
+      }),
+    ]) {
+      expect(env.SSE_MAX_PER_USER).toBe(5)
+      expect(env.OIDC_ALLOW_LOCAL_FETCH).toBe(false)
+      expect(env.BACKUP_DIR).toBe('/backups')
+      expect(env.WORKER_SHUTDOWN_GRACE_MS).toBe(30_000)
+    }
+  })
+
+  it('reads overrides', () => {
+    const env = parseEnv({
+      ...base,
+      SSE_MAX_PER_USER: '12',
+      OIDC_ALLOW_LOCAL_FETCH: 'true',
+      BACKUP_DIR: '/srv/backups',
+      WORKER_SHUTDOWN_GRACE_MS: '1500',
+    })
+    expect(env.SSE_MAX_PER_USER).toBe(12)
+    expect(env.OIDC_ALLOW_LOCAL_FETCH).toBe(true)
+    expect(env.BACKUP_DIR).toBe('/srv/backups')
+    expect(env.WORKER_SHUTDOWN_GRACE_MS).toBe(1500)
+    expect(parseEnv({ ...base, OIDC_ALLOW_LOCAL_FETCH: 'false' }).OIDC_ALLOW_LOCAL_FETCH).toBe(
+      false,
+    )
+  })
+
+  it('rejects values that used to fall back silently or turn into NaN', () => {
+    expect(() => parseEnv({ ...base, SSE_MAX_PER_USER: 'many' })).toThrow(/SSE_MAX_PER_USER/)
+    expect(() => parseEnv({ ...base, SSE_MAX_PER_USER: '0' })).toThrow(/SSE_MAX_PER_USER/)
+    expect(() => parseEnv({ ...base, WORKER_SHUTDOWN_GRACE_MS: 'nope' })).toThrow(
+      /WORKER_SHUTDOWN_GRACE_MS/,
+    )
+    expect(() => parseEnv({ ...base, WORKER_SHUTDOWN_GRACE_MS: '-1' })).toThrow(
+      /WORKER_SHUTDOWN_GRACE_MS/,
+    )
+  })
+})
+
+describe('envValue', () => {
+  it('reads one key with the schema default and coercion', () => {
+    expect(envValue({}, 'SSE_MAX_PER_USER')).toBe(5)
+    expect(envValue({ SSE_MAX_PER_USER: '' }, 'SSE_MAX_PER_USER')).toBe(5)
+    expect(envValue({ SSE_MAX_PER_USER: '8' }, 'SSE_MAX_PER_USER')).toBe(8)
+    expect(envValue({ OIDC_ALLOW_LOCAL_FETCH: '1' }, 'OIDC_ALLOW_LOCAL_FETCH')).toBe(true)
+    expect(envValue({}, 'BACKUP_DIR')).toBe('/backups')
+  })
+
+  it('does not depend on the other keys being valid', () => {
+    // 복구 CLI 는 새 기기의 자리표시자 SECRET_KEY 로도 돌아야 한다 — 백업 위치만 읽는다.
+    const env = { NODE_ENV: 'production', SECRET_KEY: 'change-me', BACKUP_DIR: '/srv/backups' }
+    expect(envValue(env, 'BACKUP_DIR')).toBe('/srv/backups')
+  })
+
+  it('rejects an invalid value the way parseEnv does', () => {
+    expect(() =>
+      envValue({ WORKER_SHUTDOWN_GRACE_MS: 'nope' }, 'WORKER_SHUTDOWN_GRACE_MS'),
+    ).toThrow(/^Invalid environment:\n {2}- WORKER_SHUTDOWN_GRACE_MS: /)
   })
 })

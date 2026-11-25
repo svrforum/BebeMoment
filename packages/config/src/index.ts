@@ -1,1 +1,1 @@
-export { type Env, parseEnv } from './env'
+export { type Env, envValue, parseEnv } from './env'
