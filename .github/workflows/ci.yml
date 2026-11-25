@@ -46,6 +46,8 @@ jobs:
         uses: docker://rhysd/actionlint:1.7.7
         with:
           args: -color
+      # 프로덕션 의존성 라이선스가 AGPL-3.0 과 호환되는지 — 새 의존성이 조용히 들어오지 않게.
+      - run: pnpm licenses:check
       # 시스템 바이너리에 의존하는 테스트: 미디어의 ffmpeg 래퍼와 백업의 pg_dump.
       # 러너 기본 pg 클라이언트는 16 이라 pg17 서버 덤프를 거절한다 — 이미지와 같은
       # pgdg 저장소에서 17 을 받는다. 없으면 해당 테스트는 실패가 아니라 skip 된다.
