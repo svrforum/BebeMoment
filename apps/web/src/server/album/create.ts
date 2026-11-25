@@ -82,6 +82,7 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
     return created
   } catch (err) {
     if (isUniqueViolation(err)) {
+      // 숨긴 형제와 겹쳐도 같다 — 형제 이름은 유일 인덱스가 지키고, 이름은 내용이 아니다.
       throw new ConflictError('album.duplicateName')
     }
     throw err

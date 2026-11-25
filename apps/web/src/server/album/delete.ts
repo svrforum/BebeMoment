@@ -5,7 +5,7 @@ import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError } from '../error'
-import { findVisibleAlbumOrThrow } from './secret-visibility'
+import { findVisibleAlbumOrThrow, hasSecretDescendant } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -54,19 +54,9 @@ export async function deleteAlbum(
         resolveCan(membership.role, 'album.delete.any', familyCaps)
       if (!allowed) throw new ForbiddenError('album.deleteDenied')
 
-      // cascade 는 하위 전체를 지운다. family 가 자기 앨범을 지우며 그 아래 보호자가 숨겨 둔
-      // 비밀 앨범까지 쓸어 가지 않게 막는다 — 아래 개수 안내도 숨긴 앨범을 세게 된다.
-      if (membership.role === 'family') {
-        const secretBelow = await tx.album.count({
-          where: {
-            familyId: input.familyId,
-            path: { startsWith: `${album.path}/` },
-            secret: true,
-            deletedAt: null,
-          },
-        })
-        if (secretBelow > 0) throw new ForbiddenError('album.deleteDenied')
-      }
+      // cascade 는 하위 전체를 지운다 — 아래 개수 안내도 숨긴 앨범을 세게 된다.
+      if (membership.role === 'family' && (await hasSecretDescendant(album, input.familyId, tx)))
+        throw new ForbiddenError('album.deleteDenied')
 
       const [childCount, attachmentCount] = await Promise.all([
         tx.album.count({

@@ -68,6 +68,23 @@ export async function isAlbumContentHiddenFromViewer(
 }
 
 /**
+ * 이 앨범 아래(자신 제외)에 살아 있는 비밀 앨범이 있는지. family 가 하위째 지우거나 옮길 때 보호자가
+ * 숨겨 둔 앨범까지 끌고 가지 않게 막는다 — 그대로 두면 하위 개수·깊이 계산이 숨긴 앨범까지 세어
+ * 거절 문구로 그 존재가 드러난다.
+ */
+export async function hasSecretDescendant(
+  album: Pick<Album, 'path'>,
+  familyId: string,
+  prisma: AlbumReader,
+): Promise<boolean> {
+  const row = await prisma.album.findFirst({
+    where: { familyId, path: { startsWith: `${album.path}/` }, secret: true, deletedAt: null },
+    select: { id: true },
+  })
+  return row !== null
+}
+
+/**
  * 앨범 쓰기(담기·빼기·고치기·지우기·옮기기·하위 만들기)가 대상 앨범을 찾는 유일한 길.
  * 없거나 지운 앨범과 이 뷰어(family)에게 비밀인 앨범을 똑같이 `notFoundKey` 로 거절한다 —
  * 비밀 앨범 UUID 를 알아낸 family 가 그 앨범을 고치거나 비울 수 있었고, 응답이 '없는 앨범' 과

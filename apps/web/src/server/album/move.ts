@@ -6,7 +6,7 @@ import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath, isDescendant, rewritePathPrefix } from './path'
-import { findVisibleAlbumOrThrow } from './secret-visibility'
+import { findVisibleAlbumOrThrow, hasSecretDescendant } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -21,15 +21,16 @@ const Input = z.object({
  * transaction so reads + writes see a consistent view:
  *
  * 1. Reload album, parent, subtree FOR UPDATE-equivalent consistency.
- * 2. Reject self-parent.
- * 3. Reject cycle (newParent inside subtree).
- * 4. Reject if depth ceiling would be breached.
- * 5. Reject sibling-name conflict at the new location.
- * 6. Rewrite path / depth on self + every descendant.
+ * 2. Reject a family viewer whose subtree holds a secret album (as delete does).
+ * 3. Reject self-parent.
+ * 4. Reject cycle (newParent inside subtree).
+ * 5. Reject if depth ceiling would be breached.
+ * 6. Reject sibling-name conflict at the new location.
+ * 7. Rewrite path / depth on self + every descendant.
  *
  * Catches P2002 from the partial sibling-unique index in case a concurrent
  * mover stole the spot between our check and our write, and surfaces a
- * Korean error instead of a 500.
+ * translated conflict instead of a 500.
  */
 export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promise<Album> {
   const input = Input.parse(raw)
@@ -57,6 +58,9 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
           resolveCan(membership.role, 'album.update.own', familyCaps)) ||
         resolveCan(membership.role, 'album.update.any', familyCaps)
       if (!allowed) throw new ForbiddenError('album.moveDenied')
+      // 지우기와 같은 규칙 — 아래 깊이 계산도 숨긴 앨범까지 센다.
+      if (membership.role === 'family' && (await hasSecretDescendant(album, input.familyId, tx)))
+        throw new ForbiddenError('album.moveDenied')
 
       if (input.newParentId === album.id) throw new ConflictError('album.selfParent')
       if (input.newParentId === album.parentId) return album
@@ -90,6 +94,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
         throw new ConflictError(`이동하면 최대 깊이 (${MAX_DEPTH + 1}단계) 를 넘어가요`)
       }
 
+      // 숨긴 형제와 이름이 겹쳐도 거절한다 — 형제 이름은 유일 인덱스가 지키고, 이름은 내용이 아니다.
       const conflict = await tx.album.findFirst({
         where: {
           familyId: input.familyId,

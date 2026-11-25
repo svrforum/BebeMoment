@@ -352,6 +352,69 @@ describe('지우기 cascade', () => {
   })
 })
 
+describe('옮기기 — 아래에 비밀 앨범', () => {
+  // family 의 앨범 아래에 보호자가 비밀 앨범을 두었다. 지우기와 같이 옮기기도 막는다 — 볼 수 없는
+  // 앨범을 끌고 다니게 두지 않고, 깊이 계산(409 문구)도 숨긴 앨범까지 세어 그 존재를 알려 준다.
+  async function deepSetup() {
+    const s = await setup()
+    const mine = await createAlbum(
+      { familyId: s.familyId, byUserId: s.fam.id, name: 'Open mine' },
+      db.prismaPublic,
+    )
+    const kept = await createAlbum(
+      { familyId: s.familyId, byUserId: s.owner.id, name: 'Kept', parentId: mine.id, secret: true },
+      db.prismaPublic,
+    )
+    // 깊이 3 의 공개 앨범 — 비밀 자식이 없으면 그 아래로 옮겨도 최대 깊이 안이다.
+    let deep = await createAlbum(
+      { familyId: s.familyId, byUserId: s.owner.id, name: 'L0' },
+      db.prismaPublic,
+    )
+    for (const name of ['L1', 'L2', 'L3']) {
+      deep = await createAlbum(
+        { familyId: s.familyId, byUserId: s.owner.id, name, parentId: deep.id },
+        db.prismaPublic,
+      )
+    }
+    return { ...s, mine, kept, deep }
+  }
+
+  it('family 는 아래에 비밀 앨범이 있는 자기 앨범을 옮길 수 없다 — 깊이 초과로도 알리지 않는다', async () => {
+    const s = await deepSetup()
+    for (const newParentId of [null, s.deep.id]) {
+      await expect(
+        moveAlbum(
+          { albumId: s.mine.id, familyId: s.familyId, byUserId: s.fam.id, newParentId },
+          db.prismaPublic,
+        ),
+      ).rejects.toThrow('album.moveDenied')
+    }
+    const kept = await db.prismaPublic.album.findFirst({ where: { id: s.kept.id } })
+    expect(kept?.path).toBe(`${s.mine.id}/${s.kept.id}`)
+  })
+
+  it('보호자는 그대로 옮기고, 깊이는 비밀 앨범까지 센다', async () => {
+    const s = await deepSetup()
+    await expect(
+      moveAlbum(
+        { albumId: s.mine.id, familyId: s.familyId, byUserId: s.owner.id, newParentId: s.deep.id },
+        db.prismaPublic,
+      ),
+    ).rejects.toMatchObject({ status: 409 })
+    const target = await createAlbum(
+      { familyId: s.familyId, byUserId: s.owner.id, name: 'Target' },
+      db.prismaPublic,
+    )
+    const moved = await moveAlbum(
+      { albumId: s.mine.id, familyId: s.familyId, byUserId: s.owner.id, newParentId: target.id },
+      db.prismaPublic,
+    )
+    expect(moved.parentId).toBe(target.id)
+    const kept = await db.prismaPublic.album.findFirst({ where: { id: s.kept.id } })
+    expect(kept?.path).toBe(`${target.id}/${s.mine.id}/${s.kept.id}`)
+  })
+})
+
 describe('보호자는 비밀 앨범도 그대로 고친다', () => {
   it('사진·스토리 빼기, 이름 바꾸기, 하위째 지우기', async () => {
     const s = await setup()
