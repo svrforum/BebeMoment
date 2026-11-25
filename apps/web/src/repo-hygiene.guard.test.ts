@@ -20,19 +20,47 @@ const PRIVATE_REFERENCES: { name: string; re: RegExp }[] = [
   { name: '.claude', re: /(?<![\w.-])\.claude(?![\w-])/ },
 ]
 
-/** 리포 루트 기준 경로 → 위 패턴이 들어 있어도 되는 이유. */
-const ALLOWLIST: Record<string, string> = {
-  '.gitignore': '그 파일들을 커밋에서 빼는 목록 자체다',
-  '.dockerignore': '이미지 빌드 컨텍스트에서 같은 파일들을 빼는 목록이다',
-  'biome.jsonc': '린트 대상에서 에이전트 worktree 사본을 빼는 목록이다',
-  'scripts/check-line-limit.sh':
-    '줄 수 검사에서 에이전트 worktree 사본을 빼는 목록이다 — 같은 파일을 두 번 세지 않게',
-  'packages/db-public/prisma/migrations/20260604000000_widget_source/migration.sql':
-    '적용된 마이그레이션은 고치지 않는다 — 내용이 바뀌면 DB 에 기록된 체크섬과 어긋난다',
-  'packages/db-public/prisma/migrations/20260828000000_widget_photos/migration.sql':
-    '적용된 마이그레이션은 고치지 않는다 — 내용이 바뀌면 DB 에 기록된 체크섬과 어긋난다',
-  'apps/web/src/repo-hygiene.guard.test.ts': '이 가드 자신 — 찾는 패턴과 그 예시를 담고 있다',
+const ALL_NAMES = PRIVATE_REFERENCES.map((p) => p.name)
+const MIGRATION_REASON =
+  '적용된 마이그레이션은 고치지 않는다 — 내용이 바뀌면 DB 에 기록된 체크섬과 어긋난다'
+
+/**
+ * 리포 루트 기준 경로 → 그 파일에 있어도 되는 패턴과 이유. 파일 단위가 아니라 패턴 단위다 —
+ * 무시 목록이 `.claude` 를 적는 건 괜찮아도 같은 파일에 절 번호가 새로 붙으면 잡혀야 한다.
+ */
+const ALLOWLIST: Record<string, { names: string[]; reason: string }> = {
+  '.gitignore': {
+    names: ['CLAUDE.md', '.claude', 'docs/superpowers'],
+    reason: '그 파일들을 커밋에서 빼는 목록 자체다',
+  },
+  '.dockerignore': {
+    names: ['.claude'],
+    reason: '이미지 빌드 컨텍스트에서 같은 파일들을 빼는 목록이다',
+  },
+  'biome.jsonc': {
+    names: ['.claude'],
+    reason: '린트 대상에서 에이전트 worktree 사본을 빼는 목록이다',
+  },
+  'scripts/check-line-limit.sh': {
+    names: ['.claude'],
+    reason: '줄 수 검사에서 에이전트 worktree 사본을 빼는 목록이다 — 같은 파일을 두 번 세지 않게',
+  },
+  'packages/db-public/prisma/migrations/20260604000000_widget_source/migration.sql': {
+    names: ['노트 절 번호(§N)'],
+    reason: MIGRATION_REASON,
+  },
+  'packages/db-public/prisma/migrations/20260828000000_widget_photos/migration.sql': {
+    names: ['노트 절 번호(§N)'],
+    reason: MIGRATION_REASON,
+  },
+  'apps/web/src/repo-hygiene.guard.test.ts': {
+    names: ALL_NAMES,
+    reason: '이 가드 자신 — 찾는 패턴과 그 예시를 담고 있다',
+  },
 }
+
+const allowed = (rel: string, name: string): boolean =>
+  ALLOWLIST[rel]?.names.includes(name) ?? false
 
 const MARKDOWN = /\.mdx?$/i
 
@@ -94,9 +122,9 @@ describe('공개 리포에 비공개 노트 참조가 없다', () => {
   })
 
   it('마크다운이 아닌 추적 파일은 비공개 노트를 가리키지 않는다', () => {
-    const offenders = scanned
-      .filter((f) => f.hits.length > 0 && !(f.rel in ALLOWLIST))
-      .flatMap((f) => f.hits.map((h) => `${f.rel}:${h.line} ${h.name}`))
+    const offenders = scanned.flatMap((f) =>
+      f.hits.filter((h) => !allowed(f.rel, h.name)).map((h) => `${f.rel}:${h.line} ${h.name}`),
+    )
     expect(
       offenders,
       '공개 리포를 받은 사람에게는 없는 노트를 가리킨다. 참조 대신 이유를 그 자리에 몇 마디로 ' +
@@ -106,11 +134,15 @@ describe('공개 리포에 비공개 노트 참조가 없다', () => {
 
   it('허용 목록에 낡은 항목이 없다', () => {
     const byRel = new Map(scanned.map((f) => [f.rel, f]))
-    const stale = Object.keys(ALLOWLIST).flatMap((rel) => {
+    const stale = Object.entries(ALLOWLIST).flatMap(([rel, { names }]) => {
       const f = byRel.get(rel)
       if (!f) return [`${rel} — 추적 파일이 아니다`]
-      if (f.hits.length === 0) return [`${rel} — 더는 걸리는 줄이 없다`]
-      return []
+      // 가드 자신은 모든 패턴의 예시를 담지만, 패턴 하나하나가 실제로 걸리는지는 위 탐지 규칙
+      // 테스트가 본다.
+      if (rel === 'apps/web/src/repo-hygiene.guard.test.ts') return []
+      return names
+        .filter((name) => !f.hits.some((h) => h.name === name))
+        .map((name) => `${rel} — '${name}' 가 더는 걸리지 않는다`)
     })
     expect(stale, '허용 목록에서 빼 주세요').toEqual([])
   })
