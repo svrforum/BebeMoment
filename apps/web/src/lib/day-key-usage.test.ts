@@ -8,7 +8,20 @@ import {
   walkNodes,
 } from '../test-support/source-files'
 
-/** `new Date()`·`new Date(Date.now())` — 지금 이 순간. */
+function callsDateNow(node: ts.Node): boolean {
+  if (
+    ts.isCallExpression(node) &&
+    node.arguments.length === 0 &&
+    node.expression.getText() === 'Date.now'
+  )
+    return true
+  return ts.forEachChild(node, callsDateNow) ?? false
+}
+
+/**
+ * `new Date()`·`new Date(Date.now())`, 그리고 지금을 기준으로 한 순간(`new Date(Date.now() - 1)`)
+ * — 어제·일주일 전처럼 지금에서 뺀 순간도 UTC 로 자르면 KST 00:00~09:00 엔 하루가 밀린다.
+ */
 function isNow(expr: ts.Expression | undefined): boolean {
   if (!expr) return false
   if (ts.isParenthesizedExpression(expr)) return isNow(expr.expression)
@@ -17,13 +30,7 @@ function isNow(expr: ts.Expression | undefined): boolean {
   const args = expr.arguments ?? []
   if (args.length === 0) return true
   const [arg] = args
-  return (
-    args.length === 1 &&
-    arg !== undefined &&
-    ts.isCallExpression(arg) &&
-    arg.arguments.length === 0 &&
-    arg.expression.getText() === 'Date.now'
-  )
+  return args.length === 1 && arg !== undefined && callsDateNow(arg)
 }
 
 /** `x.toISOString().slice(0, 10)`·`.substring(0, 10)`·`.split('T')` 의 x. 아니면 null. */
@@ -105,9 +112,14 @@ function g(items: string[]) {
 }
 function h(at = new Date()) {
   return at.toISOString().slice(0, 10)
+}
+const c = new Date(Date.now() - 1).toISOString().slice(0, 10)
+function k() {
+  const weekAgo = new Date(Date.now() - 7 * 86_400_000)
+  return weekAgo.toISOString().split('T')[0]
 }`,
     )
-    expect(utcTodayLines(sf)).toEqual([1, 2, 5, 9, 12])
+    expect(utcTodayLines(sf)).toEqual([1, 2, 5, 9, 12, 14, 17])
   })
 
   it('탐지기: 저장된 값이나 넘겨받은 시각을 자르는 것은 그대로 둔다', () => {
@@ -119,7 +131,7 @@ function h(at = new Date()) {
     row.takenAt.toISOString().slice(0, 10),
     at.toISOString().slice(0, 10),
     now.toISOString().slice(0, 10),
-    new Date(Date.now() - 1).toISOString().slice(0, 10),
+    new Date(now.getTime() - 1).toISOString().slice(0, 10),
     new Date().toISOString().slice(0, 16),
   ]
 }
