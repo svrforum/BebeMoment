@@ -1,7 +1,7 @@
-import { parseEnv } from '@bebe/config'
 import pino from 'pino'
+import { getEnv } from './env'
 
-const env = parseEnv(process.env as Record<string, string | undefined>)
+const env = getEnv()
 
 // 서명 토큰은 URL 에 실린다(/files/<jwt>, /download/<signed>, /img/<자산>/<이름>/<토큰>,
 // ?token=). 요청 로그에
