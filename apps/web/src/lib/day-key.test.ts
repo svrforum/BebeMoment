@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest'
+import { afterEach, beforeEach, describe, expect, it } from 'vitest'
 import { isSubmittableDayKey, localDayKey, todayAsUtcDate, utcDayKey } from './day-key'
 
 describe('utcDayKey', () => {
@@ -21,6 +21,23 @@ describe('localDayKey', () => {
 
   it('자리수를 채운다', () => {
     expect(localDayKey(new Date(2026, 0, 2, 12, 0, 0))).toBe('2026-01-02')
+  })
+
+  describe('KST 새벽(CI 는 UTC 라 TZ 를 고정해야 드러난다)', () => {
+    const original = process.env.TZ
+    beforeEach(() => {
+      process.env.TZ = 'Asia/Seoul'
+    })
+    afterEach(() => {
+      if (original === undefined) delete process.env.TZ
+      else process.env.TZ = original
+    })
+
+    it('00:30 KST 는 UTC 로 아직 어제지만 오늘을 내놓는다', () => {
+      const kst0030 = new Date('2026-09-04T15:30:00Z')
+      expect(kst0030.toISOString().slice(0, 10)).toBe('2026-09-04')
+      expect(localDayKey(kst0030)).toBe('2026-09-05')
+    })
   })
 })
 

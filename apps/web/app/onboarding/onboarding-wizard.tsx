@@ -1,6 +1,7 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/cn'
+import { localDayKey } from '@/lib/day-key'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ArrowLeft, Calendar } from 'lucide-react'
 import { useLocale, useTranslations } from 'next-intl'
@@ -25,12 +26,11 @@ function SubmitButton({ disabled }: { disabled: boolean }) {
 function yearsAgoISO(years: number): string {
   const d = new Date()
   d.setFullYear(d.getFullYear() - years)
-  return d.toISOString().slice(0, 10)
+  return localDayKey(d)
 }
 
 function daysFromNowISO(days: number): string {
-  const d = new Date(Date.now() + days * 86400_000)
-  return d.toISOString().slice(0, 10)
+  return localDayKey(new Date(Date.now() + days * 86400_000))
 }
 
 export function OnboardingWizard() {

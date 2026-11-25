@@ -1,5 +1,6 @@
 import { createHash } from 'node:crypto'
 import { decryptSecret } from '@/lib/crypto'
+import { localDayKey } from '@/lib/day-key'
 import { logger } from '@/lib/logger'
 import { prismaMedia, prismaPublic } from '@/lib/db-init'
 import { getMediaClient } from '@/lib/media-client'
@@ -178,7 +179,7 @@ async function allFamilyIds(): Promise<{ id: string }[]> {
 
 async function runMemoriesScan(): Promise<void> {
   const today = new Date()
-  const todayStr = today.toISOString().slice(0, 10)
+  const todayStr = localDayKey(today)
   const families = await allFamilyIds()
   for (const fam of families) {
     // 카운트는 family-가시 기준(전체 멤버 대상 발송이라 숨김 콘텐츠 수 노출 방지).
@@ -252,7 +253,7 @@ async function runDigestScan(): Promise<void> {
   const settings = await readDeliverySettings()
   const now = new Date()
   const hour = now.getHours()
-  const slotKey = `${now.toISOString().slice(0, 10)}-${hour}`
+  const slotKey = `${localDayKey(now)}-${hour}`
   const lastSlot = await settingsGet('push.digest.last_slot')
   if (!isDigestSlot(settings, hour, slotKey, lastSlot)) return
   await settingsSet('push.digest.last_slot', slotKey)

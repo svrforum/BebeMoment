@@ -4,6 +4,7 @@ import { useTranslations } from 'next-intl'
 import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { type FormActionState, actionErrorText } from '@/lib/action-result'
+import { localDayKey } from '@/lib/day-key'
 import { formatLastValue } from '@/lib/growth-format'
 import { canSubmitGrowth } from '@/lib/growth-submittable'
 
@@ -39,7 +40,7 @@ export function GrowthForm({
   const [failure, formAction] = useActionState(action, null)
   const d = defaults ?? {}
   const label = submitLabel ?? t('growth.save')
-  const today = new Date().toISOString().slice(0, 10)
+  const today = localDayKey()
 
   const [height, setHeight] = useState(d.heightCm != null ? String(d.heightCm) : '')
   const [weight, setWeight] = useState(d.weightKg != null ? String(d.weightKg) : '')

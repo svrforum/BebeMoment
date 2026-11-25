@@ -1,3 +1,4 @@
+import { localDayKey } from '@/lib/day-key'
 import { getSetting } from '@/server/settings/get'
 import { setSetting } from '@/server/settings/set'
 import type { PrismaClient } from '@bebe/db-public'
@@ -6,7 +7,7 @@ import { backupDir } from './config'
 import { deleteBackupFromRemote, loadRemoteConfig, redactSecrets } from './remote'
 import { applyRetention } from './retention'
 import { runBackup } from './run'
-import { DEFAULT_SCHEDULE, type ScheduleSettings, dayKey, decideScheduledBackup } from './schedule'
+import { DEFAULT_SCHEDULE, type ScheduleSettings, decideScheduledBackup } from './schedule'
 
 async function readSchedule(prisma: PrismaClient): Promise<ScheduleSettings> {
   return {
@@ -59,7 +60,7 @@ export async function runScheduledBackupTick(
   log(`scheduled backup start: ${decision.type}`)
   try {
     const { manifest } = await runBackup({ type: decision.type, includeSecret, now }, prisma)
-    await setSetting('backup.last_run_day', dayKey(now), null, prisma)
+    await setSetting('backup.last_run_day', localDayKey(now), null, prisma)
     await setSetting('backup.run_count', runCount + 1, null, prisma)
 
     const keep = await getSetting('backup.retention.keep', z.number(), 14, prisma)
@@ -82,7 +83,7 @@ export async function runScheduledBackupTick(
 
     if (onCreated) await onCreated(manifest.id)
   } catch (e) {
-    const msg = redactSecrets(`${dayKey(now)}: ${(e as Error).message}`).slice(0, 300)
+    const msg = redactSecrets(`${localDayKey(now)}: ${(e as Error).message}`).slice(0, 300)
     log(`scheduled backup FAILED: ${msg}`)
     await setSetting('backup.last_error', msg, null, prisma).catch(() => {})
   }

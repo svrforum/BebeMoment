@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button'
 import { Input, Label } from '@/components/ui/input'
 import { milestonePresetLabel } from '@/i18n/labels'
 import { type FormActionState, actionErrorText } from '@/lib/action-result'
+import { localDayKey } from '@/lib/day-key'
 import type { MilestonePreset } from '@bebe/core'
 import { useTranslations } from 'next-intl'
 import { useActionState, useState } from 'react'
@@ -63,7 +64,7 @@ export function MilestoneForm({
           id="achievedAt"
           name="achievedAt"
           type="date"
-          defaultValue={defaults?.achievedAt ?? new Date().toISOString().slice(0, 10)}
+          defaultValue={defaults?.achievedAt ?? localDayKey()}
           required
         />
       </div>

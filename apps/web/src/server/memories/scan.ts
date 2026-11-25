@@ -1,3 +1,4 @@
+import { localDayKey } from '@/lib/day-key'
 import type { MemoryInterval } from '@bebe/core'
 import type { MemoryGroup } from './list'
 
@@ -31,7 +32,8 @@ export function decideMemoryPush(
   },
   pick: (n: number) => number = (n) => Math.floor(Math.random() * n),
 ): MemoryPushDecision {
-  const todayStr = args.today.toISOString().slice(0, 10)
+  // 추억 목록이 고르는 '오늘'(todayAsUtcDate)과 같은 벽시계 날짜여야 같은 날 중복을 막는다.
+  const todayStr = localDayKey(args.today)
   const yearlyGroups = args.groups.filter((g) => g.interval.kind === 'year')
   const monthlyGroups = args.groups.filter((g) => g.interval.kind === 'month')
 
