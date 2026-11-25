@@ -7,8 +7,12 @@
 ## 빠른 시작
 
 ```bash
-# 1. 디렉토리 준비
-mkdir -p /opt/stacks/bebe-moment && cd /opt/stacks/bebe-moment
+# 1. 빈 디렉토리 준비 — 2단계가 .env 를 덮어쓰므로 기존 파일이 있는 곳에서 하지 않는다.
+#    compose 프로젝트 이름은 이 디렉토리 이름이 된다. 같은 이름의 다른 compose 스택(예: 소스
+#    체크아웃에서 띄운 개발용 스택)이 있는 호스트라면 디렉토리 이름을 바꾸거나 .env 에
+#    COMPOSE_PROJECT_NAME=<다른 이름> 을 넣는다 — 이름이 겹치면 compose 가 그 스택의
+#    postgres/redis 컨테이너를 자기 것으로 보고 다시 만들 수 있다.
+mkdir -p /opt/bebe && cd /opt/bebe
 
 # 2. compose + env 다운로드
 curl -fLO https://raw.githubusercontent.com/svrforum/BebeMoment/main/compose/docker-compose.yml
@@ -66,8 +70,13 @@ docker compose up -d
 
 ## 백업
 
-- `./data` — 업로드 원본 + 파생물 (주기적 백업 권장)
-- `./pg` — Postgres 데이터 (`pg_dump` 또는 Hyper Backup 등)
+앱 자체 백업(관리자 → 백업, `/admin/backup`)을 권장한다 — DB 덤프와 `/data` 를 한 번들로 묶어
+`./backups` 에 저장하고, 예약 실행·증분·원격 S3 사본을 지원한다. 복구 절차는
+[operations.md](operations.md#backups) 참조. 디스크 레벨로 함께 보관할 것:
+
+- `./backups` — 앱 백업 번들 (호스트 밖으로도 복사 권장)
+- `./data` — 업로드 원본 + 파생물
+- `./pg` — Postgres 데이터 (postgres 컨테이너를 멈춘 상태에서 복사하거나 `pg_dump` 로)
 - `./redis` — 임시 큐 (복구 불필요)
 
 ## 트러블슈팅

@@ -138,6 +138,7 @@ pnpm licenses:check   # 의존성 라이선스 AGPL 호환성 점검
 apps/
   web/            # Next.js 16 — UI + API + PWA + 알림 워커
   media/          # Fastify + BullMQ — tus 업로드 / signed URL / SSE / EXIF·파생물
+  ml/             # Python(FastAPI + InsightFace) 얼굴인식 사이드카 — 선택 compose 프로필 "faces"
 packages/
   db-public/      # public 스키마 Prisma + tenant 미들웨어
   db-media/       # media 스키마 Prisma + DB 롤 마이그레이션
@@ -147,6 +148,7 @@ packages/
   queue/          # 공유 Redis/BullMQ
   storage/        # 스토리지 어댑터 (local / S3)
 android-app/      # Capacitor 안드로이드 앱 (pnpm 워크스페이스 밖)
+e2e/              # Playwright 스모크 테스트 — 전용 스택(docker-compose.e2e.yml)을 띄워 돈다
 ```
 </details>
 

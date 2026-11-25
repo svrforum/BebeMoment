@@ -134,6 +134,7 @@ pnpm licenses:check   # check dependency licenses for AGPL compatibility
 apps/
   web/            # Next.js 16 — UI + API + PWA + notification worker
   media/          # Fastify + BullMQ — tus uploads / signed URLs / SSE / EXIF & derivatives
+  ml/             # Python (FastAPI + InsightFace) face-recognition sidecar — optional compose profile "faces"
 packages/
   db-public/      # public-schema Prisma + tenant middleware
   db-media/       # media-schema Prisma + DB role migrations
@@ -143,6 +144,7 @@ packages/
   queue/          # shared Redis/BullMQ
   storage/        # storage adapters (local / S3)
 android-app/      # Capacitor Android app (outside the pnpm workspace)
+e2e/              # Playwright smoke tests — run against their own stack (docker-compose.e2e.yml)
 ```
 </details>
 
