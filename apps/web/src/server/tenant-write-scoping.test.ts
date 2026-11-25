@@ -1,5 +1,6 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
+import { TENANT_SCOPED_MODELS as MEDIA_TENANT_SCOPED_MODELS } from '@bebe/db-media/src/tenant-middleware'
 import { TENANT_SCOPED_MODELS } from '@bebe/db-public/src/tenant-middleware'
 import { describe, expect, it } from 'vitest'
 
@@ -10,6 +11,9 @@ import { describe, expect, it } from 'vitest'
 // 통합 테스트는 이걸 못 잡는다 — test-db 가 확장을 끼우지 않은 클라이언트를 준다(끼우면
 // 정당한 전역 시딩 쿼리까지 막혀 84개 파일이 깨진다). 그래서 정적으로 본다.
 // 자매 가드: packages/db-public/src/tenant-scoping-drift.test.ts (모델 집합 누락 검사).
+//
+// media 스키마 모델(Asset 등)은 web 과 media 서비스 양쪽에서 쓰므로 apps/media/src 도 함께 본다.
+// media 서비스도 테스트 DB 에는 확장이 없고 운영은 warn 모드라 이 가드 말고는 막을 장치가 없다.
 //
 // 검사는 인자 전체가 아니라 **where 블록만** 본다 — 예전엔 인자 문자열 전체를 훑어
 // `where: { id }, data: { familyId }` 가 통과했다. where 없는 deleteMany/updateMany 는
@@ -102,12 +106,16 @@ function topLevelWhereBlock(args: string): string | null {
 
 type Offence = { file: string; snippet: string }
 
+function whereHas(where: string, key: string): boolean {
+  return new RegExp(`\\b${key}\\b`).test(where)
+}
+
 /**
  * tenant-middleware 의 enforce() 가 허용하는 필터를 그대로 반영한다 — 가드가 미들웨어보다
  * 엄해지면 정당한 호출(Invite+token 등)을 오탐하고, 느슨해지면 존재 의미가 없다.
  */
 function isScoped(model: string, where: string): boolean {
-  const has = (k: string) => new RegExp(`\\b${k}\\b`).test(where)
+  const has = (k: string) => whereHas(where, k)
   if (has('familyId') || has('family_id')) return true
   if (model === 'family') return has('id') || has('slug')
   if (model === 'invite') return has('token')
@@ -118,9 +126,19 @@ function isScoped(model: string, where: string): boolean {
   return false
 }
 
-function unscopedWrites(files: string[]): Offence[] {
+/** @bebe/db-media 의 enforce() 판정. AssetBaby 만 assetId 로 통과한다(family_id 컬럼이 없다). */
+function isScopedMedia(model: string, where: string): boolean {
+  if (whereHas(where, 'familyId') || whereHas(where, 'family_id')) return true
+  return model === 'assetBaby' && whereHas(where, 'assetId')
+}
+
+function unscopedWrites(
+  files: string[],
+  scopedModels: ReadonlySet<string> = TENANT_SCOPED_MODELS,
+  scoped: (model: string, where: string) => boolean = isScoped,
+): Offence[] {
   const offences: Offence[] = []
-  const models = [...TENANT_SCOPED_MODELS].map(accessor)
+  const models = [...scopedModels].map(accessor)
   for (const file of files) {
     const src = readFileSync(file, 'utf8')
     for (const model of models) {
@@ -131,7 +149,7 @@ function unscopedWrites(files: string[]): Offence[] {
           const args = callArgs(src, at + needle.length - 1)
           const where = topLevelWhereBlock(args)
           const offence = where
-            ? !isScoped(model, where)
+            ? !scoped(model, where)
             : WHERE_OPTIONAL_OPS.has(op) && !/\bwhere\b/.test(args)
           if (offence) {
             offences.push({
@@ -160,6 +178,7 @@ describe('tenant write scoping guard', () => {
     }
   })
   const files = roots.flatMap(sourceFiles)
+  const mediaFiles = sourceFiles(path.join(process.cwd(), '../media/src'))
 
   it('actually scanned the server sources', () => {
     expect(files.length).toBeGreaterThan(50)
@@ -179,11 +198,36 @@ describe('tenant write scoping guard', () => {
     expect(isScoped('album', '{ id, familyId }')).toBe(true)
   })
 
+  it('applies the media middleware exceptions to media models', () => {
+    expect(isScopedMedia('asset', '{ id }')).toBe(false)
+    expect(isScopedMedia('asset', '{ id, familyId }')).toBe(true)
+    // asset_babies 는 family_id 컬럼이 없어 미들웨어가 assetId 를 받아 준다 — 다른 모델엔 안 된다.
+    expect(isScopedMedia('assetBaby', '{ assetId }')).toBe(true)
+    expect(isScopedMedia('face', '{ assetId }')).toBe(false)
+  })
+
+  it('actually scanned the media service sources', () => {
+    expect(mediaFiles.length).toBeGreaterThan(20)
+    expect(mediaFiles.some((f) => f.endsWith(path.join('jobs', 'dedup.ts')))).toBe(true)
+  })
+
+  it('every media-model write in web and the media service carries familyId', () => {
+    const offences = unscopedWrites(
+      [...files, ...mediaFiles],
+      MEDIA_TENANT_SCOPED_MODELS,
+      isScopedMedia,
+    )
+    expect(
+      offences.map((o) => `${o.file} — ${o.snippet}`),
+      '가족 스코프 media 모델 수정에는 where 에 familyId 를 포함해야 한다. 읽기 쪽 필터로는 부족하다.',
+    ).toEqual([])
+  })
+
   it('every write on a family-scoped model carries familyId', () => {
     const offences = unscopedWrites(files)
     expect(
       offences.map((o) => `${o.file} — ${o.snippet}`),
-      '가족 스코프 모델 수정에는 where 에 familyId 를 포함해야 한다(§8). 읽기 쪽 필터로는 부족하다.',
+      '가족 스코프 모델 수정에는 where 에 familyId 를 포함해야 한다. 읽기 쪽 필터로는 부족하다.',
     ).toEqual([])
   })
 })
