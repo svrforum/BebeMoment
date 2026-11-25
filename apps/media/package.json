@@ -18,7 +18,7 @@
     "@bebe/media-client": "workspace:*",
     "@bebe/queue": "workspace:*",
     "@bebe/storage": "workspace:*",
-    "@fastify/cors": "^10.1.0",
+    "@fastify/cors": "^11.4.3",
     "@tus/file-store": "^2.0.0",
     "@tus/server": "^2.4.7",
     "blurhash": "^2.0.5",
