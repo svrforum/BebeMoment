@@ -1,9 +1,10 @@
 import { spawn } from 'node:child_process'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
 import { Client as PgClient } from 'pg'
 
-// 테스트 DB 를 만드는 저수준 조각들. 이 패키지의 test-db.ts·test-global-setup.ts 와 db-public 의
+// 테스트 DB 를 만드는 조각들. 이 패키지의 test-db.ts·test-global-setup.ts 와 db-public 의
 // test-db.ts(상대 경로)가 같이 쓴다. barrel 에서 재수출하지 않는다(테스트 전용).
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
@@ -60,4 +61,54 @@ export async function createDatabase(
 ): Promise<void> {
   const from = template ? ` TEMPLATE "${template}"` : ''
   await execSql(baseUrl, `CREATE DATABASE "${dbName}"${from}`)
+}
+
+export type TestDatabase = {
+  url: string
+  /**
+   * 자체 컨테이너를 띄웠을 때만 내린다. 공유 컨테이너는 globalSetup teardown 이 정리하고, 만든 DB 도
+   * 그때 함께 사라진다.
+   */
+  stop: () => Promise<void>
+}
+
+// db-public·db-media 의 startTestDb 가 한 프로세스에서 함께 불려도 이름이 겹치지 않게 하나만 둔다.
+let dbCounter = 0
+
+/**
+ * public·media 마이그레이션이 다 적용된 새 database. vitest globalSetup(test-global-setup.ts)이 띄운
+ * 컨테이너가 있으면(BEBE_TEST_PG_URL) 그 템플릿을 복제만 한다. 없으면 자체 컨테이너를 띄우고
+ * 마이그레이션을 직접 돌린다(스크립트·단독 실행 호환).
+ */
+export async function createTestDatabase(): Promise<TestDatabase> {
+  const sharedBaseUrl = process.env.BEBE_TEST_PG_URL
+  const template = sharedBaseUrl ? process.env.BEBE_TEST_PG_TEMPLATE : undefined
+  let ownContainer: StartedPostgreSqlContainer | null = null
+  let baseUrl: string
+  if (sharedBaseUrl) {
+    baseUrl = sharedBaseUrl
+  } else {
+    ownContainer = await new PostgreSqlContainer('pgvector/pgvector:pg17')
+      .withDatabase('bebe')
+      .withUsername('bebe')
+      .withPassword('bebe')
+      .start()
+    baseUrl = ownContainer.getConnectionUri()
+  }
+
+  const dbName = `bebe_${process.pid}_${++dbCounter}`
+  await createDatabase(baseUrl, dbName, template)
+  const url = databaseUrl(baseUrl, dbName)
+
+  if (!template) {
+    await runMigrations('@bebe/db-public', url)
+    await runMigrations('@bebe/db-media', url)
+  }
+
+  return {
+    url,
+    stop: async () => {
+      if (ownContainer) await ownContainer.stop()
+    },
+  }
 }
