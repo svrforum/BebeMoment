@@ -389,6 +389,9 @@ describe('return path', () => {
     ['absolute URL', 'https://evil.example/'],
     ['relative path', 'evil'],
     ['empty', ''],
+    // URL 파서는 탭·줄바꿈을 지운다 — 이 둘은 앞의 / 검사를 통과한 뒤 //evil.example 이 된다.
+    ['tab-split', '/\t/evil.example'],
+    ['newline-split', '/\n/evil.example'],
   ])('falls back to home for a %s next path', async (_label, next) => {
     await linkedUser('sub-new')
     expect(await run({ cookies: { next } })).toMatchObject({ kind: 'session', to: '/' })

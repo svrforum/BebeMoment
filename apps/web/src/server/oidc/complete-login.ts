@@ -12,6 +12,7 @@ import { type LinkOrCreateInput, findLinkedUser, linkOrCreateUser } from './call
 import { tryDecryptClientSecret } from './client-secret'
 import type { IdentityRequest, VerifiedIdentity } from './identity'
 import { linkIdentityToUser } from './link'
+import { safeNextPath } from './next-path'
 
 // 시작 라우트가 심어 두고 콜백이 읽는 1회용 쿠키 값들.
 export type OidcFlowCookies = {
@@ -151,8 +152,7 @@ export async function completeOidcCallback(
     }
 
     // 로그인 전에 보던 곳(예: 공유 링크 /story/20)으로 — 같은 출처 경로만, 아니면 홈.
-    const next = cookies.next
-    const to = next && /^\/(?![/\\])/.test(next) ? next : '/'
+    const to = safeNextPath(cookies.next) ?? '/'
     return { kind: 'session', userId: user.id, currentFamilyId, to }
   } catch (err) {
     logger.error({ err, providerId }, 'oidc callback failed')
