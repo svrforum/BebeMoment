@@ -1254,45 +1254,10 @@
   .pop-in {
     animation: pop-in 420ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
   }
-  /* Moving sheen for loading skeletons — a gradient sweep on top of the
-     base block. More alive than a flat opacity pulse. */
-  @keyframes shimmer {
-    100% {
-      transform: translateX(100%);
-    }
-  }
-  .shimmer {
-    position: relative;
-    overflow: hidden;
-  }
-  .shimmer::after {
-    content: "";
-    position: absolute;
-    inset: 0;
-    transform: translateX(-100%);
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--color-base-0) 55%, transparent),
-      transparent
-    );
-    animation: shimmer 1.6s ease-in-out infinite;
-  }
-  .dark .shimmer::after {
-    background: linear-gradient(
-      90deg,
-      transparent,
-      color-mix(in srgb, var(--color-base-0) 7%, transparent),
-      transparent
-    );
-  }
   @media (prefers-reduced-motion: reduce) {
     .asset-enter,
     .section-enter,
     .pop-in {
-      animation: none;
-    }
-    .shimmer::after {
       animation: none;
     }
   }
