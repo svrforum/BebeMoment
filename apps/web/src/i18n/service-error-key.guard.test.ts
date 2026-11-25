@@ -10,7 +10,9 @@ const MESSAGE_ARG: Record<string, number> = {
   NotFoundError: 0,
   ForbiddenError: 0,
   ConflictError: 0,
+  Error: 0,
 }
+const CATALOG_KEY = /^[a-z][\w-]*(?:\.[\w-]+)+$/i
 
 type KeyUse = { key: string; where: string }
 
@@ -28,21 +30,23 @@ function collectKeys(): KeyUse[] {
   for (const rel of sourceFiles('src', 'app')) {
     const sf = parseSource(rel)
     walkNodes(sf, (node) => {
-      let arg: ts.Expression | undefined
+      let keys: string[]
       if (ts.isNewExpression(node) && ts.isIdentifier(node.expression)) {
         const index = MESSAGE_ARG[node.expression.text]
         if (index === undefined) return
-        arg = node.arguments?.[index]
+        keys = literalTexts(node.arguments?.[index])
+        // 평범한 Error 는 내부용 문장도 많다 — errorJson 이 번역을 시도하는 키 모양만 본다.
+        if (node.expression.text === 'Error') keys = keys.filter((k) => CATALOG_KEY.test(k))
       } else if (
         ts.isCallExpression(node) &&
         ts.isIdentifier(node.expression) &&
         node.expression.text === 'errorJsonKey'
       ) {
-        arg = node.arguments[0]
+        keys = literalTexts(node.arguments[0])
       } else {
         return
       }
-      for (const key of literalTexts(arg)) uses.push({ key, where: `${rel}:${lineOf(sf, node)}` })
+      for (const key of keys) uses.push({ key, where: `${rel}:${lineOf(sf, node)}` })
     })
   }
   return uses
