@@ -34,8 +34,10 @@ taken on that older version.
 
 The app has a backup system in **Admin → Backup** (`/admin/backup`): on-demand
 and scheduled full/incremental backups that bundle a Postgres dump **and** the
-`/data` media into a single `.tar.zst`, stored under `BACKUP_DIR` (mount it to a
-host/Synology shared folder), with optional offsite copy to S3 and retention.
+`/data` media into a single `.tar.zst`, stored under `/backups` inside the
+container (the shipped compose mounts the host folder named by `BACKUP_DIR` in
+`.env` there, `./backups` by default — point it at a host/Synology shared folder),
+with optional offsite copy to S3 and retention.
 
 Restore from a bundle via the CLI (run a one-off container against the same DB):
 
@@ -450,7 +452,7 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `SHARE_ALLOWED_HOSTS` | unset | web (passed) | Extra hosts (comma-separated) trusted for absolute share/preview URLs when `PUBLIC_URL` is a LAN address. |
 | `TRUST_PROXY` | `true` | web (passed) | Trust `x-real-ip` / `x-forwarded-for` for the client IP. |
 | `SETUP_TOKEN` | unset | web (passed) | Required for the first signup when set (`/signup?setup=…`). |
-| `BACKUP_DIR` | `/backups` | web (passed) | Where backup bundles are written inside the container. |
+| `BACKUP_DIR` | `./backups` | compose | Host folder the shipped compose mounts at `/backups`. Inside the container the compose sets `BACKUP_DIR=/backups` itself — that is where the web server writes backup bundles — so changing it in `.env` moves the host folder, not the path inside. |
 | `WORKER_SHUTDOWN_GRACE_MS` | `30000` (30 s) | worker | How long the notifications worker waits for running jobs after SIGTERM before it force-closes them. Keep it below `APP_SHUTDOWN_GRACE_S` (45 s): the supervisor SIGKILLs anything still running when that runs out, so a longer value only means the worker never gets to its own forced close and disconnect. A backup that runs for minutes is cut by a container stop either way. |
 | `FACE_ML_URL` | `http://ml:8000` | media/web (passed) | The face-recognition sidecar. |
 | `PG_MEMORY_LIMIT` | `512m` | compose | Memory limit of the `postgres` container. |

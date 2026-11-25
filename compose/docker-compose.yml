@@ -25,6 +25,13 @@ services:
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
       STORAGE_MODE: ${STORAGE_MODE:-local}
       STORAGE_PATH: /data
+      # STORAGE_MODE=s3 일 때만 읽는다 — 그때는 REGION 을 뺀 넷이 모두 있어야 부팅된다(REGION
+      # 기본 us-east-1). 빈 값은 미설정으로 취급하므로 로컬 저장이면 .env 에서 비워 두면 된다.
+      STORAGE_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT:-}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-}
+      STORAGE_S3_ACCESS_KEY: ${STORAGE_S3_ACCESS_KEY:-}
+      STORAGE_S3_SECRET_KEY: ${STORAGE_S3_SECRET_KEY:-}
+      STORAGE_S3_REGION: ${STORAGE_S3_REGION:-}
       # 파생물에 AVIF 포함 여부(기본 true). AVIF 는 인코딩이 비싸 파생물 생성 시간의
       # 대부분을 차지한다 — 저사양 NAS·대량 업로드에서 처리가 느리면 false 로. 그러면
       # WebP+JPEG 만 만들고 <picture> 가 자동 폴백한다(화질 거의 동일, 파일만 약간 큼).

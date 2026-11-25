@@ -53,8 +53,14 @@ services:
       MEDIA_PUBLIC_BASE_URL: ${MEDIA_PUBLIC_BASE_URL:-}
       MEDIA_SERVICE_TOKEN: ${MEDIA_SERVICE_TOKEN}
       MEDIA_JWT_SECRET: ${MEDIA_JWT_SECRET}
-      STORAGE_MODE: local
+      STORAGE_MODE: ${STORAGE_MODE:-local}
       STORAGE_PATH: /data
+      # 사진을 S3 호환 저장소에 둘 때만(STORAGE_MODE=s3) env 탭에 채운다. 기본은 data/ 폴더.
+      STORAGE_S3_ENDPOINT: ${STORAGE_S3_ENDPOINT:-}
+      STORAGE_S3_BUCKET: ${STORAGE_S3_BUCKET:-}
+      STORAGE_S3_ACCESS_KEY: ${STORAGE_S3_ACCESS_KEY:-}
+      STORAGE_S3_SECRET_KEY: ${STORAGE_S3_SECRET_KEY:-}
+      STORAGE_S3_REGION: ${STORAGE_S3_REGION:-}
       BACKUP_DIR: /backups
       # DSM admin: uid 1026 / gid users(100). 다른 사용자면 SSH 후 `id <user>` 로 확인.
       PUID: ${PUID:-1026}
