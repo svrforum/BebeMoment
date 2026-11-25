@@ -57,6 +57,7 @@ function SignupWizardInner({
   embedded?: boolean | undefined
 }) {
   const t = useTranslations('auth')
+  const tErr = useTranslations('errors.auth')
   const router = useRouter()
   const params = useSearchParams()
   const inviteToken = inviteTokenProp ?? params?.get('invite') ?? null
@@ -120,7 +121,7 @@ function SignupWizardInner({
       const enteredEmail = email.trim()
       const trimmedName = displayName.trim()
 
-      // 초대 경로에서 username 미입력이면 자동 생성. 서버가 '이미 사용 중인 아이디예요'
+      // 초대 경로에서 username 미입력이면 자동 생성. 서버가 아이디 중복(errors.auth.usernameTaken)
       // 로 거절하면 새 hex suffix 로 재시도. 재시도 한계까지 실패하면 마지막 에러를 보여줌.
       const shouldAutogen = invited && enteredUsername === ''
       let attempt = 0
@@ -148,14 +149,20 @@ function SignupWizardInner({
         const data = (await res.json().catch(() => ({}))) as { error?: string }
         const message = data.error ?? t('signup.failed')
         lastError = message
+        // 서버는 요청 로케일로 번역한 문장을 돌려준다 — 같은 카탈로그 문장과 비교해야
+        // 영어 화면에서도 판별이 맞는다.
+        const usernameTaken = tErr('usernameTaken')
         // 자동 생성 중 username 충돌이면 재시도, 그 외(이메일 충돌·검증 등)는 즉시 중단.
-        if (shouldAutogen && message.includes('이미 사용 중인 아이디')) {
+        if (shouldAutogen && message === usernameTaken) {
           attempt++
           continue
         }
         setError(message)
         setSubmitting(false)
-        if (!invited && message.includes('아이디')) {
+        if (
+          !invited &&
+          [usernameTaken, tErr('usernameInvalid'), tErr('usernameRequired')].includes(message)
+        ) {
           setDir(-1)
           setStep('username')
         }
@@ -168,7 +175,7 @@ function SignupWizardInner({
       setError(t('signup.networkError'))
       setSubmitting(false)
     }
-  }, [username, password, displayName, email, inviteToken, setupToken, invited, t])
+  }, [username, password, displayName, email, inviteToken, setupToken, invited, t, tErr])
 
   const goNext = useCallback(() => {
     if (!stepValid || submitting) return

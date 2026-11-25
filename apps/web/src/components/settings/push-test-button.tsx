@@ -1,6 +1,7 @@
 'use client'
 import { useToast } from '@/lib/toast'
 import { Send } from 'lucide-react'
+import { useTranslations } from 'next-intl'
 import { useState } from 'react'
 import { Button } from '../ui/button'
 
@@ -13,6 +14,7 @@ type TestResult = {
 export function PushTestButton(): React.JSX.Element {
   const [pending, setPending] = useState(false)
   const toast = useToast()
+  const t = useTranslations('settings')
 
   async function onTest(): Promise<void> {
     if (pending) return
@@ -20,14 +22,14 @@ export function PushTestButton(): React.JSX.Element {
     try {
       const res = await fetch('/api/notifications/test', { method: 'POST' })
       if (!res.ok) {
-        toast({ title: '테스트에 실패했어요 — 잠시 후 다시 시도해주세요', variant: 'danger' })
+        toast({ title: t('notifications.test.failed'), variant: 'danger' })
         return
       }
       const r = (await res.json()) as TestResult
       if (!r.hasDevices) {
         toast({
-          title: '등록된 기기가 없어요',
-          description: '먼저 위에서 "이 기기에서 알림 받기"를 켜주세요',
+          title: t('notifications.test.noDevicesTitle'),
+          description: t('notifications.test.noDevicesBody'),
           variant: 'danger',
         })
         return
@@ -36,22 +38,22 @@ export function PushTestButton(): React.JSX.Element {
       const failed = r.web.failed + r.fcm.failed
       if (sent > 0) {
         toast({
-          title: '테스트 알림을 보냈어요 🔔',
-          description: '잠깐 기다렸다가 알림이 오는지 확인해보세요',
+          title: t('notifications.test.sentTitle'),
+          description: t('notifications.test.sentBody'),
           variant: 'success',
         })
       } else {
         toast({
-          title: '보냈지만 도착에 실패했어요',
+          title: t('notifications.test.undeliveredTitle'),
           description:
             failed > 0
-              ? '알림을 껐다가 다시 켠 뒤 시도해보세요'
-              : '관리자 알림 설정을 확인해주세요',
+              ? t('notifications.test.undeliveredResubscribe')
+              : t('notifications.test.undeliveredAdmin'),
           variant: 'danger',
         })
       }
     } catch {
-      toast({ title: '잠시 후 다시 시도해주세요', variant: 'danger' })
+      toast({ title: t('push.retry'), variant: 'danger' })
     } finally {
       setPending(false)
     }
@@ -66,7 +68,7 @@ export function PushTestButton(): React.JSX.Element {
       className="w-full"
     >
       <Send className="h-4 w-4" strokeWidth={2} />
-      {pending ? '보내는 중…' : '테스트 알림 보내기'}
+      {pending ? t('notifications.test.sending') : t('notifications.test.send')}
     </Button>
   )
 }

@@ -32,7 +32,7 @@ export async function getCroppedJpeg(
   canvas.width = Math.max(1, Math.round(rect.width))
   canvas.height = Math.max(1, Math.round(rect.height))
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas 2d context 없음')
+  if (!ctx) throw new Error('canvas 2d context unavailable')
   if (filter) ctx.filter = filter
   ctx.drawImage(image, rect.x, rect.y, rect.width, rect.height, 0, 0, canvas.width, canvas.height)
   return canvas.toDataURL('image/jpeg', quality)
@@ -49,7 +49,7 @@ export async function applyFilterJpeg(
   canvas.width = image.naturalWidth
   canvas.height = image.naturalHeight
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas 2d context 없음')
+  if (!ctx) throw new Error('canvas 2d context unavailable')
   ctx.filter = filter
   ctx.drawImage(image, 0, 0)
   return canvas.toDataURL('image/jpeg', quality)
@@ -62,7 +62,7 @@ export async function rotateJpeg90(imageSrc: string, quality = 0.92): Promise<st
   canvas.width = image.naturalHeight
   canvas.height = image.naturalWidth
   const ctx = canvas.getContext('2d')
-  if (!ctx) throw new Error('canvas 2d context 없음')
+  if (!ctx) throw new Error('canvas 2d context unavailable')
   ctx.translate(canvas.width / 2, canvas.height / 2)
   ctx.rotate(Math.PI / 2)
   ctx.drawImage(image, -image.naturalWidth / 2, -image.naturalHeight / 2)

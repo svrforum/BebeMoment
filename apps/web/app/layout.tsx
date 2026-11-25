@@ -4,7 +4,7 @@ import { type DefaultTheme, buildThemeInitScript } from '@/lib/theme-init-script
 import { getSetting } from '@/server/settings/get'
 import type { Metadata, Viewport } from 'next'
 import { NextIntlClientProvider } from 'next-intl'
-import { getLocale, getMessages } from 'next-intl/server'
+import { getLocale, getMessages, getTranslations } from 'next-intl/server'
 import { headers } from 'next/headers'
 import { preload } from 'react-dom'
 import { z } from 'zod'
@@ -14,18 +14,21 @@ import './globals.css'
 // 한글 음절, 90 은 그다음으로 흔한 음절. 나머지는 CSS 의 unicode-range 가 필요할 때 부른다.
 const PRELOADED_FONT_SUBSETS = [91, 90] as const
 
-export const metadata: Metadata = {
-  title: 'Bebe Moment',
-  description: '우리 아기의 모든 순간',
-  manifest: '/manifest.webmanifest',
-  appleWebApp: {
-    capable: true,
+export async function generateMetadata(): Promise<Metadata> {
+  const t = await getTranslations('meta')
+  return {
     title: 'Bebe Moment',
-    statusBarStyle: 'default',
-  },
-  icons: {
-    apple: '/icons/apple-touch-icon.png',
-  },
+    description: t('description'),
+    manifest: '/manifest.webmanifest',
+    appleWebApp: {
+      capable: true,
+      title: 'Bebe Moment',
+      statusBarStyle: 'default',
+    },
+    icons: {
+      apple: '/icons/apple-touch-icon.png',
+    },
+  }
 }
 
 // maximum-scale=1 은 애플 기기에만 준다. iOS 는 손가락 확대에는 이 값을 무시하고(늘 확대된다)

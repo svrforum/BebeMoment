@@ -41,7 +41,7 @@ export async function subscribeToPush(): Promise<boolean> {
 
   const registration = await registerPushSW()
   const res = await fetch('/api/notifications/vapid-public')
-  if (!res.ok) throw new Error('VAPID 공개키를 가져오지 못했어요')
+  if (!res.ok) throw new Error(`VAPID public key request failed (${res.status})`)
   const { publicKey } = (await res.json()) as { publicKey: string }
 
   const subscription = await registration.pushManager.subscribe({
@@ -59,7 +59,7 @@ export async function subscribeToPush(): Promise<boolean> {
       keys: { p256dh: keys.p256dh, auth: keys.auth },
     }),
   })
-  if (!save.ok) throw new Error('알림 구독 저장에 실패했어요')
+  if (!save.ok) throw new Error(`push subscription save failed (${save.status})`)
   return true
 }
 

@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "우리 아기의 모든 순간"
+  },
   "nav": {
     "timeline": "타임라인",
     "calendar": "캘린더",
@@ -98,6 +101,18 @@
       "thisDevice": {
         "title": "이 기기",
         "hint": "알림을 켠 뒤 <b>테스트 알림 보내기</b>를 누르면 이 기기로 샘플 알림이 와요. 안 오면 아래 플랫폼별 안내를 확인해주세요."
+      },
+      "test": {
+        "send": "테스트 알림 보내기",
+        "sending": "보내는 중…",
+        "failed": "테스트에 실패했어요 — 잠시 후 다시 시도해주세요",
+        "noDevicesTitle": "등록된 기기가 없어요",
+        "noDevicesBody": "먼저 위에서 \"이 기기에서 알림 받기\"를 켜주세요",
+        "sentTitle": "테스트 알림을 보냈어요 🔔",
+        "sentBody": "잠깐 기다렸다가 알림이 오는지 확인해보세요",
+        "undeliveredTitle": "보냈지만 도착에 실패했어요",
+        "undeliveredResubscribe": "알림을 껐다가 다시 켠 뒤 시도해보세요",
+        "undeliveredAdmin": "관리자 알림 설정을 확인해주세요"
       },
       "android": {
         "title": "안드로이드 앱",

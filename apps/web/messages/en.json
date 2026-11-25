@@ -1,4 +1,7 @@
 {
+  "meta": {
+    "description": "Every moment of your little one"
+  },
   "nav": {
     "timeline": "Timeline",
     "calendar": "Calendar",
@@ -98,6 +101,18 @@
       "thisDevice": {
         "title": "This device",
         "hint": "After turning notifications on, tap <b>Send test notification</b> to get a sample on this device. If it doesn't arrive, check the platform guides below."
+      },
+      "test": {
+        "send": "Send test notification",
+        "sending": "Sending…",
+        "failed": "The test failed — please try again in a moment",
+        "noDevicesTitle": "No devices are registered",
+        "noDevicesBody": "Turn on \"Get notifications on this device\" above first",
+        "sentTitle": "Test notification sent 🔔",
+        "sentBody": "Wait a moment and check that it arrives",
+        "undeliveredTitle": "Sent, but it didn't arrive",
+        "undeliveredResubscribe": "Turn notifications off and on again, then try again",
+        "undeliveredAdmin": "Check the admin notification settings"
       },
       "android": {
         "title": "Android app",
