@@ -3,8 +3,8 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { Client as PgClient } from 'pg'
 
-// 테스트 DB 를 만드는 저수준 조각들. test-db.ts 와 test-global-setup.ts 가 같이 쓴다.
-// barrel 에서 재수출하지 않는다(테스트 전용).
+// 테스트 DB 를 만드는 저수준 조각들. 이 패키지의 test-db.ts·test-global-setup.ts 와 db-public 의
+// test-db.ts(상대 경로)가 같이 쓴다. barrel 에서 재수출하지 않는다(테스트 전용).
 
 const REPO_ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..', '..')
 

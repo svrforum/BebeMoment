@@ -1,14 +1,9 @@
-import { spawn } from 'node:child_process'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
-import { Client as PgClient } from 'pg'
+// 상대 경로로 db-media 의 조각을 쓴다 — 패키지 의존(그리고 barrel)을 만들지 않으려고. 컨테이너를
+// 띄우는 globalSetup 도 같은 곳에 있다(vitest.config.ts).
+import { createDatabase, databaseUrl, runMigrations } from '../../db-media/src/test-pg'
 import { PrismaClient } from '../prisma/generated/client/client'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
 
 export type TestDb = {
   prisma: PrismaClient
@@ -16,49 +11,8 @@ export type TestDb = {
   stop: () => Promise<void>
 }
 
-function runMigrations(pkg: string, databaseUrl: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('pnpm', ['--filter', pkg, 'exec', 'prisma', 'migrate', 'deploy'], {
-      cwd: REPO_ROOT,
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-    })
-    // 성공하면 조용히 — 'Applying migration' 수십 줄은 실패할 때만 보여 준다.
-    let out = ''
-    child.stdout.on('data', (d) => {
-      out += d
-    })
-    child.stderr.on('data', (d) => {
-      out += d
-    })
-    child.on('exit', (code) =>
-      code === 0
-        ? resolve()
-        : reject(new Error(`[${pkg}] prisma migrate deploy exit ${code}\n${out}`)),
-    )
-    child.on('error', reject)
-  })
-}
-
 // 공유 컨테이너에 만든 DB 별로 카운터 — vitest fork (process) 단위로 격리.
 let dbCounter = 0
-
-function buildUrl(baseUrl: string, dbName: string): string {
-  // postgres://user:pass@host:port/<dbName> 형태로 부모 컨테이너의 DB 만 갈아끼움.
-  return baseUrl.replace(/\/[^/?]+(\?|$)/, `/${dbName}$1`)
-}
-
-async function createDatabase(baseUrl: string, dbName: string, template?: string): Promise<void> {
-  const client = new PgClient({ connectionString: baseUrl })
-  await client.connect()
-  try {
-    // CREATE DATABASE 는 트랜잭션 밖에서만 가능. dbName 은 pid + counter 라 SQL
-    // injection 위험 없음 (식별자 quote 만 적용). template 이면 마이그레이션된 DB 를 복제.
-    const from = template ? ` TEMPLATE "${template}"` : ''
-    await client.query(`CREATE DATABASE "${dbName}"${from}`)
-  } finally {
-    await client.end()
-  }
-}
 
 /**
  * Postgres 위에 fresh database 를 만들고 @bebe/db-public → @bebe/db-media 순서로
@@ -86,7 +40,7 @@ export async function startTestDb(): Promise<TestDb> {
 
   const dbName = `bebe_${process.pid}_${++dbCounter}`
   await createDatabase(baseUrl, dbName, template)
-  const url = buildUrl(baseUrl, dbName)
+  const url = databaseUrl(baseUrl, dbName)
 
   if (!template) {
     await runMigrations('@bebe/db-public', url)
