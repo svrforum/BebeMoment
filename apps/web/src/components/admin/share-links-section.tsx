@@ -1,14 +1,14 @@
 'use client'
 import { Button } from '@/components/ui/button'
 import { Card, CardBody } from '@/components/ui/card'
+import { SHARE_KIND_LABEL_KEYS, type ShareKind } from '@/lib/share-kind'
 import { useToast } from '@/lib/toast'
 import { useLocale, useTranslations } from 'next-intl'
 import { useCallback, useEffect, useState } from 'react'
 
-type Kind = 'story' | 'asset' | 'album' | 'date' | 'memory' | 'selection' | 'schedule'
 type Link = {
   token: string
-  kind: Kind
+  kind: ShareKind
   target: string
   createdByName: string | null
   createdAt: string
@@ -90,7 +90,7 @@ export function ShareLinksSection() {
               <li key={l.token} className="flex items-center gap-3 py-2.5">
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm font-medium">
-                    {t(`share.kind.${l.kind}`)}
+                    {t(`share.kind.${SHARE_KIND_LABEL_KEYS[l.kind]}`)}
                     {l.kind === 'date' || l.kind === 'memory' ? ` · ${l.target}` : ''}
                   </p>
                   <p className="truncate text-xs text-base-500">

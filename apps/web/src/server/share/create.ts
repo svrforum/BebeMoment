@@ -2,21 +2,12 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient } from '@bebe/db-public'
 import { ServiceError } from '@/server/error'
 import { isAlbumSecretOrUnderSecret } from '@/server/album/secret-visibility'
+import type { ShareTarget } from '@/lib/share-kind'
 import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { dayWindow } from './date-assets'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
-export type ShareTarget =
-  | { kind: 'story'; storyId: string }
-  | { kind: 'asset'; assetId: string }
-  | { kind: 'album'; albumId: string }
-  | { kind: 'selection'; assetIds: string[] }
-  | { kind: 'date'; date: string } // 'YYYY-MM-DD'
-  // 추억 묶음 — 그 날짜의 사진 중 발급 순간에 고른 것으로 고정. 받은 사람은 그 사진 전부와
-  // 그 사진이 담긴 스토리의 글을 본다(`memory-preview.ts`). 'date' 와 같은 target_date 열을 쓰고
-  // share_link_assets 자식 row 가 있는지로 갈린다.
-  | { kind: 'memory'; date: string; assetIds: string[] }
-  | { kind: 'schedule'; entryId: string }
+export type { ShareTarget }
 
 /**
  * 공유 링크 발급(스토리·단일 사진·앨범·여러 장 선택·날짜). 매 호출마다 새 난수 토큰. 스토리는

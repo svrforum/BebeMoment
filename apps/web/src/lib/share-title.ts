@@ -1,21 +1,14 @@
+import type { ShareTarget } from './share-kind'
+
+type Translate = (key: string, values?: Record<string, string | number>) => string
+
 /**
  * 공유 시트가 링크와 함께 보내는 한 줄 제목(카카오톡 메시지 본문의 첫 줄, Web Share 의 title).
  * 스토리·앨범은 자기 제목을 쓰고, 사진·날짜는 대상을 설명하는 문구를 만든다. 추억 묶음은
  * 그 추억의 이름("1년 전 오늘")을 쓴다.
  */
-export type ShareTitleTarget =
-  | { kind: 'story'; storyId: string }
-  | { kind: 'asset'; assetId: string }
-  | { kind: 'album'; albumId: string }
-  | { kind: 'date'; date: string }
-  | { kind: 'selection'; assetIds: string[] }
-  | { kind: 'memory'; date: string; assetIds: string[] }
-  | { kind: 'schedule'; entryId: string }
-
-type Translate = (key: string, values?: Record<string, string | number>) => string
-
 export function shareTitle(
-  target: ShareTitleTarget,
+  target: ShareTarget,
   t: Translate,
   locale: string,
   given?: string,

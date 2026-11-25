@@ -1,5 +1,6 @@
 'use client'
 import { Sheet } from '@/components/ui/sheet'
+import type { ShareKind, ShareTarget } from '@/lib/share-kind'
 import { shareOrCopy } from '@/lib/share-link'
 import { shareTitle } from '@/lib/share-title'
 import { useToast } from '@/lib/toast'
@@ -9,19 +10,11 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 type Translate = ReturnType<typeof useTranslations>
 
-export type SheetTarget =
-  | { kind: 'story'; storyId: string }
-  | { kind: 'asset'; assetId: string }
-  | { kind: 'album'; albumId: string }
-  | { kind: 'selection'; assetIds: string[] }
-  | { kind: 'date'; date: string }
-  // 추억 묶음 — 그 날 사진 중 지금 보이는 것으로 고정된 링크(스토리 글과 사진 전부가 보인다).
-  | { kind: 'memory'; date: string; assetIds: string[] }
-  | { kind: 'schedule'; entryId: string }
+export type SheetTarget = ShareTarget
 
 // 목록 조회 쿼리. 선택(컬렉션)은 안정적인 타깃 식별자가 없어 per-target 으로 못 찾으므로,
 // 본인이 만든 링크 전체(mine=1)를 받아 selection 종류만 추려 보여준다(회수 가능하게).
-function listQuery(t: SheetTarget): string | null {
+function listQuery(t: ShareTarget): string | null {
   switch (t.kind) {
     case 'story':
       return `storyId=${t.storyId}`
@@ -40,7 +33,7 @@ function listQuery(t: SheetTarget): string | null {
   }
 }
 
-function createBody(t: SheetTarget): Record<string, unknown> {
+function createBody(t: ShareTarget): Record<string, unknown> {
   switch (t.kind) {
     case 'story':
       return { storyId: t.storyId }
@@ -75,7 +68,7 @@ type Link = {
   lastAccessedAt: string | null
   expired: boolean
   // mine=1 응답에만 존재(종류) — selection 추출용. per-target 응답엔 없음.
-  kind?: string
+  kind?: ShareKind
 }
 
 function expiryLabel(l: Link, t: Translate, locale: string): string {
@@ -89,7 +82,7 @@ const shareUrl = (token: string) => `${window.location.origin}/s/${token}`
 
 const copyFor = (
   t: Translate,
-  kind: SheetTarget['kind'],
+  kind: ShareKind,
   n: number,
 ): { sheetTitle: string; intro: string } => ({
   sheetTitle: t(`share.copy.${kind}.sheetTitle`),
@@ -103,7 +96,7 @@ export function ShareSheet({
   open,
   onOpenChange,
 }: {
-  target: SheetTarget
+  target: ShareTarget
   /** 스토리·앨범·추억 묶음의 이름. 없거나 다른 대상이면 shareTitle 이 대상별 문구를 만든다. */
   title?: string | undefined
   /** 안내문 위에 놓을 것 — 뷰어의 '이 사진 / 스토리' 고르기. */

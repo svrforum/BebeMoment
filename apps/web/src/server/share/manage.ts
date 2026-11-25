@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@bebe/db-public'
-import type { ShareTarget } from './create'
+import type { ShareKind, ShareTarget } from '@/lib/share-kind'
 
 export type ShareLinkInfo = {
   token: string
@@ -69,17 +69,8 @@ export async function revokeShareLink(
   return res.count > 0
 }
 
-export type ShareLinkKind =
-  | 'story'
-  | 'asset'
-  | 'album'
-  | 'date'
-  | 'memory'
-  | 'selection'
-  | 'schedule'
-
 export type ShareLinkAdminInfo = ShareLinkInfo & {
-  kind: ShareLinkKind
+  kind: ShareKind
   target: string
   createdByName: string | null
 }
@@ -96,7 +87,7 @@ type TargetRow = {
 function classifyTarget(
   row: TargetRow,
   pinned: ReadonlySet<string>,
-): { kind: ShareLinkKind; target: string } {
+): { kind: ShareKind; target: string } {
   if (row.storyId) return { kind: 'story', target: row.storyId }
   if (row.assetId) return { kind: 'asset', target: row.assetId }
   if (row.albumId) return { kind: 'album', target: row.albumId }
