@@ -1,9 +1,8 @@
 import { randomUUID } from 'node:crypto'
 import { setSetting } from '@/server/settings/set'
+import { createAsset, updateAssetStatus } from '@/test-support/asset-fixtures'
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
-import { createAsset } from '../asset/create'
-import { updateAssetStatus } from '../asset/update-status'
 import { signup } from '../auth/signup'
 import { createFamily } from '../family/create'
 import { attachAssetsToAlbum } from './attach-assets'
@@ -395,7 +394,12 @@ describe('옮기기 — 아래에 비밀 앨범', () => {
 
   it('family 는 아래에 비밀 앨범이 있는 자기 앨범을 옮길 수 없다 — 깊이 초과로도 알리지 않는다', async () => {
     const s = await deepSetup()
-    for (const newParentId of [null, s.deep.id]) {
+    // 얕은 대상(깊이로는 막히지 않는다)과 깊은 대상(숨긴 앨범까지 세면 409) 둘 다 같은 거절.
+    const shallow = await createAlbum(
+      { familyId: s.familyId, byUserId: s.owner.id, name: 'Shallow target' },
+      db.prismaPublic,
+    )
+    for (const newParentId of [shallow.id, s.deep.id]) {
       await expect(
         moveAlbum(
           { albumId: s.mine.id, familyId: s.familyId, byUserId: s.fam.id, newParentId },

@@ -81,7 +81,8 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
       }
 
       // Subtree depth check inside the same tx so adds during move can't
-      // sneak past us.
+      // sneak past us. 지운 하위 앨범도 센다 — 경로와 함께 옮겨지므로 DB 의 깊이 CHECK
+      // (albums_depth_ceil)에 걸린다.
       const deepest = await tx.album.aggregate({
         where: {
           familyId: input.familyId,
