@@ -266,16 +266,16 @@ jobs:
           IMAGE: ${{ env.APP_IMAGE }}
           DIGEST: ${{ needs.build.outputs.digest }}
         run: |
-          docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$META") "$IMAGE@$DIGEST"
+          mapfile -t tag_args < <(jq -r '.tags[] | "-t", .' <<< "$META")
+          docker buildx imagetools create "${tag_args[@]}" "$IMAGE@$DIGEST"
       - name: tag ml image
         env:
           META: ${{ steps.mlmeta.outputs.json }}
           IMAGE: ${{ env.ML_IMAGE }}
           DIGEST: ${{ needs.ml.outputs.digest }}
         run: |
-          docker buildx imagetools create \
-            $(jq -cr '.tags | map("-t " + .) | join(" ")' <<< "$META") "$IMAGE@$DIGEST"
+          mapfile -t tag_args < <(jq -r '.tags[] | "-t", .' <<< "$META")
+          docker buildx imagetools create "${tag_args[@]}" "$IMAGE@$DIGEST"
 
   release:
     needs: [publish]
