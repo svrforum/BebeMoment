@@ -1,7 +1,10 @@
--- 마이그레이션을 적용한 DB 를 schema.prisma(public + media)에 맞추려면 Prisma 가 실행할 SQL.
+-- 마이그레이션을 적용한 DB 와 schema.prisma(public + media)의 차이 지문. prisma migrate diff 가 낸
+-- 문장을 한 줄로 펴서 정렬했다 — 순서가 바뀌었으니 실행할 수 있는 SQL 이 아니다.
 -- migration-drift.test.ts 가 만들고 비교한다. 손으로 고치지 말 것.
 -- 줄이 늘었다 = 마이그레이션과 schema.prisma 가 새로 어긋났다 → 둘 중 하나를 고친다.
 -- 줄이 줄었다 = 차이를 고쳤다 → pnpm --filter @bebe/db-media exec vitest run src/migration-drift.test.ts -u
+-- Prisma 를 올린 뒤 깨졌다 = 출력 모양만 바뀌었을 수도, 새 차이가 섞였을 수도 있다. -u 는 무엇이든
+-- 검토 없이 새 기준으로 삼으므로, 먼저 실패 출력의 diff 를 줄마다 보고 새 차이가 없을 때만 -u 한다.
 -- 스키마를 넘는 FK(모델이 서로를 모른다)의 DROP CONSTRAINT 는 테스트가 미리 걸러 낸다.
 
 ALTER INDEX "album_assets_asset_idx" RENAME TO "album_assets_asset_id_idx";
