@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { matchBrand } from './sns-brand-keywords'
 
 export type SnsBrand = {
   key: 'naver' | 'kakao' | 'google' | 'generic'
@@ -8,59 +9,43 @@ export type SnsBrand = {
   icon: ReactNode
 }
 
-// 공급자 이름으로 브랜드 추론(네이버/카카오/구글). 관리자가 임의 이름을 줄 수 있어
-// 한/영 키워드 모두 본다. 못 맞히면 generic(중립 회색).
+// 공급자 이름으로 브랜드를 추론한다. 못 맞히면 generic(중립 회색).
+// 아이콘은 늘 공급자 이름 글자 옆에 붙으므로(SnsButton) 장식으로 숨긴다 — 라벨을 달면 화면
+// 낭독기가 이름을 두 번 읽는다.
 export function getSnsBrand(name: string): SnsBrand {
-  const n = name.toLowerCase()
-  if (n.includes('naver') || name.includes('네이버')) {
+  const brand = matchBrand(name)
+  if (brand === 'naver') {
     return {
       key: 'naver',
       bg: '#03C75A',
       fg: '#ffffff',
       icon: (
-        <svg
-          viewBox="0 0 24 24"
-          width="18"
-          height="18"
-          role="img"
-          aria-label="네이버"
-          fill="currentColor"
-        >
-          <title>네이버</title>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor">
           <path d="M16.27 12.84 7.84 0H0v24h7.73V11.16L16.16 24H24V0h-7.73v12.84Z" />
         </svg>
       ),
     }
   }
-  if (n.includes('kakao') || name.includes('카카오')) {
+  if (brand === 'kakao') {
     return {
       key: 'kakao',
       bg: '#FEE500',
       fg: '#191919',
       icon: (
-        <svg
-          viewBox="0 0 24 24"
-          width="18"
-          height="18"
-          role="img"
-          aria-label="카카오"
-          fill="currentColor"
-        >
-          <title>카카오</title>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true" fill="currentColor">
           <path d="M12 3C6.48 3 2 6.48 2 10.77c0 2.77 1.85 5.2 4.63 6.57-.2.74-.74 2.7-.84 3.12-.13.52.19.51.4.37.16-.11 2.6-1.77 3.66-2.49.7.1 1.42.16 2.15.16 5.52 0 10-3.48 10-7.73S17.52 3 12 3Z" />
         </svg>
       ),
     }
   }
-  if (n.includes('google') || name.includes('구글')) {
+  if (brand === 'google') {
     return {
       key: 'google',
       bg: '#ffffff',
       fg: '#3c4043',
       border: '#dadce0',
       icon: (
-        <svg viewBox="0 0 24 24" width="18" height="18" role="img" aria-label="Google">
-          <title>Google</title>
+        <svg viewBox="0 0 24 24" width="18" height="18" aria-hidden="true">
           <path
             fill="#4285F4"
             d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92a5.06 5.06 0 0 1-2.2 3.32v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.1Z"

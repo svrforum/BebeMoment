@@ -15,12 +15,13 @@ const HANGUL = /[가-힯ᄀ-ᇿ㄰-㆏]/
  *   복구 경로에서도 같은 코드가 돌아 별도 설계가 필요하다.
  * - `app/global-error.tsx`: 루트 레이아웃이 깨졌을 때의 최후 화면이라 i18n 프로바이더가 없다 —
  *   로케일을 알 수 없어 한/영을 나란히 쓴다.
- * - `src/components/auth/sns-brand.tsx`: 관리자가 공급자 이름을 한글로 지어도('네이버')
- *   브랜드를 알아보려는 키워드와, 번역하지 않는 브랜드 이름(아이콘 라벨)이다.
+ * - `src/components/auth/sns-brand-keywords.ts`: 관리자가 공급자 이름을 한글로 지어도('네이버')
+ *   브랜드를 알아보려는 키워드 표 하나뿐이다. 화면에 나가는 글이 아니라 입력과 맞춰 보는 값이고,
+ *   허용 목록이 파일 단위라 그 표만 따로 떼어 두었다(버튼·아이콘 쪽은 검사를 받는다).
  */
 const ALLOWLIST = [
   'app/global-error.tsx',
-  'src/components/auth/sns-brand.tsx',
+  'src/components/auth/sns-brand-keywords.ts',
   'src/server/album/create.ts',
   'src/server/album/delete.ts',
   'src/server/album/move.ts',
