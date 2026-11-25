@@ -90,7 +90,12 @@ function buildPresets(t: TFn): Preset[] {
         { title: t('auth.microsoftStep3Title'), body: t('auth.microsoftStep3Body') },
         { title: t('auth.microsoftStep4Title'), body: t('auth.microsoftStep4Body') },
         { title: t('auth.microsoftStep5Title'), body: t('auth.microsoftStep5Body') },
-        { title: t('auth.microsoftStep6Title'), body: t('auth.microsoftStep6Body') },
+        {
+          title: t('auth.microsoftStep6Title'),
+          body: t('auth.microsoftStep6Body', {
+            issuer: 'https://login.microsoftonline.com/<TENANT-ID>/v2.0',
+          }),
+        },
       ],
     },
     {
@@ -102,7 +107,10 @@ function buildPresets(t: TFn): Preset[] {
       consoleUrl: '',
       color: 'from-base-500 to-base-700',
       steps: (uri) => [
-        { title: t('auth.customStep1Title'), body: t('auth.customStep1Body') },
+        {
+          title: t('auth.customStep1Title'),
+          body: t('auth.customStep1Body', { issuer: '<IdP-URL>/realms/<realm>' }),
+        },
         { title: t('auth.customStep2Title'), body: t('auth.customStep2Body', { uri }) },
         { title: t('auth.customStep3Title'), body: t('auth.customStep3Body') },
       ],
