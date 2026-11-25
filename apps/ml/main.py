@@ -29,8 +29,8 @@ MIN_SCORE = float(os.environ.get("FACE_MIN_SCORE", "0.3"))
 MAX_UPLOAD_BYTES = int(float(os.environ.get("FACE_MAX_UPLOAD_MB", "64")) * 1024 * 1024)
 MAX_PIXELS = int(float(os.environ.get("FACE_MAX_PIXELS", "80")) * 1_000_000)
 # SCRFD 는 똑바로 선 얼굴 위주로 학습돼, 누워서 찍은 사진(아기를 안고 옆으로 기울인 컷)의
-# 90° 돌아간 얼굴을 통째로 놓친다 — 실제 라이브 데이터에서 얼굴 0개로 나온 사진 37장 중
-# 9장이 돌리면 얼굴이 나왔다. 그래서 **0개일 때만** 90°/270° 로 한 번씩 더 본다(0개인
+# 90° 돌아간 얼굴을 통째로 놓친다 — 실측 표본에서 얼굴 0개로 나온 사진 37장 중 9장이
+# 돌리면 얼굴이 나왔다. 그래서 **0개일 때만** 90°/270° 로 한 번씩 더 본다(0개인
 # 사진에서만 도는 비용이고, 대부분의 사진은 첫 시도에 끝난다). 좌표는 원본 기준으로 되돌린다.
 ROTATION_FALLBACK = os.environ.get("FACE_ROTATION_FALLBACK", "true").lower() not in (
     "0",

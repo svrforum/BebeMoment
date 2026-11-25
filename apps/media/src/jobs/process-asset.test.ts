@@ -111,31 +111,31 @@ describe('process-asset module', () => {
     }
 
     it('날짜가 하나도 없으면 업로드 시각을 벽시계로 옮겨 쓴다', async () => {
-      // 2026-10-12 07:44 KST 에 올린 파일 — uploaded_at 은 실제 순간이라 전날 22:44Z 다.
+      // 2025-03-04 06:18 KST 에 올린 파일 — uploaded_at 은 실제 순간이라 전날 21:18Z 다.
       const stored = await storedTakenAt(
         fakeAsset({
           takenAtSource: 'uploaded',
-          takenAt: new Date('2026-10-11T22:44:00Z'),
-          uploadedAt: new Date('2026-10-11T22:44:00Z'),
+          takenAt: new Date('2025-03-03T21:18:00Z'),
+          uploadedAt: new Date('2025-03-03T21:18:00Z'),
           originalFilename: 'IMG_no_date.jpg',
         }),
       )
       expect(stored?.takenAtSource).toBe('uploaded')
-      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      expect(stored?.takenAt.toISOString()).toBe('2025-03-04T06:18:00.000Z')
     })
 
     it('EXIF·파일명 날짜가 없으면 파일 수정시각(실제 순간)을 벽시계로 옮겨 쓴다 — 재처리해도 같다', async () => {
-      // 2026-10-12 07:44 KST 에 수정된 파일. init 이 실제 순간과 벽시계 씨앗을 함께 심어 뒀다.
+      // 2025-03-04 06:18 KST 에 수정된 파일. init 이 실제 순간과 벽시계 씨앗을 함께 심어 뒀다.
       const asset = fakeAsset({
         takenAtSource: 'filemtime',
-        takenAt: new Date('2026-10-12T07:44:00Z'),
-        fileModifiedAt: new Date('2026-10-11T22:44:00Z'),
-        uploadedAt: new Date('2026-10-12T01:00:00Z'),
+        takenAt: new Date('2025-03-04T06:18:00Z'),
+        fileModifiedAt: new Date('2025-03-03T21:18:00Z'),
+        uploadedAt: new Date('2025-03-04T01:00:00Z'),
         originalFilename: 'IMG_no_date.jpg',
       })
       const stored = await storedTakenAt(asset)
       expect(stored?.takenAtSource).toBe('filemtime')
-      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      expect(stored?.takenAt.toISOString()).toBe('2025-03-04T06:18:00.000Z')
       expect(stored?.fileModifiedAt).toBeUndefined()
     })
 
@@ -143,16 +143,16 @@ describe('process-asset module', () => {
       const stored = await storedTakenAt(
         fakeAsset({
           takenAtSource: 'filemtime',
-          takenAt: new Date('2026-10-11T22:44:00Z'),
+          takenAt: new Date('2025-03-03T21:18:00Z'),
           fileModifiedAt: null,
-          uploadedAt: new Date('2026-10-12T01:00:00Z'),
+          uploadedAt: new Date('2025-03-04T01:00:00Z'),
           originalFilename: 'IMG_no_date.jpg',
         }),
       )
       expect(stored?.takenAtSource).toBe('filemtime')
-      expect(stored?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      expect(stored?.takenAt.toISOString()).toBe('2025-03-04T06:18:00.000Z')
       // 다음 재처리는 이 값에서 다시 계산한다 — 옮긴 값을 또 옮기지 않게.
-      expect(stored?.fileModifiedAt?.toISOString()).toBe('2026-10-11T22:44:00.000Z')
+      expect(stored?.fileModifiedAt?.toISOString()).toBe('2025-03-03T21:18:00.000Z')
     })
   })
 

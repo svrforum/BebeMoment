@@ -107,9 +107,9 @@ describe('applyDedup — duplicate of a live asset', () => {
       aspectRatioCached: 1,
       blurhash: null,
       dominantColor: null,
-      takenAt: new Date('2026-10-12T07:44:00Z'),
+      takenAt: new Date('2025-03-04T06:18:00Z'),
       takenAtSource: 'filemtime',
-      fileModifiedAt: new Date('2026-10-11T22:44:00Z'),
+      fileModifiedAt: new Date('2025-03-03T21:18:00Z'),
       derivatives: {},
     }
     let calls = 0

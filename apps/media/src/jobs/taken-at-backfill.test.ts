@@ -108,11 +108,11 @@ function run(dryRun = false, store: StorageAdapter = storage) {
 
 describe('backfillTakenAt', () => {
   it('EXIF 사진: 실제 순간으로 저장된 값을 EXIF 벽시계로 되돌리고, 다시 돌려도 그대로다', async () => {
-    // 2026-10-12 07:44:52 KST 에 찍었는데 TZ=Asia/Seoul 워커가 전날 22:44:52Z 로 저장했다.
+    // 2025-03-04 06:18:52 KST 에 찍었는데 TZ=Asia/Seoul 워커가 전날 21:18:52Z 로 저장했다.
     const skewed = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:52Z',
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     // TZ 가 없던 시절에 처리돼 이미 맞는 행.
     const correct = await seed({
@@ -123,7 +123,7 @@ describe('backfillTakenAt', () => {
 
     const first = await run()
     expect(await stored(skewed)).toMatchObject({
-      takenAt: '2026-10-12T07:44:52.000Z',
+      takenAt: '2025-03-04T06:18:52.000Z',
       source: 'exif',
     })
     expect(await stored(correct)).toMatchObject({
@@ -134,14 +134,14 @@ describe('backfillTakenAt', () => {
 
     const second = await run()
     expect(second.exif).toMatchObject({ checked: 2, fixed: 0 })
-    expect(await stored(skewed)).toMatchObject({ takenAt: '2026-10-12T07:44:52.000Z' })
+    expect(await stored(skewed)).toMatchObject({ takenAt: '2025-03-04T06:18:52.000Z' })
   })
 
   it('원본을 못 읽거나 EXIF 날짜가 없으면 손대지 않고 남긴다', async () => {
-    const missing = await seed({ source: 'exif', takenAt: '2026-10-11T22:44:52Z' })
+    const missing = await seed({ source: 'exif', takenAt: '2025-03-03T21:18:52Z' })
     const dateless = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
+      takenAt: '2025-03-03T21:18:52Z',
       original: await sharp({ create: { width: 8, height: 8, channels: 3, background: '#000' } })
         .jpeg()
         .toBuffer(),
@@ -149,30 +149,30 @@ describe('backfillTakenAt', () => {
 
     const report = await run()
 
-    expect(await stored(missing)).toMatchObject({ takenAt: '2026-10-11T22:44:52.000Z' })
-    expect(await stored(dateless)).toMatchObject({ takenAt: '2026-10-11T22:44:52.000Z' })
+    expect(await stored(missing)).toMatchObject({ takenAt: '2025-03-03T21:18:52.000Z' })
+    expect(await stored(dateless)).toMatchObject({ takenAt: '2025-03-03T21:18:52.000Z' })
     expect(report.exif).toMatchObject({ checked: 2, fixed: 0, unreadable: 1, noDate: 1 })
   })
 
   it('날짜 칸을 눌렀다 떼기만 해서 수동이 된 행은 EXIF 로 되돌리고, 직접 고친 행은 둔다', async () => {
-    // 편집기는 분 단위로 잘라 저장했다 — 그때 값은 실제 순간 22:44:52Z.
+    // 편집기는 분 단위로 잘라 저장했다 — 그때 값은 실제 순간 21:18:52Z.
     const accidental = await seed({
       source: 'manual',
-      takenAt: '2026-10-11T22:44:00Z',
-      exifRaw: { DateTimeOriginal: '2026-10-11T22:44:52.000Z' },
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:00Z',
+      exifRaw: { DateTimeOriginal: '2025-03-03T21:18:52.000Z' },
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     const deliberate = await seed({
       source: 'manual',
       takenAt: '2026-10-20T12:00:00Z',
-      exifRaw: { DateTimeOriginal: '2026-10-11T22:44:52.000Z' },
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      exifRaw: { DateTimeOriginal: '2025-03-03T21:18:52.000Z' },
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
 
     const report = await run()
 
     expect(await stored(accidental)).toMatchObject({
-      takenAt: '2026-10-12T07:44:52.000Z',
+      takenAt: '2025-03-04T06:18:52.000Z',
       source: 'exif',
     })
     expect(await stored(deliberate)).toMatchObject({
@@ -183,28 +183,28 @@ describe('backfillTakenAt', () => {
   })
 
   it('업로드 시각 행은 uploaded_at 의 벽시계로 — 밀리초까지, 몇 번을 돌려도 같다', async () => {
-    // 2026-10-12 07:44:30 KST 에 올렸다.
+    // 2025-03-04 06:18:30 KST 에 올렸다.
     const uploaded = await seed({
       source: 'uploaded',
-      takenAt: '2026-10-11T22:44:30.123Z',
-      uploadedAt: '2026-10-11T22:44:30.123Z',
+      takenAt: '2025-03-03T21:18:30.123Z',
+      uploadedAt: '2025-03-03T21:18:30.123Z',
     })
     // 그 값이 눌렀다 떼기로 분 단위 수동이 된 행.
     const accidental = await seed({
       source: 'manual',
-      takenAt: '2026-10-11T22:44:00Z',
-      uploadedAt: '2026-10-11T22:44:30.123Z',
+      takenAt: '2025-03-03T21:18:00Z',
+      uploadedAt: '2025-03-03T21:18:30.123Z',
     })
 
     const first = await run()
     const second = await run()
 
     expect(await stored(uploaded)).toMatchObject({
-      takenAt: '2026-10-12T07:44:30.123Z',
+      takenAt: '2025-03-04T06:18:30.123Z',
       source: 'uploaded',
     })
     expect(await stored(accidental)).toMatchObject({
-      takenAt: '2026-10-12T07:44:30.123Z',
+      takenAt: '2025-03-04T06:18:30.123Z',
       source: 'uploaded',
     })
     expect(first.uploaded).toEqual({ fixed: 2 })
@@ -213,62 +213,62 @@ describe('backfillTakenAt', () => {
 
   it('파일 수정시각: 예전 행은 taken_at 의 실제 순간을 남기고 옮기며, 몇 번을 돌려도 같다', async () => {
     // 2026-10 전 init 이 실제 순간을 taken_at 에 바로 넣은 행.
-    const legacy = await seed({ source: 'filemtime', takenAt: '2026-10-11T22:44:00.500Z' })
+    const legacy = await seed({ source: 'filemtime', takenAt: '2025-03-03T21:18:00.500Z' })
     // 고친 init 이 실제 순간과 벽시계를 함께 남긴 행.
     const current = await seed({
       source: 'filemtime',
-      takenAt: '2026-10-12T07:44:00Z',
-      fileModifiedAt: '2026-10-11T22:44:00Z',
+      takenAt: '2025-03-04T06:18:00Z',
+      fileModifiedAt: '2025-03-03T21:18:00Z',
     })
 
     const first = await run()
     expect(first.filemtime).toEqual({ fixed: 1 })
     expect(await stored(legacy)).toEqual({
-      takenAt: '2026-10-12T07:44:00.500Z',
+      takenAt: '2025-03-04T06:18:00.500Z',
       source: 'filemtime',
-      fileModifiedAt: '2026-10-11T22:44:00.500Z',
+      fileModifiedAt: '2025-03-03T21:18:00.500Z',
     })
     expect(await stored(current)).toEqual({
-      takenAt: '2026-10-12T07:44:00.000Z',
+      takenAt: '2025-03-04T06:18:00.000Z',
       source: 'filemtime',
-      fileModifiedAt: '2026-10-11T22:44:00.000Z',
+      fileModifiedAt: '2025-03-03T21:18:00.000Z',
     })
 
     const second = await run()
     expect(second.filemtime).toEqual({ fixed: 0 })
-    expect(await stored(legacy)).toMatchObject({ takenAt: '2026-10-12T07:44:00.500Z' })
+    expect(await stored(legacy)).toMatchObject({ takenAt: '2025-03-04T06:18:00.500Z' })
   })
 
   it('업그레이드 전 백업을 복구해 예전 값이 돌아와도 다시 돌리면 고친다', async () => {
-    const legacy = await seed({ source: 'filemtime', takenAt: '2026-10-11T22:44:00Z' })
+    const legacy = await seed({ source: 'filemtime', takenAt: '2025-03-03T21:18:00Z' })
     await run()
     // 복구: 덤프에는 file_modified_at 이 없어 비고, taken_at 은 실제 순간으로 돌아온다.
     await db.prisma.asset.update({
       where: { id: legacy, familyId: FAMILY_ID },
-      data: { takenAt: new Date('2026-10-11T22:44:00Z'), fileModifiedAt: null },
+      data: { takenAt: new Date('2025-03-03T21:18:00Z'), fileModifiedAt: null },
     })
 
     await run()
 
-    expect(await stored(legacy)).toMatchObject({ takenAt: '2026-10-12T07:44:00.000Z' })
+    expect(await stored(legacy)).toMatchObject({ takenAt: '2025-03-04T06:18:00.000Z' })
   })
 
   it('중복 별칭은 원본이 고쳐진 값을 따라간다', async () => {
     const canonical = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:52Z',
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     const alias = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
+      takenAt: '2025-03-03T21:18:52Z',
       duplicateOf: canonical,
     })
 
     const report = await run()
 
     expect(await stored(alias)).toMatchObject({
-      takenAt: '2026-10-12T07:44:52.000Z',
+      takenAt: '2025-03-04T06:18:52.000Z',
       source: 'exif',
     })
     expect(report.aliases).toEqual({ fixed: 1 })
@@ -277,8 +277,8 @@ describe('backfillTakenAt', () => {
   it('별칭 자체를 직접 고쳤으면 원본을 따라가지 않는다', async () => {
     const canonical = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:52Z',
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     const edited = await seed({
       source: 'manual',
@@ -295,25 +295,25 @@ describe('backfillTakenAt', () => {
   })
 
   it('파일 수정시각 별칭은 원래 순간까지 따라가서, 나중에 원본이 영구삭제돼도 다시 옮겨지지 않는다', async () => {
-    const canonical = await seed({ source: 'filemtime', takenAt: '2026-10-11T22:44:00Z' })
+    const canonical = await seed({ source: 'filemtime', takenAt: '2025-03-03T21:18:00Z' })
     const alias = await seed({
       source: 'filemtime',
-      takenAt: '2026-10-11T22:44:00Z',
+      takenAt: '2025-03-03T21:18:00Z',
       duplicateOf: canonical,
     })
 
     await run()
     expect(await stored(alias)).toEqual({
-      takenAt: '2026-10-12T07:44:00.000Z',
+      takenAt: '2025-03-04T06:18:00.000Z',
       source: 'filemtime',
-      fileModifiedAt: '2026-10-11T22:44:00.000Z',
+      fileModifiedAt: '2025-03-03T21:18:00.000Z',
     })
 
     // 휴지통 비우기는 원본 행만 지우고 공유 바이트·별칭은 남긴다.
     await db.prisma.asset.delete({ where: { id: canonical } })
     await run()
 
-    expect(await stored(alias)).toMatchObject({ takenAt: '2026-10-12T07:44:00.000Z' })
+    expect(await stored(alias)).toMatchObject({ takenAt: '2025-03-04T06:18:00.000Z' })
   })
 
   it('원본이 사라진 업로드 시각 별칭은 자기 업로드 시각으로 다시 세지 않는다 — 원본의 날짜를 물려받은 것이다', async () => {
@@ -350,20 +350,20 @@ describe('backfillTakenAt', () => {
     // 원본이 눌렀다 떼기로 수동이 된 뒤 같은 사진이 다시 올라와 그 값을 물려받았다.
     const canonical = await seed({
       source: 'manual',
-      takenAt: '2026-10-11T22:44:00Z',
-      exifRaw: { DateTimeOriginal: '2026-10-11T22:44:52.000Z' },
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:00Z',
+      exifRaw: { DateTimeOriginal: '2025-03-03T21:18:52.000Z' },
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     const inherited = await seed({
       source: 'manual',
-      takenAt: '2026-10-11T22:44:00Z',
+      takenAt: '2025-03-03T21:18:00Z',
       duplicateOf: canonical,
     })
 
     await run()
 
     expect(await stored(inherited)).toMatchObject({
-      takenAt: '2026-10-12T07:44:52.000Z',
+      takenAt: '2025-03-04T06:18:52.000Z',
       source: 'exif',
     })
   })
@@ -371,40 +371,40 @@ describe('backfillTakenAt', () => {
   it('원본 행이 영구삭제된 별칭은 스스로 고친다', async () => {
     const orphan = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
+      takenAt: '2025-03-03T21:18:52Z',
       duplicateOf: randomUUID(),
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
 
     await run()
 
     expect(await stored(orphan)).toMatchObject({
-      takenAt: '2026-10-12T07:44:52.000Z',
+      takenAt: '2025-03-04T06:18:52.000Z',
       source: 'exif',
     })
   })
 
   it('영상 메타데이터·파일명 출처는 이미 벽시계라 두고, 업로드 시각뿐인 영상은 옮긴다', async () => {
-    const video = await seed({ kind: 'video', source: 'exif', takenAt: '2026-10-12T07:44:52Z' })
-    const named = await seed({ source: 'filename', takenAt: '2026-10-12T07:44:52Z' })
+    const video = await seed({ kind: 'video', source: 'exif', takenAt: '2025-03-04T06:18:52Z' })
+    const named = await seed({ source: 'filename', takenAt: '2025-03-04T06:18:52Z' })
     const bareVideo = await seed({
       kind: 'video',
       source: 'uploaded',
-      takenAt: '2026-10-11T22:44:00Z',
+      takenAt: '2025-03-03T21:18:00Z',
     })
 
     await run()
 
-    expect(await stored(video)).toMatchObject({ takenAt: '2026-10-12T07:44:52.000Z' })
-    expect(await stored(named)).toMatchObject({ takenAt: '2026-10-12T07:44:52.000Z' })
-    expect(await stored(bareVideo)).toMatchObject({ takenAt: '2026-10-12T07:44:00.000Z' })
+    expect(await stored(video)).toMatchObject({ takenAt: '2025-03-04T06:18:52.000Z' })
+    expect(await stored(named)).toMatchObject({ takenAt: '2025-03-04T06:18:52.000Z' })
+    expect(await stored(bareVideo)).toMatchObject({ takenAt: '2025-03-04T06:18:00.000Z' })
   })
 
   it('도는 사이에 사용자가 날짜를 고치면 그 값을 덮어쓰지 않는다', async () => {
     const photo = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:52Z',
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
     const editingStorage: StorageAdapter = {
       ...storage,
@@ -430,11 +430,11 @@ describe('backfillTakenAt', () => {
   it('dry-run 은 무엇을 고칠지만 세고 아무것도 쓰지 않는다', async () => {
     const skewed = await seed({
       source: 'exif',
-      takenAt: '2026-10-11T22:44:52Z',
-      original: await jpegTakenAt('2026:10:12 07:44:52'),
+      takenAt: '2025-03-03T21:18:52Z',
+      original: await jpegTakenAt('2025:03:04 06:18:52'),
     })
-    const uploaded = await seed({ source: 'uploaded', takenAt: '2026-10-11T22:44:30Z' })
-    const mtime = await seed({ source: 'filemtime', takenAt: '2026-10-11T22:44:00Z' })
+    const uploaded = await seed({ source: 'uploaded', takenAt: '2025-03-03T21:18:30Z' })
+    const mtime = await seed({ source: 'filemtime', takenAt: '2025-03-03T21:18:00Z' })
 
     const report = await run(true)
 
@@ -443,10 +443,10 @@ describe('backfillTakenAt', () => {
       uploaded: { fixed: 1 },
       filemtime: { fixed: 1 },
     })
-    expect(await stored(skewed)).toMatchObject({ takenAt: '2026-10-11T22:44:52.000Z' })
-    expect(await stored(uploaded)).toMatchObject({ takenAt: '2026-10-11T22:44:30.000Z' })
+    expect(await stored(skewed)).toMatchObject({ takenAt: '2025-03-03T21:18:52.000Z' })
+    expect(await stored(uploaded)).toMatchObject({ takenAt: '2025-03-03T21:18:30.000Z' })
     expect(await stored(mtime)).toEqual({
-      takenAt: '2026-10-11T22:44:00.000Z',
+      takenAt: '2025-03-03T21:18:00.000Z',
       source: 'filemtime',
       fileModifiedAt: null,
     })
