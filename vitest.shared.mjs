@@ -61,6 +61,14 @@ function escapeGlob(p) {
 }
 
 /**
+ * 테스트 DB 를 쓰는 파일. 헬퍼를 부르는 자리(`startTestDb(`·`startFullTestDb(`)와, 어떤 경로로든
+ * test-db·test-support/db 를 가져오는 import 를 둘 다 본다 — import 경로 하나만 보면 상대 경로나
+ * 다시 내보낸 헬퍼를 놓친다. 놓친 파일은 컨테이너 없는 unit 프로젝트에서 돌고, 거기선 접속
+ * 정보(DATABASE_URL*·REDIS_URL)가 지워져 있고 Valkey 도 없어 대개 깨진다.
+ */
+export const USES_TEST_DB = /\bstart(?:Full)?TestDb\(|['"][^'"\n]*\/test(?:-support\/db|-db)['"]/
+
+/**
  * include 가 고르는 테스트 파일 중 본문이 `needsContainers` 에 걸리는 것 — 패키지 루트 기준
  * 상대 경로를 글롭용으로 이스케이프해 돌려준다. 설정을 읽을 때마다 다시 계산하므로 새 테스트는
  * 이름 규칙 없이 import 만으로 알맞은 프로젝트에 들어간다.

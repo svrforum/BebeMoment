@@ -1,9 +1,9 @@
 import { configDefaults, defineConfig } from 'vitest/config'
-import { testFilesMatching } from '../../vitest.shared.mjs'
+import { USES_TEST_DB, testFilesMatching } from '../../vitest.shared.mjs'
 
 const INCLUDE = ['src/**/*.test.ts']
 // startTestDb() 를 쓰는 파일만 컨테이너가 있는 'db' 프로젝트로 — 나머지는 Docker 없이 돈다.
-const DB_TESTS = testFilesMatching(import.meta.dirname, INCLUDE, /['"]\.\/test-db['"]/)
+const DB_TESTS = testFilesMatching(import.meta.dirname, INCLUDE, USES_TEST_DB)
 
 export default defineConfig({
   test: {

@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { configDefaults, defineConfig } from 'vitest/config'
-import { testFilesMatching } from '../../vitest.shared.mjs'
+import { USES_TEST_DB, testFilesMatching } from '../../vitest.shared.mjs'
 
 // getEnv() 가 요구하는 접속 정보는 **아무 데도 닿지 않는 주소**로 고정한다(셸 값도 무시). 예전
 // 기본값 localhost:6379·5432 는 개발 머신에서 운영 Redis·Postgres 일 수 있었고, buildApp() 이
@@ -22,7 +22,7 @@ const INCLUDE = ['src/**/*.test.ts']
 const INTEGRATION_TESTS = testFilesMatching(
   import.meta.dirname,
   INCLUDE,
-  /['"](?:@bebe\/db-media\/src\/test-db|@\/server)['"]/,
+  new RegExp(`${USES_TEST_DB.source}|['"]@/server['"]`),
 )
 
 export default defineConfig({
