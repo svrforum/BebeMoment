@@ -20,16 +20,16 @@ describe('takenAt datetime-local input (UTC wall-clock)', () => {
 
 describe('editedTakenAt', () => {
   it('손대지 않고 닫으면 저장하지 않는다 — 입력칸은 분 단위라 초가 있는 값과 그대로 비교하면 안 된다', () => {
-    expect(editedTakenAt('2026-10-12T07:44:52.000Z', '2026-10-12T07:44')).toBeNull()
+    expect(editedTakenAt('2026-05-20T08:15:27.000Z', '2026-05-20T08:15')).toBeNull()
   })
 
   it('비우면 저장하지 않는다', () => {
-    expect(editedTakenAt('2026-10-12T07:44:52.000Z', '')).toBeNull()
+    expect(editedTakenAt('2026-05-20T08:15:27.000Z', '')).toBeNull()
   })
 
   it('바꾸면 입력한 벽시계를 그대로 저장한다', () => {
-    expect(editedTakenAt('2026-10-12T07:44:52.000Z', '2026-10-12T08:10')).toBe(
-      '2026-10-12T08:10:00.000Z',
+    expect(editedTakenAt('2026-05-20T08:15:27.000Z', '2026-05-20T08:40')).toBe(
+      '2026-05-20T08:40:00.000Z',
     )
   })
 })

@@ -272,7 +272,7 @@ calendar and memories cut days with UTC getters. Before v0.0.122, an instance wh
 container ran with a `TZ` other than UTC (the default compose sets `Asia/Seoul`)
 stored EXIF photo times as real UTC instants, and every instance stored file
 modified times and upload times as instants. In Korea that is 9 hours early, so a
-photo taken at 07:44 sat on the previous day. New uploads are stored correctly; run
+photo taken before 09:00 sat on the previous day. New uploads are stored correctly; run
 this once after upgrading to repair the existing rows.
 
 Run it inside the app container, as below: instants are moved to the wall clock of

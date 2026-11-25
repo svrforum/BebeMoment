@@ -62,17 +62,17 @@ describe.each([
   })
 
   it('정말 그 시간대에서 돈다', () => {
-    expect(new Date('2026-10-12T07:44:52Z').getTimezoneOffset()).toBe(offset)
+    expect(new Date('2026-05-20T08:15:27Z').getTimezoneOffset()).toBe(offset)
   })
 
   it('EXIF 벽시계를 그대로 UTC 필드에 담는다', async () => {
-    const { takenAt } = await parseExif(tiffWithDates({ DateTimeOriginal: '2026:10:12 07:44:52' }))
-    expect(takenAt?.toISOString()).toBe('2026-10-12T07:44:52.000Z')
+    const { takenAt } = await parseExif(tiffWithDates({ DateTimeOriginal: '2026:05:20 08:15:27' }))
+    expect(takenAt?.toISOString()).toBe('2026-05-20T08:15:27.000Z')
   })
 
   it('DateTimeOriginal 이 없으면 CreateDate 를 쓴다', async () => {
-    const { takenAt } = await parseExif(tiffWithDates({ CreateDate: '2026:10:12 23:10:05' }))
-    expect(takenAt?.toISOString()).toBe('2026-10-12T23:10:05.000Z')
+    const { takenAt } = await parseExif(tiffWithDates({ CreateDate: '2026:05:20 23:25:09' }))
+    expect(takenAt?.toISOString()).toBe('2026-05-20T23:25:09.000Z')
   })
 
   it('자리표시자 날짜는 촬영 시각으로 치지 않는다 — 파일명·수정시각으로 넘어가게', async () => {

@@ -17,7 +17,7 @@ const DATE_OPTIONS = { pick: ['DateTimeOriginal', 'CreateDate'], reviveValues: f
 const EXIF_DATE = /^(\d{4})[:-](\d{2})[:-](\d{2})[ T](\d{2}):(\d{2}):(\d{2})/
 
 /**
- * EXIF 날짜('2026:10:12 07:44:52')는 시간대 없는 벽시계다. taken_at 은 그 벽시계를 UTC 필드에
+ * EXIF 날짜('2026:05:20 08:15:27')는 시간대 없는 벽시계다. taken_at 은 그 벽시계를 UTC 필드에
  * 담는다(wall-clock-as-UTC). exifr 가 되살린 Date 는 서버 로컬 시간대로 읽은 순간이라 쓰면 안
  * 된다 — 운영(TZ=Asia/Seoul)에서 9시간 이른 값이 저장돼 아침 사진이 전날로 묶였다.
  */
