@@ -112,6 +112,15 @@ describe('initUpload — 업로드 진입점 공통 경계', () => {
       expect(await tusUrl(headers)).toBe('https://app.example.com/media/v1/tus/<id>')
     })
 
+    it('프록시가 여럿이면 맨 앞(클라이언트 쪽) 값만 쓴다', async () => {
+      const headers = new Headers({
+        host: 'internal:3000',
+        'x-forwarded-host': 'app.example.com, edge.example.com',
+        'x-forwarded-proto': 'https, http',
+      })
+      expect(await tusUrl(headers)).toBe('https://app.example.com/media/v1/tus/<id>')
+    })
+
     it('스킴 헤더가 없으면 PUBLIC_URL 의 스킴을 따른다 — https 도메인에서 http 로 추측하지 않게', async () => {
       vi.stubEnv('PUBLIC_URL', 'https://app.example.com/')
       expect(await tusUrl(new Headers({ host: 'app.example.com' }))).toBe(

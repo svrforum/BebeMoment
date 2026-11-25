@@ -26,12 +26,17 @@ type HeaderReader = Pick<Headers, 'get'>
 // http 다: 프록시 없이 LAN http 로 바로 들어온 업로드가 https 로 추측돼 끊기지 않게.
 function absolutizeTusUrl(url: string, headers: HeaderReader): string {
   if (!url.startsWith('/')) return url
-  const host = headers.get('x-forwarded-host') ?? headers.get('host')
+  const host = firstValue(headers, 'x-forwarded-host') ?? firstValue(headers, 'host')
   const publicUrl = process.env.PUBLIC_URL?.replace(/\/$/, '')
   if (!host) return publicUrl ? `${publicUrl}${url}` : url
   const proto =
-    headers.get('x-forwarded-proto') ?? (publicUrl?.startsWith('https') ? 'https' : 'http')
+    firstValue(headers, 'x-forwarded-proto') ?? (publicUrl?.startsWith('https') ? 'https' : 'http')
   return `${proto}://${host}${url}`
+}
+
+// 프록시를 여럿 거치면 'https, http' 처럼 쉼표로 쌓인다 — 맨 앞이 클라이언트가 접속한 값이다.
+function firstValue(headers: HeaderReader, name: string): string | undefined {
+  return headers.get(name)?.split(',')[0]?.trim() || undefined
 }
 
 /**
