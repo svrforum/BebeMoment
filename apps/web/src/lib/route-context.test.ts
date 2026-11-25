@@ -14,17 +14,18 @@ type Ctx = {
   membership: { role: string } | null
   capabilities: string[]
 }
+type SessionRef = { userId: string; currentFamilyId: string | null }
 const state = vi.hoisted(() => ({
-  session: null as { userId: string; currentFamilyId: string | null } | null,
+  session: null as { userId: string; currentFamilyId?: string | null } | null,
   ctx: null as Ctx | null,
-  resolveCalls: 0,
+  resolveCalls: [] as SessionRef[],
 }))
 vi.mock('@/lib/auth', () => ({
   getAuth: async () => ({ user: null, session: state.session }),
 }))
 vi.mock('@/server/context', () => ({
-  resolveContext: async () => {
-    state.resolveCalls += 1
+  resolveContext: async (session: SessionRef) => {
+    state.resolveCalls.push(session)
     return state.ctx
   },
 }))
@@ -41,7 +42,7 @@ const READY: Ctx = {
 beforeEach(() => {
   state.session = { userId: 'u1', currentFamilyId: 'f1' }
   state.ctx = READY
-  state.resolveCalls = 0
+  state.resolveCalls = []
 })
 
 describe('requireRouteContext', () => {
@@ -51,7 +52,7 @@ describe('requireRouteContext', () => {
     if (!(res instanceof NextResponse)) throw new Error('응답이어야 한다')
     expect(res.status).toBe(401)
     expect(await res.json()).toEqual({ error: 'unauthorized' })
-    expect(state.resolveCalls).toBe(0)
+    expect(state.resolveCalls).toEqual([])
   })
 
   it('현재 가족이 없으면 400 noFamily', async () => {
@@ -75,5 +76,16 @@ describe('requireRouteContext', () => {
     if (res instanceof NextResponse) throw new Error(`거절되면 안 된다: ${res.status}`)
     expect(res).toEqual(READY)
     expect(res.membership.role).toBe('guardian')
+    expect(state.resolveCalls).toEqual([{ userId: 'u1', currentFamilyId: 'f1' }])
+  })
+
+  // 세션 행에 현재 가족이 아직 없으면 필드가 비어 온다 — resolveContext 는 null 만 '가족 없음' 으로 안다.
+  it('세션의 현재 가족이 비어 있으면 null 로 넘긴다', async () => {
+    state.session = { userId: 'u1' }
+    state.ctx = { user: { id: 'u1' }, family: null, membership: null, capabilities: [] }
+    const res = await requireRouteContext()
+    if (!(res instanceof NextResponse)) throw new Error('응답이어야 한다')
+    expect(res.status).toBe(400)
+    expect(state.resolveCalls).toEqual([{ userId: 'u1', currentFamilyId: null }])
   })
 })
