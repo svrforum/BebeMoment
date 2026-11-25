@@ -1,4 +1,5 @@
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import { hiddenAssetCountsByAlbum } from './hidden-asset-counts'
 import type { AlbumListItem } from './list'
 
 /**
@@ -39,7 +40,7 @@ export async function searchAlbums(
   const filtered = visible
 
   const ids = filtered.map((a) => a.id)
-  const [childCounts, assetCounts] = await Promise.all([
+  const [childCounts, assetCounts, hiddenCounts] = await Promise.all([
     prismaPublic.album.groupBy({
       by: ['parentId'],
       where: {
@@ -56,6 +57,10 @@ export async function searchAlbums(
       where: { familyId: args.familyId, albumId: { in: ids } },
       _count: { _all: true },
     }),
+    hiddenAssetCountsByAlbum(
+      { familyId: args.familyId, albumIds: ids, viewerRole: args.viewerRole },
+      prismaPublic,
+    ),
   ])
   const childByParent = new Map(childCounts.map((c) => [c.parentId, c._count._all]))
   const assetByAlbum = new Map(assetCounts.map((c) => [c.albumId, c._count._all]))
@@ -70,7 +75,7 @@ export async function searchAlbums(
     depth: a.depth,
     path: a.path,
     childCount: childByParent.get(a.id) ?? 0,
-    assetCount: assetByAlbum.get(a.id) ?? 0,
+    assetCount: (assetByAlbum.get(a.id) ?? 0) - (hiddenCounts.get(a.id) ?? 0),
     createdAt: a.createdAt.getTime(),
   }))
 }

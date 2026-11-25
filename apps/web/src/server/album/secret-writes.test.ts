@@ -226,6 +226,52 @@ describe('family 역할의 비밀 앨범 쓰기는 없는 앨범과 똑같이 �
   })
 })
 
+describe('비밀 스토리 사진 수', () => {
+  it('담은 뒤 돌려주는 사진 수는 family 에겐 비밀 스토리 사진을 뺀 수다', async () => {
+    const s = await setup()
+    const mine = await createAlbum(
+      { familyId: s.familyId, byUserId: s.fam.id, name: 'Open mine' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.story.update({
+      where: { id: s.story.id },
+      data: { visibility: 'guardians', assets: { create: [{ assetId: s.asset.id, order: 0 }] } },
+    })
+    await db.prismaPublic.albumAsset.create({
+      data: {
+        albumId: mine.id,
+        familyId: s.familyId,
+        assetId: s.asset.id,
+        addedByUserId: s.owner.id,
+      },
+    })
+    const visible = await db.prismaMedia.asset.create({
+      data: {
+        familyId: s.familyId,
+        uploadedByUserId: s.fam.id,
+        kind: 'image',
+        originalKey: `k-v-${counter}`,
+        originalFilename: 'v.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1n,
+        sha256: `v${counter}`.padEnd(64, '0'),
+        takenAt: new Date('2026-04-02'),
+        takenAtSource: 'uploaded',
+        status: 'ready',
+      },
+    })
+    const attach = (byUserId: string) =>
+      attachAssetsToAlbum(
+        { albumId: mine.id, familyId: s.familyId, byUserId, assetIds: [visible.id] },
+        db.prismaPublic,
+        db.prismaMedia,
+        async () => {},
+      )
+    expect(await attach(s.fam.id)).toEqual({ added: 1, total: 1 })
+    expect(await attach(s.owner.id)).toEqual({ added: 0, total: 2 })
+  })
+})
+
 describe('지우기 cascade', () => {
   // family 가 자기 앨범을 통째로 지우면 그 아래 보호자가 숨겨 둔 비밀 앨범까지 함께 지워진다 —
   // 볼 수도 없는 앨범을 지우게 두지 않는다. 개수 안내(409)도 숨긴 앨범을 세어 버린다.
@@ -257,6 +303,34 @@ describe('지우기 cascade', () => {
       where: { id: { in: [mine.id, secretChild.id] }, deletedAt: null },
     })
     expect(rows).toHaveLength(2)
+  })
+
+  // 담긴 사진이 전부 비밀 스토리 사진이면 family 화면엔 빈 앨범이다. 서버가 그 사진까지 세어
+  // "사진 1장이 있어요" 로 막으면 거절 문구가 비밀 사진 수를 알려 준다.
+  it('family 에겐 비밀 스토리 사진을 세지 않는다 — 빈 앨범처럼 지워진다', async () => {
+    const s = await setup()
+    const mine = await createAlbum(
+      { familyId: s.familyId, byUserId: s.fam.id, name: 'Open mine' },
+      db.prismaPublic,
+    )
+    await db.prismaPublic.story.update({
+      where: { id: s.story.id },
+      data: { visibility: 'guardians', assets: { create: [{ assetId: s.asset.id, order: 0 }] } },
+    })
+    await db.prismaPublic.albumAsset.create({
+      data: {
+        albumId: mine.id,
+        familyId: s.familyId,
+        assetId: s.asset.id,
+        addedByUserId: s.owner.id,
+      },
+    })
+    expect(
+      await deleteAlbum(
+        { albumId: mine.id, familyId: s.familyId, byUserId: s.fam.id },
+        db.prismaPublic,
+      ),
+    ).toEqual({ removedAlbums: 1, removedAttachments: 0 })
   })
 
   it('비밀 앨범이 없으면 family 도 자기 앨범을 하위째 지운다', async () => {

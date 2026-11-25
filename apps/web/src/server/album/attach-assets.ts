@@ -1,5 +1,6 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
+import { hiddenAssetCountsByAlbum } from './hidden-asset-counts'
 import { findVisibleAlbumOrThrow } from './secret-visibility'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
@@ -70,9 +71,16 @@ export async function attachAssetsToAlbum(
     skipDuplicates: true,
   })
 
-  const total = await prismaPublic.albumAsset.count({
-    where: { albumId: input.albumId, familyId: input.familyId },
-  })
+  const [all, hidden] = await Promise.all([
+    prismaPublic.albumAsset.count({
+      where: { albumId: input.albumId, familyId: input.familyId },
+    }),
+    hiddenAssetCountsByAlbum(
+      { familyId: input.familyId, albumIds: [input.albumId], viewerRole: membership.role },
+      prismaPublic,
+    ),
+  ])
+  const total = all - (hidden.get(input.albumId) ?? 0)
   revalidateAlbumsTag(input.familyId)
 
   if (result.count > 0) {

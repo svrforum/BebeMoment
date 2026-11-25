@@ -1,5 +1,6 @@
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { unstable_cache } from 'next/cache'
+import { hiddenAssetCountsByAlbum } from './hidden-asset-counts'
 import { isAlbumSecretForViewer } from './secret-visibility'
 
 export type AlbumListItem = {
@@ -35,7 +36,8 @@ export type AlbumListItem = {
  * 후처리 — listAlbumTree 와 같은 패턴. 부모 자체가 비밀이거나 비밀 조상 아래면 자식 목록은
  * 통째로 비운다 — 자식의 secret 플래그만 보면 `?parentId=<비밀 앨범>` 으로 그 안의 평범한
  * 하위 앨범이 드러난다. 하위 앨범 수도 family 에겐 비밀 자식을 뺀 수다(열 수 없는 앨범이
- * 있다는 사실이 숫자로 새지 않게).
+ * 있다는 사실이 숫자로 새지 않게). 사진 수도 같은 이유로 비밀 스토리 사진을 뺀다 — 이건 캐시
+ * 밖에서 뺀다(hiddenAssetCountsByAlbum).
  */
 export async function listAlbums(
   args: { familyId: string; parentId: string | null; viewerRole: Role },
@@ -55,12 +57,16 @@ export async function listAlbums(
     { revalidate: 60, tags: [`albums:${familyId}`] },
   )()
   const family = viewerRole === 'family'
-  return all
-    .filter((a) => !family || !a.secret)
-    .map(({ childCounts, ...a }) => ({
-      ...a,
-      childCount: family ? childCounts.open : childCounts.all,
-    }))
+  const visible = all.filter((a) => !family || !a.secret)
+  const hidden = await hiddenAssetCountsByAlbum(
+    { familyId, albumIds: visible.map((a) => a.id), viewerRole },
+    prismaPublic,
+  )
+  return visible.map(({ childCounts, ...a }) => ({
+    ...a,
+    childCount: family ? childCounts.open : childCounts.all,
+    assetCount: a.assetCount - (hidden.get(a.id) ?? 0),
+  }))
 }
 
 type RawAlbumListItem = Omit<AlbumListItem, 'childCount'> & {

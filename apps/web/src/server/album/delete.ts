@@ -1,4 +1,5 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import { resolveCan } from '@bebe/core'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
@@ -36,6 +37,9 @@ export async function deleteAlbum(
   })
   if (!membership || membership.deletedAt) throw new ForbiddenError('album.memberOnly')
   const familyCaps = await getFamilyCapabilities(prismaPublic)
+  // family 화면에서 비밀 스토리 사진만 담긴 앨범은 빈 앨범이다. 그 사진까지 세어 "사진 N장" 으로
+  // 막으면 거절 문구가 비밀 사진 수를 알려 주므로, 판단도 안내도 보이는 사진으로만 한다.
+  const hidden = await hiddenAssetIdsForViewer(membership.role, prismaPublic, input.familyId)
 
   return prismaPublic
     .$transaction(async (tx) => {
@@ -78,6 +82,7 @@ export async function deleteAlbum(
             album: {
               OR: [{ id: album.id }, { path: { startsWith: `${album.path}/` } }],
             },
+            ...(hidden.length > 0 ? { assetId: { notIn: hidden } } : {}),
           },
         }),
       ])

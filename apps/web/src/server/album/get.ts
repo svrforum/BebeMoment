@@ -1,4 +1,5 @@
 import type { Album, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import { hiddenAssetCountsByAlbum } from './hidden-asset-counts'
 
 export type AlbumWithBreadcrumbs = Album & {
   breadcrumbs: { id: string; name: string }[]
@@ -41,7 +42,7 @@ export async function getAlbumWithBreadcrumbs(
     .filter((a): a is { id: string; name: string; path: string; secret: boolean } => !!a)
     .map((a) => ({ id: a.id, name: a.name }))
 
-  const [childCount, assetCount] = await Promise.all([
+  const [childCount, assetCount, hiddenCounts] = await Promise.all([
     prismaPublic.album.count({
       where: {
         familyId: args.familyId,
@@ -54,12 +55,16 @@ export async function getAlbumWithBreadcrumbs(
     prismaPublic.albumAsset.count({
       where: { familyId: args.familyId, albumId: album.id },
     }),
+    hiddenAssetCountsByAlbum(
+      { familyId: args.familyId, albumIds: [album.id], viewerRole: args.viewerRole },
+      prismaPublic,
+    ),
   ])
 
   return {
     ...album,
     breadcrumbs,
     childCount,
-    assetCount,
+    assetCount: assetCount - (hiddenCounts.get(album.id) ?? 0),
   }
 }

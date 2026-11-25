@@ -265,6 +265,79 @@ describe('하위 앨범 수', () => {
   })
 })
 
+describe('사진 수', () => {
+  // 공개 앨범에 가족 공개 사진 하나와 비밀 스토리 사진 하나. 사진 목록은 family 에게 비밀 사진을
+  // 빼고 보여 주는데 머리말·카드가 2장이라고 하면, 그 차이로 비밀 사진이 몇 장인지 드러난다.
+  async function photoCounts(viewerRole: 'owner' | 'guardian' | 'family') {
+    const s = await setup()
+    const secretAsset = await db.prismaMedia.asset.create({
+      data: {
+        familyId: s.familyId,
+        uploadedByUserId: s.userId,
+        kind: 'image',
+        originalKey: `k-secret-${counter}`,
+        originalFilename: 'y.jpg',
+        mimeType: 'image/jpeg',
+        sizeBytes: 1n,
+        sha256: `s${counter}`.padEnd(64, '0'),
+        takenAt: new Date('2026-04-02'),
+        takenAtSource: 'uploaded',
+        status: 'ready',
+      },
+    })
+    await db.prismaPublic.story.create({
+      data: {
+        familyId: s.familyId,
+        entryDate: new Date('2026-04-02'),
+        body: 'b',
+        visibility: 'guardians',
+        createdByUserId: s.userId,
+        assets: { create: [{ assetId: secretAsset.id, order: 0 }] },
+      },
+    })
+    await db.prismaPublic.albumAsset.create({
+      data: {
+        albumId: s.open.id,
+        familyId: s.familyId,
+        assetId: secretAsset.id,
+        addedByUserId: s.userId,
+      },
+    })
+    const listed = await listAlbums(
+      { familyId: s.familyId, parentId: null, viewerRole },
+      db.prismaPublic,
+    )
+    const found = await searchAlbums(
+      { familyId: s.familyId, q: 'Trip open', viewerRole },
+      db.prismaPublic,
+    )
+    const detail = await getAlbumWithBreadcrumbs(
+      { albumId: s.open.id, familyId: s.familyId, viewerRole },
+      db.prismaPublic,
+    )
+    const photos = await listAlbumAssets(
+      { albumId: s.open.id, familyId: s.familyId, viewerRole },
+      db.prismaPublic,
+      db.prismaMedia,
+      new FakeMediaClient(),
+    )
+    return {
+      listed: listed.find((a) => a.id === s.open.id)?.assetCount,
+      searched: found.find((a) => a.id === s.open.id)?.assetCount,
+      detail: detail?.assetCount,
+      photos: photos.total,
+    }
+  }
+
+  it('family 에겐 비밀 스토리 사진을 세지 않는다 — 사진 목록과 같은 수', async () => {
+    expect(await photoCounts('family')).toEqual({ listed: 1, searched: 1, detail: 1, photos: 1 })
+  })
+
+  it.each(['owner', 'guardian'] as const)('%s 에겐 비밀 스토리 사진도 센다', async (role) => {
+    expect(await photoCounts(role)).toEqual({ listed: 2, searched: 2, detail: 2, photos: 2 })
+  })
+})
+
 describe.each(['owner', 'guardian'] as const)('%s 역할은 비밀 앨범 트리를 전부 본다', (role) => {
   it('목록·트리·상세·검색·사진·스토리', async () => {
     const s = await setup()
