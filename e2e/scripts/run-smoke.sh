@@ -68,6 +68,26 @@ fi
 # 살아 있으면 지우는 순간 그 서버가 깨지고, Next 도 같은 디렉터리의 두 번째 dev 서버를 거부한다.
 # 그때는 이유를 말하고 멈춘다. 살아 있는 서버는 .next/dev/lock 에 pid 와 주소를 적어 두고,
 # 정상 종료하면 그 파일을 지운다.
+#
+# dev_cache_owner_alive: lock 의 pid 가 아직 이 체크아웃의 next dev 이면 0. SIGKILL 된 dev 서버는
+# lock 을 남기고 그 pid 는 재사용되는데, 같은 호스트의 다른 next(운영 앱 등)도 명령줄에 next 가
+# 있다 — 그래서 작업 디렉터리가 이 apps/web 이거나 lock 파일을 열어 쥔 프로세스만 주인으로 본다.
+dev_cache_owner_alive() {
+  local pid="$1" web_dir="$2" lock="$3" lock_dir fd
+  [[ "$pid" =~ ^[0-9]+$ ]] || return 1
+  [[ "$(ps -o args= -p "$pid" 2>/dev/null || true)" == *next* ]] || return 1
+  # /proc 가 없는 OS 에선 주인을 가릴 수 없다 — 지우지 않고 멈추는 쪽으로 둔다.
+  [[ -d /proc/self/fd ]] || return 0
+  web_dir="$(cd "$web_dir" 2>/dev/null && pwd -P)" || return 1
+  lock_dir="$(cd "$(dirname "$lock")" 2>/dev/null && pwd -P)" || return 1
+  lock="$lock_dir/${lock##*/}"
+  [[ "$(readlink "/proc/$pid/cwd" 2>/dev/null)" == "$web_dir" ]] && return 0
+  for fd in "/proc/$pid/fd/"*; do
+    [[ "$(readlink "$fd" 2>/dev/null)" == "$lock" ]] && return 0
+  done
+  return 1
+}
+
 WEB_DEV_CACHE="$ROOT/apps/web/.next/dev"
 if [[ -f "$WEB_DEV_CACHE/lock" ]]; then
   OTHER_PID="" OTHER_URL=""
@@ -75,15 +95,13 @@ if [[ -f "$WEB_DEV_CACHE/lock" ]]; then
     node -e 'try { const j = JSON.parse(require("fs").readFileSync(process.argv[1], "utf8")); console.log(`${j.pid ?? ""} ${j.appUrl ?? ""}`) } catch {}' \
       "$WEB_DEV_CACHE/lock" 2>/dev/null
   ) || true
-  # pid 는 재사용될 수 있으니 그 프로세스가 실제로 next 인지까지 본다.
-  OTHER_ARGS=""
-  [[ "$OTHER_PID" =~ ^[0-9]+$ ]] && OTHER_ARGS="$(ps -o args= -p "$OTHER_PID" 2>/dev/null || true)"
-  if [[ "$OTHER_ARGS" == *next* ]]; then
+  if dev_cache_owner_alive "$OTHER_PID" "$ROOT/apps/web" "$WEB_DEV_CACHE/lock"; then
     echo "!! 중단: apps/web 의 다른 next dev 가 실행 중입니다 (pid $OTHER_PID, ${OTHER_URL:-주소 모름})."
     echo "!!   e2e 서버와 .next/dev 캐시를 같이 쓰게 되어 함께 돌릴 수 없습니다."
     echo "!!   그 서버를 먼저 내린 뒤 다시 실행하세요: kill $OTHER_PID"
     exit 1
   fi
+  echo "== .next/dev/lock 이 남아 있지만 pid ${OTHER_PID:-?} 는 이 체크아웃의 next dev 가 아니다 — 캐시를 비운다 =="
 fi
 rm -rf "$WEB_DEV_CACHE"
 
