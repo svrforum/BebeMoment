@@ -1,8 +1,9 @@
 /**
  * 워커 전용. 여기의 조회는 한 가족이 아니라 **인스턴스의 모든 가족**을 훑는다 —
  * 요청 경로(라우트·서버 액션)에서 쓰지 말 것. 가족 id 는 먼저 열거해 `familyId in (...)`
- * 로 걸어 tenant 확장의 스코프 규칙을 지킨다(§8).
+ * 로 걸어 tenant 확장의 스코프 규칙을 지킨다.
  */
+import { localDayKey, utcDayKey } from '@/lib/day-key'
 import type { PrismaClient } from '@bebe/db-public'
 import {
   type ReminderSpec,
@@ -30,21 +31,9 @@ export type DueReminder = {
 /** 선점할 때 쓰는 상태. 'failed' 는 선점이 아니라 되돌림이라 markReminderFireFailed 가 쓴다. */
 export type FireState = 'sent' | 'skipped_past'
 
-function dayKeyUtc(date: Date): string {
-  return `${date.getUTCFullYear()}-${String(date.getUTCMonth() + 1).padStart(2, '0')}-${String(
-    date.getUTCDate(),
-  ).padStart(2, '0')}`
-}
-
-/** on_date 는 벽시계 날짜라 UTC 자정으로 저장·비교한다(§2.5). */
+/** on_date 는 벽시계 날짜라 UTC 자정으로 저장·비교한다. */
 function utcMidnight(day: string): Date {
   return new Date(`${day}T00:00:00.000Z`)
-}
-
-function localDayKey(at: Date): string {
-  return `${at.getFullYear()}-${String(at.getMonth() + 1).padStart(2, '0')}-${String(
-    at.getDate(),
-  ).padStart(2, '0')}`
 }
 
 function specOf(row: {
@@ -78,7 +67,7 @@ export async function findDueReminders(
     where: {
       familyId: { in: familyIds },
       deletedAt: null,
-      // 완료 필터는 **날짜 한 번짜리 일정에만** 건다(§2.4). 매년 반복에 걸면 올해 회차를
+      // 완료 필터는 **날짜 한 번짜리 일정에만** 건다. 매년 반복에 걸면 올해 회차를
       // 체크한 순간 내년부터의 생일 알림이 영구히 죽는다 — 회차별 완료 상태가 없어서.
       OR: [
         { onDate: { gte: utcMidnight(fromDate), lte: utcMidnight(toDate) }, doneAt: null },
@@ -95,9 +84,9 @@ export async function findDueReminders(
     if (!entry.onDate || entry.reminders.length === 0) continue
     const occurrences = occurrenceDatesInRange(
       {
-        onDate: dayKeyUtc(entry.onDate),
+        onDate: utcDayKey(entry.onDate),
         repeatYearly: entry.repeatYearly,
-        repeatUntil: entry.repeatUntil ? dayKeyUtc(entry.repeatUntil) : null,
+        repeatUntil: entry.repeatUntil ? utcDayKey(entry.repeatUntil) : null,
       },
       fromDate,
       toDate,
@@ -139,7 +128,7 @@ export async function findDueReminders(
     },
     select: { reminderId: true, occurrenceOn: true },
   })
-  const claimed = new Set(fired.map((f) => `${f.reminderId}:${dayKeyUtc(f.occurrenceOn)}`))
+  const claimed = new Set(fired.map((f) => `${f.reminderId}:${utcDayKey(f.occurrenceOn)}`))
   const unclaimed = (r: DueReminder) => !claimed.has(`${r.reminderId}:${r.occurrenceOn}`)
 
   return { due: due.filter(unclaimed), skipped: skipped.filter(unclaimed) }
@@ -147,7 +136,7 @@ export async function findDueReminders(
 
 /**
  * 보내기 **전에** 원장 행을 선점한다. true 일 때만 발송한다 — false 는 다른 틱이나
- * 재시작 전의 자신이 이미 보냈다는 뜻이다(§1.4).
+ * 재시작 전의 자신이 이미 보냈다는 뜻이다.
  */
 export async function claimReminderFire(
   r: DueReminder,
