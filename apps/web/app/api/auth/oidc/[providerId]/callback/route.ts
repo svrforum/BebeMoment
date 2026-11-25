@@ -1,268 +1,81 @@
 import { resolveLocale } from '@/i18n/request'
 import { getServerTranslator } from '@/i18n/translator'
 import { getAuth } from '@/lib/auth'
-import { tryDecryptClientSecret } from '@/server/oidc/client-secret'
 import { prismaPublic } from '@/lib/db-init'
+import { logger } from '@/lib/logger'
 import { createSessionAndSetCookie } from '@/lib/oidc-session'
 import { publicOrigin } from '@/lib/request-origin'
-import { linkIdentityToUser } from '@/server/oidc/link'
-import {
-  exchangeCodeForTokens,
-  fetchUserInfo,
-  findLinkedUser,
-  linkOrCreateUser,
-  verifyIdToken,
-} from '@/server/oidc/callback'
-import { fetchDiscovery } from '@/server/oidc/discovery'
-import { exchangeNaverCode, fetchNaverProfile } from '@/server/oidc/naver'
-import { createAppHandoff } from '@/server/auth/app-handoff'
-import {
-  isBootstrapSetupAllowed,
-  isRegistrationOpen,
-  validateInviteForSignup,
-} from '@/server/auth/registration'
-import { isUserFullySuspended } from '@/server/auth/suspension'
-import { acceptInvite } from '@/server/invite/accept'
+import { renderAppHandoffPage } from '@/server/oidc/app-handoff-page'
+import { completeOidcCallback } from '@/server/oidc/complete-login'
+import { fetchProviderIdentity } from '@/server/oidc/identity'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
 
-function clearOidcCookies(store: Awaited<ReturnType<typeof cookies>>): void {
-  store.delete('oidc_state')
-  store.delete('oidc_nonce')
-  store.delete('oidc_invite')
-  store.delete('oidc_link')
-  store.delete('oidc_name')
-  store.delete('oidc_app_challenge')
-  store.delete('oidc_next')
-}
+const FLOW_COOKIES = [
+  'oidc_state',
+  'oidc_nonce',
+  'oidc_invite',
+  'oidc_link',
+  'oidc_name',
+  'oidc_app_challenge',
+  'oidc_next',
+] as const
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
   const url = new URL(req.url)
-  const code = url.searchParams.get('code')
-  const state = url.searchParams.get('state')
-  const cookieStore = await cookies()
+  const store = await cookies()
+  const read = (name: (typeof FLOW_COOKIES)[number]) => store.get(name)?.value
   // 모든 리다이렉트는 접속한 공개 오리진(도메인) 기준 — req.url 은 프록시 뒤에서 내부
   // 주소(0.0.0.0:3000)라 그대로 쓰면 엉뚱한 곳으로 튕긴다.
   const env = parseEnv(process.env as Record<string, string | undefined>)
   const origin = publicOrigin(req, env.PUBLIC_URL)
-  if (!code || !state) {
-    clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=oidc', origin))
-  }
-
   const { providerId } = await params
-  const expectedState = cookieStore.get('oidc_state')?.value
-  const expectedNonce = cookieStore.get('oidc_nonce')?.value
-  if (state !== expectedState) {
-    clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=state', origin))
-  }
 
-  const provider = await prismaPublic.oidcProvider.findUnique({ where: { id: providerId } })
-  if (!provider || !provider.enabled) {
-    clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=provider', origin))
-  }
+  const outcome = await completeOidcCallback(
+    {
+      providerId,
+      code: url.searchParams.get('code'),
+      state: url.searchParams.get('state'),
+      redirectUri: `${origin}/api/auth/oidc/${providerId}/callback`,
+      cookies: {
+        state: read('oidc_state'),
+        nonce: read('oidc_nonce'),
+        invite: read('oidc_invite'),
+        link: read('oidc_link'),
+        name: read('oidc_name'),
+        appChallenge: read('oidc_app_challenge'),
+        next: read('oidc_next'),
+      },
+    },
+    {
+      prisma: prismaPublic,
+      secretKey: env.SECRET_KEY,
+      fetchIdentity: fetchProviderIdentity,
+      sessionUserId: async () => (await getAuth()).session?.userId ?? null,
+    },
+  )
+  for (const name of FLOW_COOKIES) store.delete(name)
 
-  // 시크릿이 현재 SECRET_KEY 로 복호화 안 되면(대개 SECRET_KEY 회전 후 재저장 누락) 콜백이
-  // throw 해 500 이 뜨던 것을, 로그인 화면 안내로 바꾼다 — 관리자는 프로바이더 시크릿을 다시 저장.
-  const secret = await tryDecryptClientSecret(provider.clientSecretEnc, env.SECRET_KEY)
-  if (!secret.ok) {
-    console.error('OIDC callback: client secret undecryptable (SECRET_KEY rotated?)', providerId)
-    clearOidcCookies(cookieStore)
-    return NextResponse.redirect(new URL('/login?error=oidc_secret', origin))
+  if (outcome.kind === 'fail') {
+    return NextResponse.redirect(new URL(`/login?error=${outcome.error}`, origin))
   }
-  const clientSecret = secret.clientSecret
-  const redirectUri = `${origin}/api/auth/oidc/${providerId}/callback`
+  if (outcome.kind === 'redirect') return NextResponse.redirect(new URL(outcome.to, origin))
 
   try {
-    let linkInput: {
-      providerId: string
-      subject: string
-      email?: string
-      emailVerified: boolean
-      displayName?: string
-    }
-
-    if (provider.kind === 'naver') {
-      // 네이버: OAuth2 전용 — id_token 없음. code→token 후 nid/me 프로필 언랩.
-      const { access_token } = await exchangeNaverCode({
-        code,
-        state,
-        clientId: provider.clientId,
-        clientSecret,
-      })
-      const profile = await fetchNaverProfile(access_token)
-      linkInput = {
-        providerId,
-        subject: profile.sub,
-        emailVerified: profile.emailVerified,
-        ...(profile.email ? { email: profile.email } : {}),
-        ...(profile.displayName ? { displayName: profile.displayName } : {}),
-      }
-    } else {
-      // OIDC(non-naver)는 id_token nonce 필수 — 시작 시 심은 oidc_nonce 쿠키가 없으면
-      // 검증을 건너뛰지 말고 하드 실패(리플레이/주입 방지).
-      if (!expectedNonce) {
-        clearOidcCookies(cookieStore)
-        return NextResponse.redirect(new URL('/login?error=nonce', origin))
-      }
-      const disc = await fetchDiscovery(provider.issuer)
-      const tokens = await exchangeCodeForTokens({
-        tokenEndpoint: disc.token_endpoint,
-        code,
-        redirectUri,
-        clientId: provider.clientId,
-        clientSecret,
-      })
-
-      // Verify id_token signature + claims + nonce before trusting anything.
-      const idTokenPayload = await verifyIdToken(tokens.id_token, {
-        jwksUri: disc.jwks_uri,
-        issuer: provider.issuer,
-        clientId: provider.clientId,
-        nonce: expectedNonce,
-      })
-
-      const info = await fetchUserInfo(disc.userinfo_endpoint, tokens.access_token)
-
-      // id_token is authoritative for sub and email_verified; userinfo/id_token fill
-      // the display name — Kakao 등은 `name` 이 아니라 `nickname` 으로 줘서 둘 다 본다.
-      const subject = String(idTokenPayload.sub ?? info.sub)
-      const email = (idTokenPayload.email as string | undefined) ?? info.email
-      const emailVerified =
-        (idTokenPayload.email_verified as boolean | undefined) ?? info.email_verified ?? false
-      const displayName =
-        info.name ??
-        info.nickname ??
-        (idTokenPayload.nickname as string | undefined) ??
-        (idTokenPayload.name as string | undefined)
-
-      linkInput = {
-        providerId,
-        subject,
-        emailVerified,
-        ...(email !== undefined ? { email } : {}),
-        ...(displayName !== undefined ? { displayName } : {}),
-      }
-    }
-
-    // 계정 연동 모드: 현재 로그인 사용자에게 신원만 붙이고 끝낸다(새 로그인/가입 아님).
-    if (cookieStore.get('oidc_link')?.value === '1') {
-      const { session } = await getAuth()
-      if (!session) {
-        clearOidcCookies(cookieStore)
-        return NextResponse.redirect(new URL('/login?error=link_session', origin))
-      }
-      const r = await linkIdentityToUser(
-        {
-          userId: session.userId,
-          providerId,
-          subject: linkInput.subject,
-          ...(linkInput.email ? { email: linkInput.email } : {}),
-        },
-        prismaPublic,
-      )
-      clearOidcCookies(cookieStore)
-      return NextResponse.redirect(
-        new URL(r.conflict ? '/settings?error=link_conflict' : '/settings?linked=1', origin),
-      )
-    }
-
-    const inviteToken = cookieStore.get('oidc_invite')?.value ?? null
-
-    const existing = await findLinkedUser(linkInput, prismaPublic)
-    // 초대 가입 시 사용자가 고른 표시 이름은 신규 유저 생성에만 적용(기존 유저 로그인은 그대로).
-    const chosenName = cookieStore.get('oidc_name')?.value?.trim()
-    if (!existing && chosenName) linkInput.displayName = chosenName
-    if (!existing) {
-      const open = await isRegistrationOpen(prismaPublic)
-      if (open) {
-        // SETUP_TOKEN 으로 첫 소유자 선점을 막는 인스턴스에선 OIDC 신규 가입으로 우회하지
-        // 못하게 한다 — OIDC 는 토큰을 전달할 수 없으므로 첫 소유자는 아이디 가입(+SETUP_TOKEN)만.
-        if (!isBootstrapSetupAllowed(undefined)) {
-          clearOidcCookies(cookieStore)
-          return NextResponse.redirect(new URL('/login?error=setup_required', origin))
-        }
-      } else {
-        const ok = inviteToken ? await validateInviteForSignup(inviteToken, prismaPublic) : false
-        if (!ok) {
-          clearOidcCookies(cookieStore)
-          return NextResponse.redirect(new URL('/login?error=invite_required', origin))
-        }
-      }
-    }
-
-    const { user } = await linkOrCreateUser(linkInput, prismaPublic)
-
-    let currentFamilyId: string | null = null
-    if (inviteToken) {
-      const existingMembership = await prismaPublic.membership.findFirst({
-        where: { userId: user.id, deletedAt: null },
-      })
-      if (!existingMembership) {
-        try {
-          const r = await acceptInvite({ token: inviteToken, userId: user.id }, prismaPublic)
-          currentFamilyId = r.familyId
-        } catch {
-          // 초대 만료/취소 — 로그인은 진행(가족 없으면 온보딩/안내로 유도).
-        }
-      }
-    }
-
-    if (!currentFamilyId) {
-      const membership = await prismaPublic.membership.findFirst({
-        where: { userId: user.id, deletedAt: null },
-        orderBy: { joinedAt: 'asc' },
-      })
-      currentFamilyId = membership?.familyId ?? null
-    }
-
-    if (await isUserFullySuspended(user.id, prismaPublic)) {
-      clearOidcCookies(cookieStore)
-      return NextResponse.redirect(new URL('/login?error=suspended', origin))
-    }
-
-    // 앱(Custom Tab) 플로우: 세션 쿠키(외부 브라우저 쿠키 jar 라 앱과 공유 안 됨) 대신
-    // 1회용 핸드오프 코드를 발급해 bebe://auth 딥링크로 앱에 돌려준다. 앱이 verifier 와
-    // 교환해 WebView 에 세션을 심는다.
-    const appChallenge = cookieStore.get('oidc_app_challenge')?.value
-    if (appChallenge) {
-      const { code } = await createAppHandoff(
-        { userId: user.id, currentFamilyId, challenge: appChallenge },
-        prismaPublic,
-      )
-      clearOidcCookies(cookieStore)
-      // 크롬 Custom Tab 은 서버가 bebe:// 로 그냥 리다이렉트하면 앱을 안 띄운다(보안).
-      // intent:// URL(패키지 지정) 로 자동 실행 + 사용자 탭 버튼(제스처) 폴백 페이지를 준다.
-      const intentUrl = `intent://auth?code=${encodeURIComponent(code)}#Intent;scheme=bebe;package=im.bebe.app;end`
+    // 앱(Custom Tab)은 외부 브라우저 쿠키 jar 를 쓰므로 세션 쿠키 대신 1회용 코드를 앱에 넘긴다.
+    if (outcome.kind === 'handoff') {
       const locale = await resolveLocale()
-      const tAuth = getServerTranslator(locale, 'auth')
-      const html = `<!doctype html><html lang="${locale}"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${tAuth('oidcReturn.title')}</title></head><body style="margin:0;font-family:system-ui,-apple-system,sans-serif;display:flex;min-height:100dvh;flex-direction:column;align-items:center;justify-content:center;gap:20px;padding:32px;text-align:center;color:#111">
-<p style="font-size:16px;margin:0">${tAuth('oidcReturn.message')}</p>
-<a href="${intentUrl}" style="display:inline-block;background:#111;color:#fff;padding:15px 30px;border-radius:999px;text-decoration:none;font-weight:600;font-size:16px">${tAuth('oidcReturn.button')}</a>
-<script>setTimeout(function(){location.href=${JSON.stringify(intentUrl)}},250)</script>
-</body></html>`
+      const html = renderAppHandoffPage(outcome.code, locale, getServerTranslator(locale, 'auth'))
       return new NextResponse(html, {
         status: 200,
         headers: { 'content-type': 'text/html; charset=utf-8' },
       })
     }
-
-    await createSessionAndSetCookie(user.id, currentFamilyId)
-
-    // 로그인 전 보려던 곳(예: 공유 링크 /story/20)으로 복귀 — start 가 oidc_next 에 저장.
-    // 같은-출처 절대경로만(//·/\ 우회 차단), 아니면 기본 홈.
-    const nextRaw = cookieStore.get('oidc_next')?.value
-    const dest = nextRaw && /^\/(?![/\\])/.test(nextRaw) ? nextRaw : '/'
-
-    clearOidcCookies(cookieStore)
-
-    return NextResponse.redirect(new URL(dest, origin))
-  } catch (e) {
-    console.error('OIDC callback error:', e)
-    clearOidcCookies(cookieStore)
+    await createSessionAndSetCookie(outcome.userId, outcome.currentFamilyId)
+    return NextResponse.redirect(new URL(outcome.to, origin))
+  } catch (err) {
+    logger.error({ err, providerId }, 'oidc callback: finishing sign-in failed')
     return NextResponse.redirect(new URL('/login?error=oidc_exchange', origin))
   }
 }
