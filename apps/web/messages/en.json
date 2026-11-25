@@ -2104,7 +2104,7 @@
       "mediaOnly": "Only images and videos can be uploaded"
     },
     "addAtLeastOne": "Add at least one photo",
-    "uploadNotFinished": "Your photos are still uploading. They'll be saved to the timeline, so check back there in a moment.",
+    "uploadNotReady": "Your photos are still uploading",
     "storyFailed": "Couldn't post the story",
     "dropHere": "Drag photos or videos here, or",
     "selectFile": "Choose files",
@@ -2172,8 +2172,9 @@
     },
     "pickFromFiles": "Pick from files (not in the gallery)",
     "mediaOnly": "{name} — only photos and videos can be uploaded",
-    "storyRolledBack": "Couldn't create the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
-    "storyRolledBackPartly": "Couldn't create the story — {count} photo(s) could not be undone. Check the trash. ({error})",
+    "rolledBack": "Couldn't create the story — the {count} photo(s) already uploaded were moved to the trash. ({error})",
+    "rolledBackPartly": "Couldn't create the story — {count} photo(s) could not be undone and stay on the timeline. Delete them there if you don't need them. ({error})",
+    "reattach": "Couldn't create the story — please add the {count} photo(s) again. ({error})",
     "moveMode": {
       "hint": "Drag, or use “Move” to reorder. The first one is the cover.",
       "start": "Move",

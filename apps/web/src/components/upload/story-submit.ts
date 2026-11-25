@@ -6,15 +6,17 @@ import { rollbackAssets } from './rollback-assets'
 type FileLike = { id: string; meta?: { assetId?: string } }
 type Translate = (key: string, values?: Record<string, string | number>) => string
 
-export type StorySubmitFlow = 'timeline-composer' | 'story-edit'
+export type StorySubmitFlow = 'upload-sheet' | 'timeline-composer' | 'story-edit'
 
 /** 실패 문구(`uploadNotReady`·`rolledBack`·`rolledBackPartly`·`reattach`)를 읽는 네임스페이스. */
 export const STORY_SUBMIT_NAMESPACE = {
+  'upload-sheet': 'upload',
   'timeline-composer': 'timeline.composer',
   'story-edit': 'story.edit',
 } as const satisfies Record<StorySubmitFlow, string>
 
 const SAVE_STEP = {
+  'upload-sheet': 'story-post',
   'timeline-composer': 'story-post',
   'story-edit': 'story-patch',
 } as const satisfies Record<StorySubmitFlow, string>
@@ -60,7 +62,7 @@ export type StorySubmitFailure = {
 export type StorySubmitResult<T> = { ok: true; saved: T } | StorySubmitFailure
 
 /**
- * 사진이 딸린 스토리 제출(타임라인 컴포저·스토리 편집 공용): 담아 둔 사진을 올리고, assetId 가
+ * 사진이 딸린 스토리 제출(업로드 시트·타임라인 컴포저·스토리 편집 공용): 담아 둔 사진을 올리고, assetId 가
  * 모이면 저장한다. 저장이 실패하면 스토리 없이 사진만 타임라인에 흩어지지 않게 이번에 올린
  * 사진을 휴지통으로 되돌리고, 무엇이 어디서 끊겼는지 진단 로그로 보낸다.
  */

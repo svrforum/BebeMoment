@@ -248,6 +248,33 @@ describe('submitStory', () => {
     ])
   })
 
+  it('업로드 시트의 저장 실패는 story-post 단계로 보고한다', async () => {
+    const m = fakeUploads([uploaded('f1', 'a1')])
+    const { io, rolledBack, reports } = fakeIo()
+    const r = await submitStory(
+      {
+        flow: 'upload-sheet',
+        notReadyMessage: 'not ready',
+        fileIds: ['f1'],
+        save: async () => {
+          throw new Error('server said no')
+        },
+      },
+      m.uploads,
+      io,
+    )
+    expect(rolledBack).toEqual([['a1']])
+    expect(r).toMatchObject({ ok: false, rolledBack: 1, dropped: ['f1'] })
+    expect(reports).toEqual([
+      {
+        flow: 'upload-sheet',
+        step: 'story-post',
+        message: 'server said no',
+        counts: { staged: 1, created: 1, rolledBack: 1, rollbackFailed: 0, stale: 0 },
+      },
+    ])
+  })
+
   it('아무것도 만들어지지 않았으면 되돌리기를 부르지 않는다', async () => {
     const m = fakeUploads([{ id: 'f1' }])
     const { io, rolledBack } = fakeIo()

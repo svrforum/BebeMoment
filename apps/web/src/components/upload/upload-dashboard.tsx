@@ -6,10 +6,6 @@ import { ImagePlus, Images, Pencil, PencilLine, Plus, X, ZoomIn } from 'lucide-r
 import { useTranslations } from 'next-intl'
 import { useRouter } from 'next/navigation'
 import { type ChangeEvent, type DragEvent, useCallback, useEffect, useRef, useState } from 'react'
-import { collectAssetIds } from './collect-asset-ids'
-import { createdAssetIds } from './created-asset-ids'
-import { reportUploadFailure } from './report-failure'
-import { rollbackAssets } from './rollback-assets'
 import { ReorderRow } from './reorder-row'
 import { useOrderedKeys } from './use-ordered-keys'
 import { useUploadSheet } from './upload-sheet'
@@ -17,6 +13,7 @@ import { UploadProgressBar } from './UploadProgressBar'
 import { UploadEditor } from './upload-editor'
 import { type FileRow, useUploadManager } from './upload-manager'
 import { UploadPreviewViewer } from './upload-preview-viewer'
+import { useStorySubmit } from './use-story-submit'
 
 // 편집기(크롭/회전/밝기)는 항상 JPEG 를 렌더하고 EXIF 재주입도 JPEG 원본만 읽는다.
 // PNG/WebP 를 편집하면 JPEG 바이트가 원래 mime/확장자(png·webp)로 저장돼 오라벨되고
@@ -74,17 +71,9 @@ export function UploadDashboard({
   canCreateStory?: boolean
   storyBabyId?: string | null
 }) {
-  const {
-    files,
-    doneIds,
-    failedIds,
-    addFiles,
-    removeFile,
-    startStagedUploads,
-    replaceFileData,
-    pauseAutoDismiss,
-    abortUploads,
-  } = useUploadManager()
+  const { files, doneIds, failedIds, addFiles, removeFile, startStagedUploads, replaceFileData } =
+    useUploadManager()
+  const submitStory = useStorySubmit('upload-sheet')
   const router = useRouter()
   const toast = useToast()
   const t = useTranslations('upload')
@@ -99,7 +88,7 @@ export function UploadDashboard({
   const [submittingStory, setSubmittingStory] = useState(false)
   const fileInputRef = useRef<HTMLInputElement>(null)
   const anyFileInputRef = useRef<HTMLInputElement>(null)
-  // 스토리 제출의 async 폴링이 신선한 assetId 를 읽도록 최신 files 를 ref 로.
+  // 제출 시점의 스테이징 목록을 읽는다(postStory 를 files 가 바뀔 때마다 새로 만들지 않게).
   const filesRef = useRef(files)
   filesRef.current = files
   // 스테이징 사진의 수동 정렬 순서(드래그 재정렬). 제출 시 이 순서로 assetIds 를 보낸다.
@@ -112,9 +101,10 @@ export function UploadDashboard({
     setMode(getOptimizeMode())
   }, [])
 
-  // 스테이징한 사진들을 업로드한 뒤, 준비된 assetId 로 스토리 1건을 만든다.
-  // (타임라인 컴포저와 동일 메커니즘 — 업로드 시작 후 meta.assetId 를 폴링.)
-  const submitStory = useCallback(async () => {
+  // 스테이징한 사진들로 스토리 1건을 만든다. 업로드·assetId 수집·실패 시 되돌림과 진단 보고·
+  // 실패 토스트는 타임라인 컴포저·스토리 편집과 같은 submitStory 가 맡는다. 시트는 첨부 목록을
+  // 따로 들지 않아(스테이징 = 매니저의 파일) 실패 뒤 걷어 낼 것이 없다.
+  const postStory = useCallback(async () => {
     const stagedFiles = filesRef.current.filter((f) => !f.progress?.uploadStarted)
     if (stagedFiles.length === 0) {
       toast({ title: t('addAtLeastOne'), variant: 'danger' })
@@ -122,87 +112,43 @@ export function UploadDashboard({
     }
     if (submittingStory) return
     setSubmittingStory(true)
-    // 제출이 끝날 때까지 자동정리(cancelAll)를 멈춰 스테이징 파일이 사라지지 않게 한다
-    // (빠른 사진은 POST 전에 ready 처리돼 파일이 정리될 수 있어 실패 후 재시도가 깨졌다).
-    pauseAutoDismiss(true)
     // 드래그로 만든 수동 순서로 제출(현재 스테이징된 것만). 1번 = 대표(썸네일).
-    // ⚠️ try 밖에서 붙잡는다 — order 는 "아직 업로드 안 한 파일" 목록이라 업로드를
-    // 시작하는 순간 비워진다. catch 에서 읽으면 되돌릴 대상이 언제나 0건이 된다.
+    // ⚠️ 업로드를 시작하기 전에 붙잡는다 — order 는 "아직 업로드 안 한 파일" 목록이라
+    // 업로드를 시작하는 순간 비워진다.
     const stagedSet = new Set(stagedFiles.map((f) => f.id))
     const fileIds = orderRef.current.filter((id) => stagedSet.has(id))
     try {
-      // 스토리 첨부 — 개별 '사진 추가' 푸시 생략(스토리 푸시 하나로 갈음).
-      startStagedUploads({ notify: false })
-      const assetIds = await collectAssetIds(() => filesRef.current, fileIds)
-      if (assetIds.length !== fileIds.length) throw new Error(t('uploadNotFinished'))
-
-      // 타임라인 컴포저와 같은 규칙 — toISOString 은 UTC 라 KST 새벽엔 어제가 된다.
-      const today = localDayKey()
-      const res = await fetch('/api/story', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          babyId: storyBabyId,
-          entryDate: today,
-          body: storyBody.trim() || ' ',
-          assetIds,
-        }),
-      })
-      if (!res.ok) {
-        const err = (await res.json().catch(() => ({}))) as { error?: string }
-        throw new Error(err.error ?? t('storyFailed'))
-      }
-      const { id } = (await res.json()) as { id: string }
-      setStoryBody('')
-      setDest('photos')
-      close()
-      router.push(`/story/${id}`)
-    } catch (e) {
-      // 스토리가 없으면 사진도 없어야 한다 — 그러지 않으면 쓴 적 없는 스토리의 사진들이
-      // 타임라인에 흩어져 남고, 사용자가 손으로 하나씩 지워야 했다. 이미 assetId 를 받은
-      // 것(=서버에 만들어진 것)만 되돌린다. 되돌림도 실패하면 숨기지 않고 알린다.
-      // 스냅샷이 먼저다 — abortUploads 가 이 배치를 uppy 에서 지우므로 순서가 바뀌면
-      // 되돌릴 대상이 언제나 0건이 된다.
-      const created = createdAssetIds(filesRef.current, fileIds)
-      await abortUploads(fileIds)
-      const undone = created.length > 0 ? await rollbackAssets(created) : null
-      const base = (e as Error).message
-      void reportUploadFailure({
-        flow: 'upload-sheet',
-        step: base === t('uploadNotFinished') ? 'collect-asset-ids' : 'story-post',
-        message: base,
-        counts: {
-          staged: fileIds.length,
-          created: created.length,
-          rolledBack: undone?.removed ?? 0,
-          rollbackFailed: undone?.failed.length ?? 0,
+      const r = await submitStory({
+        fileIds,
+        save: async (assetIds) => {
+          const res = await fetch('/api/story', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              babyId: storyBabyId,
+              // 타임라인 컴포저와 같은 규칙 — toISOString 은 UTC 라 KST 새벽엔 어제가 된다.
+              entryDate: localDayKey(),
+              body: storyBody.trim() || ' ',
+              assetIds,
+            }),
+          })
+          if (!res.ok) {
+            const err = (await res.json().catch(() => ({}))) as { error?: string }
+            throw new Error(err.error ?? t('storyFailed'))
+          }
+          return ((await res.json()) as { id: string }).id
         },
-        ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
       })
-      toast({
-        title: undone?.failed.length
-          ? t('storyRolledBackPartly', { count: undone.failed.length, error: base })
-          : undone && undone.removed > 0
-            ? t('storyRolledBack', { count: undone.removed, error: base })
-            : base,
-        variant: 'danger',
-      })
+      if (r.ok) {
+        setStoryBody('')
+        setDest('photos')
+        close()
+        router.push(`/story/${r.saved}`)
+      }
     } finally {
       setSubmittingStory(false)
-      pauseAutoDismiss(false)
     }
-  }, [
-    storyBody,
-    storyBabyId,
-    submittingStory,
-    startStagedUploads,
-    close,
-    router,
-    toast,
-    pauseAutoDismiss,
-    abortUploads,
-    t,
-  ])
+  }, [storyBody, storyBabyId, submittingStory, submitStory, close, router, toast, t])
 
   const onPick = useCallback(
     (e: ChangeEvent<HTMLInputElement>) => {
@@ -416,7 +362,7 @@ export function UploadDashboard({
           </div>
           <button
             type="button"
-            onClick={dest === 'story' ? submitStory : () => startStagedUploads()}
+            onClick={dest === 'story' ? postStory : () => startStagedUploads()}
             disabled={submittingStory}
             className="rounded-full bg-point-600 py-3 text-sm font-semibold text-white transition active:scale-[0.96] disabled:opacity-50"
           >

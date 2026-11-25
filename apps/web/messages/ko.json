@@ -2104,7 +2104,7 @@
       "mediaOnly": "이미지·영상만 올릴 수 있어요"
     },
     "addAtLeastOne": "사진을 최소 1장 추가해주세요",
-    "uploadNotFinished": "사진 업로드가 아직 끝나지 않았어요. 업로드 중인 사진은 타임라인에 저장되니 잠시 후 타임라인에서 확인해주세요.",
+    "uploadNotReady": "사진 업로드가 아직 끝나지 않았어요",
     "storyFailed": "스토리 등록 실패",
     "dropHere": "사진이나 영상을 끌어다 놓거나",
     "selectFile": "파일 선택",
@@ -2172,8 +2172,9 @@
     },
     "pickFromFiles": "파일에서 선택 (갤러리에 안 보이는 파일)",
     "mediaOnly": "{name} — 사진·영상 파일만 올릴 수 있어요",
-    "storyRolledBack": "스토리를 만들지 못했어요 — 올라간 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
-    "storyRolledBackPartly": "스토리를 만들지 못했어요 — 사진 {count}장은 되돌리지 못했어요. 휴지통에서 확인해 주세요. ({error})",
+    "rolledBack": "스토리를 만들지 못했어요 — 올라간 사진 {count}장은 휴지통으로 되돌렸어요. ({error})",
+    "rolledBackPartly": "스토리를 만들지 못했어요 — 사진 {count}장은 되돌리지 못해 타임라인에 남았어요. 필요 없으면 타임라인에서 지워 주세요. ({error})",
+    "reattach": "스토리를 만들지 못했어요 — 사진 {count}장을 다시 담아 주세요. ({error})",
     "moveMode": {
       "hint": "드래그하거나 “순서 이동”으로 자리를 바꿀 수 있어요. 첫 번째가 대표예요.",
       "start": "순서 이동",
