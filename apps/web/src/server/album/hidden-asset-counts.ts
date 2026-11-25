@@ -23,3 +23,25 @@ export async function hiddenAssetCountsByAlbum(
   })
   return new Map(rows.map((r) => [r.albumId, r._count._all]))
 }
+
+/**
+ * 앨범마다 이 뷰어가 볼 수 있는 사진 수 — 숨긴 사진 집합과 같은 시점에 한 번에 센다.
+ * 캐시해 둔 전체 수에서 hiddenAssetCountsByAlbum 을 빼면 두 값의 시점이 달라 틀린다.
+ */
+export async function visibleAssetCountsByAlbum(
+  args: { familyId: string; albumIds: string[]; viewerRole: Role },
+  prismaPublic: PrismaPublic,
+): Promise<Map<string, number>> {
+  if (args.albumIds.length === 0) return new Map()
+  const hidden = await hiddenAssetIdsForViewer(args.viewerRole, prismaPublic, args.familyId)
+  const rows = await prismaPublic.albumAsset.groupBy({
+    by: ['albumId'],
+    where: {
+      familyId: args.familyId,
+      albumId: { in: args.albumIds },
+      ...(hidden.length > 0 ? { assetId: { notIn: hidden } } : {}),
+    },
+    _count: { _all: true },
+  })
+  return new Map(rows.map((r) => [r.albumId, r._count._all]))
+}

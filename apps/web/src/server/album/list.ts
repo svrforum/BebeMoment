@@ -1,6 +1,6 @@
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { unstable_cache } from 'next/cache'
-import { hiddenAssetCountsByAlbum } from './hidden-asset-counts'
+import { visibleAssetCountsByAlbum } from './hidden-asset-counts'
 import { isAlbumSecretForViewer } from './secret-visibility'
 
 export type AlbumListItem = {
@@ -36,8 +36,10 @@ export type AlbumListItem = {
  * 후처리 — listAlbumTree 와 같은 패턴. 부모 자체가 비밀이거나 비밀 조상 아래면 자식 목록은
  * 통째로 비운다 — 자식의 secret 플래그만 보면 `?parentId=<비밀 앨범>` 으로 그 안의 평범한
  * 하위 앨범이 드러난다. 하위 앨범 수도 family 에겐 비밀 자식을 뺀 수다(열 수 없는 앨범이
- * 있다는 사실이 숫자로 새지 않게). 사진 수도 같은 이유로 비밀 스토리 사진을 뺀다 — 이건 캐시
- * 밖에서 뺀다(hiddenAssetCountsByAlbum).
+ * 있다는 사실이 숫자로 새지 않게). 사진 수도 같은 이유로 비밀 스토리 사진을 뺀 수인데, 캐시에
+ * 두지 않고 매 요청 한 번에 센다 — 스토리 가시성이 바뀌어도 이 캐시 태그는 비워지지 않고,
+ * 쓰기 직후 한 요청은 옛 캐시를 받으므로(stale-while-revalidate) 캐시된 전체 수에서 새로 구한
+ * 숨긴 수를 빼면 음수나 틀린 수가 나온다.
  */
 export async function listAlbums(
   args: { familyId: string; parentId: string | null; viewerRole: Role },
@@ -53,23 +55,23 @@ export async function listAlbums(
   const all = await unstable_cache(
     () => listAlbumsRaw(familyId, parentId, prismaPublic),
     // 담기는 모양이 바뀌면 키도 바꾼다 — 배포 직후 옛 모양의 캐시가 돌아오면 안 된다.
-    ['album-list-v2', familyId, parentId ?? 'root'],
+    ['album-list-v3', familyId, parentId ?? 'root'],
     { revalidate: 60, tags: [`albums:${familyId}`] },
   )()
   const family = viewerRole === 'family'
   const visible = all.filter((a) => !family || !a.secret)
-  const hidden = await hiddenAssetCountsByAlbum(
+  const assetCounts = await visibleAssetCountsByAlbum(
     { familyId, albumIds: visible.map((a) => a.id), viewerRole },
     prismaPublic,
   )
   return visible.map(({ childCounts, ...a }) => ({
     ...a,
     childCount: family ? childCounts.open : childCounts.all,
-    assetCount: a.assetCount - (hidden.get(a.id) ?? 0),
+    assetCount: assetCounts.get(a.id) ?? 0,
   }))
 }
 
-type RawAlbumListItem = Omit<AlbumListItem, 'childCount'> & {
+type RawAlbumListItem = Omit<AlbumListItem, 'childCount' | 'assetCount'> & {
   childCounts: { all: number; open: number }
 }
 
@@ -90,18 +92,11 @@ async function listAlbumsRaw(
 
   const ids = albums.map((a) => a.id)
 
-  const [childCounts, assetCounts] = await Promise.all([
-    prismaPublic.album.groupBy({
-      by: ['parentId', 'secret'],
-      where: { familyId, parentId: { in: ids }, deletedAt: null },
-      _count: { _all: true },
-    }),
-    prismaPublic.albumAsset.groupBy({
-      by: ['albumId'],
-      where: { familyId, albumId: { in: ids } },
-      _count: { _all: true },
-    }),
-  ])
+  const childCounts = await prismaPublic.album.groupBy({
+    by: ['parentId', 'secret'],
+    where: { familyId, parentId: { in: ids }, deletedAt: null },
+    _count: { _all: true },
+  })
 
   const childByParent = new Map<string, { all: number; open: number }>()
   for (const c of childCounts) {
@@ -111,7 +106,6 @@ async function listAlbumsRaw(
     if (!c.secret) n.open += c._count._all
     childByParent.set(c.parentId, n)
   }
-  const assetByAlbum = new Map(assetCounts.map((c) => [c.albumId, c._count._all]))
 
   return albums.map((a) => ({
     id: a.id,
@@ -123,7 +117,6 @@ async function listAlbumsRaw(
     depth: a.depth,
     path: a.path,
     childCounts: childByParent.get(a.id) ?? { all: 0, open: 0 },
-    assetCount: assetByAlbum.get(a.id) ?? 0,
     createdAt: a.createdAt.getTime(),
   }))
 }
