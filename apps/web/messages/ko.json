@@ -2093,6 +2093,10 @@
     "addFailed": "{name} 추가 실패",
     "fileUploadFailed": "{name} 업로드 실패",
     "fileFallbackName": "파일",
+    "thumbPlaceholder": {
+      "video": "영상",
+      "file": "파일"
+    },
     "restricted": "업로드 제한",
     "uppy": {
       "noDuplicates": "이미 추가된 파일이에요: {name}",

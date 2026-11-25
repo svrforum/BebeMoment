@@ -2093,6 +2093,10 @@
     "addFailed": "Could not add {name}",
     "fileUploadFailed": "{name} failed to upload",
     "fileFallbackName": "File",
+    "thumbPlaceholder": {
+      "video": "VIDEO",
+      "file": "FILE"
+    },
     "restricted": "Upload restricted",
     "uppy": {
       "noDuplicates": "Already added: {name}",

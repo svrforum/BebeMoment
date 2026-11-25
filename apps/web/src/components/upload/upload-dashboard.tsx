@@ -33,6 +33,7 @@ function blobToDataUrl(blob: Blob): Promise<string> {
 }
 
 function Thumb({ file }: { file: FileRow }) {
+  const t = useTranslations('upload.thumbPlaceholder')
   const [src, setSrc] = useState<string | null>(null)
   const isImage = file.type?.startsWith('image/') ?? false
   const isVideo = file.type?.startsWith('video/') ?? false
@@ -61,7 +62,7 @@ function Thumb({ file }: { file: FileRow }) {
     <img src={src} alt="" className="h-full w-full rounded-xl object-cover" />
   ) : (
     <div className="flex h-full w-full items-center justify-center rounded-xl bg-base-100 text-[10px] text-base-500 dark:bg-base-800">
-      {isVideo ? 'VIDEO' : 'FILE'}
+      {isVideo ? t('video') : t('file')}
     </div>
   )
 }
