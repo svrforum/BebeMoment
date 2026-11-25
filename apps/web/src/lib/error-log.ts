@@ -14,11 +14,17 @@ export function levelForStatus(status: number): LogLevel {
   return 'warn'
 }
 
-/** 경로에 실린 토큰을 지운다 — 로그가 짧은 TTL 동안 탈취 경로가 되지 않게(media 와 동일). */
+/**
+ * 경로에 실린 토큰을 지운다 — 로그를 읽을 수 있는 사람이 살아 있는 토큰을 줍지 않게(media 와
+ * 동일). 비번 재설정 토큰은 비번이 짧아 400 이 나도 소비되지 않은 채 남는다.
+ * `/api/share/init` 은 토큰이 아니라 업로드 라우트라 남긴다.
+ */
+const SECRET_QUERY = /([?&](?:token|signed|invite|code|state)=)[^&#]+/gi
+const SECRET_SEGMENT =
+  /(\/api\/auth\/password-reset|\/api\/share(?!\/init(?:[/?#]|$))|^\/s|^\/invite|\/files|\/download)\/[^/?#]+/g
+
 function sanitizePath(path: string): string {
-  return path
-    .replace(/([?&](token|signed)=)[^&]+/gi, '$1[redacted]')
-    .replace(/\/(files|download)\/[^/?]+/g, '/$1/[token]')
+  return path.replace(SECRET_QUERY, '$1[redacted]').replace(SECRET_SEGMENT, '$1/[token]')
 }
 
 export function errorLogFields(input: {
