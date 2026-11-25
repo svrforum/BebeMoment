@@ -24,7 +24,7 @@ jobs:
           --health-cmd="pg_isready -U bebe"
           --health-interval=5s --health-timeout=5s --health-retries=10
       redis:
-        image: redis:7-alpine
+        image: valkey/valkey:9-alpine
         ports: ["6379:6379"]
     env:
       DATABASE_URL: postgres://bebe:bebe@localhost:5432/bebe
@@ -40,6 +40,12 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # 워크플로 스키마 오류는 로컬 YAML 파싱으로 안 잡히고, release.yml 이 깨지면 태그를 밀어도
+      # 릴리스가 아예 돌지 않는다(startup_failure). main 에 들어올 때 미리 잡는다.
+      - name: lint workflow files
+        uses: docker://rhysd/actionlint:1.7.7
+        with:
+          args: -color
       # 시스템 바이너리에 의존하는 테스트: 미디어의 ffmpeg 래퍼와 백업의 pg_dump.
       # 러너 기본 pg 클라이언트는 16 이라 pg17 서버 덤프를 거절한다 — 이미지와 같은
       # pgdg 저장소에서 17 을 받는다. 없으면 해당 테스트는 실패가 아니라 skip 된다.
@@ -65,6 +71,11 @@ jobs:
       # 시놀로지 문서의 compose 블록이 표준 compose 와 어긋나지 않는지(env 키·미디어 URL 폴백).
       - run: scripts/check-compose-doc-env.sh
       - run: pnpm -r --filter '!@bebe/e2e' test
+      # 촬영 시각은 벽시계-as-UTC 라 러너의 UTC 에서는 시간대 버그가 드러나지 않는다 — 날짜 로직을
+      # 가진 core 를 운영과 같은 시간대로 한 번 더 돈다.
+      - run: pnpm --filter @bebe/core test
+        env:
+          TZ: Asia/Seoul
       # next build catches proxy.ts / next.config / CSP / route errors that lint
       # and typecheck miss — otherwise they only surface at release-tag time.
       - run: pnpm --filter @bebe/web build

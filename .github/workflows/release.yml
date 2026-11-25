@@ -35,7 +35,7 @@ jobs:
           --health-cmd="pg_isready -U bebe"
           --health-interval=5s --health-timeout=5s --health-retries=10
       redis:
-        image: redis:7-alpine
+        image: valkey/valkey:9-alpine
         ports: ["6379:6379"]
     env:
       DATABASE_URL: postgres://bebe:bebe@localhost:5432/bebe
