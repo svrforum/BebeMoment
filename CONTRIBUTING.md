@@ -43,13 +43,17 @@ pnpm --filter @bebe/web dev
 pnpm lint        # biome
 pnpm typecheck
 pnpm check:lines # source files must stay under the line limit (1000 warn / 1500 hard)
+scripts/check-compose-doc-env.sh  # the Synology guide's compose block matches compose/docker-compose.yml
 pnpm test        # vitest; needs Docker for testcontainers
 ```
 
-CI runs the same gate. Note that CI does **not** run `next build`, so if you
-touch `next.config.mjs`, `proxy.ts`, routing, or CSP, also run
-`pnpm --filter @bebe/web build` locally — those errors only surface at build
-time.
+CI runs the same checks, then `pnpm --filter @bebe/web build` and the Playwright
+smoke tests (`bash e2e/scripts/run-smoke.sh`, which starts its own throwaway
+Postgres/Redis on separate ports). Running the build locally is still the quickest
+way to see errors from `next.config.mjs`, `proxy.ts`, routing or CSP, which lint
+and typecheck miss. CI does **not** build the Docker image, so if you change
+`docker/` (Dockerfile, entrypoint, `run-app.sh`), build and start the image
+yourself.
 
 ## Conventions
 
@@ -68,8 +72,9 @@ time.
 ## Database migrations
 
 `prisma migrate dev` does **not** work here — there are cross-schema foreign keys
-(`public` → `media`) that break the shadow-database step. Write the migration SQL
-by hand:
+(`media` tables reference `public` ones: `media.assets` → `public.families` /
+`public.users`, `media.asset_babies` → `public.babies` / `public.users`) that break the
+shadow-database step. Write the migration SQL by hand:
 
 ```bash
 # create migrations/<timestamp>_<name>/migration.sql with same-schema FKs only, then:
