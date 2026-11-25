@@ -57,7 +57,7 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
 
       // 앨범 쓰기 중 유일하게 비밀 가시성을 안 보던 곳이었다 — family 역할이 비밀 조상
       // 아래 숨어 있던 앨범을 루트로 옮겨 자기와 다른 family 멤버에게 되드러낼 수 있었다.
-      // 읽기 경로와 같은 'not found' 로 거부한다(존재 비노출, §21).
+      // 읽기 경로와 같은 'not found' 로 거부한다 — 다른 응답이면 숨긴 앨범의 존재가 드러난다.
       if (
         await isAlbumSecretForViewer(
           { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },

@@ -47,8 +47,8 @@ export async function attachAssetsToAlbum(
   ) {
     throw new ForbiddenError('album.permissionDenied')
   }
-  // family 역할에겐 비밀(또는 조상-secret) 앨범을 읽기 경로처럼 가린다 — 존재 비노출을
-  // 위해 read 와 동일한 'album not found' 로 거부(§21).
+  // family 역할에겐 비밀(또는 조상-secret) 앨범을 읽기 경로처럼 가린다 — 403 이면 그 UUID 에
+  // 숨긴 앨범이 있다는 사실이 드러나므로 읽기와 같은 'album not found' 로 거부한다.
   if (
     await isAlbumSecretForViewer(
       { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },

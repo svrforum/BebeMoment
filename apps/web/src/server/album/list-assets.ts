@@ -4,6 +4,7 @@ import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { isAlbumSecretForViewer } from './secret-visibility'
 
 export type ListAlbumAssetsResult = {
   assets: AssetWithUrls[]
@@ -18,22 +19,25 @@ const MAX_LIMIT = 500
  * List ready assets attached to an album.
  *
  * Returns the actual `total` separately from the page so the UI can show
- * "200장 중 200장 (더 보기 곧)" and we don't silently truncate large
- * albums. CLAUDE.md §11 — 조용한 실패 금지.
+ * "200장 중 200장 (더 보기 곧)" — a large album must not look complete when
+ * only the first page came back.
+ *
+ * family 역할에겐 비밀 앨범(또는 비밀 조상 아래 앨범)이 빈 앨범이다. 상세 페이지는 먼저
+ * getAlbumWithBreadcrumbs 로 막지만, 뷰어의 이웃 목록(ctx=album:<id>)은 이 함수만 거치므로
+ * 여기서도 막지 않으면 앨범 UUID 하나로 그 안의 사진 순서가 드러난다.
  */
 export async function listAlbumAssets(
-  args: { albumId: string; familyId: string; limit?: number; viewerRole?: Role },
+  args: { albumId: string; familyId: string; limit?: number; viewerRole: Role },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<ListAlbumAssetsResult> {
+  if (await isAlbumSecretForViewer(args, prismaPublic)) {
+    return { assets: [], total: 0, truncated: false }
+  }
   const limit = Math.min(args.limit ?? DEFAULT_LIMIT, MAX_LIMIT)
   // family 에게는 비밀 스토리 사진을 앨범에서도 제외(앨범에 담긴 standalone 자산이라도).
-  const hidden = await hiddenAssetIdsForViewer(
-    args.viewerRole ?? 'family',
-    prismaPublic,
-    args.familyId,
-  )
+  const hidden = await hiddenAssetIdsForViewer(args.viewerRole, prismaPublic, args.familyId)
   const hiddenSet = new Set(hidden)
 
   const [links, rawTotal, hiddenInAlbum] = await Promise.all([

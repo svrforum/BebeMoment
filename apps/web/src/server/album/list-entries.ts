@@ -1,9 +1,10 @@
 import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { Story, StoryAsset, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
+import { isAlbumSecretForViewer } from './secret-visibility'
 
 export type AlbumEntry = Story & {
   assets: (StoryAsset & { asset: AssetWithUrls | null })[]
@@ -14,19 +15,15 @@ const DEFAULT_LIMIT = 200
 /**
  * List diary entries (stories) attached to an album, hydrated with their
  * photos' signed URLs so the album view can render StoryCard. Preserves the
- * album's link order.
+ * album's link order. family 역할에겐 비밀 앨범(또는 비밀 조상 아래 앨범)이 빈 앨범이다.
  */
 export async function listAlbumEntries(
-  args: {
-    albumId: string
-    familyId: string
-    limit?: number
-    viewerRole?: 'owner' | 'guardian' | 'family'
-  },
+  args: { albumId: string; familyId: string; limit?: number; viewerRole: Role },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
 ): Promise<AlbumEntry[]> {
+  if (await isAlbumSecretForViewer(args, prismaPublic)) return []
   const links = await prismaPublic.albumStory.findMany({
     where: { albumId: args.albumId, familyId: args.familyId },
     orderBy: [{ sortIndex: 'asc' }, { addedAt: 'asc' }],
@@ -45,9 +42,10 @@ export async function listAlbumEntries(
     include: { assets: { orderBy: { order: 'asc' } } },
   })
 
-  // family 에게는 비밀 스토리에도 속한 사진을 하이드레이션에서 제외(Rule A 일관).
+  // 가족 공개 스토리라도 그 사진이 비밀 스토리에도 담겨 있으면 family 에겐 숨긴다 — 사진은
+  // 어느 한 비밀 스토리에라도 속하면 모든 화면에서 빠지는 규칙이라, 여기서만 보이면 샌다.
   const hidden = new Set(
-    await hiddenAssetIdsForViewer(args.viewerRole ?? 'family', prismaPublic, args.familyId),
+    await hiddenAssetIdsForViewer(args.viewerRole, prismaPublic, args.familyId),
   )
   const entryAssetIds = Array.from(
     new Set(entries.flatMap((e) => e.assets.map((a) => a.assetId))),

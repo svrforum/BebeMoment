@@ -5,8 +5,8 @@
  *   root album        → "<id>"
  *   "2026 / 여행"     → "<2026Id>/<여행Id>"
  *
- * Invariants maintained at write time (not by DB triggers — see CLAUDE.md
- * §17 on keeping migrations Synology-friendly):
+ * Invariants maintained at write time (not by DB triggers, to keep the
+ * migrations Synology-friendly):
  * - depth === path.split('/').length - 1
  * - The last segment of path === own id
  * - Every non-last segment === a parent uuid in the same family chain

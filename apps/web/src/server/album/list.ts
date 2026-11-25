@@ -1,5 +1,6 @@
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import { unstable_cache } from 'next/cache'
+import { isAlbumSecretForViewer } from './secret-visibility'
 
 export type AlbumListItem = {
   id: string
@@ -31,13 +32,21 @@ export type AlbumListItem = {
  *
  * `viewerRole`: family 역할에겐 비밀(secret) 앨범을 숨긴다. 부모(owner/guardian)는
  * 전부 본다. 캐시는 role-agnostic(전체) 로 둔 뒤 호출 측에서 viewerRole 로
- * 후처리 — listAlbumTree 와 같은 패턴.
+ * 후처리 — listAlbumTree 와 같은 패턴. 부모 자체가 비밀이거나 비밀 조상 아래면 자식 목록은
+ * 통째로 비운다 — 자식의 secret 플래그만 보면 `?parentId=<비밀 앨범>` 으로 그 안의 평범한
+ * 하위 앨범이 드러난다.
  */
 export async function listAlbums(
-  args: { familyId: string; parentId: string | null; viewerRole?: Role },
+  args: { familyId: string; parentId: string | null; viewerRole: Role },
   prismaPublic: PrismaPublic,
 ): Promise<AlbumListItem[]> {
   const { familyId, parentId, viewerRole } = args
+  if (
+    parentId !== null &&
+    (await isAlbumSecretForViewer({ albumId: parentId, familyId, viewerRole }, prismaPublic))
+  ) {
+    return []
+  }
   const all = await unstable_cache(
     () => listAlbumsRaw(familyId, parentId, prismaPublic),
     ['album-list', familyId, parentId ?? 'root'],

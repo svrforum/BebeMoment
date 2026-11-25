@@ -14,7 +14,7 @@ export type AlbumWithBreadcrumbs = Album & {
  * → 라우트가 404 처리. 직접 URL 로 비밀 앨범의 하위에 접근하는 누출도 막는다.
  */
 export async function getAlbumWithBreadcrumbs(
-  args: { albumId: string; familyId: string; viewerRole?: Role },
+  args: { albumId: string; familyId: string; viewerRole: Role },
   prismaPublic: PrismaPublic,
 ): Promise<AlbumWithBreadcrumbs | null> {
   const album = await prismaPublic.album.findFirst({

@@ -72,6 +72,8 @@ describe('listAlbumAssets secret filtering', () => {
       },
       db.prismaPublic,
       db.prismaMedia,
+      // 기본값은 REDIS_URL(없으면 localhost:6379)의 알림 큐에 넣는다 — 테스트가 밖의 Redis 에 쓰지 않게.
+      async () => {},
     )
 
     const album = await createAlbum(

@@ -7,7 +7,7 @@ import type { AlbumListItem } from './list'
  * 결과와 동일하게 렌더.
  */
 export async function searchAlbums(
-  args: { familyId: string; q: string; viewerRole?: Role; limit?: number },
+  args: { familyId: string; q: string; viewerRole: Role; limit?: number },
   prismaPublic: PrismaPublic,
 ): Promise<AlbumListItem[]> {
   const q = args.q.trim()
@@ -24,8 +24,8 @@ export async function searchAlbums(
     take: args.limit ?? 50,
   })
   // family 역할에겐 비밀 "조상" 아래의 비-비밀 앨범도 숨긴다 — 위 secret:false 는 자기
-  // 자신만 거른다. listAlbumTree/getAlbum 의 비밀 상속 모델과 정합(§17#21). path 는
-  // 조상 uuid 슬래시 결합이라 한 세그먼트라도 비밀 앨범이면 제외.
+  // 자신만 거른다. 비밀은 하위로 상속된다(listAlbumTree·getAlbumWithBreadcrumbs 와 같은 규칙).
+  // path 는 조상 uuid 슬래시 결합이라 한 세그먼트라도 비밀 앨범이면 제외.
   let visible = albums
   if (args.viewerRole === 'family' && albums.length > 0) {
     const secretRows = await prismaPublic.album.findMany({
