@@ -15,10 +15,17 @@ const mediaUrl = z.string().refine((s) => s.startsWith('/') || /^https?:\/\//.te
 export const MAX_UPLOAD_BYTES = 5 * 1024 * 1024 * 1024
 
 // ─── Init ────────────────────────────────────────────────────────
+// 사진·영상만 받는다. 클라가 보낸 mime 으로 자산 종류와 워커 파이프라인이 갈린다.
+const UPLOADABLE_MIME = /^(image|video)\/[^/\s]+$/
+
+export function isUploadableMime(mime: string): boolean {
+  return UPLOADABLE_MIME.test(mime)
+}
+
 export const initAssetRequest = z.object({
   familyId: z.string().uuid(),
   uploaderId: z.string().uuid(),
-  mime: z.string().min(1),
+  mime: z.string().max(255).regex(UPLOADABLE_MIME),
   sizeBytes: z.number().int().positive().max(MAX_UPLOAD_BYTES),
   originalName: z.string().min(1),
   takenAt: z.string().datetime().optional(),

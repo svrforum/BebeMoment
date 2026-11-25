@@ -96,6 +96,30 @@ describe('POST /media/v1/assets/init', () => {
     await app.close()
   })
 
+  // 웹 진입점 하나가 이 검사를 빠뜨린 적이 있다 — media 가 스스로 거절해야 비미디어 파일이
+  // 자산 행·tus 임시파일로 남지 않는다.
+  test.each(['application/pdf', 'text/html', 'application/octet-stream'])(
+    'rejects non image/video mime %s with 400 and creates no asset',
+    async (mime) => {
+      const app = buildApp()
+      const res = await app.inject({
+        method: 'POST',
+        url: '/media/v1/assets/init',
+        headers: { authorization: `Bearer ${TOKEN}` },
+        payload: {
+          familyId: FAMILY_ID,
+          uploaderId: USER_ID,
+          mime,
+          sizeBytes: 100,
+          originalName: 'a.bin',
+        },
+      })
+      expect(res.statusCode).toBe(400)
+      expect(await db.prisma.asset.count({ where: { familyId: FAMILY_ID } })).toBe(0)
+      await app.close()
+    },
+  )
+
   test('video mime sets kind=video', async () => {
     const app = buildApp()
     const res = await app.inject({
@@ -155,12 +179,12 @@ describe('POST /media/v1/assets/init', () => {
     }
 
     test('파일 수정시각(실제 순간)을 벽시계로 옮겨 심는다', async () => {
-      // 2026-10-12 07:44 KST 에 수정된 파일 — 브라우저는 실제 순간 22:44Z 를 보낸다.
-      const asset = await seed({ fileModifiedAt: '2026-10-11T22:44:00.000Z' })
+      // 2026-03-04 07:44 KST 에 수정된 파일 — 브라우저는 실제 순간 전날 22:44Z 를 보낸다.
+      const asset = await seed({ fileModifiedAt: '2026-03-03T22:44:00.000Z' })
       expect(asset?.takenAtSource).toBe('filemtime')
-      expect(asset?.takenAt.toISOString()).toBe('2026-10-12T07:44:00.000Z')
+      expect(asset?.takenAt.toISOString()).toBe('2026-03-04T07:44:00.000Z')
       // 실제 순간도 따로 남긴다 — 워커·백필이 언제 다시 계산해도 같은 값이 나오게.
-      expect(asset?.fileModifiedAt?.toISOString()).toBe('2026-10-11T22:44:00.000Z')
+      expect(asset?.fileModifiedAt?.toISOString()).toBe('2026-03-03T22:44:00.000Z')
     })
 
     test('수정시각이 없으면 지금을 벽시계로 심는다', async () => {

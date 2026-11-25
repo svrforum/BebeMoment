@@ -8,6 +8,7 @@ import {
   errorResponse,
   initAssetRequest,
   initAssetResponse,
+  isUploadableMime,
   setBabyTagsRequest,
 } from './schemas'
 
@@ -63,6 +64,30 @@ describe('media-client schemas', () => {
       }),
     ).toThrow()
   })
+
+  // 웹의 두 업로드 진입점 중 하나만 이 검사를 했었다 — media 가 마지막 경계라 여기서도 막는다.
+  test.each(['application/pdf', 'text/html', 'image', 'imagex/png', 'x-image/png', ''])(
+    'initAssetRequest rejects non image/video mime %j',
+    (mime) => {
+      expect(() =>
+        initAssetRequest.parse({
+          familyId: '11111111-1111-4111-8111-111111111111',
+          uploaderId: '22222222-2222-4222-8222-222222222222',
+          mime,
+          sizeBytes: 1,
+          originalName: 'a.bin',
+        }),
+      ).toThrow()
+      expect(isUploadableMime(mime)).toBe(false)
+    },
+  )
+
+  test.each(['image/jpeg', 'image/heic', 'video/mp4', 'video/quicktime'])(
+    'isUploadableMime accepts %s',
+    (mime) => {
+      expect(isUploadableMime(mime)).toBe(true)
+    },
+  )
 
   test('initAssetResponse requires v=1', () => {
     expect(() =>
