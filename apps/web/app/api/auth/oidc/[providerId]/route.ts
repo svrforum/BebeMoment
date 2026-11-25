@@ -4,11 +4,10 @@ import { publicOrigin } from '@/lib/request-origin'
 import { safeNextPath } from '@/lib/safe-next-path'
 import { fetchDiscovery } from '@/server/oidc/discovery'
 import { NAVER_AUTHORIZE } from '@/server/oidc/naver'
+import { isOidcProviderId } from '@/server/oidc/provider-id'
 import { parseEnv } from '@bebe/config'
 import { cookies } from 'next/headers'
 import { NextResponse } from 'next/server'
-
-const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
 
 export async function GET(req: Request, { params }: { params: Promise<{ providerId: string }> }) {
   const { providerId } = await params
@@ -19,8 +18,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ provider
   const loginError = (code: string) =>
     NextResponse.redirect(new URL(`/login?error=${code}`, origin))
 
-  // providerId 는 UUID 컬럼 — 형식이 안 맞으면 Prisma 가 던진다(500). 먼저 거른다.
-  if (!UUID_RE.test(providerId)) return loginError('provider')
+  if (!isOidcProviderId(providerId)) return loginError('provider')
 
   let provider: Awaited<ReturnType<typeof prismaPublic.oidcProvider.findUnique>>
   try {

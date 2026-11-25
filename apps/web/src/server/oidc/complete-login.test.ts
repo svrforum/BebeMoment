@@ -158,6 +158,16 @@ describe('request checks', () => {
     expect(await run({ providerId: disabledId })).toEqual({ kind: 'fail', error: 'provider' })
   })
 
+  // 경로의 providerId 는 아무 문자열이나 올 수 있다 — UUID 컬럼 조회까지 가면 Prisma 가 던져
+  // 로그도 없는 500 이 되고, 라우트가 흐름 쿠키를 지우지 못한다.
+  it.each(['not-a-uuid', '1', `${crypto.randomUUID()}x`])(
+    'refuses a malformed provider id %j as an unknown provider',
+    async (providerId) => {
+      expect(await run({ providerId })).toEqual({ kind: 'fail', error: 'provider' })
+      expect(fetchIdentity).not.toHaveBeenCalled()
+    },
+  )
+
   it('refuses and logs when the client secret no longer decrypts', async () => {
     const error = vi.spyOn(logger, 'error').mockImplementation(() => undefined)
     expect(await run({ providerId: staleSecretId })).toEqual({ kind: 'fail', error: 'oidc_secret' })

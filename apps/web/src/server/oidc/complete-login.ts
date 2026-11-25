@@ -13,6 +13,7 @@ import { type LinkOrCreateInput, findLinkedUser, linkOrCreateUser } from './call
 import { tryDecryptClientSecret } from './client-secret'
 import type { IdentityRequest, VerifiedIdentity } from './identity'
 import { linkIdentityToUser } from './link'
+import { isOidcProviderId } from './provider-id'
 
 // 시작 라우트가 심어 두고 콜백이 읽는 1회용 쿠키 값들.
 export type OidcFlowCookies = {
@@ -71,6 +72,7 @@ export async function completeOidcCallback(
 
   if (!code || !state) return refuse('oidc')
   if (state !== cookies.state) return refuse('state')
+  if (!isOidcProviderId(providerId)) return refuse('provider')
 
   const provider = await prisma.oidcProvider.findUnique({ where: { id: providerId } })
   if (!provider?.enabled) return refuse('provider')
