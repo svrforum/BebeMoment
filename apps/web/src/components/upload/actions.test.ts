@@ -13,8 +13,12 @@ vi.mock('@/server/permissions/family-capabilities', () => ({
   getFamilyCapabilities: async () => new Set(familyCaps.value),
 }))
 
+vi.mock('@/server/settings/get', () => ({
+  getSetting: async (_key: string, _schema: unknown, fallback: unknown) => fallback,
+}))
+
 const initAsset = vi.hoisted(() => vi.fn())
-vi.mock('@/server/upload/init', () => ({ initAssetViaMedia: initAsset }))
+vi.mock('@/lib/media-client', () => ({ getMediaClient: () => ({ initAsset }) }))
 
 vi.mock('next/headers', () => ({
   headers: async () => new Headers({ host: 'bebe.example.com', 'x-forwarded-proto': 'https' }),
