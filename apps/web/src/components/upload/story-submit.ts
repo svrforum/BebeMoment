@@ -88,7 +88,12 @@ export async function submitStory<T>(
     } catch (e) {
       const message = (e as Error).message
       // 스냅샷이 먼저 — 중단이 이 배치를 매니저의 파일 목록에서 지운다.
-      const created = createdAssetIds(uploads.readFiles(), fileIds)
+      const before = uploads.readFiles()
+      const created = createdAssetIds(before, fileIds)
+      // 중단 전에 이미 매니저에 없던 첨부(다른 흐름이 치운 것). 시작할 파일이 없어 수집이
+      // 끝까지 기다리다 'uploadNotReady' 로 끝나는 경우를 재현 없이 가려 주는 숫자다.
+      const live = new Set(before.map((f) => f.id))
+      const stale = fileIds.filter((id) => !live.has(id)).length
       await uploads.abortUploads(fileIds)
       const undone = created.length > 0 ? await io.rollback(created) : null
       // 중단으로 배치 전체가 매니저에서 빠졌으니 화면의 첨부도 전부 다시 담아야 한다. 매니저
@@ -104,7 +109,7 @@ export async function submitStory<T>(
           created: created.length,
           rolledBack: undone?.removed ?? 0,
           rollbackFailed: undone?.failed.length ?? 0,
-          stale: dropped.length,
+          stale,
         },
         ...(undone?.failed.length ? { assetIds: undone.failed } : {}),
       })

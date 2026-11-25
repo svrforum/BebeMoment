@@ -165,7 +165,36 @@ describe('submitStory', () => {
         flow: 'timeline-composer',
         step: 'story-post',
         message: 'server said no',
-        counts: { staged: 2, created: 2, rolledBack: 2, rollbackFailed: 0, stale: 2 },
+        counts: { staged: 2, created: 2, rolledBack: 2, rollbackFailed: 0, stale: 0 },
+      },
+    ])
+  })
+
+  // stale 은 실패 시점에 이미 매니저에 없던 첨부 수다(다른 흐름이 치운 것) — 30초를 기다린 끝의
+  // 'uploadNotReady' 막다른 길을 재현 없이 설명하는 유일한 숫자라, 중단이 지운 배치 전체(dropped)와
+  // 섞이면 안 된다.
+  it('중단 전에 이미 매니저에서 빠져 있던 첨부만 stale 로 센다', async () => {
+    const m = fakeUploads([uploaded('f1', 'a1'), uploaded('other', 'x')])
+    const { io, rolledBack, reports } = fakeIo()
+    const r = await submitStory(
+      {
+        flow: 'timeline-composer',
+        notReadyMessage: 'not ready',
+        fileIds: ['f1', 'f2', 'f3'],
+        save: async () => undefined,
+      },
+      m.uploads,
+      io,
+    )
+    expect(rolledBack).toEqual([['a1']])
+    // 화면은 배치 전체를 다시 담아야 한다 — 중단이 남은 것까지 지웠다.
+    expect(r).toMatchObject({ ok: false, message: 'not ready', dropped: ['f1', 'f2', 'f3'] })
+    expect(reports).toEqual([
+      {
+        flow: 'timeline-composer',
+        step: 'collect-asset-ids',
+        message: 'not ready',
+        counts: { staged: 3, created: 1, rolledBack: 1, rollbackFailed: 0, stale: 2 },
       },
     ])
   })
@@ -213,7 +242,7 @@ describe('submitStory', () => {
         flow: 'story-edit',
         step: 'story-patch',
         message: 'nope',
-        counts: { staged: 2, created: 2, rolledBack: 1, rollbackFailed: 1, stale: 2 },
+        counts: { staged: 2, created: 2, rolledBack: 1, rollbackFailed: 1, stale: 0 },
         assetIds: ['a2'],
       },
     ])
