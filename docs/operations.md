@@ -166,9 +166,12 @@ What still holds, and is worth keeping:
 - **Package boundary** — `apps/media` imports `@bebe/db-media` only. That is
   enforced at build time (the dependency is absent from `apps/media/package.json`)
   and re-checked at runtime by the grants above.
-- **Schema split** — `public` and `media` are separate schemas with no
-  cross-schema foreign keys, so the media service's tables can be dumped,
-  migrated and reasoned about on their own.
+- **Schema split** — `public` and `media` are separate schemas, migrated by
+  separate packages (`db-public` first, then `db-media`). Foreign keys cross in
+  one direction only: `media.assets` and `media.asset_babies` reference
+  `public.families`, `public.users` and `public.babies`. So `public` stands on its
+  own, but `media` cannot be restored without the `public` tables it points at —
+  dump and restore the database as a whole (the built-in backup does).
 - **Family isolation** — this is enforced by the Prisma tenant extension on
   every query, not by database roles.
 
@@ -216,7 +219,8 @@ Look for `P3009` (migration failed) or connection errors.
 ### Prevention
 
 - Keep schema changes additive; back up before major upgrades.
-- Migrations are hand-written SQL (cross-schema FKs) — test them locally first.
+- Migrations are hand-written SQL (`prisma migrate dev` cannot replay the
+  cross-schema foreign keys in its shadow database) — test them locally first.
 
 ## Upgrading Postgres 16 → 17
 
@@ -417,6 +421,10 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `UV_THREADPOOL_SIZE` | `8` (media only) | run-app.sh | libuv thread pool of the media process (fs, zlib, crypto). |
 | `MEDIA_SHUTDOWN_GRACE_MS` | `30000` | media | Time given to in-flight thumbnail/transcode jobs on shutdown. |
 | `MEDIA_CONCURRENCY_THUMBNAIL` | `3` | media | Photo derivative jobs processed in parallel. Lower on 2-core NAS boxes. |
+| `MEDIA_CONCURRENCY_VIDEO` | `1` | media | Video transcodes run at the same time. Each one already uses most cores. |
+| `MEDIA_VIPS_THREADS` | half the cores | media | libvips threads per photo job. |
+| `MEDIA_FFMPEG_THREADS` | cores − 1 | media | ffmpeg threads per transcode. |
+| `MEDIA_AVIF_EFFORT` | `3` | media | AVIF encoder effort, `0`–`9`. Lower is faster with slightly larger files. |
 | `MEDIA_FACES_CONCURRENCY` | `1` | media | Face-detection jobs sent to the `ml` sidecar in parallel. |
 | `MEDIA_DERIVATIVES_INCLUDE_AVIF` | `true` | media (passed) | Generate AVIF derivatives besides WebP/JPEG. `false` roughly halves processing time on slow CPUs. |
 | `MEDIA_MAX_UPLOAD_BYTES` | `5368709120` (5 GiB) | media | Per-file upload limit. |
@@ -435,6 +443,7 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `TRUST_PROXY` | `true` | web (passed) | Trust `x-real-ip` / `x-forwarded-for` for the client IP. |
 | `SETUP_TOKEN` | unset | web (passed) | Required for the first signup when set (`/signup?setup=…`). |
 | `BACKUP_DIR` | `/backups` | web (passed) | Where backup bundles are written inside the container. |
+| `WORKER_SHUTDOWN_GRACE_MS` | `300000` (5 min) | worker | How long the notifications worker waits for running jobs after SIGTERM. Inside the shipped container the supervisor still stops it after `APP_SHUTDOWN_GRACE_S`. |
 | `FACE_ML_URL` | `http://ml:8000` | media/web (passed) | The face-recognition sidecar. |
 | `PG_MEMORY_LIMIT` | `512m` | compose | Memory limit of the `postgres` container. |
 | `PG_SHARED_BUFFERS` | `256MB` | compose | Postgres `shared_buffers`; about a quarter to half of `PG_MEMORY_LIMIT`. |
@@ -442,7 +451,10 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 | `PG_WORK_MEM` | `8MB` | compose | Postgres `work_mem` per sort/hash. |
 | `REDIS_MEMORY_LIMIT` | `128m` | compose | Memory limit of the `redis` (Valkey) container; `maxmemory` inside is 96 MB with `noeviction`. |
 
-The media workstream is registering its `MEDIA_*` knobs in the shared env schema
-(`packages/config/src/env.ts`) and adds `MEDIA_AVIF_EFFORT`, `MEDIA_VIPS_THREADS`
-and `MEDIA_CONCURRENCY_VIDEO`; check that file for the authoritative list and
-defaults if this table and the code disagree.
+Variables read by *media* or *web* are validated at startup by the shared schema in
+`packages/config/src/env.ts` — in production a malformed value stops the process
+with a message naming the variable. That file is the authoritative list of those
+variables and their defaults. The exceptions are read directly where they are used
+and are not validated: `APP_HEAP_*`, `APP_SHUTDOWN_GRACE_S` and
+`UV_THREADPOOL_SIZE` (`docker/run-app.sh`), `SSE_MAX_PER_USER`,
+`OIDC_ALLOW_LOCAL_FETCH`, `BACKUP_DIR` and `WORKER_SHUTDOWN_GRACE_MS`.
