@@ -680,8 +680,9 @@ async function main(): Promise<void> {
     })()
   }, SCHEDULER_RECHECK_MS)
 
-  // SIGTERM/SIGINT: 새 잡을 받지 않고 진행 중인 잡(백업은 분 단위)이 끝나길 상한까지 기다린다.
-  // 예전엔 핸들러가 없어 docker stop 이 SIGKILL 로 끝냈고 잡이 반쯤 남았다.
+  // SIGTERM/SIGINT: 세 큐의 워커 모두 새 잡을 받지 않고 진행 중인 잡이 끝나길 상한까지 기다린다.
+  // 상한은 run-app.sh 의 SIGKILL 보다 짧다(graceful-shutdown.ts) — 그 안에 못 끝나는 백업은
+  // 강제 close 로 끊긴다. 예전엔 핸들러가 없어 docker stop 이 SIGKILL 로 끝냈고 잡이 반쯤 남았다.
   let stopping = false
   const shutdown = async (signal: string): Promise<void> => {
     if (stopping) return

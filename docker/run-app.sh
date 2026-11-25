@@ -11,8 +11,10 @@ set -uo pipefail
 cd /repo
 
 MEDIA_PORT="${MEDIA_PORT:-3001}"
-# 자식들이 내려갈 시간. media 자체 grace(MEDIA_SHUTDOWN_GRACE_MS, 기본 30s)보다 길고
-# compose 의 stop_grace_period 보다 짧아야 Docker 가 그 전에 SIGKILL 하지 않는다.
+# 자식들이 내려갈 시간. 자식 각자의 grace(media MEDIA_SHUTDOWN_GRACE_MS · 알림 워커
+# WORKER_SHUTDOWN_GRACE_MS, 둘 다 기본 30s)보다 길어야 그 뒤의 강제 종료까지 마치고, compose 의
+# stop_grace_period 보다 짧아야 Docker 가 그 전에 SIGKILL 하지 않는다. 이 값이 실제 상한이라
+# 이보다 긴 잡(분 단위 백업)은 stop 에 잘린다.
 SHUTDOWN_GRACE_S="${APP_SHUTDOWN_GRACE_S:-45}"
 # 프로세스별 힙 상한 — 한 프로세스가 컨테이너 메모리를 다 먹어 셋이 함께 OOM 되는 것을 막는다.
 HEAP_WEB_MB="${APP_HEAP_WEB_MB:-768}"
