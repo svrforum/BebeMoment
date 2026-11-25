@@ -27,9 +27,6 @@ const ALLOWLIST: Record<string, string> = {
   'album/attach-assets.ts':
     '쓰기 — 담을 사진 id 가 이 가족 것인지만 확인하고 사진은 돌려주지 않는다',
   'album/update.ts': '쓰기 — 표지로 고른 사진이 이 앨범에 담긴 ready 사진인지만 확인한다',
-  'asset/dedupe.ts': '업로드 중복(sha256) 확인 — 올리는 사람이 이미 그 바이트를 갖고 있다',
-  'asset/list.ts':
-    '운영 코드에서 부르는 곳이 없다(테스트만) — 쓰게 되면 viewerRole 을 받아 거를 것',
   'asset/purge.ts': '쓰기 — 영구 삭제할 행을 찾을 뿐 사진을 돌려주지 않는다',
   'asset/restore.ts': '쓰기 — 복원할 행을 찾을 뿐 사진을 돌려주지 않는다',
   'asset/soft-delete.ts': '쓰기 — 삭제할 행과 권한을 확인할 뿐 사진을 돌려주지 않는다',
