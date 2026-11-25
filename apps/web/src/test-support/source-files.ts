@@ -53,6 +53,36 @@ export function parseText(name: string, text: string): ts.SourceFile {
   )
 }
 
+/**
+ * 주석을 지운 소스 — 정규식으로 코드를 훑는 가드가 주석 속 이름 언급을 코드로 세지 않게 한다.
+ * 줄바꿈은 남겨 줄 번호가 그대로다. 주석 위치는 파서의 토큰 경계에서 얻으므로 문자열·템플릿·
+ * 정규식 리터럴·JSX 본문 안의 `//`·`/*` 는 건드리지 않는다(줄 단위로 `*` 를 보는 방식은
+ * 별표 없이 쓴 여러 줄 블록 주석을 코드로 남겼다).
+ */
+export function stripComments(text: string, name = 'source.ts'): string {
+  const sf = parseText(name, text)
+  const comments = new Map<number, number>()
+  const jsxText: [number, number][] = []
+  const visit = (node: ts.Node): void => {
+    if (ts.isJsxText(node)) jsxText.push([node.pos, node.end])
+    else {
+      for (const r of ts.getLeadingCommentRanges(text, node.pos) ?? []) comments.set(r.pos, r.end)
+      for (const r of ts.getTrailingCommentRanges(text, node.end) ?? []) comments.set(r.pos, r.end)
+    }
+    for (const child of node.getChildren(sf)) visit(child)
+  }
+  visit(sf)
+  let out = ''
+  let at = 0
+  for (const [pos, end] of [...comments].sort((a, b) => a[0] - b[0])) {
+    // `>` 뒤의 JSX 본문을 trailing trivia 로 훑으면 `// hi` 가 주석처럼 잡힌다 — 글자다.
+    if (pos < at || jsxText.some(([s, e]) => pos >= s && pos < e)) continue
+    out += text.slice(at, pos) + text.slice(pos, end).replace(/[^\n]/g, '')
+    at = end
+  }
+  return out + text.slice(at)
+}
+
 export function walkNodes(node: ts.Node, visit: (node: ts.Node) => void): void {
   visit(node)
   ts.forEachChild(node, (child) => walkNodes(child, visit))

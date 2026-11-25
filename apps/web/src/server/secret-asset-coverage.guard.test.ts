@@ -1,6 +1,7 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs'
 import path from 'node:path'
 import { describe, expect, it } from 'vitest'
+import { stripComments } from '../test-support/source-files'
 
 // 보호자 전용(비밀) 스토리에 담긴 사진은 family 역할에게 사진 바이트까지 숨긴다. 그 필터
 // (story/secret-assets.ts)는 각 목록 함수가 직접 불러야 해서, 새 목록·URL 서명 경로가 빠뜨리면
@@ -57,15 +58,6 @@ function sourceFiles(dir: string): string[] {
   return out
 }
 
-/** 줄 주석·블록 주석 줄을 걷어 낸다. 문자열 안의 `/*`(MIME 패턴 등)를 오인하지 않게 줄 단위로만. */
-function stripComments(src: string): string {
-  return src
-    .split('\n')
-    .filter((line) => !/^\s*(?:\/\/|\/\*|\*)/.test(line))
-    .map((line) => line.replace(/\s\/\/\s.*$/, ''))
-    .join('\n')
-}
-
 function exposesAssets(code: string): boolean {
   return EXPOSES_ASSETS.some((re) => re.test(code))
 }
@@ -76,7 +68,7 @@ function appliesFilter(code: string): boolean {
 
 function scan(): { rel: string; exposes: boolean; filters: boolean }[] {
   return sourceFiles(SERVER_ROOT).map((file) => {
-    const code = stripComments(readFileSync(file, 'utf8'))
+    const code = stripComments(readFileSync(file, 'utf8'), file)
     return {
       rel: path.relative(SERVER_ROOT, file).split(path.sep).join('/'),
       exposes: exposesAssets(code),
@@ -101,7 +93,12 @@ describe('비밀 스토리 사진 필터 커버리지', () => {
     expect(exposesAssets('await prismaPublic.albumAsset.findMany({})')).toBe(false)
     expect(exposesAssets('SELECT asset_id FROM story_assets')).toBe(false)
     expect(appliesFilter(stripComments('// hiddenAssetIdsForViewer(role) 를 쓸 것'))).toBe(false)
-    expect(appliesFilter(stripComments(' * listSecretAssetIds(prisma, id) 참고'))).toBe(false)
+    expect(appliesFilter(stripComments('/**\n * listSecretAssetIds(prisma, id) 참고\n */'))).toBe(
+      false,
+    )
+    expect(
+      appliesFilter(stripComments('/*\n  hiddenAssetIdsForViewer(role) 를 부를 것\n*/\nfoo()')),
+    ).toBe(false)
     expect(appliesFilter('const h = await hiddenAssetIdsForViewer(role, p, f)')).toBe(true)
     expect(stripComments("const m = 'image/*'\nfoo()")).toBe("const m = 'image/*'\nfoo()")
   })
