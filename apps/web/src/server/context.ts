@@ -17,9 +17,16 @@ export type Context = {
   capabilities: Capability[]
 }
 
+/** 현재 가족이 정해진 컨텍스트 — resolveContext 는 가족을 돌려줄 때 사용자·멤버십도 함께 채운다. */
+export type ReadyContext = Context & {
+  user: User
+  family: Family
+  membership: Membership
+}
+
 /**
  * Request-scoped context. Deduped across layout + page in one request via React cache().
- * Use this in RSC pages/layouts. API routes still use resolveContext(session, prisma) directly.
+ * Use this in RSC pages/layouts. Member API routes use requireRouteContext (lib/route-context).
  */
 export const getContext = cache(async (): Promise<Context> => {
   const { session } = await getAuth()
