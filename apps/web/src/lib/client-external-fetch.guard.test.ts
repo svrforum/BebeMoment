@@ -1,7 +1,7 @@
 import ts from 'typescript'
 import { describe, expect, it } from 'vitest'
 import {
-  isClientModule,
+  hasDirective,
   lineOf,
   parseSource,
   parseText,
@@ -58,8 +58,28 @@ function requestUrl(node: ts.Node): ts.Expression | undefined {
   return undefined
 }
 
-function externalRequests(sf: ts.SourceFile): number[] {
-  if (!isClientModule(sf)) return []
+const SERVER_ONLY_MODULES = new Set(['server-only', 'next/headers'])
+const SERVER_ONLY_FILE = /(^|\/)(route|actions)\.tsx?$/
+
+/**
+ * 브라우저 번들에 들어갈 수 있는 모듈인지. 'use client' 만 보면 지시문 없는 헬퍼
+ * (src/lib/app-release.ts 처럼 클라이언트 컴포넌트가 import 하는 것)를 놓친다 — 그래서 서버에서만
+ * 도는 곳을 빼고 전부 본다. 서버 컴포넌트도 남는데, 외부 호출은 src/server 나 라우트에 둔다.
+ */
+function browserReachable(rel: string, sf: ts.SourceFile): boolean {
+  if (/^(src\/server|src\/test-support|app\/api)\//.test(rel) || SERVER_ONLY_FILE.test(rel))
+    return false
+  if (hasDirective(sf, 'use server')) return false
+  return !sf.statements.some(
+    (stmt) =>
+      ts.isImportDeclaration(stmt) &&
+      ts.isStringLiteral(stmt.moduleSpecifier) &&
+      SERVER_ONLY_MODULES.has(stmt.moduleSpecifier.text),
+  )
+}
+
+function externalRequests(rel: string, sf: ts.SourceFile): number[] {
+  if (!browserReachable(rel, sf)) return []
   const consts = new Map<string, ts.Expression>()
   walkNodes(sf, (node) => {
     if (
@@ -94,7 +114,7 @@ export function f(xhr: XMLHttpRequest) {
   navigator.sendBeacon(new URL('https://example.com/b'))
 }`,
     )
-    expect(externalRequests(bad)).toEqual([4, 5, 6, 7, 8, 9])
+    expect(externalRequests('src/components/bad.tsx', bad)).toEqual([4, 5, 6, 7, 8, 9])
   })
 
   it('같은 오리진 주소와 서버 모듈은 건드리지 않는다', () => {
@@ -109,9 +129,36 @@ export function f(url: string) {
   window.open('https://example.com', '_blank')
 }`,
     )
-    expect(externalRequests(ok)).toEqual([])
-    const server = parseText('server.ts', `export const r = () => fetch('https://example.com')`)
-    expect(externalRequests(server)).toEqual([])
+    expect(externalRequests('src/components/ok.tsx', ok)).toEqual([])
+  })
+
+  it("지시문 없는 헬퍼도 본다 — 'use client' 컴포넌트가 import 하면 브라우저에서 돈다", () => {
+    const helper = parseText(
+      'app-release.ts',
+      `const RELEASES = 'https://api.github.com/repos/x/y/releases'
+export async function fetchLatestRelease() {
+  return (await fetch(RELEASES)).json()
+}`,
+    )
+    expect(externalRequests('src/lib/app-release.ts', helper)).toEqual([3])
+    expect(externalRequests('app/(app)/page.tsx', helper)).toEqual([3])
+  })
+
+  it('서버에서만 도는 모듈은 건드리지 않는다', () => {
+    const call = `export const r = () => fetch('https://example.com')`
+    for (const rel of [
+      'src/server/app-release/latest.ts',
+      'app/api/app/latest-release/route.ts',
+      'app/(app)/admin/route.ts',
+      'app/(app)/settings/actions.ts',
+    ])
+      expect(externalRequests(rel, parseText(rel, call))).toEqual([])
+    for (const head of [
+      `'use server'`,
+      `import 'server-only'`,
+      `import { headers } from 'next/headers'`,
+    ])
+      expect(externalRequests('src/lib/x.ts', parseText('x.ts', `${head}\n${call}`))).toEqual([])
   })
 
   /**
@@ -120,11 +167,21 @@ export function f(url: string) {
    * 우리 /api 라우트를 거친다(app/api/app/latest-release 가 그 예). 서버에서 curl 로
    * 시험해서는 절대 안 보이는 부류라 정적으로 막는다. 주소를 변수로 넘기는 경우는 못 본다.
    */
-  it("'use client' 모듈 어디에도 절대 주소 요청이 없다", () => {
+  it('브라우저에서 돌 수 있는 모듈 어디에도 절대 주소 요청이 없다', () => {
+    const files = sourceFiles('src', 'app')
+    const scanned = files.filter((rel) => browserReachable(rel, parseSource(rel)))
+    expect(scanned).toEqual(
+      expect.arrayContaining([
+        'src/lib/app-release.ts',
+        'src/lib/push-client.ts',
+        'src/lib/widget-client.ts',
+        'src/components/upload/report-failure.ts',
+      ]),
+    )
     const offenders: string[] = []
-    for (const rel of sourceFiles('src', 'app')) {
+    for (const rel of files) {
       const sf = parseSource(rel)
-      for (const line of externalRequests(sf)) offenders.push(`${rel}:${line}`)
+      for (const line of externalRequests(rel, sf)) offenders.push(`${rel}:${line}`)
     }
     expect(offenders).toEqual([])
   })

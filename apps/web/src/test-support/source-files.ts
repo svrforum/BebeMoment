@@ -62,11 +62,15 @@ export function lineOf(sf: ts.SourceFile, node: ts.Node): number {
   return sf.getLineAndCharacterOfPosition(node.getStart(sf)).line + 1
 }
 
-/** 파일 맨 앞의 지시문 중에 `'use client'` 가 있는지. */
-export function isClientModule(sf: ts.SourceFile): boolean {
+/** 파일 맨 앞의 지시문(`'use client'`·`'use server'` …) 중에 `directive` 가 있는지. */
+export function hasDirective(sf: ts.SourceFile, directive: string): boolean {
   for (const stmt of sf.statements) {
     if (!ts.isExpressionStatement(stmt) || !ts.isStringLiteral(stmt.expression)) return false
-    if (stmt.expression.text === 'use client') return true
+    if (stmt.expression.text === directive) return true
   }
   return false
+}
+
+export function isClientModule(sf: ts.SourceFile): boolean {
+  return hasDirective(sf, 'use client')
 }
