@@ -13,7 +13,7 @@ afterEach(() => {
   else process.env.TZ = savedTz
 })
 
-const birth = new Date('2026-08-27')
+const birth = new Date('2026-05-28')
 
 function photo(id: string, takenAt: string): DayAssetLike {
   return { id, publicNo: 1, ts: new Date(takenAt), status: 'ready', kind: 'image', urls: null }
@@ -21,37 +21,37 @@ function photo(id: string, takenAt: string): DayAssetLike {
 
 describe('groupAssetsByDay', () => {
   it('날짜마다 D+N 과 생후 N일이 함께 하루씩 간다 — 저녁에 찍은 사진도 찍은 날로', () => {
-    // 촬영 시각은 벽시계를 UTC 필드에 담는다 — 10/12 20:20, 10/11 23:10, 10/10 11:15 에 찍은 사진.
+    // 촬영 시각은 벽시계를 UTC 필드에 담는다 — 7/13 20:20, 7/12 23:10, 7/11 11:15 에 찍은 사진.
     const groups = groupAssetsByDay(
       [
-        photo('a', '2026-10-12T20:20:00Z'),
-        photo('b', '2026-10-11T23:10:00Z'),
-        photo('c', '2026-10-10T11:15:00Z'),
+        photo('a', '2026-07-13T20:20:00Z'),
+        photo('b', '2026-07-12T23:10:00Z'),
+        photo('c', '2026-07-11T11:15:00Z'),
       ],
       birth,
       getServerTranslator('ko', 'age'),
     )
 
     expect(groups.map((g) => [g.dateLabel, g.babyDays, g.bucketLabel])).toEqual([
-      ['2026.10.12', 46, '생후 47일'],
-      ['2026.10.11', 45, '생후 46일'],
-      ['2026.10.10', 44, '생후 45일'],
+      ['2026.07.13', 46, '생후 47일'],
+      ['2026.07.12', 45, '생후 46일'],
+      ['2026.07.11', 44, '생후 45일'],
     ])
   })
 })
 
 describe('babyAgeNow', () => {
   it('새벽에도 오늘 날짜로 센다 — 실제 시각은 UTC 로 아직 어제다', () => {
-    // 2026-10-16 08:30 KST
-    expect(babyAgeNow(birth, new Date('2026-10-15T23:30:00Z'))).toEqual({
+    // 2026-07-17 08:30 KST
+    expect(babyAgeNow(birth, new Date('2026-07-16T23:30:00Z'))).toEqual({
       days: 50,
       bucket: { kind: 'days', n: 51 },
     })
   })
 
   it('밤에도 오늘 날짜로 센다', () => {
-    // 2026-10-16 23:59 KST
-    expect(babyAgeNow(birth, new Date('2026-10-16T14:59:00Z'))).toEqual({
+    // 2026-07-17 23:59 KST
+    expect(babyAgeNow(birth, new Date('2026-07-17T14:59:00Z'))).toEqual({
       days: 50,
       bucket: { kind: 'days', n: 51 },
     })

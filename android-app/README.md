@@ -1,8 +1,8 @@
 # bebe Android shell
 
 A single public Android app (Capacitor) for the self-hosted **bebe** family photo
-journal. Immich-style: the user enters their own server URL; the app loads that
-family server in a WebView and receives push via FCM using **each admin's own
+journal. The user enters their own server URL; the app loads that family
+server in a WebView and receives push via FCM using **each admin's own
 Firebase keys** (BYO-FCM).
 
 This project lives **outside** the pnpm workspace (it uses npm) so its Capacitor
@@ -21,7 +21,7 @@ dependencies never churn the monorepo's React-pinned lockfile.
   via the notification's `data.url`.
 
 The server side (token storage, FCM HTTP v1 sending, admin settings) lives in
-`apps/web` — see `docs/superpowers/plans/2026-05-27-android-server-fcm-push.md`.
+`apps/web` (`src/server/notifications/`).
 
 ## Prerequisites
 
@@ -29,8 +29,6 @@ The server side (token storage, FCM HTTP v1 sending, admin settings) lives in
   Capacitor 8's androidx dependencies (`core` 1.17, `activity` 1.11) declare
   `minCompileSdk=36`, so compileSdk/targetSdk 36 and **minSdk 24** are forced —
   Android 5.x (API 22/23) is no longer supported.
-- On this server they're already installed: `~/android-sdk` +
-  `/usr/lib/jvm/java-21-openjdk-amd64` (JDK 17 is still there for other projects).
 
 ## Build
 
@@ -79,13 +77,13 @@ $ANDROID_HOME/build-tools/36.0.0/apksigner verify --print-certs \
   app/build/outputs/apk/release/app-release.apk
 ```
 
-One-time keystore setup (already done on this server at `~/keystores/bebe-release.jks`):
+One-time keystore setup:
 
 ```bash
-keytool -genkeypair -v -keystore ~/keystores/bebe-release.jks \
+keytool -genkeypair -v -keystore /path/to/release.jks \
   -alias bebe -keyalg RSA -keysize 2048 -validity 10000
 # then create android/keystore.properties (gitignored):
-#   storeFile=/abs/path/bebe-release.jks
+#   storeFile=/path/to/release.jks
 #   storePassword=...
 #   keyAlias=bebe
 #   keyPassword=...

@@ -105,13 +105,13 @@ describe.each([
   })
 
   it('정말 그 시간대에서 돈다', () => {
-    expect(new Date('2026-10-11T21:30:00Z').getTimezoneOffset()).toBe(offset)
+    expect(new Date('2026-07-12T21:30:00Z').getTimezoneOffset()).toBe(offset)
   })
 
   it('밤늦게 찍은 사진도 찍은 날로 센다', () => {
-    const birth = new Date('2026-08-27')
-    expect(ageBucket(birth, new Date('2026-10-11T21:30:00Z'))).toEqual({ kind: 'days', n: 46 })
-    expect(ageBucket(birth, new Date('2026-10-12T08:00:00Z'))).toEqual({ kind: 'days', n: 47 })
+    const birth = new Date('2026-05-28')
+    expect(ageBucket(birth, new Date('2026-07-12T21:30:00Z'))).toEqual({ kind: 'days', n: 46 })
+    expect(ageBucket(birth, new Date('2026-07-13T08:00:00Z'))).toEqual({ kind: 'days', n: 47 })
   })
 
   it('생일 당일 밤에 찍은 사진은 주년이다', () => {

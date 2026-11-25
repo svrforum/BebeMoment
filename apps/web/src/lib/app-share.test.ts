@@ -30,10 +30,10 @@ describe('supportsAppShare', () => {
 
 describe('appShareUrl', () => {
   it('링크와 제목을 인코딩해 담는다', () => {
-    const out = appShareUrl('http://x.test/s/abc', '복덩이 & 튼튼')
+    const out = appShareUrl('http://x.test/s/abc', '하늘이 & 바다')
     expect(out.startsWith('bebe://share?')).toBe(true)
     expect(out).toContain(`url=${encodeURIComponent('http://x.test/s/abc')}`)
-    expect(out).toContain(`title=${encodeURIComponent('복덩이 & 튼튼')}`)
+    expect(out).toContain(`title=${encodeURIComponent('하늘이 & 바다')}`)
   })
 
   it('제목이 없어도 링크만으로 만든다', () => {

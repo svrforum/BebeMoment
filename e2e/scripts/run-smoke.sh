@@ -5,7 +5,7 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)"
 cd "$ROOT"
 
-# 3100 은 이 호스트에서 다른 서비스(PM2)가 오래 쓰고 있었다 — 남의 포트를 뺏지 않는다.
+# 3100 은 다른 서비스와 겹치기 쉬워 피한다.
 PORT="${PORT:-3199}"
 export PORT
 
