@@ -236,9 +236,10 @@ Container Manager → 프로젝트 `bebe-moment` → **이미지 → 내려받�
 
 - **app 컨테이너가 계속 재시작 / 로그에 `media exited during startup`** — 미디어 서비스가
   기동하자마자 종료한 것입니다. 그 바로 앞 로그에 `MEDIA_SERVICE_TOKEN, MEDIA_JWT_SECRET must be
-  set (32+ characters)`(빠진 것만 나열)가 있으면 env 탭에 그 값이 빠졌고, `Invalid environment:`
-  와 변수 이름이 있으면 값이 32자보다 짧거나 예시값입니다. env 탭에 `openssl rand -hex 32` 로
-  만든 값을 넣고 프로젝트를 다시 빌드하세요.
+  set (32+ characters)`(빠진 것만 나열)가 있으면 env 탭에 그 값이 빠졌습니다. `Invalid environment:`
+  아래 줄에는 변수 이름과 이유가 나옵니다 — 두 시크릿이면 값이 32자보다 짧거나 예시값이니
+  `openssl rand -hex 32` 로 만든 값을 넣고, 다른 변수면(예: `STORAGE_MODE=s3` 인데 `STORAGE_S3_*`
+  가 비어 있음) 그 이유대로 고친 뒤 프로젝트를 다시 빌드하세요.
 - **페이지는 뜨는데 썸네일이 깨짐** — `MEDIA_PUBLIC_BASE_URL`/`NEXT_PUBLIC_MEDIA_BASE_URL` 에
   값을 넣은 경우입니다. 기본은 상대경로 `/media/...`(미설정)이고, 절대 URL 은 미디어를 별도
   호스트로 분리했을 때만 넣습니다. `:3001`·`PUBLIC_URL` 을 넣었다면 지우고 다시 빌드하세요.

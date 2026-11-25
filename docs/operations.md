@@ -464,7 +464,6 @@ to the `app` service's `environment:` block (the shipped compose passes the ones
 Variables read by *media* or *web* are validated at startup by the shared schema in
 `packages/config/src/env.ts` — in production a malformed value stops the process
 with a message naming the variable. That file is the authoritative list of those
-variables and their defaults. The exceptions are read directly where they are used
-and are not validated: `APP_HEAP_*`, `APP_SHUTDOWN_GRACE_S` and
-`UV_THREADPOOL_SIZE` (`docker/run-app.sh`), `SSE_MAX_PER_USER`,
-`OIDC_ALLOW_LOCAL_FETCH`, `BACKUP_DIR` and `WORKER_SHUTDOWN_GRACE_MS`.
+variables and their defaults. The only exceptions are the supervisor's own knobs,
+read by `docker/run-app.sh` before any Node process starts: `APP_HEAP_*`,
+`APP_SHUTDOWN_GRACE_S` and `UV_THREADPOOL_SIZE`.
