@@ -4,6 +4,7 @@ import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
 import { ForbiddenError } from '../error'
+import { findVisibleAlbumOrThrow } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -29,6 +30,10 @@ export async function detachEntryFromAlbum(
   ) {
     throw new ForbiddenError('album.permissionDenied')
   }
+  await findVisibleAlbumOrThrow(
+    { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+    prismaPublic,
+  )
 
   await prismaPublic.albumStory.deleteMany({
     where: {

@@ -1,11 +1,11 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
 import { resolveCan } from '@bebe/core'
-import { isAlbumSecretForViewer } from './secret-visibility'
+import { findVisibleAlbumOrThrow } from './secret-visibility'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
-import { ForbiddenError, NotFoundError } from '../error'
+import { ForbiddenError } from '../error'
 import { type EnqueueNotification, enqueueNotification } from '../notifications/enqueue'
 
 const Input = z.object({
@@ -28,12 +28,6 @@ export async function attachAssetsToAlbum(
 ): Promise<{ added: number; total: number }> {
   const input = Input.parse(raw)
 
-  const album = await prismaPublic.album.findFirst({
-    where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
-    select: { id: true },
-  })
-  if (!album) throw new NotFoundError('album.notFound')
-
   const membership = await prismaPublic.membership.findUnique({
     where: {
       familyId_userId: { familyId: input.familyId, userId: input.byUserId },
@@ -47,16 +41,10 @@ export async function attachAssetsToAlbum(
   ) {
     throw new ForbiddenError('album.permissionDenied')
   }
-  // family 역할에겐 비밀(또는 조상-secret) 앨범을 읽기 경로처럼 가린다 — 403 이면 그 UUID 에
-  // 숨긴 앨범이 있다는 사실이 드러나므로 읽기와 같은 'album not found' 로 거부한다.
-  if (
-    await isAlbumSecretForViewer(
-      { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
-      prismaPublic,
-    )
-  ) {
-    throw new NotFoundError('album.notFound')
-  }
+  await findVisibleAlbumOrThrow(
+    { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+    prismaPublic,
+  )
 
   const validAssets = await prismaMedia.asset.findMany({
     where: {

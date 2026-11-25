@@ -1,4 +1,24 @@
-import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import type { Album, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
+import { NotFoundError } from '../error'
+
+/** 트랜잭션 안에서도 부를 수 있게 앨범 테이블만 요구한다. */
+type AlbumReader = Pick<PrismaPublic, 'album'>
+
+/** 비밀은 하위로 상속된다 — 자신이나 path 위의 조상 하나라도 비밀이면 비밀. */
+async function isSecretRow(
+  album: Pick<Album, 'secret' | 'path'>,
+  familyId: string,
+  prisma: AlbumReader,
+): Promise<boolean> {
+  if (album.secret) return true
+  const ancestorIds = album.path.split('/').filter(Boolean)
+  if (ancestorIds.length === 0) return false
+  const ancestors = await prisma.album.findMany({
+    where: { id: { in: ancestorIds }, familyId },
+    select: { secret: true },
+  })
+  return ancestors.some((a) => a.secret)
+}
 
 /**
  * 역할 무관 — 이 앨범이 비밀이거나(자신) 비밀 조상 아래 있는지. 인증 경계 밖(공유 링크)에서는
@@ -6,36 +26,48 @@ import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
  */
 export async function isAlbumSecretOrUnderSecret(
   args: { albumId: string; familyId: string },
-  prisma: PrismaPublic,
+  prisma: AlbumReader,
 ): Promise<boolean> {
   const album = await prisma.album.findFirst({
     where: { id: args.albumId, familyId: args.familyId, deletedAt: null },
     select: { secret: true, path: true },
   })
-  if (!album) return false
-  if (album.secret) return true
-  const ancestorIds = album.path.split('/').filter(Boolean)
-  if (ancestorIds.length === 0) return false
-  const ancestors = await prisma.album.findMany({
-    where: { id: { in: ancestorIds }, familyId: args.familyId },
-    select: { secret: true },
-  })
-  return ancestors.some((a) => a.secret)
+  return album ? isSecretRow(album, args.familyId, prisma) : false
 }
 
 /**
  * family 역할에게 이 앨범이 비밀(자신 또는 조상이 secret)인지 — 즉 숨겨야 하는지.
  * owner/guardian 은 항상 false(전부 보임). 존재하지 않는 앨범은 false(호출부가 별도 처리).
- *
- * 자식 목록·앨범 사진·앨범 스토리 읽기와 쓰기 경로(attach-assets/entries·move)가 이걸로
- * 막는다(트리·상세·검색은 이미 읽어 온 행으로 직접 판정한다). family 도 album.asset.attach
- * 능력을 가질 수 있어, 쓰기 경로가 안 막으면 비밀 앨범 UUID 를 알아낸 family 가 그 앨범에
- * 사진을 넣거나(숨긴 앨범 변조) 응답 차이로 존재를 확인할 수 있었다.
+ * 읽기 경로(자식 목록·사진·스토리·통합 검색)가 이걸로 막는다(트리·상세·앨범 검색은 이미 읽어
+ * 온 행으로 직접 판정한다). 쓰기는 findVisibleAlbumOrThrow 로 앨범을 찾는다.
  */
 export async function isAlbumSecretForViewer(
   args: { albumId: string; familyId: string; viewerRole: Role },
-  prisma: PrismaPublic,
+  prisma: AlbumReader,
 ): Promise<boolean> {
   if (args.viewerRole !== 'family') return false
   return isAlbumSecretOrUnderSecret({ albumId: args.albumId, familyId: args.familyId }, prisma)
+}
+
+/**
+ * 앨범 쓰기(담기·빼기·고치기·지우기·옮기기·하위 만들기)가 대상 앨범을 찾는 유일한 길.
+ * 없거나 지운 앨범과 이 뷰어(family)에게 비밀인 앨범을 똑같이 `notFoundKey` 로 거절한다 —
+ * 비밀 앨범 UUID 를 알아낸 family 가 그 앨범을 고치거나 비울 수 있었고, 응답이 '없는 앨범' 과
+ * 다르면(403·성공) 숨긴 앨범이 거기 있다는 사실이 드러났다. 그래서 앨범을 보고 판단하는 권한
+ * 확인(자기 앨범인지 등)보다 먼저 부른다.
+ */
+export async function findVisibleAlbumOrThrow(
+  args: { albumId: string; familyId: string; viewerRole: Role },
+  prisma: AlbumReader,
+  notFoundKey:
+    | 'album.notFound'
+    | 'album.parentNotFound'
+    | 'album.moveTargetNotFound' = 'album.notFound',
+): Promise<Album> {
+  const album = await prisma.album.findFirst({
+    where: { id: args.albumId, familyId: args.familyId, deletedAt: null },
+  })
+  if (!album || (args.viewerRole === 'family' && (await isSecretRow(album, args.familyId, prisma))))
+    throw new NotFoundError(notFoundKey)
+  return album
 }

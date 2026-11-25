@@ -4,9 +4,10 @@ import { resolveCan } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
-import { ConflictError, ForbiddenError, NotFoundError } from '../error'
+import { ConflictError, ForbiddenError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath } from './path'
+import { findVisibleAlbumOrThrow } from './secret-visibility'
 
 const Input = z.object({
   familyId: z.string().uuid(),
@@ -45,10 +46,11 @@ export async function createAlbum(raw: unknown, prismaPublic: PrismaPublic): Pro
   let parentPath: string | null = null
   let parentDepth = -1
   if (input.parentId) {
-    const parent = await prismaPublic.album.findFirst({
-      where: { id: input.parentId, familyId: input.familyId, deletedAt: null },
-    })
-    if (!parent) throw new NotFoundError('album.parentNotFound')
+    const parent = await findVisibleAlbumOrThrow(
+      { albumId: input.parentId, familyId: input.familyId, viewerRole: membership.role },
+      prismaPublic,
+      'album.parentNotFound',
+    )
     if (parent.depth >= MAX_DEPTH) {
       throw new ConflictError(`최대 깊이 (${MAX_DEPTH + 1}단계) 를 넘어요`)
     }

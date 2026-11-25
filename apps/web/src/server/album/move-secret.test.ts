@@ -38,8 +38,7 @@ async function setup() {
 }
 
 describe('moveAlbum 비밀 가시성', () => {
-  // 앨범 쓰기 중 유일하게 비밀 가시성을 안 보던 곳 — family 역할이 비밀 조상 아래 숨어
-  // 있던 앨범을 루트로 옮겨 되드러낼 수 있었다.
+  // family 역할이 비밀 조상 아래 숨어 있던 앨범을 루트로 옮겨 되드러낼 수 있었다.
   it('family 역할은 비밀 조상 아래의 앨범을 옮길 수 없다(존재 비노출)', async () => {
     const { user, family, fam } = await setup()
     await setSetting(

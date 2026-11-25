@@ -6,6 +6,7 @@ import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
 import { ConflictError, ForbiddenError, NotFoundError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
+import { findVisibleAlbumOrThrow } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -29,15 +30,14 @@ export async function updateAlbum(
 ): Promise<Album> {
   const input = Input.parse(raw)
 
-  const album = await prismaPublic.album.findFirst({
-    where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
-  })
-  if (!album) throw new NotFoundError('album.notFound')
-
   const membership = await prismaPublic.membership.findUnique({
     where: { familyId_userId: { familyId: input.familyId, userId: input.byUserId } },
   })
   if (!membership || membership.deletedAt) throw new ForbiddenError('album.memberOnly')
+  const album = await findVisibleAlbumOrThrow(
+    { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+    prismaPublic,
+  )
   const familyCaps = await getFamilyCapabilities(prismaPublic)
   const isOwnAlbum = album.createdByUserId === input.byUserId
   const allowed =

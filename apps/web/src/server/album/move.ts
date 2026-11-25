@@ -1,12 +1,12 @@
 import { getFamilyCapabilities } from '@/server/permissions/family-capabilities'
-import { isAlbumSecretForViewer } from './secret-visibility'
 import { resolveCan } from '@bebe/core'
 import type { Album, PrismaClient as PrismaPublic } from '@bebe/db-public'
 import { z } from 'zod'
 import { revalidateAlbumsTag } from '../cache-tags'
-import { ConflictError, ForbiddenError, NotFoundError } from '../error'
+import { ConflictError, ForbiddenError } from '../error'
 import { isUniqueViolation } from '../prisma-errors'
 import { MAX_DEPTH, computePath, isDescendant, rewritePathPrefix } from './path'
+import { findVisibleAlbumOrThrow } from './secret-visibility'
 
 const Input = z.object({
   albumId: z.string().uuid(),
@@ -44,10 +44,13 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
 
   try {
     const moved = await prismaPublic.$transaction(async (tx) => {
-      const album = await tx.album.findFirst({
-        where: { id: input.albumId, familyId: input.familyId, deletedAt: null },
-      })
-      if (!album) throw new NotFoundError('album.notFound')
+      // 비밀 조상 아래 숨은 앨범을 family 가 루트로 옮기면 자기와 다른 family 멤버에게
+      // 되드러난다. 비밀 앨범 아래로 옮기는 것도 숨긴 앨범의 존재를 확인하는 길이라, 옮길
+      // 앨범과 새 부모 모두 '없는 앨범' 과 같은 응답으로 거절한다.
+      const album = await findVisibleAlbumOrThrow(
+        { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
+        tx,
+      )
 
       const allowed =
         (album.createdByUserId === input.byUserId &&
@@ -55,32 +58,17 @@ export async function moveAlbum(raw: unknown, prismaPublic: PrismaPublic): Promi
         resolveCan(membership.role, 'album.update.any', familyCaps)
       if (!allowed) throw new ForbiddenError('album.moveDenied')
 
-      // 앨범 쓰기 중 유일하게 비밀 가시성을 안 보던 곳이었다 — family 역할이 비밀 조상
-      // 아래 숨어 있던 앨범을 루트로 옮겨 자기와 다른 family 멤버에게 되드러낼 수 있었다.
-      // 읽기 경로와 같은 'not found' 로 거부한다 — 다른 응답이면 숨긴 앨범의 존재가 드러난다.
-      if (
-        await isAlbumSecretForViewer(
-          { albumId: input.albumId, familyId: input.familyId, viewerRole: membership.role },
-          tx as unknown as typeof prismaPublic,
-        )
-      ) {
-        throw new NotFoundError('album.notFound')
-      }
-
       if (input.newParentId === album.id) throw new ConflictError('album.selfParent')
       if (input.newParentId === album.parentId) return album
 
       let newParentPath: string | null = null
       let newParentDepth = -1
       if (input.newParentId) {
-        const parent = await tx.album.findFirst({
-          where: {
-            id: input.newParentId,
-            familyId: input.familyId,
-            deletedAt: null,
-          },
-        })
-        if (!parent) throw new NotFoundError('album.moveTargetNotFound')
+        const parent = await findVisibleAlbumOrThrow(
+          { albumId: input.newParentId, familyId: input.familyId, viewerRole: membership.role },
+          tx,
+          'album.moveTargetNotFound',
+        )
         if (isDescendant(parent.path, album.path)) {
           throw new ConflictError('album.descendantParent')
         }
