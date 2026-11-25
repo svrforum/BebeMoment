@@ -19,8 +19,10 @@ services:
       POSTGRES_DB: bebe
       POSTGRES_USER: bebe
       POSTGRES_PASSWORD: bebe
+    # 호스트 안에서만 연다 — 앱 컨테이너는 도커 네트워크(postgres:5432)로 붙는다.
+    # 0.0.0.0 이면 같은 네트워크의 누구나 이 계정·비밀번호로 접속을 시도할 수 있다.
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"
     volumes:
       - ./.dev/pg:/var/lib/postgresql/data
     healthcheck:
@@ -31,6 +33,6 @@ services:
     image: valkey/valkey:9-alpine
     restart: unless-stopped
     ports:
-      - "6379:6379"
+      - "127.0.0.1:6379:6379"
     volumes:
       - ./.dev/redis:/data
