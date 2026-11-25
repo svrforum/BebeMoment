@@ -36,6 +36,27 @@ function rawClientUses(sf: ts.SourceFile): string[] {
       }
       return
     }
+    // `export … from` 은 import 없이 원본을 이 모듈의 값으로 내보낸다 — 가져오는 쪽은 db 패키지를
+    // 안 보고도 원본을 받는다.
+    if (
+      ts.isExportDeclaration(node) &&
+      node.moduleSpecifier &&
+      ts.isStringLiteral(node.moduleSpecifier) &&
+      DB_PACKAGE.test(node.moduleSpecifier.text) &&
+      !node.isTypeOnly
+    ) {
+      const clause = node.exportClause
+      if (!clause) found.push(`${lineOf(sf, node)} export *`)
+      else if (ts.isNamespaceExport(clause))
+        found.push(`${lineOf(sf, node)} export * as ${clause.name.text}`)
+      else
+        for (const el of clause.elements) {
+          const exported = (el.propertyName ?? el.name).text
+          if (!el.isTypeOnly && RAW_CLIENT.has(exported))
+            found.push(`${lineOf(sf, el)} export ${exported}`)
+        }
+      return
+    }
     if (
       ts.isCallExpression(node) &&
       node.expression.kind === ts.SyntaxKind.ImportKeyword &&
@@ -74,6 +95,26 @@ const c = new PrismaClient()`,
       '3 * as db',
       '6 import()',
       '7 new PrismaClient',
+    ])
+  })
+
+  it('탐지기가 다시 내보내기(re-export)도 알아본다', () => {
+    const sf = parseText(
+      'x.ts',
+      `export { prisma } from '@bebe/db-public'
+export { PrismaClient as Client, Prisma } from '@bebe/db-media'
+export * from '@bebe/db-media'
+export * as db from '@bebe/db-public'
+export { type PrismaClient, AssetStatus } from '@bebe/db-media'
+export type { prisma as typed } from '@bebe/db-public'
+export type * from '@bebe/db-public'
+export { prisma as other } from './elsewhere'`,
+    )
+    expect(rawClientUses(sf)).toEqual([
+      '1 export prisma',
+      '2 export PrismaClient',
+      '3 export *',
+      '4 export * as db',
     ])
   })
 
