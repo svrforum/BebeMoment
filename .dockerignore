@@ -18,8 +18,20 @@ e2e
 test-results
 playwright-report
 *.log
+# 시크릿 — 루트 .env 계열 전부와 apps/web/.env(루트 .env 를 가리키는 심링크). 로컬에서 빌드한
+# 이미지의 /repo 에 컨테이너 env 파일이 실리지 않게.
 .env
-.env.local
+.env.*
+**/.env
+**/.env.*
+# 로컬 작업 산출물(스크린샷·에이전트 작업 폴더)
+/*.png
+.dev-screenshots
+.worktrees
+.serena
+# 테스트는 이미지에서 돌지 않는다 — 실으면 공개 이미지마다 픽스처가 함께 배포된다.
+**/*.test.ts
+**/*.test.tsx
 # 빌드에 안 들어가는 리포 파일 — 컨텍스트에 넣으면 `COPY . .` 레이어가 무효화돼 문서·compose 를
 # 고칠 때마다 next build 를 다시 돌린다. (docker/ 는 엔트리포인트 스크립트 때문에 필요하다.)
 compose
@@ -28,5 +40,4 @@ scripts
 *.md
 .env.example
 biome.jsonc
-vitest.workspace.ts
 .npmrc
