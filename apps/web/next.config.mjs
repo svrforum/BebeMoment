@@ -4,8 +4,8 @@ import createNextIntlPlugin from 'next-intl/plugin'
 // 라우팅 없는 쿠키 기반 i18n — 메시지/로케일은 src/i18n/request.ts 에서 해석.
 const withNextIntl = createNextIntlPlugin('./src/i18n/request.ts')
 
-// 모노레포 루트 = 이 설정 파일(apps/web) 기준 ../.. — 호스트(/opt/stacks/bebe-moment)와
-// Docker(/repo) 양쪽에서 올바르게 해석된다. 절대경로 하드코딩은 컨테이너 빌드에서
+// 모노레포 루트 = 이 설정 파일(apps/web) 기준 ../.. — 소스 체크아웃이 어디에 있든, Docker
+// 빌드(/repo)에서든 올바르게 해석된다. 절대경로 하드코딩은 컨테이너 빌드에서
 // Turbopack "distDirRoot navigates out of projectPath" 로 깨진다.
 const repoRoot = path.join(import.meta.dirname, '..', '..')
 
