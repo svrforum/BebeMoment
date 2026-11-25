@@ -57,6 +57,7 @@ function Thumb({ file }: { file: FileRow }) {
     )
   }
   return src ? (
+    // biome-ignore lint/performance/noImgElement: 업로드 전 로컬 object URL 미리보기 — 서버 파생물이 없다
     <img src={src} alt="" className="h-full w-full rounded-xl object-cover" />
   ) : (
     <div className="flex h-full w-full items-center justify-center rounded-xl bg-base-100 text-[10px] text-base-500 dark:bg-base-800">

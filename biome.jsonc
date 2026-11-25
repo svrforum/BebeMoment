@@ -98,6 +98,11 @@
       },
       "suspicious": {
         "noExplicitAny": "error"
+      },
+      "performance": {
+        // 서버가 준 사진은 PictureImage(형식 협상·placeholder)로만 그린다. 예외(로컬 미리보기·
+        // 아바타·QR·Swiper Zoom 등)는 그 자리에 무시 주석과 사유를 단다.
+        "noImgElement": "error"
       }
     }
   }

@@ -196,6 +196,7 @@ export function InviteManager() {
               <div className="flex flex-col items-center gap-3 rounded-2xl bg-base-0 p-5 dark:bg-base-950">
                 <div className="flex h-[200px] w-[200px] items-center justify-center overflow-hidden rounded-xl bg-white">
                   {qrDataUrl ? (
+                    // biome-ignore lint/performance/noImgElement: 브라우저에서 만든 QR data URL — 서버 파생물이 없다
                     <img
                       src={qrDataUrl}
                       alt={t('invite.qrAlt')}

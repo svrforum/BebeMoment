@@ -271,6 +271,7 @@ export function PictureImage({
     return (
       <span className={className} style={wrapperStyle}>
         {blurhash && <BlurhashCanvas hash={blurhash} aspect={aspectRatio} skip={loaded} />}
+        {/* biome-ignore lint/performance/noImgElement: PictureImage 자신 — 형식 트리오가 없을 때의 단일 URL 폴백 */}
         <img
           // URL 이 바뀌면(자가치유 교체) remount 해 브라우저가 새로 로드하도록 key 를 건다.
           key={effFallback ?? ''}

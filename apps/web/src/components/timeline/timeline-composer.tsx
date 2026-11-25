@@ -433,6 +433,7 @@ export function TimelineComposer({
                       className="h-full w-full object-cover"
                     />
                   ) : a.previewUrl ? (
+                    // biome-ignore lint/performance/noImgElement: 업로드 전 로컬 object URL 미리보기 — 서버 파생물이 없다
                     <img src={a.previewUrl} alt="" className="h-full w-full object-cover" />
                   ) : (
                     <div className="flex h-full w-full items-center justify-center text-[10px] text-base-500">
@@ -660,6 +661,7 @@ function VisibilityOption({
 
 function Avatar({ avatarPath, initial }: { avatarPath: string | null; initial: string }) {
   if (avatarPath) {
+    // biome-ignore lint/performance/noImgElement: 작은 아바타 이미지 — 형식별 파생물이 없다
     return <img src={avatarPath} alt="" className="h-10 w-10 shrink-0 rounded-full object-cover" />
   }
   return (
@@ -671,6 +673,7 @@ function Avatar({ avatarPath, initial }: { avatarPath: string | null; initial: s
 
 function PillAvatar({ avatarPath, initial }: { avatarPath: string | null; initial: string }) {
   if (avatarPath) {
+    // biome-ignore lint/performance/noImgElement: 작은 아바타 이미지 — 형식별 파생물이 없다
     return <img src={avatarPath} alt="" className="h-8 w-8 shrink-0 rounded-full object-cover" />
   }
   return (
