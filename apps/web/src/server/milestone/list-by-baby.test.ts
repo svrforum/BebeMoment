@@ -1,5 +1,4 @@
 import { type FullTestDb, startFullTestDb } from '@/test-support/db'
-import { FakeMediaClient } from '@bebe/media-client'
 import { afterAll, beforeAll, beforeEach, describe, expect, it } from 'vitest'
 import { createAsset } from '../asset/create'
 import { signup } from '../auth/signup'
@@ -63,22 +62,16 @@ describe('listMilestonesByBaby', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    const list = await listMilestonesByBaby(
-      family.id,
-      baby.id,
-      db.prismaPublic,
-      db.prismaMedia,
-      new FakeMediaClient(),
-    )
+    const list = await listMilestonesByBaby(family.id, baby.id, db.prismaPublic)
     expect(list.map((m) => m.achievedAt.toISOString().slice(0, 10))).toEqual([
       '2026-04-01',
       '2026-02-01',
     ])
-    expect(list[0]?.assets).toEqual([])
-    expect(list[1]?.assets).toEqual([])
   })
 
-  it('soft-deleted 자산은 마일스톤 사진에서 제외한다', async () => {
+  // 유일한 화면(마일스톤 체크리스트)은 이름·날짜만 쓴다. 사진을 읽어 서명해 돌려주면 비밀 스토리
+  // 사진까지 거르지 않은 채 서명 URL 이 만들어진다 — 쓰지 않는 사진은 아예 싣지 않는다.
+  it('사진은 싣지 않는다', async () => {
     const { user, family, baby } = await setup()
     const asset = await createAsset(
       {
@@ -112,20 +105,9 @@ describe('listMilestonesByBaby', () => {
       db.prismaPublic,
       db.prismaMedia,
     )
-    await db.prismaMedia.asset.update({
-      where: { id: asset.id, familyId: family.id },
-      data: { deletedAt: new Date() },
-    })
 
-    const list = await listMilestonesByBaby(
-      family.id,
-      baby.id,
-      db.prismaPublic,
-      db.prismaMedia,
-      new FakeMediaClient(),
-    )
-    const target = list.find((x) => x.id === m.id)
-    expect(target?.assets).toHaveLength(1)
-    expect(target?.assets[0]?.asset).toBeNull()
+    const list = await listMilestonesByBaby(family.id, baby.id, db.prismaPublic)
+    expect(list.map((x) => x.id)).toEqual([m.id])
+    expect(list[0]).not.toHaveProperty('assets')
   })
 })

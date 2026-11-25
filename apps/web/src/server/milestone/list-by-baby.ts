@@ -1,42 +1,17 @@
-import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { Milestone, MilestoneAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
-import type { MediaClient } from '@bebe/media-client'
-import type { AssetWithUrls } from '../asset/types'
+import type { Milestone, PrismaClient as PrismaPublic } from '@bebe/db-public'
 
+/**
+ * 아기의 달성한 마일스톤(최근 것부터). 붙은 사진은 싣지 않는다 — 체크리스트는 이름·날짜만
+ * 쓰는데, 사진을 읽어 서명하면 비밀 스토리 사진 필터 없이 서명 URL 이 만들어진다. 사진을 보여
+ * 줄 화면이 생기면 viewerRole 을 받아 hiddenAssetIdsForViewer 로 거른 뒤 싣는다.
+ */
 export async function listMilestonesByBaby(
   familyId: string,
   babyId: string,
   prismaPublic: PrismaPublic,
-  prismaMedia: PrismaMedia,
-  media: MediaClient,
-): Promise<(Milestone & { assets: (MilestoneAsset & { asset: AssetWithUrls | null })[] })[]> {
-  const milestones = await prismaPublic.milestone.findMany({
+): Promise<Milestone[]> {
+  return prismaPublic.milestone.findMany({
     where: { familyId, babyId, deletedAt: null },
-    include: { assets: true },
     orderBy: [{ achievedAt: 'desc' }, { createdAt: 'desc' }],
   })
-
-  const allAssetIds = Array.from(
-    new Set(milestones.flatMap((m) => m.assets.map((ma) => ma.assetId))),
-  )
-  const assets = allAssetIds.length
-    ? await prismaMedia.asset.findMany({
-        where: { id: { in: allAssetIds }, familyId, deletedAt: null },
-      })
-    : []
-  const byId = new Map(assets.map((a) => [a.id, a]))
-
-  const readyIds = assets.filter((a) => a.status === 'ready').map((a) => a.id)
-  const urlsMap = readyIds.length ? await media.getAssetUrlsBatch(familyId, readyIds) : {}
-
-  return milestones.map((m) => ({
-    ...m,
-    assets: m.assets.map((ma) => {
-      const base = byId.get(ma.assetId) ?? null
-      const withUrls: AssetWithUrls | null = base
-        ? { ...base, urls: base.status === 'ready' ? (urlsMap[base.id] ?? null) : null }
-        : null
-      return { ...ma, asset: withUrls }
-    }),
-  }))
 }

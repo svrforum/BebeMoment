@@ -1,8 +1,7 @@
 import { MilestoneChecklist } from '@/components/milestone/MilestoneChecklist'
 import { AppHeader } from '@/components/shell/app-header'
 import { getAuth } from '@/lib/auth'
-import { prismaMedia, prismaPublic } from '@/lib/db-init'
-import { getMediaClient } from '@/lib/media-client'
+import { prismaPublic } from '@/lib/db-init'
 import { resolveContext } from '@/server/context'
 import { listMilestonesByBaby } from '@/server/milestone/list-by-baby'
 import { milestonePresetLabel } from '@/i18n/labels'
@@ -28,13 +27,7 @@ export default async function MilestonesPage({ params }: { params: Promise<{ id:
   if (!baby) notFound()
 
   const presets = await presetsAvailable(ctx.family.id, baby.id, prismaPublic)
-  const milestones = await listMilestonesByBaby(
-    ctx.family.id,
-    baby.id,
-    prismaPublic,
-    prismaMedia,
-    getMediaClient(),
-  )
+  const milestones = await listMilestonesByBaby(ctx.family.id, baby.id, prismaPublic)
   const achieved = milestones.map((m) => ({
     id: m.id,
     label: m.presetKey

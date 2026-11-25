@@ -37,8 +37,6 @@ const ALLOWLIST: Record<string, string> = {
     '순번→UUID 변환만 한다 — 사진은 호출부가 거른 경로(viewer-bundle)로 읽는다',
   'milestone/create.ts': '쓰기 — 붙일 사진 id 가 이 가족의 ready 사진인지 개수만 센다',
   'milestone/update.ts': '쓰기 — 붙일 사진 id 가 이 가족의 ready 사진인지 개수만 센다',
-  'milestone/list-by-baby.ts':
-    '유일한 호출부(성장 기록 페이지)가 이름·날짜만 쓰고 사진은 버린다 — 사진을 내보내게 되면 거를 것',
   'people/backfill.ts': '관리자 얼굴 재인식 — 사진 id 를 큐에 넣고 개수만 돌려준다',
   'share/create.ts':
     '발급 때 id 확인만 — 링크를 열 때 photo-set·public-story·public-album 이 비밀 사진을 뺀다',
