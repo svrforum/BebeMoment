@@ -2,7 +2,8 @@
 import { Share2 } from 'lucide-react'
 import { useTranslations } from 'next-intl'
 import { useMemo, useState } from 'react'
-import { ShareSheet, type SheetTarget } from './share-sheet'
+import type { ShareTarget } from '@/lib/share-kind'
+import { ShareSheet } from './share-sheet'
 
 const CHOICES = ['photo', 'story'] as const
 type Choice = (typeof CHOICES)[number]
@@ -27,7 +28,7 @@ export function ViewerShareButton({
   const [open, setOpen] = useState(false)
   const [choice, setChoice] = useState<Choice>('photo')
   const t = useTranslations('social')
-  const target = useMemo<SheetTarget>(
+  const target = useMemo<ShareTarget>(
     () => (storyId && choice === 'story' ? { kind: 'story', storyId } : { kind: 'asset', assetId }),
     [assetId, storyId, choice],
   )

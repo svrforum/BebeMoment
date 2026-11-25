@@ -1,5 +1,5 @@
 import type { PrismaClient } from '@bebe/db-public'
-import type { ShareTarget } from './create'
+import type { ShareTarget } from '@/lib/share-kind'
 
 export type ShareResolution =
   | { status: 'ok'; target: ShareTarget; familyId: string; createdAt: Date }

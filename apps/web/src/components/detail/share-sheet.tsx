@@ -10,8 +10,6 @@ import { type ReactNode, useCallback, useEffect, useState } from 'react'
 
 type Translate = ReturnType<typeof useTranslations>
 
-export type SheetTarget = ShareTarget
-
 // 목록 조회 쿼리. 선택(컬렉션)은 안정적인 타깃 식별자가 없어 per-target 으로 못 찾으므로,
 // 본인이 만든 링크 전체(mine=1)를 받아 selection 종류만 추려 보여준다(회수 가능하게).
 function listQuery(t: ShareTarget): string | null {

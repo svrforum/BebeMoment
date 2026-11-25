@@ -7,8 +7,6 @@ import { SHARE_SELECTION_MAX } from '@/lib/share-limits'
 import { dayWindow } from './date-assets'
 import { type ShareTtl, expiryFromTtl, generateShareToken } from './token'
 
-export type { ShareTarget }
-
 /**
  * 공유 링크 발급(스토리·단일 사진·앨범·여러 장 선택·날짜). 매 호출마다 새 난수 토큰. 스토리는
  * family-공개만, 사진은 ready 가족 자산만, 앨범은 비밀·삭제 제외. 선택은 ready 가족 자산 N장을
