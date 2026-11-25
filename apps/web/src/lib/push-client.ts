@@ -31,7 +31,7 @@ export function urlBase64ToUint8Array(base64: string): Uint8Array<ArrayBuffer> {
   return output
 }
 
-export async function registerPushSW(): Promise<ServiceWorkerRegistration> {
+async function registerPushSW(): Promise<ServiceWorkerRegistration> {
   return navigator.serviceWorker.register('/push-sw.js')
 }
 
@@ -82,15 +82,11 @@ export async function currentPushEnabled(): Promise<boolean> {
   return Boolean(subscription)
 }
 
-// --- Native (Capacitor / Android app) push ---
-// The Capacitor runtime injects window.Capacitor into the WebView, including on
-// the remote server page. We access the bridge globally so apps/web carries no
-// Capacitor dependency.
+// --- Native app (Capacitor / Android) detection ---
+// The bridge is read off the global so apps/web carries no Capacitor dependency.
+// FCM device registration is done by the native app itself (ServerSync), not here.
 type CapacitorBridge = {
   isNativePlatform?: () => boolean
-  Plugins?: {
-    BebePush?: { initAndGetToken: (cfg: Record<string, string>) => Promise<{ token: string }> }
-  }
 }
 
 function capacitor(): CapacitorBridge | null {
@@ -104,36 +100,4 @@ export function isNativeApp(): boolean {
   // 감지(Android 앱이 UA 에 "bebeApp" 추가, MainActivity.markUserAgent).
   if (typeof navigator !== 'undefined' && navigator.userAgent.includes('bebeApp')) return true
   return false
-}
-
-export async function registerNativePush(): Promise<boolean> {
-  const cap = capacitor()
-  const plugin = cap?.Plugins?.BebePush
-  if (!cap?.isNativePlatform?.() || !plugin) return false
-
-  const cfgRes = await fetch('/api/push/fcm-config')
-  if (!cfgRes.ok) return false
-  const cfg = (await cfgRes.json()) as {
-    configured: boolean
-    apiKey?: string
-    appId?: string
-    projectId?: string
-    messagingSenderId?: string
-  }
-  if (!cfg.configured || !cfg.apiKey || !cfg.appId || !cfg.projectId || !cfg.messagingSenderId) {
-    return false
-  }
-
-  const { token } = await plugin.initAndGetToken({
-    apiKey: cfg.apiKey,
-    appId: cfg.appId,
-    projectId: cfg.projectId,
-    messagingSenderId: cfg.messagingSenderId,
-  })
-  const save = await fetch('/api/notifications/register-device', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ token, platform: 'android' }),
-  })
-  return save.ok
 }

@@ -42,5 +42,4 @@ Toast.displayName = 'Toast'
 
 export const ToastTitle = ToastPrimitive.Title
 export const ToastDescription = ToastPrimitive.Description
-export const ToastAction = ToastPrimitive.Action
 export const ToastClose = ToastPrimitive.Close

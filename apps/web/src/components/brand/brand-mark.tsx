@@ -6,7 +6,7 @@ import { cn } from '@/lib/cn'
  * gradient/mask id 충돌로 모바일에서 빈 사각형으로 깨졌다. PNG 는 그 문제가 없다.
  * 라이트/다크 모두 블루 스퀘어클이라 테마 무관. 크기는 className.
  */
-export function BrandIcon({ className }: { className?: string }) {
+function BrandIcon({ className }: { className?: string }) {
   return (
     // biome-ignore lint/performance/noImgElement: 작은 정적 브랜드 아이콘(최적화 불필요)
     <img

@@ -2,7 +2,7 @@ import { randomBytes } from 'node:crypto'
 
 export type ShareTtl = 'permanent' | '1d' | '7d' | '30d'
 
-export const SHARE_TTLS: ShareTtl[] = ['permanent', '1d', '7d', '30d']
+const SHARE_TTLS: ShareTtl[] = ['permanent', '1d', '7d', '30d']
 
 export function isShareTtl(v: unknown): v is ShareTtl {
   return typeof v === 'string' && (SHARE_TTLS as string[]).includes(v)

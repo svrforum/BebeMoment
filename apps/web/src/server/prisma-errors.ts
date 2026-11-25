@@ -10,14 +10,6 @@ export function isUniqueViolation(err: unknown): boolean {
   return hasCode(err, 'P2002')
 }
 
-export function isForeignKeyViolation(err: unknown): boolean {
-  return hasCode(err, 'P2003')
-}
-
-export function isNotFound(err: unknown): boolean {
-  return hasCode(err, 'P2025')
-}
-
 function hasCode(err: unknown, code: string): boolean {
   return (
     typeof err === 'object' &&

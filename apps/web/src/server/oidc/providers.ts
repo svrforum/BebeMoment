@@ -35,10 +35,6 @@ export async function listProviders(prisma: PrismaClient): Promise<OidcProvider[
   return prisma.oidcProvider.findMany({ orderBy: { createdAt: 'asc' } })
 }
 
-export async function getProvider(id: string, prisma: PrismaClient): Promise<OidcProvider | null> {
-  return prisma.oidcProvider.findUnique({ where: { id } })
-}
-
 export type UpdateProviderInput = {
   name?: string | undefined
   issuer?: string | undefined

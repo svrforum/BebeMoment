@@ -123,7 +123,7 @@ export function psqlScript(
   })
 }
 
-export async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
+async function ensureRole(ownerUrl: string, name: string, password: string): Promise<void> {
   if (!ALLOWED_ROLES.has(name)) throw new ServiceError(500, `허용되지 않은 롤 이름: ${name}`)
   const { stdout } = await runFile('psql', [
     ownerUrl,
