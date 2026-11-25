@@ -218,4 +218,42 @@ describe('listCooccurringPeople covers', () => {
     )
     expect(r.summary[0]?.cover?.assetId).toBe(better)
   })
+
+  // 얼굴 동그라미는 서명 URL 이 붙은 사진이다 — 함께 찍힌 사진 목록에서 비밀 사진을 빼도
+  // 동그라미가 그 사람의 최고 점수 얼굴(비밀 사진 위)을 고르면 바이트가 그대로 나간다.
+  it('does not pick a secret-story photo as the face circle for the family role', async () => {
+    const { user, family, baby } = await setup()
+    const shared = await makeReadyAsset(family.id, user.id)
+    const secret = await makeReadyAsset(family.id, user.id)
+    const me = await db.prismaMedia.person.create({ data: { familyId: family.id, name: null } })
+    const other = await db.prismaMedia.person.create({ data: { familyId: family.id, name: 'X' } })
+    await addFace(family.id, shared, me.id)
+    await addFace(family.id, shared, other.id, 0.4)
+    await addFace(family.id, secret, other.id, 0.95)
+    await createStoryEntry(
+      {
+        familyId: family.id,
+        babyId: baby.id,
+        byUserId: user.id,
+        entryDate: '2026-04-01',
+        body: 'secret',
+        assetIds: [secret],
+        visibility: 'guardians',
+      },
+      db.prismaPublic,
+      db.prismaMedia,
+    )
+
+    const cover = async (viewerRole: 'owner' | 'family') =>
+      (
+        await listCooccurringPeople(
+          { familyId: family.id, personId: me.id, viewerRole },
+          db.prismaMedia,
+          db.prismaPublic,
+          new FakeMediaClient(),
+        )
+      ).summary[0]?.cover?.assetId
+    expect(await cover('family')).toBe(shared)
+    expect(await cover('owner')).toBe(secret)
+  })
 })

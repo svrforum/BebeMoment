@@ -1,5 +1,5 @@
 import { pickVideoPosterUrl, pickVideoUrl } from '@/lib/asset-url'
-import { listSecretAssetIds } from '@/server/story/secret-assets'
+import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
 import type { TimelineSort } from '@/server/timeline/merged-list'
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
 import type { PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
@@ -44,13 +44,12 @@ export async function loadViewerBundle(
     /** 목록에서 대상을 못 찾았을 때 전역(시간순) 이웃으로 넘어갈지. 타임라인처럼 무한
      *  목록의 일부만 받은 경우에만 true — 앨범·스토리는 경계를 지켜야 하므로 false. */
     neighborFallbackToGlobal?: boolean
-    /** 뷰어 역할 — family 면 비밀 스토리 사진을 현재 자산(404)·전역 prev/next 에서 제외.
-     *  prismaPublic 과 함께 주어져야 동작(없으면 비밀 필터 미적용). */
-    viewerRole?: Role
+    /** 뷰어 역할 — family 면 비밀 스토리 사진을 현재 자산(404)·전역 prev/next 에서 제외. */
+    viewerRole: Role
   },
   prismaMedia: PrismaMedia,
   media: MediaClient,
-  prismaPublic?: PrismaPublic,
+  prismaPublic: PrismaPublic,
 ): Promise<ViewerBundle | null> {
   // assetId may be the sequential publicNo (page URL) or the UUID (API route).
   let uuid = args.assetId
@@ -64,11 +63,7 @@ export async function loadViewerBundle(
   }
 
   const asset = await getAssetForFamily(
-    {
-      assetId: uuid,
-      familyId: args.familyId,
-      ...(args.viewerRole ? { viewerRole: args.viewerRole } : {}),
-    },
+    { assetId: uuid, familyId: args.familyId, viewerRole: args.viewerRole },
     prismaMedia,
     media,
     prismaPublic,
@@ -77,10 +72,7 @@ export async function loadViewerBundle(
 
   // 전역 prev/next(컬렉션 밖)에서도 family 에게 비밀 사진을 제외한다. neighborIds 경로는
   // 상위 컬렉션 목록이 이미 비밀 필터를 거쳐 안전하다.
-  const hidden =
-    args.viewerRole === 'family' && prismaPublic
-      ? await listSecretAssetIds(prismaPublic, args.familyId)
-      : []
+  const hidden = await hiddenAssetIdsForViewer(args.viewerRole, prismaPublic, args.familyId)
 
   // prev/next 의 정렬 기준은 타임라인과 일치해야 한다 — 업로드순(createdAt)으로 보던
   // 사용자가 뷰어를 열면 스와이프 이웃도 createdAt 기준이어야 그리드와 어긋나지 않는다.

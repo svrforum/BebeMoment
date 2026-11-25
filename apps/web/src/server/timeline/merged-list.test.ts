@@ -60,7 +60,7 @@ describe('listTimeline', () => {
     const { family } = await setup()
     const { items, nextCursor } = await listTimeline(
       family.id,
-      {},
+      { viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -88,7 +88,7 @@ describe('listTimeline', () => {
     await makeAsset(family.id, user.id, new Date('2026-04-15'), 'a2')
     const { items } = await listTimeline(
       family.id,
-      { limit: 10 },
+      { limit: 10, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -119,7 +119,7 @@ describe('listTimeline', () => {
     )
     const { items } = await listTimeline(
       family.id,
-      { limit: 20 },
+      { limit: 20, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -163,7 +163,7 @@ describe('listTimeline', () => {
 
     const { items } = await listTimeline(
       family.id,
-      { limit: 20 },
+      { limit: 20, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -187,7 +187,7 @@ describe('listTimeline', () => {
     const a3 = await makeAsset(family.id, user.id, new Date('2026-04-20'), 'mid-third')
     const taken = await listTimeline(
       family.id,
-      { limit: 10, sort: 'taken' },
+      { limit: 10, sort: 'taken', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -195,7 +195,7 @@ describe('listTimeline', () => {
     expect(taken.items.map((i) => i.id)).toEqual([a3.id, a1.id, a2.id])
     const uploaded = await listTimeline(
       family.id,
-      { limit: 10, sort: 'uploaded' },
+      { limit: 10, sort: 'uploaded', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -296,12 +296,18 @@ describe('listTimeline', () => {
       await makeAsset(family.id, user.id, new Date(`2026-04-${10 + i}`), `a${i}`)
     }
     const media = new FakeMediaClient()
-    const p1 = await listTimeline(family.id, { limit: 3 }, db.prismaPublic, db.prismaMedia, media)
+    const p1 = await listTimeline(
+      family.id,
+      { limit: 3, viewerRole: 'owner' },
+      db.prismaPublic,
+      db.prismaMedia,
+      media,
+    )
     expect(p1.items.length).toBe(3)
     expect(p1.nextCursor).not.toBeNull()
     const p2 = await listTimeline(
       family.id,
-      { limit: 3, cursor: p1.nextCursor as string },
+      { limit: 3, cursor: p1.nextCursor as string, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -323,7 +329,7 @@ describe('listTimeline — 실패한 자산', () => {
     })
     const { items } = await listTimeline(
       family.id,
-      { limit: 10 },
+      { limit: 10, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -340,7 +346,7 @@ describe('listTimeline — 실패한 자산', () => {
     })
     const { items } = await listTimeline(
       family.id,
-      { limit: 10 },
+      { limit: 10, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -358,7 +364,7 @@ describe('listTimeline — 같은 시각 경계의 키셋 커서', () => {
     for (let i = 0; i < 5; i += 1) {
       const page = await listTimeline(
         familyId,
-        { limit: 1, sort, ...(cursor ? { cursor } : {}) },
+        { limit: 1, sort, ...(cursor ? { cursor } : {}), viewerRole: 'owner' },
         db.prismaPublic,
         db.prismaMedia,
         new FakeMediaClient(),
@@ -427,7 +433,7 @@ describe('listTimeline — until(날짜 점프)', () => {
     const media = new FakeMediaClient()
     const first = await listTimeline(
       family.id,
-      { limit: 1 },
+      { limit: 1, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -436,7 +442,7 @@ describe('listTimeline — until(날짜 점프)', () => {
 
     const jump = await listTimeline(
       family.id,
-      { cursor: first.nextCursor ?? '', until: '2026-09-13', limit: 1 },
+      { cursor: first.nextCursor ?? '', until: '2026-09-13', limit: 1, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -453,7 +459,7 @@ describe('listTimeline — until(날짜 점프)', () => {
 
     const rest = await listTimeline(
       family.id,
-      { cursor: jump.nextCursor ?? '' },
+      { cursor: jump.nextCursor ?? '', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -468,7 +474,7 @@ describe('listTimeline — until(날짜 점프)', () => {
     await makeAsset(family.id, user.id, new Date('2026-09-01T01:00:00Z'), 'v3')
     const jump = await listTimeline(
       family.id,
-      { until: '2026-09-13', limit: 1 },
+      { until: '2026-09-13', limit: 1, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -490,7 +496,7 @@ describe('listTimeline — until(날짜 점프)', () => {
     }
     const jump = await listTimeline(
       family.id,
-      { sort: 'uploaded', until: '2026-09-15', limit: 1 },
+      { sort: 'uploaded', until: '2026-09-15', limit: 1, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -510,14 +516,14 @@ describe('listTimeline — until 커서가 이미 그 날을 지났을 때', () 
     const media = new FakeMediaClient()
     const first = await listTimeline(
       family.id,
-      { limit: 3 },
+      { limit: 3, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
     )
     const jump = await listTimeline(
       family.id,
-      { cursor: first.nextCursor ?? '', until: '2026-09-15', limit: 5 },
+      { cursor: first.nextCursor ?? '', until: '2026-09-15', limit: 5, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,

@@ -109,7 +109,7 @@ describe('listStoryEntries', () => {
     )
     const { items, nextCursor } = await listStoryEntries(
       family.id,
-      {},
+      { viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -152,7 +152,7 @@ describe('listStoryEntries', () => {
     )
     const { items } = await listStoryEntries(
       family.id,
-      { babyId: baby.id },
+      { babyId: baby.id, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -205,7 +205,7 @@ describe('listStoryEntries', () => {
     )
     const { items } = await listStoryEntries(
       family.id,
-      { q: '첫걸음' },
+      { q: '첫걸음', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -214,7 +214,7 @@ describe('listStoryEntries', () => {
     // Pure text query — date-shaped strings no longer leak into entryDate.
     const { items: noisy } = await listStoryEntries(
       family.id,
-      { q: '2026-04-01' },
+      { q: '2026-04-01', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -252,7 +252,7 @@ describe('listStoryEntries', () => {
     )
     const { items } = await listStoryEntries(
       family.id,
-      { date: '2026-04-01' },
+      { date: '2026-04-01', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -303,7 +303,7 @@ describe('listStoryEntries', () => {
     )
     const { items } = await listStoryEntries(
       family.id,
-      { q: '첫걸음', date: '2026-04-01' },
+      { q: '첫걸음', date: '2026-04-01', viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -388,7 +388,7 @@ describe('listStoryEntries', () => {
     const media = new FakeMediaClient()
     const page1 = await listStoryEntries(
       family.id,
-      { limit: 3 },
+      { limit: 3, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -397,7 +397,7 @@ describe('listStoryEntries', () => {
     expect(page1.nextCursor).not.toBeNull()
     const page2 = await listStoryEntries(
       family.id,
-      { limit: 3, cursor: page1.nextCursor as string },
+      { limit: 3, cursor: page1.nextCursor as string, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -433,7 +433,7 @@ describe('listStoryEntries', () => {
     for (let i = 0; i < 5; i += 1) {
       const page = await listStoryEntries(
         family.id,
-        { limit: 1, ...(cursor ? { cursor } : {}) },
+        { limit: 1, ...(cursor ? { cursor } : {}), viewerRole: 'owner' },
         db.prismaPublic,
         db.prismaMedia,
         media,

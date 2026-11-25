@@ -13,7 +13,7 @@ const isCursor = (c: Record<string, unknown>): c is Cursor =>
 export async function listMyBookmarks(
   familyId: string,
   userId: string,
-  params: { cursor?: string; limit?: number; viewerRole?: Role },
+  params: { cursor?: string; limit?: number; viewerRole: Role },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
   media: MediaClient,
@@ -27,11 +27,7 @@ export async function listMyBookmarks(
 
   // family 가 북마크해 둔 사진이라도 비밀 스토리로 들어갔으면 저장됨에서 제외한다. 페이지를
   // 받은 뒤 JS 로 거르면 hasMore 가 거르기 전 개수로 계산돼 목록이 일찍 끝나므로 where 로 내린다.
-  const hidden = await hiddenAssetIdsForViewer(
-    params.viewerRole ?? 'family',
-    prismaPublic,
-    familyId,
-  )
+  const hidden = await hiddenAssetIdsForViewer(params.viewerRole, prismaPublic, familyId)
 
   const items = await prismaPublic.assetBookmark.findMany({
     where: {

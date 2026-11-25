@@ -1,5 +1,5 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { Story, StoryAsset, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import { GRID_URL_TIERS, toGridUrls } from '@/lib/asset-url'
 import { hiddenAssetIdsForViewer } from '@/server/story/secret-assets'
@@ -60,10 +60,9 @@ export async function listTimeline(
     /** Single-day filter (YYYY-MM-DD, UTC day). takenAt/entryDate 가 저장된
      *  값(벽시계 시각을 UTC 로 저장)과 같은 UTC 일자로 매칭 → 캘린더 셀과 정합. */
     date?: string
-    /** Viewer's role — drives diary-entry visibility filtering. Defaults
-     *  to 'family' which is the most restrictive (won't see guardians-only
-     *  entries). Pass 'owner' / 'guardian' to include them. */
-    viewerRole?: 'owner' | 'guardian' | 'family'
+    /** 뷰어 역할 — family 면 비밀(guardians) 스토리와 그 사진을 뺀다. 필수: 선택 인자였을 땐
+     *  빠뜨리면 사진 필터는 family 로, 스토리 필터는 열린 쪽으로 서로 다르게 기울었다. */
+    viewerRole: Role
     /** Sort order. 'taken' (default) = by `takenAt` / `entryDate` desc —
      *  groups reflect when the moment happened. 'uploaded' = by
      *  `createdAt` desc — groups reflect when the item was added to the
@@ -102,11 +101,7 @@ export async function listTimeline(
       : null
 
   // 비밀 스토리(guardians) 사진은 family 에게 그리드·썸네일 모두에서 숨긴다.
-  const hidden = await hiddenAssetIdsForViewer(
-    params.viewerRole ?? 'family',
-    prismaPublic,
-    familyId,
-  )
+  const hidden = await hiddenAssetIdsForViewer(params.viewerRole, prismaPublic, familyId)
 
   // Model B — 사진(자산)이 페이지네이션을 주도하고, 스토리는 "안에 든 사진이
   // 찍힌 날"을 따라간다(스토리 자신의 entryDate/작성일이 아니라). 그래서 자산을

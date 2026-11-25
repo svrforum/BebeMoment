@@ -44,16 +44,13 @@ type CoverRow = {
  * family 역할에겐 비밀 스토리 사진 제외.
  */
 export async function listCooccurringPeople(
-  args: { familyId: string; personId: string; viewerRole?: Role },
+  args: { familyId: string; personId: string; viewerRole: Role },
   prismaMedia: PrismaMedia,
-  prismaPublic?: PrismaPublic,
+  prismaPublic: PrismaPublic,
   media?: MediaClient,
 ): Promise<Cooccurrence> {
   const { familyId, personId } = args
-  const hidden =
-    args.viewerRole === 'family' && prismaPublic
-      ? await hiddenAssetIdsForViewer('family', prismaPublic, familyId)
-      : []
+  const hidden = await hiddenAssetIdsForViewer(args.viewerRole, prismaPublic, familyId)
 
   const rows = await prismaMedia.$queryRawUnsafe<Row[]>(
     `WITH live AS (
@@ -85,7 +82,8 @@ export async function listCooccurringPeople(
     .map(([id, e]) => ({ id, name: e.name, photoCount: e.assets.size, cover: null }))
     .sort((a, b) => b.photoCount - a.photoCount || a.id.localeCompare(b.id))
 
-  // 얼굴 동그라미 — 목록 화면과 같은 기준(살아있는 얼굴 중 점수 최고)으로 고른다.
+  // 얼굴 동그라미 — 목록 화면과 같은 기준(살아있는 얼굴 중 점수 최고, family 에겐 비밀 사진
+  // 제외)으로 고른다. 동그라미는 서명 URL 이 붙은 사진이라 여기서 빠뜨리면 바이트가 나간다.
   if (media && summary.length > 0) {
     const covers = await prismaMedia.$queryRawUnsafe<CoverRow[]>(
       `SELECT DISTINCT ON (f.person_id)
@@ -94,9 +92,11 @@ export async function listCooccurringPeople(
          JOIN media.assets a ON a.id = f.asset_id
         WHERE f.family_id = $1::uuid AND f.person_id = ANY($2::uuid[])
           AND a.deleted_at IS NULL AND a.status = 'ready' AND a.duplicate_of IS NULL
+          AND f.asset_id <> ALL($3::uuid[])
         ORDER BY f.person_id, f.det_score DESC, f.asset_id`,
       familyId,
       summary.map((p) => p.id),
+      hidden,
     )
     const urls = await media.getAssetUrlsBatch(
       familyId,

@@ -1,5 +1,5 @@
 import type { PrismaClient as PrismaMedia } from '@bebe/db-media'
-import type { Story, StoryAsset, PrismaClient as PrismaPublic } from '@bebe/db-public'
+import type { Story, StoryAsset, PrismaClient as PrismaPublic, Role } from '@bebe/db-public'
 import type { MediaClient } from '@bebe/media-client'
 import type { AssetWithUrls } from '../asset/types'
 import { decodeCursor, encodeCursor } from '../cursor'
@@ -46,7 +46,8 @@ export async function listStoryEntries(
     limit?: number
     q?: string
     date?: string
-    viewerRole?: 'owner' | 'guardian' | 'family'
+    /** 필수 — 선택 인자였을 땐 빠뜨리면 스토리 필터는 열리고 사진 필터는 family 로 닫혀 어긋났다. */
+    viewerRole: Role
   },
   prismaPublic: PrismaPublic,
   prismaMedia: PrismaMedia,
@@ -91,9 +92,7 @@ export async function listStoryEntries(
 
   // family 가 보는 (가족 공개) 스토리라도, 그 사진이 비밀 스토리에도 속해 있으면
   // 하이드레이션에서 제외(Rule A — 비밀 사진은 어디서도 안 보인다, get.ts 와 동일).
-  const hidden = new Set(
-    await hiddenAssetIdsForViewer(params.viewerRole ?? 'family', prismaPublic, familyId),
-  )
+  const hidden = new Set(await hiddenAssetIdsForViewer(params.viewerRole, prismaPublic, familyId))
   const allAssetIds = Array.from(
     new Set(page.flatMap((e) => e.assets.map((ea) => ea.assetId).filter((id) => !hidden.has(id)))),
   )

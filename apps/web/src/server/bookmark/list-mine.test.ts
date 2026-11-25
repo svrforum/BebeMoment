@@ -95,7 +95,7 @@ describe('listMyBookmarks', () => {
     const result = await listMyBookmarks(
       family.id,
       user.id,
-      {},
+      { viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       new FakeMediaClient(),
@@ -120,7 +120,7 @@ describe('listMyBookmarks', () => {
     const p1 = await listMyBookmarks(
       family.id,
       user.id,
-      { limit: 3 },
+      { limit: 3, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,
@@ -130,7 +130,7 @@ describe('listMyBookmarks', () => {
     const p2 = await listMyBookmarks(
       family.id,
       user.id,
-      { limit: 3, cursor: p1.nextCursor! },
+      { limit: 3, cursor: p1.nextCursor!, viewerRole: 'owner' },
       db.prismaPublic,
       db.prismaMedia,
       media,

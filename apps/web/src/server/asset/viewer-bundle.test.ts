@@ -65,9 +65,10 @@ describe('loadViewerBundle', () => {
     const { family } = await setup()
     const media = new FakeMediaClient()
     const bundle = await loadViewerBundle(
-      { assetId: '00000000-0000-0000-0000-000000000000', familyId: family.id },
+      { assetId: '00000000-0000-0000-0000-000000000000', familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(bundle).toBeNull()
   })
@@ -79,9 +80,10 @@ describe('loadViewerBundle', () => {
     const cId = await makeReadyAsset(family.id, user.id, 'c1', new Date('2026-04-03'))
     const media = new FakeMediaClient()
     const bundle = await loadViewerBundle(
-      { assetId: bId, familyId: family.id },
+      { assetId: bId, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(bundle).not.toBeNull()
     expect(bundle?.current.id).toBe(bId)
@@ -101,9 +103,10 @@ describe('loadViewerBundle', () => {
     await makeReadyAsset(family.id, user.id, 'b2', new Date('2026-04-02'))
     const media = new FakeMediaClient()
     const bundle = await loadViewerBundle(
-      { assetId: aId, familyId: family.id },
+      { assetId: aId, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(bundle?.prev).toBeNull()
     expect(bundle?.prevId).toBeUndefined()
@@ -116,9 +119,10 @@ describe('loadViewerBundle', () => {
     const bId = await makeReadyAsset(family.id, user.id, 'b3', new Date('2026-04-02'))
     const media = new FakeMediaClient()
     const bundle = await loadViewerBundle(
-      { assetId: bId, familyId: family.id },
+      { assetId: bId, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(bundle?.prev).not.toBeNull()
     expect(bundle?.next).toBeNull()
@@ -136,18 +140,20 @@ describe('loadViewerBundle', () => {
     const media = new FakeMediaClient()
 
     const taken = await loadViewerBundle(
-      { assetId: cId, familyId: family.id, sort: 'taken' },
+      { assetId: cId, familyId: family.id, sort: 'taken', viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     // 촬영순: C(02) 의 이웃은 A(01)←, B(03)→
     expect(taken?.prevId).toBe(aId)
     expect(taken?.nextId).toBe(bId)
 
     const uploaded = await loadViewerBundle(
-      { assetId: cId, familyId: family.id, sort: 'uploaded' },
+      { assetId: cId, familyId: family.id, sort: 'uploaded', viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     // 업로드순: C 는 가장 늦게 올림 → prev=B(직전 업로드), next=없음
     expect(uploaded?.prevId).toBe(bId)
@@ -164,9 +170,10 @@ describe('loadViewerBundle', () => {
     // 컬렉션 순서: [c, a, d] (b 제외). 전역과 같은 방향 매핑이라 a 를 열면
     // nextId=list[i-1]=c, prevId=list[i+1]=d (좌=다음/앞쪽, 우=이전/뒤쪽).
     const bundle = await loadViewerBundle(
-      { assetId: a, familyId: family.id, neighborIds: [c, a, d] },
+      { assetId: a, familyId: family.id, neighborIds: [c, a, d], viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     expect(bundle?.nextId).toBe(c)
     expect(bundle?.prevId).toBe(d)
@@ -179,9 +186,10 @@ describe('loadViewerBundle', () => {
     const a = await makeReadyAsset(family.id, user.id, 'ea', new Date('2026-04-01'))
     const b = await makeReadyAsset(family.id, user.id, 'eb', new Date('2026-04-02'))
     const bundle = await loadViewerBundle(
-      { assetId: b, familyId: family.id, neighborIds: [a, b] },
+      { assetId: b, familyId: family.id, neighborIds: [a, b], viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     // b 는 목록 끝(i=1). nextId=list[0]=a, prevId=list[2]=없음.
     expect(bundle?.nextId).toBe(a)
@@ -197,6 +205,7 @@ describe('loadViewerBundle', () => {
     // 그때 목록만 믿으면 prev/next 가 둘 다 사라져 스와이프가 죽는다 — 전역으로 폴백한다.
     const bundle = await loadViewerBundle(
       {
+        viewerRole: 'owner',
         assetId: a,
         familyId: family.id,
         neighborIds: [c, b],
@@ -204,6 +213,7 @@ describe('loadViewerBundle', () => {
       },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     expect(bundle?.nextId).toBe(b)
     expect(bundle?.prevId).toBeUndefined()
@@ -217,9 +227,10 @@ describe('loadViewerBundle', () => {
     // 앨범·스토리처럼 경계가 계약인 컬렉션(fallback 미허용)에서 목록에 없는 사진을 열면
     // 이웃 없이 둔다 — 전역으로 새면 "앨범을 벗어난다"가 된다.
     const bundle = await loadViewerBundle(
-      { assetId: a, familyId: family.id, neighborIds: [c, b] },
+      { assetId: a, familyId: family.id, neighborIds: [c, b], viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     expect(bundle?.nextId).toBeUndefined()
     expect(bundle?.prevId).toBeUndefined()
@@ -281,9 +292,10 @@ describe('loadViewerBundle', () => {
     await makeReadyAsset(family2.id, user.id, 'b4', new Date('2026-04-02'))
     const media = new FakeMediaClient()
     const bundle = await loadViewerBundle(
-      { assetId: aId, familyId: family.id },
+      { assetId: aId, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(bundle?.next).toBeNull()
     expect(bundle?.prev).toBeNull()
@@ -303,9 +315,10 @@ describe('loadViewerBundle — 같은 takenAt 의 prev/next', () => {
     ).sort()
     const [low, mid, high] = ids as [string, string, string]
     const bundle = await loadViewerBundle(
-      { assetId: mid, familyId: family.id },
+      { assetId: mid, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     // 정렬은 (takenAt desc, id desc): prev = 더 작은 id, next = 더 큰 id.
     expect(bundle?.prevId).toBe(low)
@@ -316,9 +329,10 @@ describe('loadViewerBundle — 같은 takenAt 의 prev/next', () => {
       data: { createdAt: ts },
     })
     const uploaded = await loadViewerBundle(
-      { assetId: mid, familyId: family.id, sort: 'uploaded' },
+      { assetId: mid, familyId: family.id, sort: 'uploaded', viewerRole: 'owner' },
       db.prismaMedia,
       new FakeMediaClient(),
+      db.prismaPublic,
     )
     expect(uploaded?.prevId).toBe(low)
     expect(uploaded?.nextId).toBe(high)

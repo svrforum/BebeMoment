@@ -58,9 +58,10 @@ describe('getAssetForFamily', () => {
     const { family } = await setup()
     const media = new FakeMediaClient()
     const found = await getAssetForFamily(
-      { assetId: '00000000-0000-0000-0000-000000000000', familyId: family.id },
+      { assetId: '00000000-0000-0000-0000-000000000000', familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(found).toBeNull()
   })
@@ -71,9 +72,10 @@ describe('getAssetForFamily', () => {
     const a = await makeAsset(family.id, user.id, 'x1')
     const media = new FakeMediaClient()
     const found = await getAssetForFamily(
-      { assetId: a.id, familyId: family2.id },
+      { assetId: a.id, familyId: family2.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(found).toBeNull()
   })
@@ -84,9 +86,10 @@ describe('getAssetForFamily', () => {
     await updateAssetStatus({ assetId: a.id, familyId: family.id, status: 'ready' }, db.prismaMedia)
     const media = new FakeMediaClient()
     const found = await getAssetForFamily(
-      { assetId: a.id, familyId: family.id },
+      { assetId: a.id, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(found?.id).toBe(a.id)
     expect(found?.urls).not.toBeNull()
@@ -99,9 +102,10 @@ describe('getAssetForFamily', () => {
     const a = await makeAsset(family.id, user.id, 'p1')
     const media = new FakeMediaClient()
     const found = await getAssetForFamily(
-      { assetId: a.id, familyId: family.id },
+      { assetId: a.id, familyId: family.id, viewerRole: 'owner' },
       db.prismaMedia,
       media,
+      db.prismaPublic,
     )
     expect(found?.id).toBe(a.id)
     expect(found?.urls).toBeNull()
