@@ -5,8 +5,8 @@ import android.util.Log;
 import org.json.JSONObject;
 
 /**
- * 네이티브에서 조용히 끝나던 실패에 흔적을 남긴다 (CLAUDE.md §6.5.1 — "재현해야만 원인을
- * 알 수 있는 실패는 실패다").
+ * 네이티브에서 조용히 끝나던 실패에 흔적을 남긴다. 재현해야만 원인을 알 수 있는 실패는
+ * 진단할 수 없는 실패다.
  *
  * 두 단계다:
  *   1. 언제나 logcat 에 남긴다 — `adb logcat -s bebe` 로 바로 보인다.

@@ -6,7 +6,7 @@ import { afterAll, beforeAll, describe, expect, test } from 'vitest'
 /**
  * 살아있는 DB 경계는 **한 방향뿐**이다: `bebe_media` 는 `public` 스키마를 못 읽는다.
  * `apps/media` 는 이 연결 하나만 들고 돌므로(패키지 의존성에도 `@bebe/db-public` 이 없다),
- * 이 REVOKE 가 CLAUDE.md §8/§9 의 "media 는 public 을 안 본다"를 실제로 강제한다.
+ * "media 는 public 을 안 본다"를 실제로 강제하는 것은 이 REVOKE 하나다.
  *
  * 반대 방향은 **경계가 아니다.** `apps/web` 은 `@bebe/db-media` 로 media 스키마를 직접
  * 읽고 쓴다 — 그 쿼리는 `bebe_web` 이 아니라 `DATABASE_URL_MEDIA`(=`bebe_media`) 연결로

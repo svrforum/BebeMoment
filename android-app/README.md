@@ -21,7 +21,8 @@ dependencies never churn the monorepo's React-pinned lockfile.
   via the notification's `data.url`.
 
 The server side (token storage, FCM HTTP v1 sending, admin settings) lives in
-`apps/web` (`src/server/notifications/`).
+`apps/web` (`src/server/notifications/`, `app/api/push/fcm-config`,
+`app/api/notifications/register-device`).
 
 ## Prerequisites
 
@@ -102,7 +103,7 @@ keytool -genkeypair -v -keystore /path/to/release.jks \
   internal-testing track. Play requires a privacy policy + content rating.
 
 ### Re-keying warning
-Keep `~/keystores/bebe-release.jks` + its password backed up. A different key = a
+Keep the keystore file + its password backed up. A different key = a
 different app identity: sideload users must uninstall first, and Play uploads are
 rejected.
 

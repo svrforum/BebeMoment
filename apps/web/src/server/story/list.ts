@@ -23,7 +23,8 @@ function textFilter(qRaw: string) {
 
 /**
  * Date filter — narrows entryDate to a single UTC day (entryDate is stored as
- * wall-clock-as-UTC; see CLAUDE.md §17). Accepts `YYYY-MM-DD`.
+ * wall-clock-as-UTC, so the UTC calendar day is the day the user picked).
+ * Accepts `YYYY-MM-DD`.
  */
 function dateFilter(dateRaw: string): { gte: Date; lt: Date } | null {
   const m = dateRaw.trim().match(/^(\d{4})-(\d{2})-(\d{2})$/)

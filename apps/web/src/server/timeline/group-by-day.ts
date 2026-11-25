@@ -8,8 +8,8 @@ import type { AssetUrls } from '@bebe/media-client'
 /**
  * Per-UTC-day grouping for the timeline grid.
  *
- * takenAt 은 CLAUDE.md / takenat-and-video-pipeline 메모리대로 "벽시계 시각을
- * UTC 로 저장" 한다 (wall-clock-as-UTC). 그래서 d.getUTCFullYear/Month/Date 로
+ * takenAt 은 "벽시계 시각을 UTC 로 저장" 한다 (wall-clock-as-UTC — 찍은 곳의
+ * 시계가 가리킨 시각이 그대로 UTC 필드에 들어 있다). 그래서 d.getUTCFullYear/Month/Date 로
  * 잘라야 캘린더 셀과 정합. 로컬 시각 기반 분리는 timezone 따라 같은 사진이
  * 다른 날로 흘러가서 금지.
  *
@@ -128,7 +128,7 @@ export function groupAssetsByDay(
 }
 
 /**
- * D-day 라벨 포맷팅. CLAUDE.md 가 정한 컨벤션:
+ * D-day 라벨 포맷팅:
  *   days <  0  → 'D' + days   (예: -30 → 'D-30')
  *   days === 0 → 'D-Day'
  *   days >  0  → 'D+' + days   (예: 97 → 'D+97')

@@ -50,8 +50,10 @@ test-results/
 /*.png
 .dev-screenshots/
 
-# Brainstorming workspace (from superpowers plugin)
+# 에디터·에이전트 도구의 로컬 작업 공간 (메모·스크래치·리포 사본 worktree)
 .superpowers/
+.serena/
+.worktrees/
 
 # Serwist PWA service worker build output
 apps/web/public/sw.js
@@ -61,7 +63,7 @@ apps/web/public/workbox-*.js.map
 apps/web/public/swe-worker-*.js
 apps/web/public/swe-worker-*.js.map
 
-# AI 어시스턴트 관련 파일 — GitHub 에 올리지 않음 (로컬 전용)
+# AI 어시스턴트 지침·설정 — 로컬 전용, 리포에 올리지 않음
 CLAUDE.md
 .claude/
 docs/superpowers/
