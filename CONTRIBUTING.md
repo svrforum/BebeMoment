@@ -51,9 +51,11 @@ CI runs the same checks, then `pnpm --filter @bebe/web build` and the Playwright
 smoke tests (`bash e2e/scripts/run-smoke.sh`, which starts its own throwaway
 Postgres/Redis on separate ports). Running the build locally is still the quickest
 way to see errors from `next.config.mjs`, `proxy.ts`, routing or CSP, which lint
-and typecheck miss. CI does **not** build the Docker image, so if you change
-`docker/` (Dockerfile, entrypoint, `run-app.sh`), build and start the image
-yourself.
+and typecheck miss. When `docker/`, `apps/ml/`, `.dockerignore`, `package.json`,
+`pnpm-lock.yaml` or `pnpm-workspace.yaml` change, CI also builds both images
+(without pushing them), but it never starts them. So if you change `docker/`
+(Dockerfile, entrypoint, `run-app.sh`), start the image yourself and check that
+`/api/health` answers and that a page with photos loads.
 
 ## Conventions
 
