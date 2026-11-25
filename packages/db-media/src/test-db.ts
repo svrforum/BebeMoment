@@ -1,14 +1,7 @@
-import { spawn } from 'node:child_process'
-import path from 'node:path'
-import { fileURLToPath } from 'node:url'
 import { PrismaPg } from '@prisma/adapter-pg'
 import { PostgreSqlContainer, type StartedPostgreSqlContainer } from '@testcontainers/postgresql'
-import { Client as PgClient } from 'pg'
 import { PrismaClient } from '../prisma/generated/client/client'
-
-const __filename = fileURLToPath(import.meta.url)
-const __dirname = path.dirname(__filename)
-const REPO_ROOT = path.resolve(__dirname, '..', '..', '..')
+import { createDatabase, databaseUrl, runMigrations } from './test-pg'
 
 export type TestDb = {
   prisma: PrismaClient
@@ -16,45 +9,18 @@ export type TestDb = {
   stop: () => Promise<void>
 }
 
-function runMigrations(pkg: string, databaseUrl: string): Promise<void> {
-  return new Promise((resolve, reject) => {
-    const child = spawn('pnpm', ['--filter', pkg, 'exec', 'prisma', 'migrate', 'deploy'], {
-      cwd: REPO_ROOT,
-      env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: 'inherit',
-    })
-    child.on('exit', (code) =>
-      code === 0 ? resolve() : reject(new Error(`[${pkg}] prisma migrate deploy exit ${code}`)),
-    )
-    child.on('error', reject)
-  })
-}
-
 let dbCounter = 0
 
-function buildUrl(baseUrl: string, dbName: string): string {
-  return baseUrl.replace(/\/[^/?]+(\?|$)/, `/${dbName}$1`)
-}
-
-async function createDatabase(baseUrl: string, dbName: string): Promise<void> {
-  const client = new PgClient({ connectionString: baseUrl })
-  await client.connect()
-  try {
-    await client.query(`CREATE DATABASE "${dbName}"`)
-  } finally {
-    await client.end()
-  }
-}
-
 /**
- * Postgres 위에 fresh database 를 만들고 @bebe/db-public → @bebe/db-media 순서로
- * 마이그레이션을 적용. 반환되는 prisma 는 media 스키마의 isolated client.
+ * public·media 마이그레이션이 다 적용된 새 database. 반환되는 prisma 는 media 스키마의
+ * isolated client(tenant 확장 없음).
  *
- * BEBE_TEST_PG_URL env (vitest globalSetup) 가 있으면 그 위에 CREATE DATABASE 만 —
- * 컨테이너 spin-up 비용 절약. 없으면 fallback 자체 컨테이너.
+ * vitest globalSetup(test-global-setup.ts)이 띄운 컨테이너가 있으면(BEBE_TEST_PG_URL) 그 템플릿을
+ * 복제만 한다. 없으면 자체 컨테이너를 띄우고 마이그레이션을 직접 돌린다(스크립트·단독 실행 호환).
  */
 export async function startTestDb(): Promise<TestDb> {
   const sharedBaseUrl = process.env.BEBE_TEST_PG_URL
+  const template = sharedBaseUrl ? process.env.BEBE_TEST_PG_TEMPLATE : undefined
   let ownContainer: StartedPostgreSqlContainer | null = null
   let baseUrl: string
   if (sharedBaseUrl) {
@@ -69,11 +35,13 @@ export async function startTestDb(): Promise<TestDb> {
   }
 
   const dbName = `bebe_${process.pid}_${++dbCounter}`
-  await createDatabase(baseUrl, dbName)
-  const url = buildUrl(baseUrl, dbName)
+  await createDatabase(baseUrl, dbName, template)
+  const url = databaseUrl(baseUrl, dbName)
 
-  await runMigrations('@bebe/db-public', url)
-  await runMigrations('@bebe/db-media', url)
+  if (!template) {
+    await runMigrations('@bebe/db-public', url)
+    await runMigrations('@bebe/db-media', url)
+  }
 
   const adapter = new PrismaPg({ connectionString: url }, { schema: 'media' })
   const prisma = new PrismaClient({ adapter })

@@ -21,10 +21,19 @@ function runMigrations(pkg: string, databaseUrl: string): Promise<void> {
     const child = spawn('pnpm', ['--filter', pkg, 'exec', 'prisma', 'migrate', 'deploy'], {
       cwd: REPO_ROOT,
       env: { ...process.env, DATABASE_URL: databaseUrl },
-      stdio: 'inherit',
+    })
+    // 성공하면 조용히 — 'Applying migration' 수십 줄은 실패할 때만 보여 준다.
+    let out = ''
+    child.stdout.on('data', (d) => {
+      out += d
+    })
+    child.stderr.on('data', (d) => {
+      out += d
     })
     child.on('exit', (code) =>
-      code === 0 ? resolve() : reject(new Error(`[${pkg}] prisma migrate deploy exit ${code}`)),
+      code === 0
+        ? resolve()
+        : reject(new Error(`[${pkg}] prisma migrate deploy exit ${code}\n${out}`)),
     )
     child.on('error', reject)
   })
@@ -38,38 +47,14 @@ function buildUrl(baseUrl: string, dbName: string): string {
   return baseUrl.replace(/\/[^/?]+(\?|$)/, `/${dbName}$1`)
 }
 
-/**
- * 공유 테스트 컨테이너에서 여러 테스트 DB 가 동시에 db-media 의 bebe_roles 마이그레이션을
- * 돌리면 CREATE ROLE bebe_web/bebe_media(클러스터 전역)가 서로 충돌해 P3018 로 깨진다
- * (병렬 테스트에서 산발적). 컨테이너 시동 직후 한 번 만들어 두면 마이그레이션의 IF NOT
- * EXISTS 가 항상 skip → 레이스 제거(결정적). vitest globalSetup 에서 호출.
- */
-export async function ensureTestRoles(baseUrl: string): Promise<void> {
-  const client = new PgClient({ connectionString: baseUrl })
-  await client.connect()
-  try {
-    await client.query(
-      `DO $$ BEGIN
-         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bebe_web') THEN
-           CREATE ROLE bebe_web LOGIN PASSWORD 'bebe_web_placeholder';
-         END IF;
-         IF NOT EXISTS (SELECT 1 FROM pg_roles WHERE rolname = 'bebe_media') THEN
-           CREATE ROLE bebe_media LOGIN PASSWORD 'bebe_media_placeholder';
-         END IF;
-       END $$;`,
-    )
-  } finally {
-    await client.end()
-  }
-}
-
-async function createDatabase(baseUrl: string, dbName: string): Promise<void> {
+async function createDatabase(baseUrl: string, dbName: string, template?: string): Promise<void> {
   const client = new PgClient({ connectionString: baseUrl })
   await client.connect()
   try {
     // CREATE DATABASE 는 트랜잭션 밖에서만 가능. dbName 은 pid + counter 라 SQL
-    // injection 위험 없음 (식별자 quote 만 적용).
-    await client.query(`CREATE DATABASE "${dbName}"`)
+    // injection 위험 없음 (식별자 quote 만 적용). template 이면 마이그레이션된 DB 를 복제.
+    const from = template ? ` TEMPLATE "${template}"` : ''
+    await client.query(`CREATE DATABASE "${dbName}"${from}`)
   } finally {
     await client.end()
   }
@@ -79,12 +64,13 @@ async function createDatabase(baseUrl: string, dbName: string): Promise<void> {
  * Postgres 위에 fresh database 를 만들고 @bebe/db-public → @bebe/db-media 순서로
  * 마이그레이션을 적용. 반환되는 prisma 는 public 스키마의 isolated client.
  *
- * BEBE_TEST_PG_URL env 가 있으면 (vitest globalSetup 이 띄운 컨테이너) 그 위에
- * CREATE DATABASE 만 — 컨테이너 spin-up 비용 절약. 없으면 fallback 으로 자체
- * 컨테이너를 띄움(스크립트·단독 실행 호환).
+ * BEBE_TEST_PG_URL env 가 있으면 (vitest globalSetup — @bebe/db-media 의 test-global-setup.ts
+ * 가 띄운 컨테이너) 그 템플릿 DB 를 복제만 한다. 없으면 fallback 으로 자체 컨테이너를 띄우고
+ * 마이그레이션을 직접 돌린다(스크립트·단독 실행 호환).
  */
 export async function startTestDb(): Promise<TestDb> {
   const sharedBaseUrl = process.env.BEBE_TEST_PG_URL
+  const template = sharedBaseUrl ? process.env.BEBE_TEST_PG_TEMPLATE : undefined
   let ownContainer: StartedPostgreSqlContainer | null = null
   let baseUrl: string
   if (sharedBaseUrl) {
@@ -99,11 +85,13 @@ export async function startTestDb(): Promise<TestDb> {
   }
 
   const dbName = `bebe_${process.pid}_${++dbCounter}`
-  await createDatabase(baseUrl, dbName)
+  await createDatabase(baseUrl, dbName, template)
   const url = buildUrl(baseUrl, dbName)
 
-  await runMigrations('@bebe/db-public', url)
-  await runMigrations('@bebe/db-media', url)
+  if (!template) {
+    await runMigrations('@bebe/db-public', url)
+    await runMigrations('@bebe/db-media', url)
+  }
 
   const adapter = new PrismaPg({ connectionString: url }, { schema: 'public' })
   const prisma = new PrismaClient({ adapter })
